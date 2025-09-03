@@ -45,23 +45,22 @@
   },
   {
     "slug": "copy-field",
-    "title": "フィールド値一括コピー",
-    "titleEn": "Bulk Field Value Copy",
-    "price": 200,
-    "priceUsd": 1.5,
-    "summary": "選択フィールドの値を他レコードに一括コピー。作業効率10倍アップ。",
-    "summaryEn": "Bulk copy selected field values to other records. 10x efficiency boost.",
-    "tags": ["一覧画面", "レコード編集", "コピー"],
+    "title": "フィールドバリューコピー",
+    "titleEn": "Field Value Copy",
+    "price": 100,
+    "priceUsd": 1,
+    "summary": "フィールドの値をクリップボードにコピー。ボタンを好きなフィールドに配置。",
+    "summaryEn": "Copy selected field values to Clip-board.",
+    "tags": ["一覧画面", "詳細画面", "コピー"],
     "tagsEn": ["List View", "Record Edit", "Copy"],
-    "image": "assets/placeholder.svg",
+    "image": "assets/value-copy.png",
     "storesUrl": "https://stores.jp/example/copy-field",
     "storesUrlEn": "https://stores.jp/example/copy-field-en",
     "screens": "PC / 一覧画面",
     "screensEn": "PC / List View",
     "features": [
-      "複数レコード一括選択",
+      "テーマ色剪定"
       "フィールド指定コピー",
-      "確認ダイアログ付き"
     ],
     "featuresEn": [
       "Multiple record bulk selection",
@@ -77,7 +76,7 @@
     "faq": [
       {
         "q": "どんなフィールドに対応？",
-        "a": "文字列、数値、日付、ラジオボタン、チェックボックスなど基本フィールドに対応。"
+        "a": "文字列、数値、日付など基本フィールドに対応。"
       }
     ],
     "faqEn": [
