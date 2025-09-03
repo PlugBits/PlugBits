@@ -59,8 +59,8 @@
     "screens": "PC / 一覧画面",
     "screensEn": "PC / List View",
     "features": [
-      "テーマ色選定"
-      "フィールド指定コピー",
+      "テーマ色選定",
+      "フィールド指定コピー"
     ],
     "featuresEn": [
       "Multiple record bulk selection",
