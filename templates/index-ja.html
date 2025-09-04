@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="ja" class="kb-root">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>商品一覧 | %%SITE_NAME_JA%%</title>
+  <meta name="description" content="Kintone向けミニプラグインの商品一覧ページ。">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="kb-container">
+    <!-- 1) 言語/通貨切替 -->
+    <nav class="kb-language-switcher">
+      <span class="kb-back">　</span>
+      <div class="kb-switches">
+        <a class="kb-lang" href="en/index.html">EN</a>
+        <button class="kb-currency-btn active" data-currency="JPY">JPY</button>
+        <button class="kb-currency-btn" data-currency="USD">USD</button>
+      </div>
+    </nav>
+
+    <header class="kb-section kb-product-hero">
+      <h1>商品一覧</h1>
+      <p class="kb-summary">小さく速いKintone向けプラグインのコレクション。</p>
+    </header>
+
+    <section class="kb-section">
+      <div class="kb-info-grid" id="kb-product-grid">
+        %%PRODUCT_CARDS_JA%%
+      </div>
+    </section>
+
+    <footer class="kb-footer">
+      <a href="mailto:%%SUPPORT_MAIL%%">不具合報告</a> |
+      <a href="terms.html">利用規約</a>
+      <div class="kb-copy">%%SITE_COPYRIGHT%%</div>
+    </footer>
+  </div>
+
+  <script>
+  // 通貨切替（一覧：全カード）
+  const buttons = document.querySelectorAll('.kb-currency-btn');
+  function setCurrency(cur){
+    buttons.forEach(b=>b.classList.toggle('active', b.dataset.currency===cur));
+    localStorage.setItem('preferred-currency', cur);
+    // 複数の価格を一括置換
+    document.querySelectorAll('[data-price-jpy][data-price-usd]').forEach(el=>{
+      el.textContent = cur==='USD' ? ('$' + el.dataset.priceUsd) : ('¥' + el.dataset.priceJpy);
+    });
+  }
+  const saved = localStorage.getItem('preferred-currency') || 'JPY';
+  setCurrency(saved);
+  buttons.forEach(b=>b.addEventListener('click', ()=>setCurrency(b.dataset.currency)));
+  </script>
+</body>
+</html>
