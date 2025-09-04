@@ -68,21 +68,42 @@ function renderRelated(lines){
 
 // 一覧カード（既存のグリッド/カードに合う軽量マークアップ）
 function cardJA(p){
+  const tags = String(p.tags_ja||'').split(',').map(s=>s.trim()).filter(Boolean)
+    .slice(0,3).map(t=>`<span class="kb-badge">${esc(t)}</span>`).join('');
   return `
-  <a class="kb-related-card" href="products/${p.slug}.html">
-    <img class="kb-hero-image" src="${esc(p.hero_image)}" alt="${esc(p.title_ja)}" loading="lazy">
-    <div class="kb-related-title">${esc(p.title_ja)}</div>
-    <div class="kb-related-meta">${esc(p.category_ja)} / ${esc(p.supported_screens_ja)}</div>
-    <div class="kb-related-price" data-price-jpy="${esc(p.price_jpy)}" data-price-usd="${esc(p.price_usd)}">¥${esc(p.price_jpy)}</div>
+  <a class="kb-card" href="products/${p.slug}.html">
+    <div class="kb-card-img">
+      <img class="kb-hero-image" src="${esc(p.hero_image)}" alt="${esc(p.title_ja)}" loading="lazy">
+    </div>
+    <div class="kb-card-body">
+      <h3 class="kb-card-title">${esc(p.title_ja)}</h3>
+      <div class="kb-card-sub">${esc(p.category_ja)}・${esc(p.supported_screens_ja)}</div>
+      <div class="kb-badges">${tags}</div>
+      <div class="kb-card-foot">
+        <div class="kb-price-badge" data-price-jpy="${esc(p.price_jpy)}" data-price-usd="${esc(p.price_usd)}">¥${esc(p.price_jpy)}</div>
+        <span class="kb-btn ghost">詳細</span>
+      </div>
+    </div>
   </a>`;
 }
+
 function cardEN(p){
+  const tags = String(p.tags_en||'').split(',').map(s=>s.trim()).filter(Boolean)
+    .slice(0,3).map(t=>`<span class="kb-badge">${esc(t)}</span>`).join('');
   return `
-  <a class="kb-related-card" href="products/en/${p.slug}.html">
-    <img class="kb-hero-image" src="../${esc(p.hero_image)}" alt="${esc(p.title_en)}" loading="lazy">
-    <div class="kb-related-title">${esc(p.title_en)}</div>
-    <div class="kb-related-meta">${esc(p.category_en)} / ${esc(p.supported_screens_en)}</div>
-    <div class="kb-related-price" data-price-jpy="${esc(p.price_jpy)}" data-price-usd="${esc(p.price_usd)}">¥${esc(p.price_jpy)}</div>
+  <a class="kb-card" href="products/en/${p.slug}.html">
+    <div class="kb-card-img">
+      <img class="kb-hero-image" src="../${esc(p.hero_image)}" alt="${esc(p.title_en)}" loading="lazy">
+    </div>
+    <div class="kb-card-body">
+      <h3 class="kb-card-title">${esc(p.title_en)}</h3>
+      <div class="kb-card-sub">${esc(p.category_en)} · ${esc(p.supported_screens_en)}</div>
+      <div class="kb-badges">${tags}</div>
+      <div class="kb-card-foot">
+        <div class="kb-price-badge" data-price-jpy="${esc(p.price_jpy)}" data-price-usd="${esc(p.price_usd)}">¥${esc(p.price_jpy)}</div>
+        <span class="kb-btn ghost">Details</span>
+      </div>
+    </div>
   </a>`;
 }
 
