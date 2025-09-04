@@ -221,3 +221,12 @@ buildIndexes();
 copyStatic();
 buildSitemap();
 console.log('Build completed.');
+
+const fs = require('fs');
+const path = require('path');
+const DIST = path.join(__dirname, '..', 'dist');
+
+// 既存の buildProducts()/buildIndexes()/copyStatic()/buildSitemap() の後に追加
+fs.writeFileSync(path.join(DIST, '.nojekyll'), '');
+console.log('Created .nojekyll');
+
