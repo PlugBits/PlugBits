@@ -2,10 +2,12 @@ name: Build & Deploy Pages
 on:
   push:
     branches: [ main ]
+
 permissions:
   contents: read
   pages: write
   id-token: write
+
 concurrency:
   group: "pages"
   cancel-in-progress: true
@@ -20,7 +22,9 @@ jobs:
           node-version: '20'
       - run: npm ci || npm i
       - run: node scripts/build.js
-      - uses: actions/upload-pages-artifact@v3
+      # 👇 dist フォルダだけを Pages 用アーティファクトにアップロード
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
         with:
           path: ./dist
 
