@@ -1,0 +1,99 @@
+<!-- products/en/{{slug}}.html -->
+<!DOCTYPE html>
+<html lang="en" class="kb-root">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>%%TITLE_EN%% | %%SITE_NAME_EN%%</title>
+  <meta name="description" content="%%SUMMARY_EN%%">
+  <meta property="og:title" content="%%TITLE_EN%% | %%SITE_NAME_EN%%">
+  <meta property="og:description" content="%%SUMMARY_EN%%">
+  <meta property="og:type" content="website">
+  <link rel="stylesheet" href="../../style.css">
+</head>
+<body>
+  <div class="kb-container">
+    <nav class="kb-language-switcher">
+      <a class="kb-back" href="../../index.html">← Back to Products</a>
+      <div class="kb-switches">
+        <a class="kb-lang" href="../%%SLUG%%.html">JP</a>
+        <button class="kb-currency-btn active" data-currency="JPY">JPY</button>
+        <button class="kb-currency-btn" data-currency="USD">USD</button>
+      </div>
+    </nav>
+
+    <header class="kb-product-hero">
+      <h1>%%TITLE_EN%%</h1>
+      <p class="kb-summary">%%SUMMARY_EN%%</p>
+      <div class="kb-tags">%%TAGS_EN_HTML%%</div>
+      <div class="kb-price">
+        <span id="product-price">¥%%PRICE_JPY%%</span>
+        <a class="kb-buy-btn" href="%%PURCHASE_URL%%" target="_blank" rel="noopener">Buy</a>
+      </div>
+      <img class="kb-hero-image" src="../../%%HERO_IMAGE%%" alt="%%TITLE_EN%%">
+    </header>
+
+    <section class="kb-section">
+      <div class="kb-info-grid">
+        <div><strong>Supported screens</strong><div>%%SUPPORTED_SCREENS_EN%%</div></div>
+        <div><strong>Category</strong><div>%%CATEGORY_EN%%</div></div>
+        <div><strong>File size</strong><div>%%FILE_SIZE_EN%%</div></div>
+        <div><strong>Updated</strong><div>%%UPDATED_AT_EN%%</div></div>
+      </div>
+    </section>
+
+    <section class="kb-section">
+      <h2>Features</h2>
+      <ul class="kb-feature-list">%%FEATURES_EN_HTML%%</ul>
+    </section>
+
+    <section class="kb-section">
+      <h2>Screenshots</h2>
+      <div class="kb-screenshots">%%SCREENSHOTS_EN_HTML%%</div>
+    </section>
+
+    <section class="kb-section">
+      <h2>How to use</h2>
+      <div class="kb-steps">%%STEPS_EN_HTML%%</div>
+    </section>
+
+    <section class="kb-section">
+      <h2>Limitations</h2>
+      <ul class="kb-limitation-list">%%LIMITATIONS_EN_HTML%%</ul>
+    </section>
+
+    <section class="kb-section">
+      <h2>Related products</h2>
+      <div class="kb-related-products">%%RELATED_EN_HTML%%</div>
+    </section>
+
+    <section class="kb-section kb-purchase-cta">
+      <h2>%%CTA_HEADLINE_EN%%</h2>
+      <p>%%CTA_TEXT_EN%%</p>
+      <a class="kb-buy-cta-btn" href="%%PURCHASE_URL%%" target="_blank" rel="noopener">Buy Now</a>
+    </section>
+
+    <footer class="kb-footer">
+      <a href="mailto:%%SUPPORT_MAIL%%">Report an issue</a> |
+      <a href="../../terms.html">Terms</a>
+      <div class="kb-copy">%%SITE_COPYRIGHT%%</div>
+    </footer>
+  </div>
+
+  <script>
+  // Currency switcher (single product)
+  const productPriceJPY = %%PRICE_JPY%%;
+  const productPriceUSD = %%PRICE_USD%%;
+  const priceEl = document.getElementById('product-price');
+  const buttons = document.querySelectorAll('.kb-currency-btn');
+  function setCurrency(cur){
+    buttons.forEach(b=>b.classList.toggle('active', b.dataset.currency===cur));
+    localStorage.setItem('preferred-currency', cur);
+    priceEl.textContent = cur==='USD' ? ('$' + productPriceUSD) : ('¥' + productPriceJPY);
+  }
+  const saved = localStorage.getItem('preferred-currency') || 'JPY';
+  setCurrency(saved);
+  buttons.forEach(b=>b.addEventListener('click', ()=>setCurrency(b.dataset.currency)));
+  </script>
+</body>
+</html>
