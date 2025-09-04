@@ -742,3 +742,67 @@
 [lang="en"] .kb-text-content p {
   line-height: 1.7;
 }
+
+/* ====== Layout polish (safe add-on) ====== */
+.kb-container { max-width: 1080px; margin: 0 auto; padding: 24px; }
+
+/* Hero band */
+.kb-product-hero.kb-list-hero {
+  padding: 32px 24px; border-radius: 16px;
+  background: radial-gradient(1200px 400px at 10% -20%, rgba(0,114,255,.08), transparent),
+              linear-gradient(180deg, rgba(0,0,0,0.02), transparent);
+  margin-bottom: 24px;
+}
+.kb-product-hero.kb-list-hero h1 { font-size: 28px; margin: 0 0 6px; }
+.kb-product-hero.kb-list-hero .kb-summary { color: #5b6b7a; margin: 0; }
+
+/* Grid */
+#kb-product-grid { 
+  display: grid; 
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); 
+  gap: 20px; 
+}
+
+/* Card (reusing related styles) */
+.kb-related-card {
+  display: block; background: #fff; border: 1px solid #e8edf3; border-radius: 16px;
+  overflow: hidden; text-decoration: none;
+  box-shadow: 0 1px 2px rgba(16,24,40,.04);
+  transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
+}
+.kb-related-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(16,24,40,.08);
+  border-color: #d7e3f3;
+}
+
+/* Card image */
+.kb-related-card .kb-hero-image {
+  width: 100%; height: 160px; object-fit: contain; background: #f6f9fc;
+}
+
+/* Card body */
+.kb-related-title { 
+  font-weight: 600; color: #0b1f33; padding: 12px 14px 4px; line-height: 1.3;
+}
+.kb-related-meta { 
+  padding: 0 14px 8px; color: #5b6b7a; font-size: 12.5px;
+}
+.kb-related-price { 
+  padding: 10px 14px 14px; font-weight: 700; color: #0b1f33;
+}
+
+/* Language / currency bar subtle polish */
+.kb-language-switcher {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 16px;
+}
+.kb-back { color: #3a6fd8; text-decoration: none; }
+.kb-back:hover { text-decoration: underline; }
+.kb-currency-btn { 
+  border: 1px solid #d9e1ec; padding: 6px 10px; border-radius: 10px; background: #fff; cursor: pointer;
+}
+.kb-currency-btn.active { background: #ecf3ff; border-color: #bcd1ff; }
+
+/* Footer spacing */
+.kb-footer { margin-top: 28px; padding-top: 16px; border-top: 1px solid #eef2f7; color:#5b6b7a; }
