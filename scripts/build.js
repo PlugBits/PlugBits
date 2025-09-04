@@ -1,8 +1,8 @@
 const fs = require('fs');
 const path = require('path');
+const DIST = path.join(__dirname, '..', 'dist');
 
 const ROOT = path.join(__dirname, '..');
-const DIST = path.join(ROOT, 'dist');
 const PRODUCTS_DIR = path.join(DIST, 'products');
 const PRODUCTS_EN_DIR = path.join(PRODUCTS_DIR, 'en');
 
