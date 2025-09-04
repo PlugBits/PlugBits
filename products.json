@@ -54,8 +54,8 @@
     "tags": ["一覧画面", "詳細画面", "コピー"],
     "tagsEn": ["List View", "Record Edit", "Copy"],
     "image": "assets/value-copy.png",
-    "storesUrl": "https://stores.jp/example/copy-field",
-    "storesUrlEn": "https://stores.jp/example/copy-field-en",
+    "storesUrl": "https://stores.jp/example/value-copy",
+    "storesUrlEn": "https://stores.jp/example/value-copy-en",
     "screens": "PC / 一覧画面",
     "screensEn": "PC / List View",
     "features": [
