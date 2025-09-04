@@ -808,10 +808,10 @@
 .kb-footer { margin-top: 28px; padding-top: 16px; border-top: 1px solid #eef2f7; color:#5b6b7a; }
 
 /* 強制的にカードのグリッドにする（一覧だけ上書き） */
-#kb-product-grid {
+.kb-product-grid {
   display: grid !important;
   grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)) !important;
   gap: 20px !important;
 }
-#kb-product-grid > * { grid-column: auto !important; } /* 子要素の全幅指定を無効化 */
+.kb-product-grid > * { grid-column: auto !important; } /* 子要素の全幅指定を無効化 */
 
