@@ -815,3 +815,45 @@
 }
 #kb-product-grid > * { grid-column: auto !important; } /* 子要素の全幅指定を無効化 */
 
+/* ===== Polished product list ===== */
+#kb-product-grid { display: grid; gap: 28px; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
+
+/* Card container */
+.kb-card {
+  display: grid; grid-template-rows: 170px auto;
+  background: #fff; border: 1px solid #e6eef7; border-radius: 16px; overflow: hidden;
+  text-decoration: none; color: inherit;
+  box-shadow: 0 1px 2px rgba(16,24,40,.04);
+  transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
+}
+.kb-card:hover { transform: translateY(-3px); box-shadow: 0 10px 26px rgba(16,24,40,.10); border-color: #d6e3f7; }
+
+/* Card image area */
+.kb-card-img { background: linear-gradient(180deg,#f6f9ff, #eff4fb); display:flex; align-items:center; justify-content:center; }
+.kb-card-img .kb-hero-image { width: 80%; height: 80%; object-fit: contain; filter: drop-shadow(0 6px 12px rgba(0,0,0,.06)); }
+
+/* Card body */
+.kb-card-body { padding: 14px 16px 16px; display:flex; flex-direction:column; gap:8px; }
+.kb-card-title { font-size: 15.5px; line-height: 1.4; font-weight: 700; letter-spacing:.1px; }
+.kb-card-sub { font-size: 12.5px; color:#5b6b7a; }
+.kb-badges { display:flex; gap:6px; flex-wrap:wrap; }
+.kb-badge { font-size: 11.5px; padding: 3px 8px; border-radius: 999px; background:#eef4ff; color:#325bcb; border:1px solid #d9e6ff; }
+
+/* Footer row */
+.kb-card-foot { margin-top: 6px; display:flex; align-items:center; justify-content:space-between; }
+.kb-price-badge { font-weight: 800; letter-spacing:.2px; background:#0b1f33; color:#fff; padding:6px 10px; border-radius:10px; }
+
+/* Button */
+.kb-btn { display:inline-block; font-size: 12.5px; padding:8px 12px; border-radius:10px; font-weight:600; }
+.kb-btn.ghost { border:1px solid #d7e3f3; color:#2a4a86; background:#fff; }
+.kb-btn.ghost:hover { background:#edf4ff; border-color:#c7daf9; }
+
+/* Hero polish on list */
+.kb-product-hero.kb-list-hero {
+  padding: 28px 24px; border-radius: 18px; margin-bottom: 20px;
+  background:
+    radial-gradient(800px 260px at 10% -20%, rgba(55,125,255,.12), transparent),
+    linear-gradient(180deg, rgba(0,0,0,.02), transparent);
+}
+
+
