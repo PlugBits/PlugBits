@@ -1,0 +1,115 @@
+<!-- products/{{slug}}.html -->
+<!DOCTYPE html>
+<html lang="ja" class="kb-root">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>%%TITLE_JA%% | %%SITE_NAME_JA%%</title>
+  <meta name="description" content="%%SUMMARY_JA%%">
+  <meta property="og:title" content="%%TITLE_JA%% | %%SITE_NAME_JA%%">
+  <meta property="og:description" content="%%SUMMARY_JA%%">
+  <meta property="og:type" content="website">
+  <link rel="stylesheet" href="../style.css">
+</head>
+<body>
+  <div class="kb-container">
+    <!-- 1) 言語/通貨切替 -->
+    <nav class="kb-language-switcher">
+      <a class="kb-back" href="../index.html">← 商品一覧に戻る</a>
+      <div class="kb-switches">
+        <a class="kb-lang" href="en/%%SLUG%%.html">EN</a>
+        <button class="kb-currency-btn active" data-currency="JPY">JPY</button>
+        <button class="kb-currency-btn" data-currency="USD">USD</button>
+      </div>
+    </nav>
+
+    <!-- 2) 商品ヒーロー -->
+    <header class="kb-product-hero">
+      <h1>%%TITLE_JA%%</h1>
+      <p class="kb-summary">%%SUMMARY_JA%%</p>
+      <div class="kb-tags">%%TAGS_JA_HTML%%</div>
+      <div class="kb-price">
+        <span id="product-price">¥%%PRICE_JPY%%</span>
+        <a class="kb-buy-btn" href="%%PURCHASE_URL%%" target="_blank" rel="noopener">購入</a>
+      </div>
+      <img class="kb-hero-image" src="../%%HERO_IMAGE%%" alt="%%TITLE_JA%%">
+    </header>
+
+    <!-- 3) 商品詳細 -->
+    <section class="kb-section">
+      <div class="kb-info-grid">
+        <div><strong>対応画面</strong><div>%%SUPPORTED_SCREENS_JA%%</div></div>
+        <div><strong>カテゴリ</strong><div>%%CATEGORY_JA%%</div></div>
+        <div><strong>ファイルサイズ</strong><div>%%FILE_SIZE_JA%%</div></div>
+        <div><strong>更新日</strong><div>%%UPDATED_AT_JA%%</div></div>
+      </div>
+    </section>
+
+    <!-- 4) 機能 -->
+    <section class="kb-section">
+      <h2>機能</h2>
+      <ul class="kb-feature-list">%%FEATURES_JA_HTML%%</ul>
+    </section>
+
+    <!-- 5) スクリーンショット -->
+    <section class="kb-section">
+      <h2>スクリーンショット</h2>
+      <div class="kb-screenshots">%%SCREENSHOTS_JA_HTML%%</div>
+    </section>
+
+    <!-- 6) 使い方 -->
+    <section class="kb-section">
+      <h2>使い方</h2>
+      <div class="kb-steps">%%STEPS_JA_HTML%%</div>
+    </section>
+
+    <!-- 7) 制限事項 -->
+    <section class="kb-section">
+      <h2>制限事項</h2>
+      <ul class="kb-limitation-list">%%LIMITATIONS_JA_HTML%%</ul>
+    </section>
+
+    <!-- 8) FAQ -->
+    <section class="kb-section">
+      <h2>よくある質問</h2>
+      <div class="kb-faq">%%FAQ_JA_HTML%%</div>
+    </section>
+
+    <!-- 9) 関連商品 -->
+    <section class="kb-section">
+      <h2>関連商品</h2>
+      <div class="kb-related-products">%%RELATED_JA_HTML%%</div>
+    </section>
+
+    <!-- 10) 購入CTA -->
+    <section class="kb-section kb-purchase-cta">
+      <h2>%%CTA_HEADLINE_JA%%</h2>
+      <p>%%CTA_TEXT_JA%%</p>
+      <a class="kb-buy-cta-btn" href="%%PURCHASE_URL%%" target="_blank" rel="noopener">購入する</a>
+    </section>
+
+    <!-- 11) フッター -->
+    <footer class="kb-footer">
+      <a href="mailto:%%SUPPORT_MAIL%%">不具合報告</a> |
+      <a href="../terms.html">利用規約</a>
+      <div class="kb-copy">%%SITE_COPYRIGHT%%</div>
+    </footer>
+  </div>
+
+  <script>
+  // 通貨切替（単一商品）
+  const productPriceJPY = %%PRICE_JPY%%;
+  const productPriceUSD = %%PRICE_USD%%;
+  const priceEl = document.getElementById('product-price');
+  const buttons = document.querySelectorAll('.kb-currency-btn');
+  function setCurrency(cur){
+    buttons.forEach(b=>b.classList.toggle('active', b.dataset.currency===cur));
+    localStorage.setItem('preferred-currency', cur);
+    priceEl.textContent = cur==='USD' ? ('$' + productPriceUSD) : ('¥' + productPriceJPY);
+  }
+  const saved = localStorage.getItem('preferred-currency') || 'JPY';
+  setCurrency(saved);
+  buttons.forEach(b=>b.addEventListener('click', ()=>setCurrency(b.dataset.currency)));
+  </script>
+</body>
+</html>
