@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en" class="kb-root">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Products | %%SITE_NAME_EN%%</title>
+  <meta name="description" content="Product list of mini plugins for Kintone.">
+  <link rel="stylesheet" href="../style.css">
+</head>
+<body>
+  <div class="kb-container">
+    <nav class="kb-language-switcher">
+      <span class="kb-back">　</span>
+      <div class="kb-switches">
+        <a class="kb-lang" href="../index.html">JP</a>
+        <button class="kb-currency-btn active" data-currency="JPY">JPY</button>
+        <button class="kb-currency-btn" data-currency="USD">USD</button>
+      </div>
+    </nav>
+
+    <header class="kb-section kb-product-hero">
+      <h1>Products</h1>
+      <p class="kb-summary">A collection of small, fast Kintone plugins.</p>
+    </header>
+
+    <section class="kb-section">
+      <div class="kb-info-grid" id="kb-product-grid">
+        %%PRODUCT_CARDS_EN%%
+      </div>
+    </section>
+
+    <footer class="kb-footer">
+      <a href="mailto:%%SUPPORT_MAIL%%">Report an issue</a> |
+      <a href="../terms.html">Terms</a>
+      <div class="kb-copy">%%SITE_COPYRIGHT%%</div>
+    </footer>
+  </div>
+
+  <script>
+  // Currency switcher (list)
+  const buttons = document.querySelectorAll('.kb-currency-btn');
+  function setCurrency(cur){
+    buttons.forEach(b=>b.classList.toggle('active', b.dataset.currency===cur));
+    localStorage.setItem('preferred-currency', cur);
+    document.querySelectorAll('[data-price-jpy][data-price-usd]').forEach(el=>{
+      el.textContent = cur==='USD' ? ('$' + el.dataset.priceUsd) : ('¥' + el.dataset.priceJpy);
+    });
+  }
+  const saved = localStorage.getItem('preferred-currency') || 'JPY';
+  setCurrency(saved);
+  buttons.forEach(b=>b.addEventListener('click', ()=>setCurrency(b.dataset.currency)));
+  </script>
+</body>
+</html>
