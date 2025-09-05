@@ -3,15 +3,28 @@ const path = require('path');
 
 function splitLines(s){ return String(s||'').split('\n').map(v=>v.trim()).filter(Boolean); }
 
-// Issue Forms は本体に「### {Label}\n{value}」の並びで落ちてくる
+// ラベル → キーの正規化（括弧内や記号を除去し、英数アンダースコアに）
+function canonKey(label){
+  return String(label || '')
+    .replace(/\(.*?\)/g, '')         // () 内を除去 例: "slug (英数字…)" → "slug "
+    .replace(/[:：]/g, ' ')          // コロン系もスペース化
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '_')     // 非英数字 → _
+    .replace(/^_+|_+$/g, '');        // 先頭/末尾の _ を削除
+}
+
+// Issue Forms は本文に「### {Label}\n{value}」で落ちる。
+// _No response_ は未入力なので空扱いにする。
 function parseIssueBody(body){
   const map = {};
-  const parts = String(body).split(/\n(?=###\s)/g);
+  const parts = String(body||'').split(/\n(?=###\s)/g);
   for(const block of parts){
     const m = block.match(/^###\s+([^\n]+)\n([\s\S]*)$/);
     if(!m) continue;
-    const key = m[1].trim().toLowerCase().replace(/\s+/g,'_'); // label → key
-    const val = m[2].trim();
+    const label = m[1].trim();
+    const key = canonKey(label);    // ← 正規化キー
+    let val = (m[2]||'').trim();
+    if(/^_no response_$/i.test(val)) val = '';  // フォーム未入力
     map[key] = val;
   }
   return map;
@@ -26,46 +39,54 @@ function main(){
 
   const f = parseIssueBody(body);
 
-  // 必須チェック（slug重複はPR化せずに失敗させる）
-  if(!f.slug) throw new Error('slug is required');
-  if(products.some(p => p.slug === f.slug)){
-    throw new Error(`slug "${f.slug}" already exists`);
+  // 主要キーのエイリアス吸収（念のため prefix マッチでも拾う）
+  const pick = (name) => {
+    if (name in f) return f[name];
+    const k = Object.keys(f).find(k => k === name || k.startsWith(name + '_'));
+    return k ? f[k] : '';
+  };
+
+  const slug = pick('slug');
+  if(!slug) throw new Error('slug is required');
+
+  if(products.some(p => p.slug === slug)){
+    throw new Error(`slug "${slug}" already exists`);
   }
 
   const item = {
-    slug: f.slug,
-    purchase_url: f.purchase_url,
-    price_jpy: f.price_jpy,
-    price_usd: f.price_usd,
-    hero_image: f.hero_image,
+    slug,
+    purchase_url: pick('purchase_url'),
+    price_jpy: pick('price_jpy'),
+    price_usd: pick('price_usd'),
+    hero_image: pick('hero_image'),
 
-    title_ja: f.title_ja,
-    summary_ja: f.summary_ja,
-    tags_ja: f.tags_ja,
-    features_ja: f.features_ja,
-    screenshots_ja: f.screenshots_ja,
-    steps_ja: toArrayMaybe(f.steps_ja),
-    limitations_ja: f.limitations_ja,
-    faq_ja: toArrayMaybe(f.faq_ja),
-    supported_screens_ja: f.supported_screens_ja,
-    category_ja: f.category_ja,
-    file_size_ja: f.file_size_ja,
-    updated_at_ja: f.updated_at_ja,
+    title_ja: pick('title_ja'),
+    summary_ja: pick('summary_ja'),
+    tags_ja: pick('tags_ja'),
+    features_ja: pick('features_ja'),
+    screenshots_ja: pick('screenshots_ja'),
+    steps_ja: toArrayMaybe(pick('steps_ja')),
+    limitations_ja: pick('limitations_ja'),
+    faq_ja: toArrayMaybe(pick('faq_ja')),
+    supported_screens_ja: pick('supported_screens_ja'),
+    category_ja: pick('category_ja'),
+    file_size_ja: pick('file_size_ja'),
+    updated_at_ja: pick('updated_at_ja'),
 
-    title_en: f.title_en,
-    summary_en: f.summary_en,
-    tags_en: f.tags_en,
-    features_en: f.features_en,
-    screenshots_en: f.screenshots_en,
-    steps_en: toArrayMaybe(f.steps_en),
-    limitations_en: f.limitations_en,
-    faq_en: toArrayMaybe(f.faq_en),
-    supported_screens_en: f.supported_screens_en,
-    category_en: f.category_en,
-    file_size_en: f.file_size_en,
-    updated_at_en: f.updated_at_en,
+    title_en: pick('title_en'),
+    summary_en: pick('summary_en'),
+    tags_en: pick('tags_en'),
+    features_en: pick('features_en'),
+    screenshots_en: pick('screenshots_en'),
+    steps_en: toArrayMaybe(pick('steps_en')),
+    limitations_en: pick('limitations_en'),
+    faq_en: toArrayMaybe(pick('faq_en')),
+    supported_screens_en: pick('supported_screens_en'),
+    category_en: pick('category_en'),
+    file_size_en: pick('file_size_en'),
+    updated_at_en: pick('updated_at_en'),
 
-    // 既存データから継承（サイト共通値）
+    // 既存データから共通値を継承
     support_mail: products[0]?.support_mail || 'support@example.com',
     site_copyright: products[0]?.site_copyright || ''
   };
