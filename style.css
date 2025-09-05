@@ -997,3 +997,54 @@
     linear-gradient(180deg, rgba(0,0,0,.02), transparent);
 }
 
+/* ==== Detail hero tighten & price color fix ==== */
+
+/* 1) ヒーロー2カラムの“離れすぎ”を縮める */
+.kb-product-hero--split{
+  grid-template-columns: 1.15fr 0.85fr; /* 左：右の比率を詰める */
+  column-gap: 16px;                      /* 24px → 16px */
+  padding: 24px 0;                       /* 上下も少し詰める */
+}
+
+/* 画像側の枠を軽く＆サイズ調整 */
+.kb-hero-side .kb-hero-image{
+  max-height: 380px;                     /* 画像が大きすぎるのを抑制 */
+  border-color: #eef3fb;                 /* 枠を淡く */
+  box-shadow: 0 1px 2px rgba(16,24,40,.04);
+}
+
+/* 2) 価格バッジが黒くなるのを“テーマ色”に統一（強めの上書き） */
+:root{
+  --kb-primary:#2f64e2;
+  --kb-primary-600:#2b57c7;
+  --kb-primary-700:#224bb1;
+}
+.kb-price-box #product-price{
+  background: var(--kb-primary) !important;
+  color:#fff !important;
+  border: 1px solid var(--kb-primary-600);
+  padding: 8px 12px;
+  border-radius: 10px;
+  font-weight: 800;
+  letter-spacing: .2px;
+  box-shadow: 0 4px 12px rgba(47,100,226,.20);
+}
+.kb-price-box #product-price:hover{ filter:brightness(1.05); }
+
+/* 購入ボタンとの高さ・間隔を微調整 */
+.kb-price-box{ gap: 10px; align-items: center; }
+
+/* 3) タグ行の行間と余白を軽くして、左側の情報をコンパクトに */
+.kb-hero-col .kb-tags{ margin-top: 8px; }
+.kb-hero-col .kb-summary{ margin-bottom: 8px; }
+
+/* 4) スモール画面では1カラムに崩すが、上下の間延びを抑える */
+@media (max-width: 900px){
+  .kb-product-hero--split{
+    grid-template-columns: 1fr;
+    row-gap: 14px;
+    padding: 18px 0;
+  }
+  .kb-hero-side .kb-hero-image{ max-height: 320px; }
+}
+
