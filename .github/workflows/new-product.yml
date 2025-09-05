@@ -2,7 +2,12 @@ name: Append product via Issue → PR
 
 on:
   issues:
-    types: [opened, edited]
+    types: [opened, edited, labeled, reopened] 
+  workflow_dispatch:                           
+    inputs:
+      issue_number:
+        description: Issue number with 'new-product' label
+        required: true
 
 permissions:
   contents: write
