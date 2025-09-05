@@ -1081,5 +1081,13 @@
   padding:12px;
   background:#f9fbff;
 }
+/* ==== Detail hero card background ==== */
+.kb-product-hero--split{
+  background:#fff;              /* 白背景 */
+  border:1px solid #e6eef7;     /* 薄い枠で浮かせる */
+  border-radius:16px;
+  box-shadow:0 2px 8px rgba(16,24,40,.06);
+  padding:32px 24px;
+}
 
 
