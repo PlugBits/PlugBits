@@ -1212,3 +1212,38 @@
   padding:0;
 }
 
+/* ==== Index hero: more vertical space & visible button text ==== */
+.kb-hero .kb-container{
+  padding: 72px 0 60px;         /* ← ヒーローの縦余白を増やす */
+}
+.kb-hero-title{ margin-bottom: 12px; }
+.kb-hero-sub{ margin-bottom: 18px; }
+
+/* ボタンの文字が消える問題：常に白文字＋中央揃え */
+.kb-cta-primary,
+.kb-cta-primary:visited{
+  color:#fff !important;         /* テキストを白で固定 */
+}
+.kb-cta-primary{
+  display:inline-flex; align-items:center; justify-content:center;
+  min-height:46px; min-width:180px;
+  padding:12px 24px; border-radius:12px;
+  background: var(--kb-primary, #2f64e2);
+  box-shadow: 0 6px 18px rgba(47,100,226,.25);
+  font-weight:800;
+}
+.kb-cta-primary:hover{ filter:brightness(1.08); box-shadow:0 8px 22px rgba(47,100,226,.35); }
+
+/* ==== Product cards: price badge back to theme color ==== */
+.kb-card .kb-price-badge,
+.kb-card .kb-price{
+  background: var(--kb-primary, #2f64e2) !important;
+  color:#fff !important;
+  border: 1px solid var(--kb-primary-600, #2b57c7);
+  box-shadow: 0 4px 12px rgba(47,100,226,.20);
+}
+.kb-card .kb-price-badge:hover,
+.kb-card .kb-price:hover{
+  filter:brightness(1.05);
+}
+
