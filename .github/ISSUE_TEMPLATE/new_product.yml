@@ -1,0 +1,140 @@
+name: New product
+description: Add a new Kintone mini plugin
+title: "[New] "
+labels: [new-product]
+assignees: []
+body:
+  - type: input
+    id: slug
+    attributes:
+      label: slug (英数字とハイフン)
+      description: URLに使われます。公開後は基本変更しないでください。
+      placeholder: subtable-sort
+    validations: { required: true }
+
+  - type: input
+    id: purchase_url
+    attributes: { label: PURCHASE_URL, placeholder: https://stores.jp/example/slug }
+    validations: { required: true }
+
+  - type: input
+    id: price_jpy
+    attributes: { label: PRICE_JPY, placeholder: "300" }
+    validations: { required: true }
+
+  - type: input
+    id: price_usd
+    attributes: { label: PRICE_USD, placeholder: "2" }
+    validations: { required: true }
+
+  - type: input
+    id: hero_image
+    attributes:
+      label: HERO_IMAGE（相対パス）
+      description: 例）assets/placeholder.svg
+      placeholder: assets/placeholder.svg
+    validations: { required: true }
+
+  # ---- JA ----
+  - type: input
+    id: title_ja
+    attributes: { label: TITLE_JA }
+    validations: { required: true }
+
+  - type: textarea
+    id: summary_ja
+    attributes: { label: SUMMARY_JA }
+    validations: { required: true }
+
+  - type: input
+    id: tags_ja
+    attributes:
+      label: TAGS_JA（カンマ区切り）
+      placeholder: 編集画面, サブテーブル, 並び替え
+
+  - type: input
+    id: features_ja
+    attributes:
+      label: FEATURES_JA（セミコロン区切り）
+      placeholder: 昇順/降順/元に戻す; 空欄は末尾; 保存で順序維持
+
+  - type: input
+    id: screenshots_ja
+    attributes:
+      label: SCREENSHOTS_JA（"url|alt" をセミコロン区切り）
+      placeholder: assets/placeholder.svg|操作; assets/placeholder.svg|結果
+
+  - type: textarea
+    id: steps_ja
+    attributes:
+      label: STEPS_JA（3行 "番号|見出し|本文"）
+      placeholder: |
+        1|プラグインをインストール|…
+        2|アプリに追加|…
+        3|サブテーブルで並び替え|…
+  - type: input
+    id: limitations_ja
+    attributes: { label: LIMITATIONS_JA（セミコロン区切り） }
+
+  - type: textarea
+    id: faq_ja
+    attributes:
+      label: FAQ_JA（3行 "質問|回答"）
+      placeholder: |
+        モバイル対応は？|PCのみ。要望があれば対応予定。
+        対応フィールドは？|文字列、数値、日付、時刻。計算/添付は対象外。
+        並び替えは保存される？|保存時に維持されます。
+
+  - type: input
+    id: supported_screens_ja
+    attributes: { label: SUPPORTED_SCREENS_JA, placeholder: PC / 編集・新規 }
+
+  - type: input
+    id: category_ja
+    attributes: { label: CATEGORY_JA, placeholder: 編集効率化 }
+
+  - type: input
+    id: file_size_ja
+    attributes: { label: FILE_SIZE_JA, placeholder: 約15KB }
+
+  - type: input
+    id: updated_at_ja
+    attributes: { label: UPDATED_AT_JA, placeholder: 2024年8月 }
+
+  # ---- EN ----
+  - type: input
+    id: title_en
+    attributes: { label: TITLE_EN }
+  - type: input
+    id: summary_en
+    attributes: { label: SUMMARY_EN }
+  - type: input
+    id: tags_en
+    attributes: { label: TAGS_EN }
+  - type: input
+    id: features_en
+    attributes: { label: FEATURES_EN }
+  - type: input
+    id: screenshots_en
+    attributes: { label: SCREENSHOTS_EN }
+  - type: textarea
+    id: steps_en
+    attributes: { label: STEPS_EN（3 lines "No|Heading|Body"） }
+  - type: input
+    id: limitations_en
+    attributes: { label: LIMITATIONS_EN }
+  - type: textarea
+    id: faq_en
+    attributes: { label: FAQ_EN（3 lines "Q|A"） }
+  - type: input
+    id: supported_screens_en
+    attributes: { label: SUPPORTED_SCREENS_EN, placeholder: PC / Edit & New }
+  - type: input
+    id: category_en
+    attributes: { label: CATEGORY_EN, placeholder: Edit efficiency }
+  - type: input
+    id: file_size_en
+    attributes: { label: FILE_SIZE_EN, placeholder: ~15KB }
+  - type: input
+    id: updated_at_en
+    attributes: { label: UPDATED_AT_EN, placeholder: Aug 2024 }
