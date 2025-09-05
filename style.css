@@ -919,3 +919,81 @@
 .kb-hero-side img{width:100%;height:auto;object-fit:contain;background:#f6f9ff;border:1px solid #e6eef7;border-radius:14px;padding:12px}
 @media(max-width:840px){.kb-product-hero--split{grid-template-columns:1fr}}
 
+
+/* ===== Quick polish pack ===== */
+
+/* 0) テーマ色（必要なら後で好みに調整OK） */
+:root{
+  --kb-primary:#2f64e2;
+  --kb-primary-600:#2b57c7;
+  --kb-primary-700:#224bb1;
+  --kb-ink:#0b1f33;
+  --kb-border:#e6eef7;
+  --kb-soft:#f6f9ff;
+}
+
+/* 1) 「今すぐチェック」を見やすく（コントラスト＆ホバー） */
+.kb-cta-primary{
+  background: var(--kb-primary);
+  color:#fff; border:0;
+  box-shadow: 0 6px 18px rgba(47,100,226,.25);
+  font-weight:800;
+}
+.kb-cta-primary:hover{ filter:brightness(1.08); box-shadow:0 8px 22px rgba(47,100,226,.35); }
+
+/* 2) 購入ボタンが黒く見える問題 → テーマのブルーに統一 */
+.kb-buy-btn{
+  background: var(--kb-primary);
+  color:#fff !important;
+  border: 1px solid var(--kb-primary-600);
+  box-shadow: 0 4px 12px rgba(47,100,226,.25);
+}
+.kb-buy-btn:hover{ background: var(--kb-primary-600); border-color: var(--kb-primary-700); }
+
+/* 3) FAQ（一覧・詳細とも）を“カード化”して左寄せに */
+.kb-faq-grid, .kb-faq{               /* 詳細側は .kb-faq を使っているので両方に適用 */
+  display:grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px,1fr));
+  gap:16px;
+}
+.kb-faq-grid .kb-faq-item,
+.kb-faq .kb-faq-item{
+  background:#fff;
+  border:1px solid var(--kb-border);
+  border-radius:14px;
+  padding:16px 18px;
+  text-align:left;                   /* ← 中央寄せを抑止 */
+  box-shadow:0 1px 2px rgba(16,24,40,.04);
+}
+.kb-faq-grid .kb-faq-item h3,
+.kb-faq .kb-faq-item h3{ margin:0 0 6px; font-size:15px; }
+
+/* 4) 詳細ページだけ見出しがセンター寄りに見えるのを補正（全体で左寄せ） */
+.kb-section h2, .kb-section-title{ text-align:left; }
+
+/* 5) 詳細ヒーロー：価格＋購入行の見栄えを底上げ */
+.kb-price-box{
+  display:flex; align-items:center; gap:12px; margin-top:12px;
+}
+#product-price{
+  background:#0b1f33; color:#fff;
+  padding:8px 12px; border-radius:10px; font-weight:800; letter-spacing:.2px;
+}
+
+/* 6) 一覧・詳細の白枠パネルが“パディング無しでダサい”のを是正（安全な全体補正） */
+.kb-section .kb-feature-list > li,
+.kb-section .kb-limitation-list > li{
+  background:#fff;
+  border:1px solid var(--kb-border);
+  border-radius:10px;
+  padding:10px 12px;
+  margin-bottom:10px;
+}
+
+/* 7) ヒーロー背景を少し強めてボタンが埋もれないように（お好みで） */
+.kb-hero{
+  background:
+    radial-gradient(1200px 440px at 15% -20%, rgba(47,100,226,.12), transparent),
+    linear-gradient(180deg, rgba(0,0,0,.02), transparent);
+}
+
