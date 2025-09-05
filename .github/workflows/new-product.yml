@@ -1,0 +1,40 @@
+name: Append product via Issue → PR
+
+on:
+  issues:
+    types: [opened, edited]
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: read
+
+jobs:
+  create-pr-from-issue:
+    if: contains(github.event.issue.labels.*.name, 'new-product')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install (optional)
+        run: npm ci || npm i
+
+      - name: Apply issue body to data/products.json
+        env:
+          ISSUE_BODY: ${{ github.event.issue.body }}
+        run: node scripts/add-product-from-issue.js
+
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v6
+        with:
+          commit-message: "Add product from issue #${{ github.event.issue.number }}"
+          title: "Add product: #${{ github.event.issue.number }}"
+          body: "Generated from issue #${{ github.event.issue.number }} by Issue Form."
+          branch: "add-product/${{ github.event.issue.number }}"
+          base: "main"
+          add-paths: |
+            data/products.json
