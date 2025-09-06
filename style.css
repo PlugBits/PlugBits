@@ -134,3 +134,26 @@
   .kb-hero-sub{font-size:16px}
   .kb-section-title{font-size:22px}
 }
+
+/* === Safe overrides: center hero & 4-col grid === */
+
+/* 1) ヒーロー（見出し/サブ/ボタンを中央寄せ） */
+.kb-hero { text-align: center; }
+.kb-hero .kb-container { display: flex; flex-direction: column; align-items: center; }
+.kb-hero-title, .kb-hero-subtitle { margin-left: auto; margin-right: auto; }
+/* ボタンが左に流れないよう保証 */
+.kb-cta-primary { display: inline-flex; align-items: center; justify-content: center; }
+
+/* 2) 商品カード：4カラムグリッド（レスポンシブ） */
+.kb-card-grid {
+  display: grid !important;
+  grid-template-columns: repeat(4, 1fr) !important;
+  gap: 20px !important;
+}
+/* 幅縮小時は 3→2→1 列 */
+@media (max-width: 1100px) { .kb-card-grid { grid-template-columns: repeat(3, 1fr) !important; } }
+@media (max-width: 840px)  { .kb-card-grid { grid-template-columns: repeat(2, 1fr) !important; } }
+@media (max-width: 560px)  { .kb-card-grid { grid-template-columns: 1fr !important; } }
+
+/* 3) カードが“全幅化”するのを防止（万一の幅指定に負けないように） */
+.kb-card-grid > .kb-card { width: 100%; max-width: none; }
