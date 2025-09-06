@@ -30,26 +30,25 @@
   <!-- 商品一覧 -->
   <main class="kb-container">
     <h2 id="list" class="kb-section-title">商品一覧</h2>
-    <section class="kb-card-grid">
+    <!-- ✅ グリッドは id + class を揃える -->
+    <section id="kb-product-grid" class="kb-card-grid">
       %%PRODUCT_CARDS_JA%%
     </section>
 
-    <!-- よくある質問（任意なら削除OK） -->
-    <section class="kb-faq-block">
-      <h2 class="kb-section-title">よくある質問</h2>
-      <div class="kb-faq-grid">
-        <div class="kb-faq-item">
-          <h3>購入前に試せますか？</h3>
-          <p>デモ動画・スクショを掲載。要望あれば体験版も検討します。</p>
-        </div>
-        <div class="kb-faq-item">
-          <h3>サポートは？</h3>
-          <p>不具合報告に対応します。機能要望は可能な範囲で検討します。</p>
-        </div>
-        <div class="kb-faq-item">
-          <h3>支払い通貨は？</h3>
-          <p>JPY / USD を切り替えて表示できます。決済画面は販売サイト準拠です。</p>
-        </div>
+    <!-- よくある質問 -->
+    <!-- ✅ コンテナは .kb-faq に統一（中は .kb-faq-item のまま） -->
+    <section class="kb-faq">
+      <div class="kb-faq-item">
+        <h3>購入前に試せますか？</h3>
+        <p>デモ動画・スクショを掲載。要望あれば体験版も検討します。</p>
+      </div>
+      <div class="kb-faq-item">
+        <h3>サポートは？</h3>
+        <p>不具合報告に対応します。機能要望は可能な範囲で検討します。</p>
+      </div>
+      <div class="kb-faq-item">
+        <h3>支払い通貨は？</h3>
+        <p>JPY / USD を切り替えて表示できます。決済画面は販売サイト準拠です。</p>
       </div>
     </section>
   </main>
