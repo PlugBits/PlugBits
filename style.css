@@ -165,6 +165,6 @@
 
 /* FAQブロック上にも余白を確保 */
 .kb-faq-block {
-  margin-top: 32px;   /* FAQの始まりを下げる */
+  margin-top: 64px;   /* FAQの始まりを下げる */
 }
 
