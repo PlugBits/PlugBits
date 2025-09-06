@@ -157,3 +157,14 @@
 
 /* 3) カードが“全幅化”するのを防止（万一の幅指定に負けないように） */
 .kb-card-grid > .kb-card { width: 100%; max-width: none; }
+
+/* 商品一覧とFAQの間に余白を追加 */
+.kb-card-grid {
+  margin-bottom: 48px; /* ← 下に余白を追加 */
+}
+
+/* FAQブロック上にも余白を確保 */
+.kb-faq-block {
+  margin-top: 32px;   /* FAQの始まりを下げる */
+}
+
