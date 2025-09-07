@@ -167,4 +167,56 @@
 .kb-faq-block {
   margin-top: 64px;   /* FAQの始まりを下げる */
 }
+/* ==== Purchase button: text always visible & bold ==== */
+.kb-price-box .kb-buy-btn,
+.kb-price-box .kb-buy-btn:visited {
+  color:#fff !important;
+  font-weight:800;
+  letter-spacing:.2px;
+}
+.kb-price-box .kb-buy-btn{
+  background: var(--kb-primary);
+  border:1px solid var(--kb-primary-600);
+  box-shadow:0 4px 12px rgba(47,100,226,.25);
+  padding:10px 18px;
+  min-width:120px;
+}
+.kb-price-box .kb-buy-btn:hover{
+  background: var(--kb-primary-600);
+  border-color: var(--kb-primary-700);
+  filter:brightness(1.02);
+}
+
+/* ==== Steps (使い方): 3-column with big numbered pills ==== */
+/* 既存の .kb-steps / .kb-step / .kb-step-number / h3 / p をそのまま利用 */
+.kb-steps{
+  display:grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap:24px;
+  margin-top:32px;
+  text-align:center;
+  align-items:start;
+}
+.kb-step-number{
+  width:56px; height:56px; border-radius:9999px;
+  background: var(--kb-primary);
+  color:#fff; font-weight:800; font-size:20px;
+  display:flex; align-items:center; justify-content:center;
+  margin:0 auto 12px;
+  box-shadow:0 6px 18px rgba(47,100,226,.25);
+}
+.kb-step h3{
+  font-size:16px; font-weight:700; margin:0 0 6px;
+}
+.kb-step p{
+  font-size:14px; color:var(--kb-sub); margin:0;
+}
+
+/* モバイルで1カラムに */
+@media (max-width: 900px){
+  .kb-steps{ grid-template-columns: 1fr; row-gap:16px; }
+}
+
+/* ==== カード群とFAQの間隔を少し広げる ==== */
+.kb-faq-block{ margin-top:40px; }
 
