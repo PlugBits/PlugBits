@@ -27,7 +27,7 @@
         <img class="kb-hero-image" src="../%%HERO_IMAGE%%" alt="%%TITLE_JA%%">
       </div>
       <div class="kb-price-box">
-        <span id="product-price" data-price-jpy="%%PRICE_JPY%%" data-price-usd="%%PRICE_USD%%">¥%%PRICE_JPY%%</span>
+        <div id="product-price" data-price-jpy="%%PRICE_JPY%%" data-price-usd="%%PRICE_USD%%">¥%%PRICE_JPY%%</div>
         <a class="kb-buy-btn" href="%%PURCHASE_URL%%" target="_blank" rel="noopener">購入</a>
       </div>
     </div>
@@ -83,21 +83,33 @@
 
   <!-- 通貨切替 -->
   <script>
-  (function(){
+    (function(){
     const JPY = 'JPY', USD = 'USD';
     const $btns = document.querySelectorAll('.kb-currency-btn');
-    const preferred = localStorage.getItem('preferred-currency') || JPY;
+  
+    // 既存の選好 or lang既定（英語ページなら初回USD）
+    const pageLang = document.documentElement.lang || 'ja';
+    let preferred = localStorage.getItem('preferred-currency');
+    if (!preferred) preferred = (pageLang.startsWith('en') ? USD : JPY);
+  
     function render(cur){
-      const el = document.getElementById('product-price');
-      if(!el) return;
-      const j = el.dataset.priceJpy, u = el.dataset.priceUsd;
-      el.textContent = (cur===USD && u) ? '$'+u : '¥'+j;
-      $btns.forEach(b=>b.classList.toggle('active', b.dataset.currency===cur));
-      localStorage.setItem('preferred-currency', cur);
-    }
-    $btns.forEach(b=>b.addEventListener('click',()=>render(b.dataset.currency)));
-    render(preferred);
-  })();
+      // 一覧/詳細どちらでも動くように対象を広げる
+      document.querySelectorAll(
+        '#product-price, .kb-price, .kb-price-badge, [data-price-jpy][data-price-usd]'
+      ).forEach(el => {
+        const j = el.getAttribute('data-price-jpy');
+        const u = el.getAttribute('data-price-usd');
+        if (cur === USD && u) el.textContent = '$' + u;
+        else if (j) el.textContent = '¥' + j;
+      });
+  
+      $btns.forEach(b => b.classList.toggle('active', b.dataset.currency === cur));
+        localStorage.setItem('preferred-currency', cur);
+      }
+    
+      $btns.forEach(b => b.addEventListener('click', () => render(b.dataset.currency)));
+      render(preferred);
+    })();
   </script>
 </body>
 </html>
