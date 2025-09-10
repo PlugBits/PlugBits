@@ -161,7 +161,7 @@ try {
     const tags = String(p.tags_en||'').split(',').map(s=>s.trim()).filter(Boolean)
       .slice(0,3).map(t=>`<span class="kb-badge">${esc(t)}</span>`).join('');
     return `
-    <a class="kb-card" href="products/en/${p.slug}.html">
+    <a class="kb-card" href="../products/en/${p.slug}.html">
       <div class="kb-card-img">
         <img class="kb-hero-image" src="../${esc(p.hero_image)}" alt="${esc(p.title_en)}" loading="lazy">
       </div>
