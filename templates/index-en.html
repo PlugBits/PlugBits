@@ -6,6 +6,9 @@
   <title>Products | Mini Plugins for Kintone</title>
   <meta name="description" content="30-second installs. From $1. Lightweight enhancements for Kintone.">
   <link rel="stylesheet" href="../style.css">
+  <link rel="alternate" href="https://henpin-box.github.io/puchi-add-on-plugins/index.html" hreflang="ja">
+  <link rel="alternate" href="https://henpin-box.github.io/puchi-add-on-plugins/en/index.html" hreflang="en">
+  <link rel="alternate" href="https://henpin-box.github.io/puchi-add-on-plugins/index.html" hreflang="x-default">
 </head>
 <body class="kb-root">
   <!-- Header (language / currency) -->
@@ -13,8 +16,8 @@
     <div class="kb-brand">Mini Plugins for Kintone</div>
     <div class="kb-language-switcher">
       <a class="kb-lang" href="../index.html">JP</a>
-      <button class="kb-currency-btn active" data-currency="JPY">JPY</button>
-      <button class="kb-currency-btn" data-currency="USD">USD</button>
+      <button class="kb-currency-btn" data-currency="JPY">JPY</button>
+      <button class="kb-currency-btn active" data-currency="USD">USD</button>
     </div>
   </div>
 
@@ -65,23 +68,26 @@
 
   <!-- Currency toggle -->
   <script>
-  (function(){
-    const JPY = 'JPY', USD = 'USD';
-    const $btns = document.querySelectorAll('.kb-currency-btn');
-    const preferred = localStorage.getItem('preferred-currency') || JPY;
-    function render(cur){
-      document.querySelectorAll('.kb-price,[data-price-jpy][data-price-usd],.kb-price-badge').forEach(el=>{
-        const j = el.getAttribute('data-price-jpy');
-        const u = el.getAttribute('data-price-usd');
-        if(cur === USD && u) el.textContent = '$' + u;
-        else el.textContent = '¥' + j;
-      });
-      $btns.forEach(b=>b.classList.toggle('active', b.dataset.currency===cur));
-      localStorage.setItem('preferred-currency', cur);
-    }
-    $btns.forEach(b=>b.addEventListener('click', ()=>render(b.dataset.currency)));
-    render(preferred);
-  })();
-  </script>
+    (function(){
+      const JPY='JPY', USD='USD';
+      const $btns=document.querySelectorAll('.kb-currency-btn');
+      // EN は初回 USD を既定に（以後は localStorage を尊重）
+      const saved = localStorage.getItem('preferred-currency');
+      const preferred = saved || USD;
+    
+      function render(cur){
+        document.querySelectorAll('.kb-price,[data-price-jpy][data-price-usd],.kb-price-badge').forEach(el=>{
+          const j=el.getAttribute('data-price-jpy');
+          const u=el.getAttribute('data-price-usd');
+          el.textContent = (cur===USD && u) ? ('$'+u) : ('¥'+j);
+        });
+        $btns.forEach(b=>b.classList.toggle('active', b.dataset.currency===cur));
+        localStorage.setItem('preferred-currency', cur);
+      }
+      $btns.forEach(b=>b.addEventListener('click', ()=>render(b.dataset.currency)));
+      render(preferred);
+    })();
+</script>
+
 </body>
 </html>
