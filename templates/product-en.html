@@ -6,14 +6,17 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="description" content="%%SUMMARY_EN%%">
   <link rel="stylesheet" href="../../style.css">
+  <link rel="alternate" href="https://henpin-box.github.io/puchi-add-on-plugins/products/%%SLUG%%.html" hreflang="ja">
+  <link rel="alternate" href="https://henpin-box.github.io/puchi-add-on-plugins/products/en/%%SLUG%%.html" hreflang="en">
+  <link rel="alternate" href="https://henpin-box.github.io/puchi-add-on-plugins/products/%%SLUG%%.html" hreflang="x-default">
 </head>
 <body class="kb-root">
   <div class="kb-container kb-topbar">
     <a class="kb-back" href="../../en/index.html">← Back to Products</a>
     <div class="kb-language-switcher">
       <a class="kb-lang" href="../%%SLUG%%.html">JP</a>
-      <button class="kb-currency-btn active" data-currency="JPY">JPY</button>
-      <button class="kb-currency-btn" data-currency="USD">USD</button>
+      <button class="kb-currency-btn" data-currency="JPY">JPY</button>
+      <button class="kb-currency-btn active" data-currency="USD">USD</button>
     </div>
   </div>
 
@@ -59,32 +62,23 @@
 
   <script>
     (function(){
-      const JPY = 'JPY', USD = 'USD';
-      const $btns = document.querySelectorAll('.kb-currency-btn');
-    
-      // 既存の選好 or lang既定（英語ページなら初回USD）
-      const pageLang = document.documentElement.lang || 'ja';
-      let preferred = localStorage.getItem('preferred-currency');
-      if (!preferred) preferred = (pageLang.startsWith('en') ? USD : JPY);
-    
+      const JPY='JPY', USD='USD';
+      const $btns=document.querySelectorAll('.kb-currency-btn');
+      const saved=localStorage.getItem('preferred-currency');
+      const preferred = saved || USD;
       function render(cur){
-        // 一覧/詳細どちらでも動くように対象を広げる
-        document.querySelectorAll(
-          '#product-price, .kb-price, .kb-price-badge, [data-price-jpy][data-price-usd]'
-        ).forEach(el => {
-          const j = el.getAttribute('data-price-jpy');
-          const u = el.getAttribute('data-price-usd');
-          if (cur === USD && u) el.textContent = '$' + u;
-          else if (j) el.textContent = '¥' + j;
+        document.querySelectorAll('.kb-price,[data-price-jpy][data-price-usd],.kb-price-badge').forEach(el=>{
+          const j=el.getAttribute('data-price-jpy');
+          const u=el.getAttribute('data-price-usd');
+          el.textContent = (cur===USD && u) ? ('$'+u) : ('¥'+j);
         });
-    
-        $btns.forEach(b => b.classList.toggle('active', b.dataset.currency === cur));
+        $btns.forEach(b=>b.classList.toggle('active', b.dataset.currency===cur));
         localStorage.setItem('preferred-currency', cur);
       }
-    
-      $btns.forEach(b => b.addEventListener('click', () => render(b.dataset.currency)));
+      $btns.forEach(b=>b.addEventListener('click', ()=>render(b.dataset.currency)));
       render(preferred);
     })();
-  </script>
+</script>
+
 </body>
 </html>
