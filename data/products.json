@@ -110,5 +110,67 @@
     "updated_at_en": "Sep 2025",
     "support_mail": "support@example.com",
     "site_copyright": "2024 Kintone Mini Plugins. All rights reserved."
+  },
+  {
+    "slug": "number-expression",
+    "purchase_url": "https://example.com/store/number-expression",
+    "price_jpy": "1000",
+    "price_usd": "10",
+    "hero_image": "assets/number-expression/hero.png",
+    "title_ja": "数式入力（数値化）プラグイン",
+    "summary_ja": "作成/編集画面で、選択した文字列（1行）フィールドに『=』または『＋』で始まる式（例: =1+2、+（1+2）×0.5）\n  を入力すると、その場で安全に評価して数値へ置換します。サブテーブル対応。任意で『文字列→数値』の出力マッピングを設定で\n  き、結果を数値フィールドへミラー保存できます。",
+    "tags_ja": "編集画面, 作成画面, 入力支援, 文字列フィールド, 数値, サブテーブル, 計算, 正規化",
+    "features_ja": "『=』『＋』で始まる式を安全に評価; 全角記号・数字を半角に正規化; 小数・括弧・単項±・四則演算に対応;   フォーカスアウト/保存時に自動変換; 対象フィールドをアプリ設定で選択（サブテーブル対応）; 文字列→数値の出力マッピング;   結果を数値フィールドへミラー保存; PC/モバイルの作成・編集で動作",
+    "screenshots_ja": "assets/number-expression/hero.png|式を入力→数値に変換; assets/number-expression/config.png|対象フィー   ルドと出力マッピング設定",
+    "steps_ja": [
+      "1|プラグインをインストール|システム管理 > プラグインでZIPを追加します。",
+      "2|アプリに追加|対象アプリのプラグイン設定から本プラグインを有効化します。",
+      "3|対象フィールドを設定|文字列（1行）と、必要に応じてサブテーブル列を選択。出力マッピングを設定すると結果を数値フィー",
+      "ルドへ保存できます。",
+      "4|動作確認|作成/編集画面で『=1+2』や『+（1+2）×0.5』を入力し、フォーカスアウトまたは保存で数値に変換されることを確認",
+      "します。"
+    ],
+    "limitations_ja": "数値式のみ評価（関数・フィールド参照・定数は不可）; 無効文字や括弧不整合は変換しない; 0での除算は変換   しない; 『=』『＋』で始まらない入力は対象外; 他プラグイン併用時は変換タイミングが前後する可能性",
+    "faq_ja": [
+      "モバイル対応ですか？|はい。作成・編集画面で動作します。",
+      "サブテーブルでも使えますか？|はい。サブテーブルの対象列を設定すれば動作します。",
+      "どの記法に対応していますか？|四則演算（+ - * /）、括弧、単項±、小数点に対応し、全角の数字/記号は自動正規化します。",
+      "既存データの一括変換はできますか？|編集画面のフォーカスアウト/保存時に変換します。大量の一括変換はレコード一括更新等",
+      "をご検討ください。"
+    ],
+    "supported_screens_ja": "PC / モバイル（作成・編集）",
+    "category_ja": "入力支援・編集効率化",
+    "file_size_ja": "~15KB",
+    "updated_at_ja": "2025年9月",
+    "title_en": "Number Expression Plugin",
+    "summary_en": "On create/edit, evaluates expressions entered in string fields when they start with '=' or '+' and   replaces them with the numeric result. Supports subtables. Optionally map from a string field to a number field to   mirror the result.",
+    "tags_en": "Edit screen, Create screen, Input assistance, String field, Number, Subtable, Calculator, Normalization",
+    "features_en": "Safely evaluates expressions starting with '=' or '+'; Normalizes full-width digits/symbols; Supports   decimals, parentheses, unary ±, and the four operations; Auto-converts on blur or save; Select target fields per app   (subtables supported); String→Number output mapping; Mirror results to number fields; Works on PC and mobile (create/   edit)",
+    "screenshots_en": "assets/number-expression/hero.png|Enter expression → convert to number; assets/number-expression/   config.png|Select targets and output mapping",
+    "steps_en": [
+      "1|Install the plugin|Upload the ZIP in System Administration > Plugins.",
+      "2|Add to app|Enable this plugin in the target app.",
+      "3|Configure targets|Choose string fields and (optionally) subtable columns. Set output mapping to save results into",
+      "number fields.",
+      "4|Verify|In create/edit, type '=1+2' or '+(1+2)*0.5' and confirm it converts on blur or save.",
+      "limitations_en: \"Only numeric expressions are evaluated (no functions, field references, or constants); Invalid",
+      "characters or unbalanced parentheses are not converted; Division by zero is not converted; Inputs not starting with",
+      "'=' or '+' are ignored; Conversion timing may vary with other plugins"
+    ],
+    "limitations_en": "",
+    "faq_en": [
+      "s mobile supported?|Yes, on create/edit views.",
+      "Does it work in subtables?|Yes. Select the subtable columns in settings.",
+      "What syntax is supported?|Four operations (+ - * /), parentheses, unary ±, decimals, with automatic normalization of",
+      "full-width characters.",
+      "Can I bulk convert existing data?|Conversion occurs on blur/save in edit. For bulk operations, consider record batch",
+      "updates."
+    ],
+    "supported_screens_en": "PC & Mobile / Create & Edit",
+    "category_en": "Input assistance / Edit efficiency",
+    "file_size_en": "~15KB",
+    "updated_at_en": "Sep 2025",
+    "support_mail": "support@example.com",
+    "site_copyright": "2024 Kintone Mini Plugins. All rights reserved."
   }
 ]
