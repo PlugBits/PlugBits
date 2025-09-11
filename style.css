@@ -95,6 +95,26 @@
 .kb-price-box{display:flex;justify-content:center;align-items:center;gap:12px;margin-top:8px}
 #product-price{color:#0b1f33;font-weight:800;font-size:18px}
 
+/* Tags (product hero) */
+.kb-hero-col .kb-tags{
+  display:flex;
+  gap:6px;
+  flex-wrap:wrap;
+  justify-content:center; /* 左寄せにしたければ消す */
+  margin:8px 0;
+}
+.kb-tag{
+  font-size:12px;
+  line-height:1;
+  padding:5px 10px;
+  border-radius:9999px;
+  background:#eef4ff;
+  color:#325bcb;
+  border:1px solid #d9e6ff;
+  white-space:nowrap;
+}
+
+
 /* Info / Features / Limitations */
 .kb-info-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin-top:32px}
 .kb-info-grid strong{font-weight:700}
