@@ -7,7 +7,7 @@ const DIST = path.join(ROOT, 'dist');
 const PRODUCTS_DIR = path.join(DIST, 'products');
 const PRODUCTS_EN_DIR = path.join(PRODUCTS_DIR, 'en');
 
-function esc(s){ return String(s ?? '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&gt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
+function esc(s){ return String(s ?? '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
 
 function ensureDirs() {
   // まっさらに
