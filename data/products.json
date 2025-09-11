@@ -170,5 +170,56 @@
     "updated_at_en": "Sep 2025",
     "support_mail": "support@example.com",
     "site_copyright": "2024 Kintone Mini Plugins. All rights reserved."
+  },
+  {
+    "slug": "link-button",
+    "purchase_url": "https://stores.jp/link-button",
+    "price_jpy": "1000",
+    "price_usd": "10",
+    "hero_image": "assets/link-button/hero.png",
+    "title_ja": "レコードのリンクをボタンに",
+    "summary_ja": "レコード詳細に、LINK/文字列(1行)フィールドのURLをKintone標準UI風のボタンとして表示します。配置（ヘッダー/\n  スペース）、ボタン種別（プライマリ/セカンダリ/警告/アウトライン/ミニ）、確認ダイアログ、元フィールドの非表示、新しいタ\n  ブで開くの設定に対応。システム言語(JA/EN)に自動対応。",
+    "tags_ja": "ヘッダー, スペース, リンク, ボタン, UI, i18n",
+    "features_ja": "URLの自動検証(http/httpsのみ); ヘッダー/スペースに配置; ボタン種別(プライマリ/セカンダリ/警告/アウトライ   ン/ミニ); 確認ダイアログ; 元フィールドの非表示; 新しいタブで開く; システム言語(JA/EN)自動対応; SVGアイコン(ミニ)",
+    "screenshots_ja": "assets/link-button/ss-config.png|設定画面; assets/link-button/ss-header.png|ヘッダーにボタン; assets/   link-button/ss-space.png|スペース配置",
+    "steps_ja": [
+      "1|プラグインをインストール|kintone 管理からプラグインを追加し有効化します。",
+      "2|アプリに追加|対象アプリにプラグインを追加します。",
+      "3|設定|対象フィールド・配置先・ボタン種別などを指定して保存します。",
+      "4|確認|レコード詳細のヘッダー/スペースにボタンが表示されます。"
+    ],
+    "limitations_ja": "モバイル未対応; サブテーブル内のフィールドは対象外; http/https 以外のスキームは無効; ポップアップブ   ロッカーにより新規タブが開かれない場合があります",
+    "faq_ja": [
+      "モバイル対応は？|現在はPCのみです。要望があれば検討します。",
+      "サブテーブルのURLは？|対象外です。表外のフィールドをご利用ください。",
+      "元フィールドは非表示にできる？|設定の「非表示」を有効にしてください。"
+    ],
+    "supported_screens_ja": "PC / レコード詳細",
+    "category_ja": "操作性・導線改善",
+    "file_size_ja": "~15KB",
+    "updated_at_ja": "2025年9月",
+    "title_en": "Turn Links into Buttons",
+    "summary_en": "Adds Kintone-like buttons to record detail pages from LINK/Text fields. Choose placement (Header/Space),   button variants (primary/secondary/danger/outline/mini), optional confirmation, hide original field, and open in a new   tab. Automatically follows the system language (JA/EN).",
+    "tags_en": "Header, Space, Link, Button, UI, i18n",
+    "features_en": "URL validation (http/https only); Place on header/space; Button variants (primary/secondary/danger/   outline/mini); Confirmation dialog; Hide original field; Open in new tab; Auto language (JA/EN); SVG icon (mini)",
+    "screenshots_en": "assets/link-button/ss-config.png|Settings; assets/link-button/ss-header.png|Buttons in header; assets/   link-button/ss-space.png|Buttons in space",
+    "steps_en": [
+      "1|Install the plugin|Add and enable the plugin in Kintone admin.",
+      "2|Add to app|Add the plugin to your target app.",
+      "3|Configure|Pick source fields, placement, and button variants, then save.",
+      "4|Verify|Buttons appear on the record detail header/space."
+    ],
+    "limitations_en": "No mobile support; Subtable fields not supported; Only http/https URLs; Pop-up blockers may prevent new tabs",
+    "faq_en": [
+      "Mobile support?|PC only for now.",
+      "Subtable URLs?|Not supported. Use non-subtable fields.",
+      "Hide original field?|Enable “Hide field” in the settings."
+    ],
+    "supported_screens_en": "PC / Record Detail",
+    "category_en": "Navigation & UX",
+    "file_size_en": "~15KB",
+    "updated_at_en": "Sep 2025",
+    "support_mail": "support@example.com",
+    "site_copyright": "2024 Kintone Mini Plugins. All rights reserved."
   }
 ]
