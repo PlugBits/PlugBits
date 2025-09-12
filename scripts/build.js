@@ -1,4 +1,4 @@
-/* build.js — stable version */
+/* build.js — clean stable version */
 const fs = require('fs');
 const path = require('path');
 
@@ -7,20 +7,21 @@ const DIST = path.join(ROOT, 'dist');
 const PRODUCTS_DIR = path.join(DIST, 'products');
 const PRODUCTS_EN_DIR = path.join(PRODUCTS_DIR, 'en');
 
-function esc(s){ return String(s ?? '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
+function esc(s) {
+  return String(s ?? '').replace(/[&<>"']/g, m => (
+    {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]
+  ));
+}
 
 function ensureDirs() {
-  // まっさらに
   fs.rmSync(DIST, { recursive: true, force: true });
-  // 明示的に全階層を作る
-  fs.mkdirSync(DIST, { recursive: true });
-  fs.mkdirSync(PRODUCTS_DIR, { recursive: true });
   fs.mkdirSync(PRODUCTS_EN_DIR, { recursive: true });
 }
 
 function readJSON(p){ return JSON.parse(fs.readFileSync(p, 'utf-8')); }
 function readText(p){ return fs.readFileSync(p, 'utf-8'); }
 
+/* ----- render helpers ----- */
 function renderTags(csv){
   return (csv||'').split(',').map(s=>s.trim()).filter(Boolean)
     .map(t=>`<span class="kb-tag">${esc(t)}</span>`).join('');
@@ -38,7 +39,10 @@ function renderScreenshots(list, prefix=''){
       return `
       <figure class="kb-video">
         <button class="kb-video-play" aria-label="動画を再生">
-          <svg viewBox="0 0 64 64" width="56" height="56"><circle cx="32" cy="32" r="30" fill="rgba(0,0,0,0.55)"></circle><polygon points="26,20 26,44 46,32" fill="#fff"></polygon></svg>
+          <svg viewBox="0 0 64 64" width="56" height="56">
+            <circle cx="32" cy="32" r="30" fill="rgba(0,0,0,0.55)"></circle>
+            <polygon points="26,20 26,44 46,32" fill="#fff"></polygon>
+          </svg>
         </button>
         <video class="kb-video-el" preload="metadata" poster="${src.replace('.mp4','.png')}">
           <source src="${src}" type="video/mp4">
@@ -50,7 +54,6 @@ function renderScreenshots(list, prefix=''){
     }
   }).join('');
 }
-
 function renderSteps(lines){
   const arr = Array.isArray(lines) ? lines : [];
   return arr.map(line=>{
@@ -73,11 +76,15 @@ function renderRelated(lines){
   const arr = Array.isArray(lines) ? lines.slice(0,2) : [];
   return arr.map(line=>{
     const [href, title, priceJPY] = String(line).split('|');
-    return `<a class="kb-related-card" href="${esc(href)}"><div class="kb-related-title">${esc(title||'')}</div><div class="kb-related-price" data-price-jpy="${esc(priceJPY||'')}" data-price-usd="">¥${esc(priceJPY||'')}</div></a>`;
+    return `<a class="kb-related-card" href="${esc(href)}">
+      <div class="kb-related-title">${esc(title||'')}</div>
+      <div class="kb-related-price" data-price-jpy="${esc(priceJPY||'')}" data-price-usd="">
+        ¥${esc(priceJPY||'')}
+      </div></a>`;
   }).join('');
 }
 
-// === build start ===
+/* ----- main build ----- */
 try {
   ensureDirs();
 
@@ -151,96 +158,59 @@ try {
     return html;
   }
 
-  // 一覧カード（あなたの版）
-  function cardJA(p){
-    const tags = String(p.tags_ja||'').split(',').map(s=>s.trim()).filter(Boolean)
-      .slice(0,3).map(t=>`<span class="kb-badge">${esc(t)}</span>`).join('');
-    return `
-    <a class="kb-card" href="products/${p.slug}.html">
-      <div class="kb-card-img">
-        <img class="kb-hero-image" src="${esc(p.hero_image)}" alt="${esc(p.title_ja)}" loading="lazy">
-      </div>
-      <div class="kb-card-body">
-        <h3 class="kb-card-title">${esc(p.title_ja)}</h3>
-        <div class="kb-card-sub">${esc(p.category_ja)}・${esc(p.supported_screens_ja)}</div>
-        <div class="kb-badges">${tags}</div>
-        <div class="kb-card-foot">
-          <div class="kb-price-badge" data-price-jpy="${esc(p.price_jpy)}" data-price-usd="${esc(p.price_usd)}">¥${esc(p.price_jpy)}</div>
-          <span class="kb-btn ghost">詳細</span>
-        </div>
-      </div>
-    </a>`;
-  }
-  function cardEN(p){
-    const tags = String(p.tags_en||'').split(',').map(s=>s.trim()).filter(Boolean)
-      .slice(0,3).map(t=>`<span class="kb-badge">${esc(t)}</span>`).join('');
-    return `
-    <a class="kb-card" href="../products/en/${p.slug}.html">
-      <div class="kb-card-img">
-        <img class="kb-hero-image" src="../${esc(p.hero_image)}" alt="${esc(p.title_en)}" loading="lazy">
-      </div>
-      <div class="kb-card-body">
-        <h3 class="kb-card-title">${esc(p.title_en)}</h3>
-        <div class="kb-card-sub">${esc(p.category_en)} · ${esc(p.supported_screens_en)}</div>
-        <div class="kb-badges">${tags}</div>
-        <div class="kb-card-foot">
-          <div class="kb-price-badge" data-price-jpy="${esc(p.price_jpy)}" data-price-usd="${esc(p.price_usd)}">¥${esc(p.price_jpy)}</div>
-          <span class="kb-btn ghost">Details</span>
-        </div>
-      </div>
-    </a>`;
-  }
-
-  // --- build products ---
+  // product pages
   for(const p of products){
-    const jaOut = fillProductJA(p);
-    const enOut = fillProductEN(p);
-    fs.writeFileSync(path.join(PRODUCTS_DIR, `${p.slug}.html`), jaOut);
-    fs.writeFileSync(path.join(PRODUCTS_EN_DIR, `${p.slug}.html`), enOut);
+    fs.writeFileSync(path.join(PRODUCTS_DIR, `${p.slug}.html`), fillProductJA(p));
+    fs.writeFileSync(path.join(PRODUCTS_EN_DIR, `${p.slug}.html`), fillProductEN(p));
   }
 
-  // --- build indexes ---
-  const cardsJa = products.map(cardJA).join('\n');
-  const cardsEn = products.map(cardEN).join('\n');
+  // index pages
+  const cardsJa = products.map(p=>`
+    <a class="kb-card" href="products/${p.slug}.html">
+      <div class="kb-card-img"><img class="kb-hero-image" src="${esc(p.hero_image)}" alt="${esc(p.title_ja)}"></div>
+      <div class="kb-card-body"><h3 class="kb-card-title">${esc(p.title_ja)}</h3></div>
+    </a>`).join('\n');
+  const cardsEn = products.map(p=>`
+    <a class="kb-card" href="../products/en/${p.slug}.html">
+      <div class="kb-card-img"><img class="kb-hero-image" src="../${esc(p.hero_image)}" alt="${esc(p.title_en)}"></div>
+      <div class="kb-card-body"><h3 class="kb-card-title">${esc(p.title_en)}</h3></div>
+    </a>`).join('\n');
 
-  let indexJa = tpl.indexJa
-    .replaceAll('%%PRODUCT_CARDS_JA%%', cardsJa)
-    .replaceAll('%%SUPPORT_MAIL%%', esc(products[0]?.support_mail || 'support@example.com'))
-    .replaceAll('%%SITE_COPYRIGHT%%', esc(products[0]?.site_copyright || ''))
-    .replaceAll('%%SITE_NAME_JA%%', esc(products[0]?.site_name_ja || 'Kintone向けミニプラグイン'));
-
-  let indexEn = tpl.indexEn
-    .replaceAll('%%PRODUCT_CARDS_EN%%', cardsEn)
-    .replaceAll('%%SUPPORT_MAIL%%', esc(products[0]?.support_mail || 'support@example.com'))
-    .replaceAll('%%SITE_COPYRIGHT%%', esc(products[0]?.site_copyright || ''))
-    .replaceAll('%%SITE_NAME_EN%%', esc(products[0]?.site_name_en || 'Mini Plugins for Kintone'));
-
-  fs.writeFileSync(path.join(DIST, 'index.html'), indexJa);
+  fs.writeFileSync(path.join(DIST, 'index.html'),
+    tpl.indexJa.replace('%%PRODUCT_CARDS_JA%%', cardsJa)
+  );
   fs.mkdirSync(path.join(DIST, 'en'), { recursive: true });
-  fs.writeFileSync(path.join(DIST, 'en', 'index.html'), indexEn);
+  fs.writeFileSync(path.join(DIST, 'en/index.html'),
+    tpl.indexEn.replace('%%PRODUCT_CARDS_EN%%', cardsEn)
+  );
 
-  // --- copy static ---
+  // static
   function copyFileIfExists(rel){
     const src = path.join(ROOT, rel);
-    if (fs.existsSync(src)) {
-      const dst = path.join(DIST, rel);
+    if (!fs.existsSync(src)) return;
+    const dst = path.join(DIST, rel);
+    const stat = fs.statSync(src);
+    if (stat.isDirectory()) {
+      fs.cpSync(src, dst, { recursive: true, force: true });
+    } else {
       fs.mkdirSync(path.dirname(dst), { recursive: true });
       fs.copyFileSync(src, dst);
     }
   }
   copyFileIfExists('style.css');
-  // assets 下は全部コピー
+  copyFileIfExists('terms.html');
+  copyFileIfExists('robots.txt');
+  copyFileIfExists('sitemap-base.xml');
+  copyFileIfExists('404.html');
+
+  // assets (always recursive)
   const ASSETS_SRC = path.join(ROOT, 'assets');
   const ASSETS_DST = path.join(DIST, 'assets');
   if (fs.existsSync(ASSETS_SRC)) {
-    fs.mkdirSync(ASSETS_DST, { recursive: true });
-    // ★ フォルダも含めて丸ごとコピー（再帰）
     fs.cpSync(ASSETS_SRC, ASSETS_DST, { recursive: true, force: true });
   }
 
-  ['terms.html','robots.txt','sitemap-base.xml','404.html'].forEach(copyFileIfExists);
-
-  // --- sitemap ---
+  // sitemap
   const basePath = path.join(DIST, 'sitemap-base.xml');
   const base = fs.existsSync(basePath)
     ? fs.readFileSync(basePath,'utf-8')
@@ -249,24 +219,14 @@ try {
   for(const p of products){
     urls.push(`/products/${p.slug}.html`, `/products/en/${p.slug}.html`);
   }
-  const injected = base.replace('</urlset>', urls.map(u=>`<url><loc>{{BASE_URL}}${u}</loc></url>`).join('') + '</urlset>');
+  const injected = base.replace('</urlset>',
+    urls.map(u=>`<url><loc>{{BASE_URL}}${u}</loc></url>`).join('') + '</urlset>'
+  );
   fs.writeFileSync(path.join(DIST, 'sitemap.xml'), injected);
 
-  // --- .nojekyll ---
   fs.writeFileSync(path.join(DIST, '.nojekyll'), '');
-
-  // --- Finish & log ---
-  function list(dir, prefix='.') {
-    for (const name of fs.readdirSync(dir)) {
-      const full = path.join(dir, name);
-      const rel = path.relative(DIST, full);
-      if (fs.statSync(full).isDirectory()) list(full, prefix);
-      else console.log('ARTIFACT:', './' + rel.replace(/\\/g,'/'));
-    }
-  }
   console.log('Build completed.');
-  list(DIST);
 } catch (e) {
   console.error('BUILD FAILED:', e);
-  process.exit(1); // ← 失敗時は必ず Actions を失敗にする
+  process.exit(1);
 }
