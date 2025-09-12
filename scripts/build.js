@@ -231,11 +231,13 @@ try {
   copyFileIfExists('style.css');
   // assets 下は全部コピー
   const ASSETS_SRC = path.join(ROOT, 'assets');
-  if (fs.existsSync(ASSETS_SRC)){
-    for (const f of fs.readdirSync(ASSETS_SRC)){
-      copyFileIfExists(path.join('assets', f));
-    }
+  const ASSETS_DST = path.join(DIST, 'assets');
+  if (fs.existsSync(ASSETS_SRC)) {
+    fs.mkdirSync(ASSETS_DST, { recursive: true });
+    // ★ フォルダも含めて丸ごとコピー（再帰）
+    fs.cpSync(ASSETS_SRC, ASSETS_DST, { recursive: true, force: true });
   }
+
   ['terms.html','robots.txt','sitemap-base.xml','404.html'].forEach(copyFileIfExists);
 
   // --- sitemap ---
