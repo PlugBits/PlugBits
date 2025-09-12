@@ -1,4 +1,6 @@
 /* build.js — clean stable version */
+console.log('BUILD.JS REV', new Date().toISOString(), process.env.GITHUB_SHA || 'local');
+
 const fs = require('fs');
 const path = require('path');
 
@@ -186,16 +188,23 @@ try {
 
   // static
   function copyFileIfExists(rel){
+    // ▼ デバッグ＆保険：呼び出しログ
+    console.log('[copyFileIfExists]', rel);
+    // ▼ assets はここで扱わない（下の fs.cpSync で一括対応）
+    if (rel.startsWith('assets')) {
+      console.log('  skip (assets is handled separately)');
+      return;
+    }
     const src = path.join(ROOT, rel);
     if (!fs.existsSync(src)) return;
     const dst = path.join(DIST, rel);
-    const stat = fs.statSync(src);
-    if (stat.isDirectory()) {
+    const st  = fs.lstatSync(src);                   // lstat でシンボリックも識別
+    if (st.isDirectory()) {
       fs.cpSync(src, dst, { recursive: true, force: true });
-    } else {
-      fs.mkdirSync(path.dirname(dst), { recursive: true });
-      fs.copyFileSync(src, dst);
+      return;
     }
+    fs.mkdirSync(path.dirname(dst), { recursive: true });
+    fs.copyFileSync(src, dst);
   }
   copyFileIfExists('style.css');
   copyFileIfExists('terms.html');
