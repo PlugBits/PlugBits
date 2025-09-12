@@ -124,6 +124,20 @@
       $btns.forEach(b => b.addEventListener('click', () => render(b.dataset.currency)));
       render(preferred);
     })();
+    (function(){
+      document.querySelectorAll('.kb-video').forEach(function($wrap){
+        const $btn = $wrap.querySelector('.kb-video-play');
+        const $v   = $wrap.querySelector('.kb-video-el');
+        if(!$btn || !$v) return;
+        $btn.addEventListener('click', function(){
+          $btn.style.display = 'none';
+          $v.setAttribute('controls','controls');
+          $v.play().catch(()=>{}); // 再生失敗は無視
+        });
+      });
+    })();
+</script>
+
   </script>
 </body>
 </html>
