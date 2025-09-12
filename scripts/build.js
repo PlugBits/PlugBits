@@ -29,14 +29,28 @@ function renderFeatures(semicolon){
   return (semicolon||'').split(';').map(s=>s.trim()).filter(Boolean)
     .map(x=>`<li>${esc(x)}</li>`).join('');
 }
-function renderScreenshots(semicolon, prefix=''){
-  return (semicolon||'').split(';').map(s=>s.trim()).filter(Boolean)
-    .map(pair=>{
-      const [url, alt] = pair.split('|').map(x=>x.trim());
-      const src = prefix ? (prefix + url) : url;
+function renderScreenshots(list, prefix=''){
+  const arr = Array.isArray(list) ? list : (list||'').split(';');
+  return arr.map(item=>{
+    const [url, type, alt] = String(item).split('|').map(s=>s.trim());
+    const src = prefix ? (prefix + url) : url;
+    if(type === 'video'){
+      return `
+      <figure class="kb-video">
+        <button class="kb-video-play" aria-label="動画を再生">
+          <svg viewBox="0 0 64 64" width="56" height="56"><circle cx="32" cy="32" r="30" fill="rgba(0,0,0,0.55)"></circle><polygon points="26,20 26,44 46,32" fill="#fff"></polygon></svg>
+        </button>
+        <video class="kb-video-el" preload="metadata" poster="${src.replace('.mp4','.png')}">
+          <source src="${src}" type="video/mp4">
+        </video>
+        <figcaption class="kb-video-caption">${esc(alt||'')}</figcaption>
+      </figure>`;
+    } else {
       return `<img src="${esc(src)}" alt="${esc(alt||'')}" loading="lazy">`;
-    }).join('');
+    }
+  }).join('');
 }
+
 function renderSteps(lines){
   const arr = Array.isArray(lines) ? lines : [];
   return arr.map(line=>{
