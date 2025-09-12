@@ -240,3 +240,25 @@
 /* ==== カード群とFAQの間隔を少し広げる ==== */
 .kb-faq-block{ margin-top:40px; }
 
+/* Video tile (screenshots グリッドに溶け込む) */
+.kb-video {
+  position: relative;
+  border: 1px solid var(--kb-line);
+  border-radius: 14px;
+  overflow: hidden;
+  background: #000;
+}
+.kb-video video { display:block; width:100%; height:auto; }
+.kb-video-play {
+  position: absolute; inset: 0; margin: auto;
+  width: 64px; height: 64px; border: 0; border-radius: 999px;
+  background: transparent; cursor: pointer; display: grid; place-items: center;
+  transition: transform .12s ease, filter .12s ease;
+}
+.kb-video-play:hover { transform: scale(1.05); filter: brightness(1.05); }
+.kb-video-caption {
+  font-size: 12.5px; color: var(--kb-sub);
+  padding: 6px 8px 10px; background: #fff;
+}
+
+
