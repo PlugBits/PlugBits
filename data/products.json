@@ -30,8 +30,8 @@
       "並び替えの順序は保存されますか？|はい。レコード保存時に並び替えた順序が維持されます。"
     ],
     "related_ja": [
-      "products/copy-field.html|フィールド値一括コピー|200",
-      "products/list-aggregate.html|一覧画面集計表示|400"
+      "products/copy-field.html|フィールド値一括コピー|",
+      "products/list-aggregate.html|一覧画面集計表示|"
     ],
     "cta_headline_ja": "サブテーブル並び替えを今すぐ導入",
     "cta_text_ja": "作業効率を向上させる並び替え機能をお試しください。",
