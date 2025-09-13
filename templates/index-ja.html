@@ -3,14 +3,14 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>商品一覧 | Kintone向けミニプラグイン</title>
+  <title>商品一覧 | %%SITE_NAME_JA%%</title>
   <meta name="description" content="導入30秒。機能100円〜。小さく速いKintone向けミニ拡張。">
   <link rel="stylesheet" href="style.css">
 </head>
 <body class="kb-root">
-  <!-- ヘッダー（言語・通貨） -->
+  <!-- Topbar -->
   <div class="kb-container kb-topbar">
-    <div class="kb-brand">Kintone向けミニプラグイン</div>
+    <div class="kb-brand">%%SITE_NAME_JA%%</div>
     <div class="kb-language-switcher">
       <a class="kb-lang" href="en/index.html">EN</a>
       <button class="kb-currency-btn active" data-currency="JPY">JPY</button>
@@ -18,7 +18,7 @@
     </div>
   </div>
 
-  <!-- ヒーロー -->
+  <!-- Hero -->
   <header class="kb-hero">
     <div class="kb-container">
       <h1 class="kb-hero-title">標準に “あと一歩” を足す。<br>Kintone向けミニ拡張。</h1>
@@ -27,36 +27,25 @@
     </div>
   </header>
 
-  <!-- 商品一覧 -->
+  <!-- List -->
   <main class="kb-container">
     <h2 id="list" class="kb-section-title">商品一覧</h2>
-    <!-- ✅ グリッドは id + class を揃える -->
-    <section id="kb-product-grid" class="kb-card-grid">
+    <section class="kb-card-grid" id="kb-product-grid">
       %%PRODUCT_CARDS_JA%%
     </section>
 
-    <!-- よくある質問 -->
-<section class="kb-faq-block">
-  <h2 class="kb-section-title">よくある質問</h2>
-  <div class="kb-faq">
-    <div class="kb-faq-item">
-      <h3>購入前に試せますか？</h3>
-      <p>デモ動画・スクショを掲載。要望あれば体験版も検討します。</p>
-    </div>
-    <div class="kb-faq-item">
-      <h3>サポートは？</h3>
-      <p>不具合報告に対応します。機能要望は可能な範囲で検討します。</p>
-    </div>
-    <div class="kb-faq-item">
-      <h3>支払い通貨は？</h3>
-      <p>JPY / USD を切り替えて表示できます。決済画面は販売サイト準拠です。</p>
-    </div>
-  </div>
-</section>
-
+    <!-- FAQ -->
+    <section class="kb-faq-block">
+      <h2 class="kb-section-title">よくある質問</h2>
+      <div class="kb-faq">
+        <div class="kb-faq-item"><h3>購入前に試せますか？</h3><p>デモ動画・スクショを掲載。要望あれば体験版も検討します。</p></div>
+        <div class="kb-faq-item"><h3>サポートは？</h3><p>不具合報告に対応します。機能要望は可能な範囲で検討します。</p></div>
+        <div class="kb-faq-item"><h3>支払い通貨は？</h3><p>JPY / USD を切り替えて表示できます。決済画面は販売サイト準拠です。</p></div>
+      </div>
+    </section>
   </main>
 
-  <!-- フッター -->
+  <!-- Footer -->
   <footer class="kb-footer kb-container">
     <nav class="kb-footer-links">
       <a href="mailto:%%SUPPORT_MAIL%%">不具合報告</a>
@@ -65,23 +54,24 @@
     <small>%%SITE_COPYRIGHT%%</small>
   </footer>
 
-  <!-- 通貨切替（一覧の .kb-price / .kb-price-badge を切替） -->
+  <!-- Currency switch -->
   <script>
   (function(){
-    const JPY = 'JPY', USD = 'USD';
-    const $btns = document.querySelectorAll('.kb-currency-btn');
-    const preferred = localStorage.getItem('preferred-currency') || JPY;
+    const JPY='JPY', USD='USD';
+    const $btns=document.querySelectorAll('.kb-currency-btn');
+    const preferred=localStorage.getItem('preferred-currency')||JPY;
     function render(cur){
-      document.querySelectorAll('.kb-price,[data-price-jpy][data-price-usd],.kb-price-badge').forEach(el=>{
-        const j = el.getAttribute('data-price-jpy');
-        const u = el.getAttribute('data-price-usd');
-        if(cur === USD && u) el.textContent = '$' + u;
-        else el.textContent = '¥' + j;
-      });
-      $btns.forEach(b=>b.classList.toggle('active', b.dataset.currency===cur));
-      localStorage.setItem('preferred-currency', cur);
+      document.querySelectorAll('.kb-price,[data-price-jpy][data-price-usd],.kb-price-badge')
+        .forEach(el=>{
+          const j=el.getAttribute('data-price-jpy');
+          const u=el.getAttribute('data-price-usd');
+          if(cur===USD && u){ el.textContent='$'+u; }
+          else{ el.textContent='¥'+j; }
+        });
+      $btns.forEach(b=>b.classList.toggle('active',b.dataset.currency===cur));
+      localStorage.setItem('preferred-currency',cur);
     }
-    $btns.forEach(b=>b.addEventListener('click', ()=>render(b.dataset.currency)));
+    $btns.forEach(b=>b.addEventListener('click',()=>render(b.dataset.currency)));
     render(preferred);
   })();
   </script>
