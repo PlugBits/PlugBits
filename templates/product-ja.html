@@ -2,8 +2,8 @@
 <html lang="ja">
 <head>
   <meta charset="utf-8">
+  <title>%%TITLE_JA%% | Kintone向けミニプラグイン</title>
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>%%TITLE_JA%% | %%SITE_NAME_JA%%</title>
   <meta name="description" content="%%SUMMARY_JA%%">
   <link rel="stylesheet" href="../style.css">
 </head>
@@ -15,59 +15,77 @@
       <button class="kb-currency-btn active" data-currency="JPY">JPY</button>
       <button class="kb-currency-btn" data-currency="USD">USD</button>
     </div>
+
   </div>
 
-  <main class="kb-product-hero--split">
+  <!-- Hero -->
+  <header class="kb-product-hero kb-product-hero--split">
     <div class="kb-hero-col">
       <h1>%%TITLE_JA%%</h1>
       <p class="kb-summary">%%SUMMARY_JA%%</p>
       <div class="kb-tags">%%TAGS_JA_HTML%%</div>
+      <div class="kb-hero-side">
+        <img class="kb-hero-image" src="../%%HERO_IMAGE%%" alt="%%TITLE_JA%%">
+      </div>
+      <div class="kb-price-box">
+        <div id="product-price" data-price-jpy="%%PRICE_JPY%%" data-price-usd="%%PRICE_USD%%">¥%%PRICE_JPY%%</div>
+        <a class="kb-buy-btn" href="%%PURCHASE_URL%%" target="_blank" rel="noopener">購入</a>
+      </div>
     </div>
-    <div class="kb-hero-side">
-      <img class="kb-hero-image" src="../%%HERO_IMAGE%%" alt="%%TITLE_JA%%">
-    </div>
-    <div class="kb-price-box">
-      <div id="product-price" class="kb-price" data-price-jpy="%%PRICE_JPY%%" data-price-usd="%%PRICE_USD%%">¥%%PRICE_JPY%%</div>
-      <a class="kb-buy-btn" href="%%PURCHASE_URL%%" target="_blank" rel="noopener">購入する</a>
-    </div>
+  </header>
 
+  <!-- 詳細情報 -->
+  <section class="kb-section kb-container">
     <div class="kb-info-grid">
       <div><strong>対応画面</strong><p>%%SUPPORTED_SCREENS_JA%%</p></div>
       <div><strong>カテゴリ</strong><p>%%CATEGORY_JA%%</p></div>
       <div><strong>ファイルサイズ</strong><p>%%FILE_SIZE_JA%%</p></div>
       <div><strong>更新日</strong><p>%%UPDATED_AT_JA%%</p></div>
     </div>
+  </section>
 
-    <section class="kb-section">
-      <h2 class="kb-section-title">機能</h2>
-      <ul class="kb-feature-list">%%FEATURES_JA_HTML%%</ul>
-    </section>
+  <section class="kb-section kb-container">
+    <h2>機能</h2>
+    <ul class="kb-feature-list">%%FEATURES_JA_HTML%%</ul>
+  </section>
 
-    <section class="kb-section">
-      <h2 class="kb-section-title">スクリーンショット</h2>
-      <div class="kb-screenshots">%%SCREENSHOTS_JA_HTML%%</div>
-    </section>
+  <section class="kb-section kb-container">
+    <h2>スクリーンショット</h2>
+    <figure class="kb-video">
+      <button class="kb-video-play" aria-label="動画を再生">
+        <svg viewBox="0 0 64 64" width="56" height="56" aria-hidden="true">
+          <circle cx="32" cy="32" r="30" fill="rgba(0,0,0,0.55)"></circle>
+          <polygon points="26,20 26,44 46,32" fill="#fff"></polygon>
+        </svg>
+      </button＞
+      <video class="kb-video-el" preload="metadata" poster="../assets/demo-poster.png">
+        <source src="../assets/demo.mp4" type="video/mp4">
+        デモ動画
+      </video>
+      <figcaption class="kb-video-caption">サブテーブル並び替え：操作デモ</figcaption>
+    </figure>
+    <div class="kb-screenshots">%%SCREENSHOTS_JA_HTML%%</div>
+  </section>
 
-    <section class="kb-section">
-      <h2 class="kb-section-title">使い方</h2>
-      <div class="kb-steps">%%STEPS_JA_HTML%%</div>
-    </section>
+  <section class="kb-section kb-container">
+    <h2>使い方</h2>
+    <div class="kb-steps">%%STEPS_JA_HTML%%</div>
+  </section>
 
-    <section class="kb-section">
-      <h2 class="kb-section-title">制限事項</h2>
-      <ul class="kb-limitation-list">%%LIMITATIONS_JA_HTML%%</ul>
-    </section>
+  <section class="kb-section kb-container">
+    <h2>制限事項</h2>
+    <ul class="kb-limitation-list">%%LIMITATIONS_JA_HTML%%</ul>
+  </section>
 
-    <section class="kb-section kb-faq-block">
-      <h2 class="kb-section-title">よくある質問</h2>
-      <div class="kb-faq">%%FAQ_JA_HTML%%</div>
-    </section>
+  <section class="kb-section kb-container">
+    <h2>よくある質問</h2>
+    <div class="kb-faq">%%FAQ_JA_HTML%%</div>
+  </section>
 
-    <section class="kb-section">
-      <h2 class="kb-section-title">関連商品</h2>
-      <div class="kb-related-products">%%RELATED_JA_HTML%%</div>
-    </section>
-  </main>
+  <section class="kb-section kb-container">
+    <h2>関連商品</h2>
+    <div class="kb-related-products">%%RELATED_JA_HTML%%</div>
+  </section>
 
   <footer class="kb-footer kb-container">
     <nav class="kb-footer-links">
@@ -77,51 +95,50 @@
     <small>%%SITE_COPYRIGHT%%</small>
   </footer>
 
-  <!-- Lightbox container -->
-  <div id="kb-lightbox"><div class="kb-lb-inner"><img alt=""><button class="kb-lb-close" aria-label="Close">×</button></div></div>
-
-  <!-- Video / Lightbox / Currency -->
+  <!-- 通貨切替 -->
   <script>
-  // currency
-  (function(){
-    const JPY='JPY', USD='USD';
-    const $btns=document.querySelectorAll('.kb-currency-btn');
-    const preferred=localStorage.getItem('preferred-currency')||JPY;
+    (function(){
+    const JPY = 'JPY', USD = 'USD';
+    const $btns = document.querySelectorAll('.kb-currency-btn');
+  
+    // 既存の選好 or lang既定（英語ページなら初回USD）
+    const pageLang = document.documentElement.lang || 'ja';
+    let preferred = localStorage.getItem('preferred-currency');
+    if (!preferred) preferred = (pageLang.startsWith('en') ? USD : JPY);
+  
     function render(cur){
-      document.querySelectorAll('#product-price,.kb-related-price,.kb-price-badge')
-        .forEach(el=>{
-          const j=el.getAttribute('data-price-jpy'), u=el.getAttribute('data-price-usd');
-          el.textContent=(cur===USD && u)?'$'+u:'¥'+j;
+      // 一覧/詳細どちらでも動くように対象を広げる
+      document.querySelectorAll(
+        '#product-price, .kb-price, .kb-price-badge, [data-price-jpy][data-price-usd]'
+      ).forEach(el => {
+        const j = el.getAttribute('data-price-jpy');
+        const u = el.getAttribute('data-price-usd');
+        if (cur === USD && u) el.textContent = '$' + u;
+        else if (j) el.textContent = '¥' + j;
+      });
+  
+      $btns.forEach(b => b.classList.toggle('active', b.dataset.currency === cur));
+        localStorage.setItem('preferred-currency', cur);
+      }
+    
+      $btns.forEach(b => b.addEventListener('click', () => render(b.dataset.currency)));
+      render(preferred);
+    })();
+    (function(){
+      document.querySelectorAll('.kb-video').forEach(function($wrap){
+        const $btn = $wrap.querySelector('.kb-video-play');
+        const $v   = $wrap.querySelector('.kb-video-el');
+        if(!$btn || !$v) return;
+        $v.setAttribute('playsinline',''); 
+        $btn.addEventListener('click', function(){
+          $btn.style.display = 'none';
+          $v.setAttribute('controls','controls');
+          $v.play().catch(()=>{}); // 再生失敗は無視する
         });
-      $btns.forEach(b=>b.classList.toggle('active',b.dataset.currency===cur));
-      localStorage.setItem('preferred-currency',cur);
-    }
-    $btns.forEach(b=>b.addEventListener('click',()=>render(b.dataset.currency)));
-    render(preferred);
-  })();
+      });
+    })();
+</script>
 
-  // play video (delegation)
-  document.addEventListener('click',e=>{
-    const btn=e.target.closest('.kb-video-play'); if(!btn) return;
-    const v=btn.closest('.kb-shot')?.querySelector('video.kb-video-el'); if(!v) return;
-    btn.style.display='none'; v.setAttribute('controls',''); v.setAttribute('playsinline',''); v.setAttribute('webkit-playsinline','');
-    try{ v.play(); }catch{}
-  });
-
-  // image lightbox
-  (()=>{
-    const ov=document.getElementById('kb-lightbox');
-    const imgEl=ov.querySelector('img');
-    const close=()=>{ ov.classList.remove('open'); document.body.style.overflow=''; imgEl.src=''; };
-    ov.addEventListener('click',e=>{ if(e.target===ov) close(); });
-    ov.querySelector('.kb-lb-close').addEventListener('click',close);
-    document.addEventListener('keydown',e=>{ if(e.key==='Escape') close(); });
-    document.addEventListener('click',e=>{
-      const img=e.target.closest('.kb-shot-media img'); if(!img) return;
-      imgEl.src=img.getAttribute('data-full')||img.currentSrc||img.src;
-      ov.classList.add('open'); document.body.style.overflow='hidden';
-    });
-  })();
   </script>
 </body>
 </html>
