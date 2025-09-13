@@ -290,5 +290,65 @@
   pointer-events: none;       /* ← SVGがクリックをブロックしないように */
 }
 
+/* --- Screenshots: equal height + captions for image & video --- */
+.kb-screenshots {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
+  gap: 16px;
+  margin-top: 32px;
+}
+
+/* 共通フレーム */
+.kb-shot {
+  border: 1px solid var(--kb-line);
+  border-radius: 14px;
+  overflow: hidden;
+  background: #fff;
+}
+
+/* メディア枠は同じ比率に固定（16:9）*/
+.kb-shot-media {
+  position: relative;
+  aspect-ratio: 16 / 9;
+  background: #000;            /* 余白が出る動画・画像の下地 */
+  isolation: isolate;
+}
+
+.kb-shot-media img,
+.kb-shot-media video,
+.kb-video-el {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;         /* はみ出さず全体を見せる */
+  position: relative;
+  z-index: 1;
+}
+
+/* 再生ボタンは最前面でクリック可能に */
+.kb-video-play {
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  width: 64px;
+  height: 64px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  z-index: 3;
+}
+.kb-video-play svg { pointer-events: none; }
+
+/* キャプション（画像・動画共通） */
+.kb-shot figcaption,
+.kb-video-caption {
+  font-size: 12.5px;
+  color: var(--kb-sub);
+  padding: 8px 10px 12px;
+  background: #fff;
+}
 
 
