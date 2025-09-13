@@ -3,61 +3,44 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Products | Mini Plugins for Kintone</title>
-  <meta name="description" content="30-second installs. From $1. Lightweight enhancements for Kintone.">
+  <title>Products | %%SITE_NAME_EN%%</title>
+  <meta name="description" content="Mini extensions for Kintone. Tiny, fast, and affordable.">
   <link rel="stylesheet" href="../style.css">
-  <link rel="alternate" href="https://henpin-box.github.io/puchi-add-on-plugins/index.html" hreflang="ja">
-  <link rel="alternate" href="https://henpin-box.github.io/puchi-add-on-plugins/en/index.html" hreflang="en">
-  <link rel="alternate" href="https://henpin-box.github.io/puchi-add-on-plugins/index.html" hreflang="x-default">
 </head>
 <body class="kb-root">
-  <!-- Header (language / currency) -->
   <div class="kb-container kb-topbar">
-    <div class="kb-brand">Mini Plugins for Kintone</div>
+    <div class="kb-brand">%%SITE_NAME_EN%%</div>
     <div class="kb-language-switcher">
       <a class="kb-lang" href="../index.html">JP</a>
-      <button class="kb-currency-btn" data-currency="JPY">JPY</button>
-      <button class="kb-currency-btn active" data-currency="USD">USD</button>
+      <button class="kb-currency-btn active" data-currency="JPY">JPY</button>
+      <button class="kb-currency-btn" data-currency="USD">USD</button>
     </div>
   </div>
 
-  <!-- Hero -->
   <header class="kb-hero">
     <div class="kb-container">
-      <h1 class="kb-hero-title">Add that missing “one step”.<br>Mini extensions for Kintone.</h1>
-      <p class="kb-hero-sub">Install in 30s. From $1. Light support for issue reports.</p>
-      <a class="kb-cta-primary" href="#list">Browse Now</a>
+      <h1 class="kb-hero-title">Add “the last inch” to Kintone.</h1>
+      <p class="kb-hero-sub">Setup in 30s. From ¥100. Lightweight support for bug reports.</p>
+      <a class="kb-cta-primary" href="#list">Explore</a>
     </div>
   </header>
 
-  <!-- Product list -->
   <main class="kb-container">
     <h2 id="list" class="kb-section-title">Products</h2>
-    <section class="kb-card-grid">
+    <section class="kb-card-grid" id="kb-product-grid">
       %%PRODUCT_CARDS_EN%%
     </section>
 
-    <!-- FAQ (optional) -->
-  <section class="kb-faq-block">
+    <section class="kb-faq-block">
       <h2 class="kb-section-title">FAQ</h2>
-      <div class="kb-faq-grid">
-        <div class="kb-faq-item">
-          <h3>Is there a trial?</h3>
-          <p>We provide demo screenshots/videos. Trial builds may be considered upon request.</p>
-        </div>
-        <div class="kb-faq-item">
-          <h3>Support?</h3>
-          <p>We respond to issue reports. Feature requests are considered case-by-case.</p>
-        </div>
-        <div class="kb-faq-item">
-          <h3>Currencies?</h3>
-          <p>Toggle JPY / USD. Checkout currency follows the payment provider.</p>
-        </div>
+      <div class="kb-faq">
+        <div class="kb-faq-item"><h3>Trials?</h3><p>Videos and screenshots available. Trial build on request.</p></div>
+        <div class="kb-faq-item"><h3>Support?</h3><p>Bug reports accepted. Feature requests considered when feasible.</p></div>
+        <div class="kb-faq-item"><h3>Currency?</h3><p>Display JPY / USD. Checkout follows the store site.</p></div>
       </div>
     </section>
   </main>
 
-  <!-- Footer -->
   <footer class="kb-footer kb-container">
     <nav class="kb-footer-links">
       <a href="mailto:%%SUPPORT_MAIL%%">Report an issue</a>
@@ -66,28 +49,25 @@
     <small>%%SITE_COPYRIGHT%%</small>
   </footer>
 
-  <!-- Currency toggle -->
   <script>
-    (function(){
-      const JPY='JPY', USD='USD';
-      const $btns=document.querySelectorAll('.kb-currency-btn');
-      // EN は初回 USD を既定に（以後は localStorage を尊重）
-      const saved = localStorage.getItem('preferred-currency');
-      const preferred = saved || USD;
-    
-      function render(cur){
-        document.querySelectorAll('.kb-price,[data-price-jpy][data-price-usd],.kb-price-badge').forEach(el=>{
+  (function(){
+    const JPY='JPY', USD='USD';
+    const $btns=document.querySelectorAll('.kb-currency-btn');
+    const preferred=localStorage.getItem('preferred-currency')||USD;
+    function render(cur){
+      document.querySelectorAll('.kb-price,[data-price-jpy][data-price-usd],.kb-price-badge')
+        .forEach(el=>{
           const j=el.getAttribute('data-price-jpy');
           const u=el.getAttribute('data-price-usd');
-          el.textContent = (cur===USD && u) ? ('$'+u) : ('¥'+j);
+          if(cur===USD && u){ el.textContent='$'+u; }
+          else{ el.textContent='¥'+j; }
         });
-        $btns.forEach(b=>b.classList.toggle('active', b.dataset.currency===cur));
-        localStorage.setItem('preferred-currency', cur);
-      }
-      $btns.forEach(b=>b.addEventListener('click', ()=>render(b.dataset.currency)));
-      render(preferred);
-    })();
-</script>
-
+      $btns.forEach(b=>b.classList.toggle('active',b.dataset.currency===cur));
+      localStorage.setItem('preferred-currency',cur);
+    }
+    $btns.forEach(b=>b.addEventListener('click',()=>render(b.dataset.currency)));
+    render(preferred);
+  })();
+  </script>
 </body>
 </html>
