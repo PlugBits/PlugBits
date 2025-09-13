@@ -37,41 +37,46 @@ function assetExists(relPath){ // relPath: "assets/..." の形
   try { return fs.existsSync(path.join(ROOT, relPath)); } catch { return false; }
 }
 
-// 置換：renderScreenshots
 function renderScreenshots(list, prefix=''){
   const arr = Array.isArray(list) ? list : (list||'').split(';');
   return arr.map(item=>{
-    const [urlRaw, type, alt] = String(item).split('|').map(s=>s.trim());
-    if(!urlRaw) return '';
-    const outSrc = prefix ? (prefix + urlRaw) : urlRaw;   // HTMLに出す相対パス
-    const exists = assetExists(urlRaw);                   // 物理ファイルの存在（ROOTからの相対）
-    if(type === 'video'){
-      if(!exists){
-        console.warn('[WARN] video not found:', urlRaw);
-      }
-      const posterRel = urlRaw.endsWith('.mp4') ? urlRaw.replace(/\.mp4$/i, '.png') : null;
-      const posterAttr = (posterRel && assetExists(posterRel)) ? ` poster="${prefix ? (prefix + posterRel) : posterRel}"` : '';
+    // 形式: "path|video|caption" もしくは "path|caption"
+    const parts = String(item).split('|').map(s=>s.trim());
+    const srcPath = parts[0] || '';
+    const type    = (parts[1] || '').toLowerCase();
+    const caption = (type === 'video') ? (parts[2] || '') : (parts[1] || '');
+    const src = prefix ? (prefix + srcPath) : srcPath;
+
+    if (type === 'video') {
+      const poster = src.replace(/\.mp4$/i, '.png'); // なければ 404 でも再生には影響なし
       return `
-      <figure class="kb-video">
-        <button class="kb-video-play" aria-label="動画を再生">
-          <svg viewBox="0 0 64 64" width="56" height="56" aria-hidden="true">
-            <circle cx="32" cy="32" r="30" fill="rgba(0,0,0,0.55)"></circle>
-            <polygon points="26,20 26,44 46,32" fill="#fff"></polygon>
-          </svg>
-        </button>
-        <video class="kb-video-el"${posterAttr} preload="metadata" playsinline>
-          <source src="${outSrc}" type="video/mp4">
-        </video>
-        <figcaption class="kb-video-caption">${esc(alt||'')}</figcaption>
+      <figure class="kb-shot">
+        <div class="kb-shot-media">
+          <button class="kb-video-play" aria-label="動画を再生">
+            <svg viewBox="0 0 64 64" width="56" height="56">
+              <circle cx="32" cy="32" r="30" fill="rgba(0,0,0,.55)"></circle>
+              <polygon points="26,20 26,44 46,32" fill="#fff"></polygon>
+            </svg>
+          </button>
+          <video class="kb-video-el" preload="metadata" playsinline poster="${poster}">
+            <source src="${src}" type="video/mp4">
+          </video>
+        </div>
+        <figcaption>${esc(caption)}</figcaption>
       </figure>`;
-    } else {
-      if(!exists){
-        console.warn('[WARN] image not found:', urlRaw);
-      }
-      return `<img src="${esc(outSrc)}" alt="${esc(alt||'')}" loading="lazy">`;
     }
+
+    // 画像（2項目パターン: path|caption）
+    return `
+    <figure class="kb-shot">
+      <div class="kb-shot-media">
+        <img src="${esc(src)}" alt="${esc(caption || '')}" loading="lazy">
+      </div>
+      <figcaption>${esc(caption || '')}</figcaption>
+    </figure>`;
   }).join('');
 }
+
 
 function renderSteps(lines){
   const arr = Array.isArray(lines) ? lines : [];
