@@ -2,55 +2,72 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <title>%%TITLE_EN%% | Mini Plugins for Kintone</title>
   <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>%%TITLE_EN%% | %%SITE_NAME_EN%%</title>
   <meta name="description" content="%%SUMMARY_EN%%">
   <link rel="stylesheet" href="../../style.css">
-  <link rel="alternate" href="https://henpin-box.github.io/puchi-add-on-plugins/products/%%SLUG%%.html" hreflang="ja">
-  <link rel="alternate" href="https://henpin-box.github.io/puchi-add-on-plugins/products/en/%%SLUG%%.html" hreflang="en">
-  <link rel="alternate" href="https://henpin-box.github.io/puchi-add-on-plugins/products/%%SLUG%%.html" hreflang="x-default">
 </head>
 <body class="kb-root">
   <div class="kb-container kb-topbar">
-    <a class="kb-back" href="../../en/index.html">← Back to Products</a>
+    <a class="kb-back" href="../../en/index.html">← Back to list</a>
     <div class="kb-language-switcher">
       <a class="kb-lang" href="../%%SLUG%%.html">JP</a>
-      <button class="kb-currency-btn" data-currency="JPY">JPY</button>
       <button class="kb-currency-btn active" data-currency="USD">USD</button>
+      <button class="kb-currency-btn" data-currency="JPY">JPY</button>
     </div>
   </div>
 
-  <header class="kb-product-hero kb-product-hero--split">
+  <main class="kb-product-hero--split">
     <div class="kb-hero-col">
       <h1>%%TITLE_EN%%</h1>
       <p class="kb-summary">%%SUMMARY_EN%%</p>
       <div class="kb-tags">%%TAGS_EN_HTML%%</div>
-      <div class="kb-hero-side">
-        <img class="kb-hero-image" src="../../%%HERO_IMAGE%%" alt="%%TITLE_EN%%">
-      </div>
-      <div class="kb-price-box">
-        <div id="product-price" data-price-jpy="%%PRICE_JPY%%" data-price-usd="%%PRICE_USD%%">¥%%PRICE_JPY%%</div>
-        <a class="kb-buy-btn" href="%%PURCHASE_URL%%" target="_blank" rel="noopener">BUY</a>
-      </div>
     </div>
-  </header>
+    <div class="kb-hero-side">
+      <img class="kb-hero-image" src="../../%%HERO_IMAGE%%" alt="%%TITLE_EN%%">
+    </div>
+    <div class="kb-price-box">
+      <div id="product-price" class="kb-price" data-price-jpy="%%PRICE_JPY%%" data-price-usd="%%PRICE_USD%%">$%%PRICE_USD%%</div>
+      <a class="kb-buy-btn" href="%%PURCHASE_URL%%" target="_blank" rel="noopener">Buy</a>
+    </div>
 
-  <!-- Info, Features, Screenshots ... (同じ構成、ラベルを英語化) -->
-  <section class="kb-section kb-container">
     <div class="kb-info-grid">
-      <div><strong>Supported screens</strong><p>%%SUPPORTED_SCREENS_EN%%</p></div>
+      <div><strong>Screens</strong><p>%%SUPPORTED_SCREENS_EN%%</p></div>
       <div><strong>Category</strong><p>%%CATEGORY_EN%%</p></div>
-      <div><strong>File size</strong><p>%%FILE_SIZE_EN%%</p></div>
+      <div><strong>File Size</strong><p>%%FILE_SIZE_EN%%</p></div>
       <div><strong>Updated</strong><p>%%UPDATED_AT_EN%%</p></div>
     </div>
-  </section>
 
-  <section class="kb-section kb-container"><h2>Features</h2><ul class="kb-feature-list">%%FEATURES_EN_HTML%%</ul></section>
-  <section class="kb-section kb-container"><h2>Screenshots</h2><div class="kb-screenshots">%%SCREENSHOTS_EN_HTML%%</div></section>
-  <section class="kb-section kb-container"><h2>How to use</h2><div class="kb-steps">%%STEPS_EN_HTML%%</div></section>
-  <section class="kb-section kb-container"><h2>Limitations</h2><ul class="kb-limitation-list">%%LIMITATIONS_EN_HTML%%</ul></section>
-  <section class="kb-section kb-container"><h2>FAQ</h2><div class="kb-faq">%%FAQ_EN_HTML%%</div></section>
-  <section class="kb-section kb-container"><h2>Related products</h2><div class="kb-related-products">%%RELATED_EN_HTML%%</div></section>
+    <section class="kb-section">
+      <h2 class="kb-section-title">Features</h2>
+      <ul class="kb-feature-list">%%FEATURES_EN_HTML%%</ul>
+    </section>
+
+    <section class="kb-section">
+      <h2 class="kb-section-title">Screenshots</h2>
+      <div class="kb-screenshots">%%SCREENSHOTS_EN_HTML%%</div>
+    </section>
+
+    <section class="kb-section">
+      <h2 class="kb-section-title">How to use</h2>
+      <div class="kb-steps">%%STEPS_EN_HTML%%</div>
+    </section>
+
+    <section class="kb-section">
+      <h2 class="kb-section-title">Limitations</h2>
+      <ul class="kb-limitation-list">%%LIMITATIONS_EN_HTML%%</ul>
+    </section>
+
+    <section class="kb-section kb-faq-block">
+      <h2 class="kb-section-title">FAQ</h2>
+      <div class="kb-faq">%%FAQ_EN_HTML%%</div>
+    </section>
+
+    <section class="kb-section">
+      <h2 class="kb-section-title">Related</h2>
+      <div class="kb-related-products">%%RELATED_EN_HTML%%</div>
+    </section>
+  </main>
 
   <footer class="kb-footer kb-container">
     <nav class="kb-footer-links">
@@ -60,25 +77,42 @@
     <small>%%SITE_COPYRIGHT%%</small>
   </footer>
 
-  <script>
-    (function(){
-      const JPY='JPY', USD='USD';
-      const $btns=document.querySelectorAll('.kb-currency-btn');
-      const saved=localStorage.getItem('preferred-currency');
-      const preferred = saved || USD;
-      function render(cur){
-        document.querySelectorAll('.kb-price,[data-price-jpy][data-price-usd],.kb-price-badge').forEach(el=>{
-          const j=el.getAttribute('data-price-jpy');
-          const u=el.getAttribute('data-price-usd');
-          el.textContent = (cur===USD && u) ? ('$'+u) : ('¥'+j);
-        });
-        $btns.forEach(b=>b.classList.toggle('active', b.dataset.currency===cur));
-        localStorage.setItem('preferred-currency', cur);
-      }
-      $btns.forEach(b=>b.addEventListener('click', ()=>render(b.dataset.currency)));
-      render(preferred);
-    })();
-</script>
+  <div id="kb-lightbox"><div class="kb-lb-inner"><img alt=""><button class="kb-lb-close" aria-label="Close">×</button></div></div>
 
+  <script>
+  (function(){
+    const JPY='JPY', USD='USD';
+    const $btns=document.querySelectorAll('.kb-currency-btn');
+    const preferred=localStorage.getItem('preferred-currency')||USD;
+    function render(cur){
+      document.querySelectorAll('#product-price,.kb-related-price,.kb-price-badge')
+        .forEach(el=>{
+          const j=el.getAttribute('data-price-jpy'), u=el.getAttribute('data-price-usd');
+          el.textContent=(cur===USD && u)?'$'+u:'¥'+j;
+        });
+      $btns.forEach(b=>b.classList.toggle('active',b.dataset.currency===cur));
+      localStorage.setItem('preferred-currency',cur);
+    }
+    $btns.forEach(b=>b.addEventListener('click',()=>render(b.dataset.currency)));
+    render(preferred);
+  })();
+  document.addEventListener('click',e=>{
+    const btn=e.target.closest('.kb-video-play'); if(!btn) return;
+    const v=btn.closest('.kb-shot')?.querySelector('video.kb-video-el'); if(!v) return;
+    btn.style.display='none'; v.setAttribute('controls',''); v.setAttribute('playsinline',''); v.setAttribute('webkit-playsinline','');
+    try{ v.play(); }catch{}
+  });
+  (()=>{const ov=document.getElementById('kb-lightbox');const imgEl=ov.querySelector('img');
+    const close=()=>{ov.classList.remove('open');document.body.style.overflow='';imgEl.src='';};
+    ov.addEventListener('click',e=>{if(e.target===ov)close();});
+    ov.querySelector('.kb-lb-close').addEventListener('click',close);
+    document.addEventListener('keydown',e=>{if(e.key==='Escape')close();});
+    document.addEventListener('click',e=>{
+      const img=e.target.closest('.kb-shot-media img'); if(!img) return;
+      imgEl.src=img.getAttribute('data-full')||img.currentSrc||img.src;
+      ov.classList.add('open'); document.body.style.overflow='hidden';
+    });
+  })();
+  </script>
 </body>
 </html>
