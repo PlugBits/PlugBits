@@ -137,6 +137,68 @@
         });
       });
     })();
+    document.addEventListener('click', function(ev){
+  const btn = ev.target.closest('.kb-video-play');
+  if(!btn) return;
+  const wrap = btn.closest('.kb-shot-media, .kb-video, figure, .kb-shot');
+  const video = wrap && wrap.querySelector('video.kb-video-el, .kb-video-el, video');
+  if(!video) return;
+  btn.style.display = 'none';
+  video.setAttribute('controls', 'controls');
+  (video.play && video.play().catch(()=>{}));
+});
+
+/* ===== Image / Video modal (拡大) ===== */
+(function(){
+  // モーダルDOMを用意
+  const modal = document.createElement('div');
+  modal.className = 'kb-modal';
+  modal.innerHTML = `
+    <button class="kb-modal-close" aria-label="Close">× Close</button>
+    <div class="kb-modal-body"></div>`;
+  document.body.appendChild(modal);
+
+  function openModal(node){
+    const box = modal.querySelector('.kb-modal-body');
+    box.innerHTML = '';
+    // 画像か動画をクローンして入れる（videoはcontrols付き）
+    if(node.tagName === 'IMG'){
+      const img = node.cloneNode(true);
+      img.removeAttribute('loading');
+      box.appendChild(img);
+    } else if(node.tagName === 'VIDEO'){
+      const v = node.cloneNode(true);
+      v.setAttribute('controls','controls');
+      // iOS 対応
+      v.setAttribute('playsinline','');
+      v.muted = false;
+      box.appendChild(v);
+      (v.play && v.play().catch(()=>{}));
+    }
+    modal.classList.add('open');
+  }
+
+  // 画像クリックで拡大
+  document.addEventListener('click', function(e){
+    const img = e.target.closest('.kb-shot-media img');
+    if(img) { openModal(img); }
+  });
+
+  // 動画を“大きく見たい”ときはサムネイメージ（ポスター）ではなく本体をダブルクリック
+  document.addEventListener('dblclick', function(e){
+    const vid = e.target.closest('.kb-shot-media video');
+    if(vid) { openModal(vid); }
+  });
+
+  // 閉じる
+  modal.addEventListener('click', function(e){
+    if (e.target.classList.contains('kb-modal') || e.target.classList.contains('kb-modal-close')){
+      modal.classList.remove('open');
+      const box = modal.querySelector('.kb-modal-body');
+      box.innerHTML = '';
+    }
+  });
+})();
 </script>
 
   </script>
