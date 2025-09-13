@@ -129,6 +129,7 @@
         const $btn = $wrap.querySelector('.kb-video-play');
         const $v   = $wrap.querySelector('.kb-video-el');
         if(!$btn || !$v) return;
+        $v.setAttribute('playsinline',''); 
         $btn.addEventListener('click', function(){
           $btn.style.display = 'none';
           $v.setAttribute('controls','controls');
