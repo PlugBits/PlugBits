@@ -32,30 +32,47 @@ function renderFeatures(semicolon){
   return (semicolon||'').split(';').map(s=>s.trim()).filter(Boolean)
     .map(x=>`<li>${esc(x)}</li>`).join('');
 }
+// 先頭付近に追加（ユーティリティ）
+function assetExists(relPath){ // relPath: "assets/..." の形
+  try { return fs.existsSync(path.join(ROOT, relPath)); } catch { return false; }
+}
+
+// 置換：renderScreenshots
 function renderScreenshots(list, prefix=''){
   const arr = Array.isArray(list) ? list : (list||'').split(';');
   return arr.map(item=>{
-    const [url, type, alt] = String(item).split('|').map(s=>s.trim());
-    const src = prefix ? (prefix + url) : url;
+    const [urlRaw, type, alt] = String(item).split('|').map(s=>s.trim());
+    if(!urlRaw) return '';
+    const outSrc = prefix ? (prefix + urlRaw) : urlRaw;   // HTMLに出す相対パス
+    const exists = assetExists(urlRaw);                   // 物理ファイルの存在（ROOTからの相対）
     if(type === 'video'){
+      if(!exists){
+        console.warn('[WARN] video not found:', urlRaw);
+      }
+      const posterRel = urlRaw.endsWith('.mp4') ? urlRaw.replace(/\.mp4$/i, '.png') : null;
+      const posterAttr = (posterRel && assetExists(posterRel)) ? ` poster="${prefix ? (prefix + posterRel) : posterRel}"` : '';
       return `
       <figure class="kb-video">
         <button class="kb-video-play" aria-label="動画を再生">
-          <svg viewBox="0 0 64 64" width="56" height="56">
+          <svg viewBox="0 0 64 64" width="56" height="56" aria-hidden="true">
             <circle cx="32" cy="32" r="30" fill="rgba(0,0,0,0.55)"></circle>
             <polygon points="26,20 26,44 46,32" fill="#fff"></polygon>
           </svg>
         </button>
-        <video class="kb-video-el" preload="metadata" poster="${src.replace('.mp4','.png')}">
-          <source src="${src}" type="video/mp4">
+        <video class="kb-video-el"${posterAttr} preload="metadata" playsinline>
+          <source src="${outSrc}" type="video/mp4">
         </video>
         <figcaption class="kb-video-caption">${esc(alt||'')}</figcaption>
       </figure>`;
     } else {
-      return `<img src="${esc(src)}" alt="${esc(alt||'')}" loading="lazy">`;
+      if(!exists){
+        console.warn('[WARN] image not found:', urlRaw);
+      }
+      return `<img src="${esc(outSrc)}" alt="${esc(alt||'')}" loading="lazy">`;
     }
   }).join('');
 }
+
 function renderSteps(lines){
   const arr = Array.isArray(lines) ? lines : [];
   return arr.map(line=>{
