@@ -1,117 +1,5 @@
 [
   {
-    "slug": "subtable-sort",
-    "price_jpy": 300,
-    "price_usd": 2,
-    "purchase_url": "https://payhip.com/buy?link=ZSeW9",
-    "hero_image": "assets/placeholder.svg",
-    "file_size_ja": "約15KB",
-    "file_size_en": "~15KB",
-    "updated_at_ja": "2024年8月",
-    "updated_at_en": "Aug 2024",
-    "supported_screens_ja": "PC / 編集・新規",
-    "supported_screens_en": "PC / Edit & New",
-    "category_ja": "編集効率化",
-    "category_en": "Edit efficiency",
-    "title_ja": "サブテーブル並び替え（昇順/降順）",
-    "summary_ja": "明細をワンクリで昇順/降順。空欄は末尾、数値/日付も自動認識。",
-    "tags_ja": "編集画面, サブテーブル, 並び替え",
-    "features_ja": "昇順/降順/元に戻す; 空欄は末尾; 保存で順序維持",
-    "screenshots_ja": "assets/placeholder.svg|サブテーブル並び替え - 操作画面; assets/placeholder.svg|サブテーブル並び替え - 結果画面",
-    "steps_ja": [
-      "1|プラグインをインストール|Kintoneシステム管理からプラグインファイルをアップロードしてください。",
-      "2|アプリに追加|対象アプリの設定からプラグインを有効化してください。",
-      "3|サブテーブルで並び替え|編集画面でサブテーブルのヘッダーをクリックして並び替えできます。"
-    ],
-    "limitations_ja": "大規模行数では時間がかかる場合あり",
-    "faq_ja": [
-      "モバイル対応は？|現状PCのみ。要望があれば対応予定。",
-      "どのフィールドタイプに対応していますか？|文字列、数値、日付、時刻などの基本フィールドに対応。計算フィールドや添付ファイルは対象外です。",
-      "並び替えの順序は保存されますか？|はい。レコード保存時に並び替えた順序が維持されます。"
-    ],
-    "related_ja": [
-      "products/copy-field.html|フィールド値一括コピー|",
-      "products/list-aggregate.html|一覧画面集計表示|"
-    ],
-    "cta_headline_ja": "サブテーブル並び替えを今すぐ導入",
-    "cta_text_ja": "作業効率を向上させる並び替え機能をお試しください。",
-    "title_en": "Subtable Sort (Asc/Desc)",
-    "summary_en": "One click to sort rows ascending/descending. Blanks go last; numbers/dates are auto-detected.",
-    "tags_en": "Edit view, Subtable, Sort",
-    "features_en": "Asc/Desc/Undo; Blank cells last; Keep order on save",
-    "screenshots_en": "assets/placeholder.svg|Subtable Sort - Operation; assets/placeholder.svg|Subtable Sort - Result",
-    "steps_en": [
-      "1|Install the plugin|Upload the plugin file from Kintone System Administration.",
-      "2|Add to your app|Enable the plugin in the target app’s settings.",
-      "3|Sort the subtable|Click the subtable header in Edit view to sort."
-    ],
-    "limitations_en": "May take time with very large row counts",
-    "faq_en": [
-      "Is mobile supported?|Currently PC only. May add support upon request.",
-      "Which field types are supported?|Basic types like text, number, date, and time. Calculated fields and attachments are excluded.",
-      "Is the order preserved?|Yes. The sorted order is kept when the record is saved."
-    ],
-    "related_en": [
-      "products/copy-field.html|Bulk Copy Field Values|200",
-      "products/list-aggregate.html|List View Aggregation|400"
-    ],
-    "cta_headline_en": "Add Subtable Sort Now",
-    "cta_text_en": "Try the sorting feature to streamline your data editing.",
-    "support_mail": "support@example.com",
-    "site_name_ja": "Kintone向けミニプラグイン",
-    "site_name_en": "Mini Plugins for Kintone",
-    "site_copyright": "2024 Kintone Mini Plugins. All rights reserved."
-  },
-  {
-    "slug": "row-highlighter",
-    "purchase_url": "https://stores.jp/example/row-highlighter",
-    "price_jpy": "300",
-    "price_usd": "2",
-    "hero_image": "assets/placeholder.svg",
-    "title_ja": "行ハイライト（条件色分け）",
-    "summary_ja": "条件に応じて行を自動で色分け。重要なレコードをひと目で把握できます。",
-    "tags_ja": "編集画面, 強調表示, 条件式",
-    "features_ja": "条件ごとに色を指定; 数値/文字/日付で条件設定; 一時的にハイライトOFF",
-    "screenshots_ja": "assets/placeholder.svg|行ハイライト - 設定画面; assets/placeholder.svg|行ハイライト - 編集画面表示",
-    "steps_ja": [
-      "1|プラグインをインストール|Kintoneシステム管理からプラグインをアップロードします。",
-      "2|アプリに追加|対象アプリのプラグイン設定を開き、有効化できます。",
-      "3|条件と色を設定|数値・文字・日付条件を追加し、色を選んで保存します。"
-    ],
-    "limitations_ja": "レコード件数が非常に多い場合は描画に時間がかかることがあります",
-    "faq_ja": [
-      "モバイル対応は？|現状はPCのみ対応です。要望があれば検討します。",
-      "どの条件演算に対応？|より/未満/一致/含む/範囲などの基本演算に対応します。",
-      "パフォーマンス影響は？|条件数が多い場合や大規模アプリでは影響が出る場合があります。"
-    ],
-    "supported_screens_ja": "PC / 編集・新規",
-    "category_ja": "視認性向上",
-    "file_size_ja": "約18KB",
-    "updated_at_ja": "2025年9月",
-    "title_en": "Row Highlighter (Conditional Coloring)",
-    "summary_en": "Automatically color rows based on conditions so important records stand out at a glance.",
-    "tags_en": "Edit view, Highlight, Conditions",
-    "features_en": "Per-condition color; Numeric/Text/Date rules; Temporary toggle OFF",
-    "screenshots_en": "assets/placeholder.svg|Row Highlighter - Settings; assets/placeholder.svg|Row Highlighter - In Edit View",
-    "steps_en": [
-      "1|Install the plugin|Upload the plugin from Kintone System Administration.",
-      "2|Add to your app|Enable the plugin in the target app settings.",
-      "3|Configure conditions and colors|Add numeric/text/date rules, pick colors, and save."
-    ],
-    "limitations_en": "Rendering may take time on very large apps",
-    "faq_en": [
-      "Is mobile supported?|Currently PC only. May consider upon request.",
-      "Which operators are supported?|Greater/Less/Equals/Contains/Range and other basics.",
-      "Any performance impact?|Many rules or very large apps may show an impact."
-    ],
-    "supported_screens_en": "PC / Edit & New",
-    "category_en": "Visibility",
-    "file_size_en": "~18KB",
-    "updated_at_en": "Sep 2025",
-    "support_mail": "support@example.com",
-    "site_copyright": "2024 Kintone Mini Plugins. All rights reserved."
-  },
-  {
     "slug": "number-expression",
     "purchase_url": "https://example.com/store/number-expression",
     "price_jpy": "1000",
@@ -179,7 +67,7 @@
     "summary_ja": "レコード詳細に、LINK/文字列(1行)フィールドのURLをKintone標準UI風のボタンとして表示します。\n配置（ヘッダー/スペース）、ボタン種別（プライマリ/セカンダリ/警告/アウトライン/ミニ）、確認ダイアログ、元フィールドの非表示、\n新しいタブで開くの設定に対応。システム言語(JA/EN)に自動対応。",
     "tags_ja": "ヘッダー, スペース, リンク, ボタン, UI, i18n",
     "features_ja": "URLの自動検証(http/httpsのみ); ヘッダー/スペースに配置; ボタン種別(プライマリ/セカンダリ/警告/アウトライン/ミニ); 確認ダイアログ; 元フィールドの非表示; 新しいタブで開く; システム言語(JA/EN)自動対応; SVGアイコン(ミニ)",
-    "screenshots_ja": "assets/link-button/ss-config.png|設定画面; assets/link-button/ss-header.png|ヘッダーにボタン; assets/   link-button/ss-space.png|スペース配置",
+    "screenshots_ja": "assets/link-button/link-button-ss1.png|設定画面; assets/link-button/link-button-ss2.png|ヘッダー,スペースににボタンを配置; ,
     "steps_ja": [
       "1|プラグインをインストール|kintone 管理からプラグインを追加し有効化します。",
       "2|アプリに追加|対象アプリにプラグインを追加します。",
