@@ -30,7 +30,7 @@
     "summary_en": "On create/edit, evaluates expressions entered in string fields when they start with '=' or '+' and   replaces them with the numeric result. Supports subtables. Optionally map from a string field to a number field to   mirror the result.",
     "tags_en": "Edit screen, Create screen, Input assistance, String field, Number, Subtable, Calculator, Normalization",
     "features_en": "Safely evaluates expressions starting with '=' or '+'; Normalizes full-width digits/symbols; Supports   decimals, parentheses, unary ±, and the four operations; Auto-converts on blur or save; Select target fields per app   (subtables supported); String→Number output mapping; Mirror results to number fields; Works on PC and mobile (create/   edit)",
-    "screenshots_en": "aassets/number-expression/expression_mv1.mp4|video|Enter expression → convert to number; assets/number-expression/expression_ss1.png|Select targets and output mapping",
+    "screenshots_en": "assets/number-expression/expression_mv1.mp4|video|Enter expression → convert to number; assets/number-expression/expression_ss1.png|Select targets and output mapping",
     "steps_en": [
       "1|Install the plugin|Upload the ZIP in System Administration > Plugins.",
       "2|Add to app|Enable this plugin in the target app.",
