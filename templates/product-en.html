@@ -2,12 +2,13 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>%%TITLE_EN%% | %%SITE_NAME_EN%%</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="description" content="%%SUMMARY_EN%%">
   <link rel="stylesheet" href="../../style.css">
 </head>
 <body class="kb-root">
+  <!-- Topbar -->
   <div class="kb-container kb-topbar">
     <a class="kb-back" href="../../en/index.html">← Back to list</a>
     <div class="kb-language-switcher">
@@ -17,58 +18,86 @@
     </div>
   </div>
 
-  <main class="kb-product-hero--split">
+  <!-- Hero (same layout as JA) -->
+  <header class="kb-product-hero kb-product-hero--split">
     <div class="kb-hero-col">
       <h1>%%TITLE_EN%%</h1>
       <p class="kb-summary">%%SUMMARY_EN%%</p>
       <div class="kb-tags">%%TAGS_EN_HTML%%</div>
+      <div class="kb-hero-side">
+        <img class="kb-hero-image" src="../../%%HERO_IMAGE%%" alt="%%TITLE_EN%%">
+      </div>
+      <div class="kb-price-box">
+        <div id="product-price" class="kb-price"
+             data-price-jpy="%%PRICE_JPY%%" data-price-usd="%%PRICE_USD%%">$%%PRICE_USD%%</div>
+        <a class="kb-buy-btn" href="%%PURCHASE_URL%%" target="_blank" rel="noopener">Buy</a>
+      </div>
     </div>
-    <div class="kb-hero-side">
-      <img class="kb-hero-image" src="../../%%HERO_IMAGE%%" alt="%%TITLE_EN%%">
-    </div>
-    <div class="kb-price-box">
-      <div id="product-price" class="kb-price" data-price-jpy="%%PRICE_JPY%%" data-price-usd="%%PRICE_USD%%">$%%PRICE_USD%%</div>
-      <a class="kb-buy-btn" href="%%PURCHASE_URL%%" target="_blank" rel="noopener">Buy</a>
-    </div>
+  </header>
 
+  <!-- Info -->
+  <section class="kb-section kb-container">
     <div class="kb-info-grid">
       <div><strong>Screens</strong><p>%%SUPPORTED_SCREENS_EN%%</p></div>
       <div><strong>Category</strong><p>%%CATEGORY_EN%%</p></div>
       <div><strong>File Size</strong><p>%%FILE_SIZE_EN%%</p></div>
       <div><strong>Updated</strong><p>%%UPDATED_AT_EN%%</p></div>
     </div>
+  </section>
 
-    <section class="kb-section">
-      <h2 class="kb-section-title">Features</h2>
-      <ul class="kb-feature-list">%%FEATURES_EN_HTML%%</ul>
-    </section>
+  <!-- Features -->
+  <section class="kb-section kb-container">
+    <h2>Features</h2>
+    <ul class="kb-feature-list">%%FEATURES_EN_HTML%%</ul>
+  </section>
 
-    <section class="kb-section">
-      <h2 class="kb-section-title">Screenshots</h2>
-      <div class="kb-screenshots">%%SCREENSHOTS_EN_HTML%%</div>
-    </section>
+  <!-- Screenshots (video tile + auto list) -->
+  <section class="kb-section kb-container">
+    <h2>Screenshots</h2>
 
-    <section class="kb-section">
-      <h2 class="kb-section-title">How to use</h2>
-      <div class="kb-steps">%%STEPS_EN_HTML%%</div>
-    </section>
+    <!-- Optional demo video tile (same pattern as JA) -->
+    <figure class="kb-video">
+      <button class="kb-video-play" aria-label="Play the demo">
+        <svg viewBox="0 0 64 64" width="56" height="56" aria-hidden="true">
+          <circle cx="32" cy="32" r="30" fill="rgba(0,0,0,0.55)"></circle>
+          <polygon points="26,20 26,44 46,32" fill="#fff"></polygon>
+        </svg>
+      </button>
+      <video class="kb-video-el" preload="metadata" poster="../../assets/demo-poster.png">
+        <source src="../../assets/demo.mp4" type="video/mp4">
+        Demo video
+      </video>
+      <figcaption class="kb-video-caption">Demo: how it works</figcaption>
+    </figure>
 
-    <section class="kb-section">
-      <h2 class="kb-section-title">Limitations</h2>
-      <ul class="kb-limitation-list">%%LIMITATIONS_EN_HTML%%</ul>
-    </section>
+    <div class="kb-screenshots">%%SCREENSHOTS_EN_HTML%%</div>
+  </section>
 
-    <section class="kb-section kb-faq-block">
-      <h2 class="kb-section-title">FAQ</h2>
-      <div class="kb-faq">%%FAQ_EN_HTML%%</div>
-    </section>
+  <!-- Steps -->
+  <section class="kb-section kb-container">
+    <h2>How to use</h2>
+    <div class="kb-steps">%%STEPS_EN_HTML%%</div>
+  </section>
 
-    <section class="kb-section">
-      <h2 class="kb-section-title">Related</h2>
-      <div class="kb-related-products">%%RELATED_EN_HTML%%</div>
-    </section>
-  </main>
+  <!-- Limitations -->
+  <section class="kb-section kb-container">
+    <h2>Limitations</h2>
+    <ul class="kb-limitation-list">%%LIMITATIONS_EN_HTML%%</ul>
+  </section>
 
+  <!-- FAQ -->
+  <section class="kb-section kb-container">
+    <h2>FAQ</h2>
+    <div class="kb-faq">%%FAQ_EN_HTML%%</div>
+  </section>
+
+  <!-- Related -->
+  <section class="kb-section kb-container">
+    <h2>Related</h2>
+    <div class="kb-related-products">%%RELATED_EN_HTML%%</div>
+  </section>
+
+  <!-- Footer -->
   <footer class="kb-footer kb-container">
     <nav class="kb-footer-links">
       <a href="mailto:%%SUPPORT_MAIL%%">Report an issue</a>
@@ -77,15 +106,23 @@
     <small>%%SITE_COPYRIGHT%%</small>
   </footer>
 
-  <div id="kb-lightbox"><div class="kb-lb-inner"><img alt=""><button class="kb-lb-close" aria-label="Close">×</button></div></div>
+  <!-- Lightbox (image zoom) -->
+  <div id="kb-lightbox">
+    <div class="kb-lb-inner">
+      <img alt="">
+      <button class="kb-lb-close" aria-label="Close">×</button>
+    </div>
+  </div>
 
+  <!-- Currency toggle + video play + lightbox -->
   <script>
   (function(){
     const JPY='JPY', USD='USD';
     const $btns=document.querySelectorAll('.kb-currency-btn');
+    // default USD for EN page, fallback to saved pref
     const preferred=localStorage.getItem('preferred-currency')||USD;
     function render(cur){
-      document.querySelectorAll('#product-price,.kb-related-price,.kb-price-badge')
+      document.querySelectorAll('#product-price,.kb-related-price,.kb-price-badge,[data-price-jpy][data-price-usd]')
         .forEach(el=>{
           const j=el.getAttribute('data-price-jpy'), u=el.getAttribute('data-price-usd');
           el.textContent=(cur===USD && u)?'$'+u:'¥'+j;
@@ -96,21 +133,27 @@
     $btns.forEach(b=>b.addEventListener('click',()=>render(b.dataset.currency)));
     render(preferred);
   })();
+
+  // click-to-play for inline videos
   document.addEventListener('click',e=>{
     const btn=e.target.closest('.kb-video-play'); if(!btn) return;
-    const v=btn.closest('.kb-shot')?.querySelector('video.kb-video-el'); if(!v) return;
-    btn.style.display='none'; v.setAttribute('controls',''); v.setAttribute('playsinline',''); v.setAttribute('webkit-playsinline','');
+    const wrap=btn.closest('.kb-video, .kb-shot');
+    const v=wrap && wrap.querySelector('video.kb-video-el'); if(!v) return;
+    btn.style.display='none';
+    v.setAttribute('controls',''); v.setAttribute('playsinline',''); v.setAttribute('webkit-playsinline','');
     try{ v.play(); }catch{}
   });
+
+  // simple lightbox for screenshots
   (()=>{const ov=document.getElementById('kb-lightbox');const imgEl=ov.querySelector('img');
+    const open=src=>{imgEl.src=src;ov.classList.add('open');document.body.style.overflow='hidden';};
     const close=()=>{ov.classList.remove('open');document.body.style.overflow='';imgEl.src='';};
-    ov.addEventListener('click',e=>{if(e.target===ov)close();});
+    ov.addEventListener('click',e=>{if(e.target===ov) close();});
     ov.querySelector('.kb-lb-close').addEventListener('click',close);
-    document.addEventListener('keydown',e=>{if(e.key==='Escape')close();});
+    document.addEventListener('keydown',e=>{if(e.key==='Escape') close();});
     document.addEventListener('click',e=>{
-      const img=e.target.closest('.kb-shot-media img'); if(!img) return;
-      imgEl.src=img.getAttribute('data-full')||img.currentSrc||img.src;
-      ov.classList.add('open'); document.body.style.overflow='hidden';
+      const img=e.target.closest('.kb-shot-media img,.kb-screenshots img'); if(!img) return;
+      open(img.getAttribute('data-full')||img.currentSrc||img.src);
     });
   })();
   </script>
