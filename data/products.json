@@ -67,7 +67,7 @@
     "summary_ja": "レコード詳細に、LINK/文字列(1行)フィールドのURLをKintone標準UI風のボタンとして表示します。\n配置（ヘッダー/スペース）、ボタン種別（プライマリ/セカンダリ/警告/アウトライン/ミニ）、確認ダイアログ、元フィールドの非表示、\n新しいタブで開くの設定に対応。システム言語(JA/EN)に自動対応。",
     "tags_ja": "ヘッダー, スペース, リンク, ボタン, UI, i18n",
     "features_ja": "URLの自動検証(http/httpsのみ); ヘッダー/スペースに配置; ボタン種別(プライマリ/セカンダリ/警告/アウトライン/ミニ); 確認ダイアログ; 元フィールドの非表示; 新しいタブで開く; システム言語(JA/EN)自動対応; SVGアイコン(ミニ)",
-    "screenshots_ja": "assets/link-button/link-button-ss1.png|設定画面; assets/link-button/link-button-ss2.png|ヘッダー,スペースににボタンを配置; ,
+    "screenshots_ja": "assets/link-button/link-button-ss1.png|設定画面; assets/link-button/link-button-ss2.png|ヘッダー,スペースににボタンを配置; ",
     "steps_ja": [
       "1|プラグインをインストール|kintone 管理からプラグインを追加し有効化します。",
       "2|アプリに追加|対象アプリにプラグインを追加します。",
@@ -88,7 +88,7 @@
     "summary_en": "Adds Kintone-like buttons to record detail pages from LINK/Text fields. Choose placement (Header/Space),   button variants (primary/secondary/danger/outline/mini), optional confirmation, hide original field, and open in a new   tab. Automatically follows the system language (JA/EN).",
     "tags_en": "Header, Space, Link, Button, UI, i18n",
     "features_en": "URL validation (http/https only); Place on header/space; Button variants (primary/secondary/danger/   outline/mini); Confirmation dialog; Hide original field; Open in new tab; Auto language (JA/EN); SVG icon (mini)",
-    "screenshots_en": "assets/link-button/ss-config.png|Settings; assets/link-button/ss-header.png|Buttons in header; assets/   link-button/ss-space.png|Buttons in space",
+    "screenshots_en": "assets/link-button/link-button-ss1.png|Settings; assets/link-button/link-button-ss2.png|Buttons in header and space;",
     "steps_en": [
       "1|Install the plugin|Add and enable the plugin in Kintone admin.",
       "2|Add to app|Add the plugin to your target app.",
