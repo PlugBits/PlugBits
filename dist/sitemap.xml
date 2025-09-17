@@ -1,0 +1,3 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+<url><loc>{{BASE_URL}}/index.html</loc></url><url><loc>{{BASE_URL}}/en/index.html</loc></url><url><loc>{{BASE_URL}}/terms.html</loc></url><url><loc>{{BASE_URL}}/products/number-expression.html</loc></url><url><loc>{{BASE_URL}}/products/en/number-expression.html</loc></url><url><loc>{{BASE_URL}}/products/link-button.html</loc></url><url><loc>{{BASE_URL}}/products/en/link-button.html</loc></url></urlset>

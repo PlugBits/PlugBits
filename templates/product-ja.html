@@ -30,7 +30,7 @@
       <div class="kb-price-box">
         <div id="product-price" class="kb-price"
              data-price-jpy="%%PRICE_JPY%%" data-price-usd="%%PRICE_USD%%">¥%%PRICE_JPY%%</div>
-        <a class="kb-buy-btn" href="%%PURCHASE_URL%%" target="_blank" rel="noopener">購入</a>
+        <a class="kb-buy-btn" href="%%PURCHASE_URL_JPY%%" data-url-jpy="%%PURCHASE_URL_JPY%%" data-url-usd="%%PURCHASE_URL_USD%%" target="_blank" rel="noopener">購入</a>
       </div>
     </div>
   </header>
@@ -105,6 +105,12 @@
           const j=el.getAttribute('data-price-jpy'), u=el.getAttribute('data-price-usd');
           el.textContent=(cur===USD && u)?'$'+u:'¥'+j;
         });
+      // update buy links by currency
+      document.querySelectorAll('.kb-buy-btn').forEach(btn=>{
+        const j=btn.getAttribute('data-url-jpy')||btn.getAttribute('href')||'';
+        const u=btn.getAttribute('data-url-usd')||j;
+        btn.setAttribute('href', cur===USD ? u : j);
+      });
       $btns.forEach(b=>b.classList.toggle('active',b.dataset.currency===cur));
       localStorage.setItem('preferred-currency',cur);
     }

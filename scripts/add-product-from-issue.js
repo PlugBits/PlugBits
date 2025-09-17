@@ -56,6 +56,8 @@ function main(){
   const item = {
     slug,
     purchase_url: pick('purchase_url'),
+    purchase_url_jpy: pick('purchase_url_jpy'),
+    purchase_url_usd: pick('purchase_url_usd'),
     price_jpy: pick('price_jpy'),
     price_usd: pick('price_usd'),
     hero_image: pick('hero_image'),

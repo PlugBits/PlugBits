@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Number Expression Plugin | Mini Plugins for Kintone</title>
+  <meta name="description" content="On create/edit, evaluates expressions entered in string fields when they start with '=' or '+' and   replaces them with the numeric result. Supports subtables. Optionally map from a string field to a number field to   mirror the result.">
+  <link rel="stylesheet" href="../../style.css">
+</head>
+<body class="kb-root">
+  <!-- Topbar -->
+  <div class="kb-container kb-topbar">
+    <a class="kb-back" href="../../en/index.html">← Back to list</a>
+    <div class="kb-language-switcher">
+      <a class="kb-lang" href="../number-expression.html">JP</a>
+      <button class="kb-currency-btn active" data-currency="USD">USD</button>
+      <button class="kb-currency-btn" data-currency="JPY">JPY</button>
+    </div>
+  </div>
+
+  <!-- Hero -->
+  <header class="kb-product-hero kb-product-hero--split">
+    <div class="kb-hero-col">
+      <h1>Number Expression Plugin</h1>
+      <p class="kb-summary">On create/edit, evaluates expressions entered in string fields when they start with '=' or '+' and   replaces them with the numeric result. Supports subtables. Optionally map from a string field to a number field to   mirror the result.</p>
+      <div class="kb-tags"><span class="kb-tag">Edit screen</span><span class="kb-tag">Create screen</span><span class="kb-tag">Input assistance</span><span class="kb-tag">String field</span><span class="kb-tag">Number</span><span class="kb-tag">Subtable</span><span class="kb-tag">Calculator</span><span class="kb-tag">Normalization</span></div>
+      <div class="kb-hero-side">
+        <img class="kb-hero-image" src="../../assets/number-expression/hero.png" alt="Number Expression Plugin">
+      </div>
+      <div class="kb-price-box">
+        <div id="product-price" class="kb-price"
+             data-price-jpy="1000" data-price-usd="10">$10</div>
+        <a class="kb-buy-btn" href="https://example.com/store/number-expression" data-url-jpy="https://example.com/store/number-expression" data-url-usd="https://example.com/store/number-expression" target="_blank" rel="noopener">Buy</a>
+      </div>
+    </div>
+  </header>
+
+  <!-- Info -->
+  <section class="kb-section kb-container">
+    <div class="kb-info-grid">
+      <div><strong>Screens</strong><p>PC & Mobile / Create & Edit</p></div>
+      <div><strong>Category</strong><p>Input assistance / Edit efficiency</p></div>
+      <div><strong>File Size</strong><p>~15KB</p></div>
+      <div><strong>Updated</strong><p>Sep 2025</p></div>
+    </div>
+  </section>
+
+  <!-- Features -->
+  <section class="kb-section kb-container">
+    <h2 class="kb-section-title">Features</h2>
+    <ul class="kb-feature-list"><li>Safely evaluates expressions starting with &#39;=&#39; or &#39;+&#39;</li><li>Normalizes full-width digits/symbols</li><li>Supports   decimals, parentheses, unary ±, and the four operations</li><li>Auto-converts on blur or save</li><li>Select target fields per app   (subtables supported)</li><li>String→Number output mapping</li><li>Mirror results to number fields</li><li>Works on PC and mobile (create/   edit)</li></ul>
+  </section>
+
+  <!-- Screenshots -->
+  <section class="kb-section kb-container">
+    <h2 class="kb-section-title">Screenshots</h2>
+    <div class="kb-screenshots"><figure class="kb-shot"><div class="kb-shot-media"><button class="kb-video-play" aria-label="Play"><svg viewBox="0 0 64 64" width="56" height="56"><circle cx="32" cy="32" r="30" fill="rgba(0,0,0,.55)"></circle><polygon points="26,20 26,44 46,32" fill="#fff"></polygon></svg></button><video class="kb-video-el" preload="metadata" playsinline webkit-playsinline poster="../../assets/number-expression/expression_mv1.png"><source src="../../assets/number-expression/expression_mv1.mp4" type="video/mp4"></video></div><figcaption>Enter expression → convert to number</figcaption></figure><figure class="kb-shot"><div class="kb-shot-media"><img src="../../assets/number-expression/expression_ss1.png" alt="Select targets and output mapping" loading="lazy"></div><figcaption>Select targets and output mapping</figcaption></figure></div>
+  </section>
+
+  <!-- Steps -->
+  <section class="kb-section kb-container">
+    <h2 class="kb-section-title">How to use</h2>
+    <div class="kb-steps"><div class="kb-step"><div class="kb-step-number">1</div><div><h3>Install the plugin</h3><p>Upload the ZIP in System Administration &gt; Plugins.</p></div></div><div class="kb-step"><div class="kb-step-number">2</div><div><h3>Add to app</h3><p>Enable this plugin in the target app.</p></div></div><div class="kb-step"><div class="kb-step-number">3</div><div><h3>Configure targets</h3><p>Choose string fields and (optionally) subtable columns. Set output mapping to save results into</p></div></div><div class="kb-step"><div class="kb-step-number">number fields.</div><div><h3></h3><p></p></div></div><div class="kb-step"><div class="kb-step-number">4</div><div><h3>Verify</h3><p>In create/edit, type &#39;=1+2&#39; or &#39;+(1+2)*0.5&#39; and confirm it converts on blur or save.</p></div></div><div class="kb-step"><div class="kb-step-number">limitations_en: &quot;Only numeric expressions are evaluated (no functions, field references, or constants); Invalid</div><div><h3></h3><p></p></div></div><div class="kb-step"><div class="kb-step-number">characters or unbalanced parentheses are not converted; Division by zero is not converted; Inputs not starting with</div><div><h3></h3><p></p></div></div><div class="kb-step"><div class="kb-step-number">&#39;=&#39; or &#39;+&#39; are ignored; Conversion timing may vary with other plugins</div><div><h3></h3><p></p></div></div></div>
+  </section>
+
+  <!-- Limitations -->
+  <section class="kb-section kb-container">
+    <h2 class="kb-section-title">Limitations</h2>
+    <ul class="kb-limitation-list"></ul>
+  </section>
+
+  <!-- FAQ -->
+  <section class="kb-section kb-container kb-faq-block">
+    <h2 class="kb-section-title">FAQ</h2>
+    <div class="kb-faq"><div class="kb-faq-item"><h3>s mobile supported?</h3><p>Yes, on create/edit views.</p></div><div class="kb-faq-item"><h3>Does it work in subtables?</h3><p>Yes. Select the subtable columns in settings.</p></div><div class="kb-faq-item"><h3>What syntax is supported?</h3><p>Four operations (+ - * /), parentheses, unary ±, decimals, with automatic normalization of</p></div></div>
+  </section>
+
+  <!-- Related -->
+  <section class="kb-section kb-container">
+    <h2 class="kb-section-title">Related</h2>
+    <div class="kb-related-products"></div>
+  </section>
+
+  <footer class="kb-footer kb-container">
+    <nav class="kb-footer-links">
+      <a href="mailto:support@example.com">Report an issue</a>
+      <a href="../../terms.html">Terms</a>
+    </nav>
+    <small>2024 Kintone Mini Plugins. All rights reserved.</small>
+  </footer>
+
+  <!-- Lightbox (images) -->
+  <div id="kb-lightbox"><div class="kb-lb-inner"><img alt=""><button class="kb-lb-close" aria-label="Close">×</button></div></div>
+
+  <!-- Scripts: currency / video play / lightbox -->
+  <script>
+  (function(){
+    const JPY='JPY', USD='USD';
+    const $btns=document.querySelectorAll('.kb-currency-btn');
+    // ENは既定USD
+    const preferred=localStorage.getItem('preferred-currency')||USD;
+    function render(cur){
+      document.querySelectorAll('#product-price,.kb-related-price,.kb-price-badge,[data-price-jpy][data-price-usd]')
+        .forEach(el=>{
+          const j=el.getAttribute('data-price-jpy'), u=el.getAttribute('data-price-usd');
+          el.textContent=(cur===USD && u)?'$'+u:'¥'+j;
+        });
+      // update buy links by currency
+      document.querySelectorAll('.kb-buy-btn').forEach(btn=>{
+        const j=btn.getAttribute('data-url-jpy')||btn.getAttribute('href')||'';
+        const u=btn.getAttribute('data-url-usd')||j;
+        btn.setAttribute('href', cur===USD ? u : j);
+      });
+      $btns.forEach(b=>b.classList.toggle('active',b.dataset.currency===cur));
+      localStorage.setItem('preferred-currency',cur);
+    }
+    $btns.forEach(b=>b.addEventListener('click',()=>render(b.dataset.currency)));
+    render(preferred);
+  })();
+
+  document.addEventListener('click',e=>{
+    const btn=e.target.closest('.kb-video-play'); if(!btn) return;
+    const v=btn.closest('.kb-shot,.kb-video')?.querySelector('video.kb-video-el'); if(!v) return;
+    btn.style.display='none';
+    v.setAttribute('controls',''); v.setAttribute('playsinline',''); v.setAttribute('webkit-playsinline','');
+    try{ v.play(); }catch{}
+  });
+
+  (()=>{const ov=document.getElementById('kb-lightbox');const imgEl=ov.querySelector('img');
+    const close=()=>{ov.classList.remove('open');document.body.style.overflow='';imgEl.src='';};
+    ov.addEventListener('click',e=>{if(e.target===ov)close();});
+    ov.querySelector('.kb-lb-close').addEventListener('click',close);
+    document.addEventListener('keydown',e=>{if(e.key==='Escape')close();});
+    document.addEventListener('click',e=>{
+      const img=e.target.closest('.kb-shot-media img'); if(!img) return;
+      imgEl.src=img.getAttribute('data-full')||img.currentSrc||img.src;
+      ov.classList.add('open'); document.body.style.overflow='hidden';
+    });
+  })();
+  </script>
+</body>
+</html>

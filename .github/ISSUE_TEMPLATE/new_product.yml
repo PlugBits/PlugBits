@@ -14,8 +14,27 @@ body:
 
   - type: input
     id: purchase_url
-    attributes: { label: PURCHASE_URL, placeholder: https://stores.jp/example/slug }
+    attributes:
+      label: PURCHASE_URL
+      description: 既定の購入URL（フォールバック）。通貨別URL未指定時にも使用されます。
+      placeholder: https://payhip.com/buy?link=BASE
     validations: { required: true }
+
+  - type: input
+    id: purchase_url_jpy
+    attributes:
+      label: PURCHASE_URL_JPY (optional)
+      description: 通貨がJPYのときに使用するURL。未指定なら上の PURCHASE_URL を使用します。
+      placeholder: https://payhip.com/buy?link=XXXX
+    validations: { required: false }
+
+  - type: input
+    id: purchase_url_usd
+    attributes:
+      label: PURCHASE_URL_USD (optional)
+      description: 通貨がUSDのときに使用するURL。未指定なら上の PURCHASE_URL を使用します。
+      placeholder: https://payhip.com/buy?link=YYYY
+    validations: { required: false }
 
   - type: input
     id: price_jpy

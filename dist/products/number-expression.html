@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <title>数式入力（数値化）プラグイン | Kintone向けミニプラグイン</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="作成/編集画面で、選択した文字列（1行）フィールドに『=』または『＋』で始まる式（例: =1+2、+（1+2）×0.5）
+  を入力すると、その場で安全に評価して数値へ置換します。サブテーブル対応。任意で『文字列→数値』の出力を設定でき、
+  結果を数値フィールドへ写して保存できます。">
+  <link rel="stylesheet" href="../style.css">
+</head>
+<body class="kb-root">
+  <!-- Topbar -->
+  <div class="kb-container kb-topbar">
+    <a class="kb-back" href="../index.html">← 商品一覧に戻る</a>
+    <div class="kb-language-switcher">
+      <a class="kb-lang" href="en/number-expression.html">EN</a>
+      <button class="kb-currency-btn active" data-currency="JPY">JPY</button>
+      <button class="kb-currency-btn" data-currency="USD">USD</button>
+    </div>
+  </div>
+
+  <!-- Hero -->
+  <header class="kb-product-hero kb-product-hero--split">
+    <div class="kb-hero-col">
+      <h1>数式入力（数値化）プラグイン</h1>
+      <p class="kb-summary">作成/編集画面で、選択した文字列（1行）フィールドに『=』または『＋』で始まる式（例: =1+2、+（1+2）×0.5）
+  を入力すると、その場で安全に評価して数値へ置換します。サブテーブル対応。任意で『文字列→数値』の出力を設定でき、
+  結果を数値フィールドへ写して保存できます。</p>
+      <div class="kb-tags"><span class="kb-tag">編集画面</span><span class="kb-tag">作成画面</span><span class="kb-tag">入力支援</span><span class="kb-tag">文字列フィールド</span><span class="kb-tag">数値</span><span class="kb-tag">サブテーブル</span><span class="kb-tag">計算</span><span class="kb-tag">正規化</span></div>
+      <div class="kb-hero-side">
+        <img class="kb-hero-image" src="../assets/number-expression/hero.png" alt="数式入力（数値化）プラグイン">
+      </div>
+      <div class="kb-price-box">
+        <div id="product-price" class="kb-price"
+             data-price-jpy="1000" data-price-usd="10">¥1000</div>
+        <a class="kb-buy-btn" href="https://example.com/store/number-expression" data-url-jpy="https://example.com/store/number-expression" data-url-usd="https://example.com/store/number-expression" target="_blank" rel="noopener">購入</a>
+      </div>
+    </div>
+  </header>
+
+  <!-- Info -->
+  <section class="kb-section kb-container">
+    <div class="kb-info-grid">
+      <div><strong>対応画面</strong><p>PC / モバイル（作成・編集）</p></div>
+      <div><strong>カテゴリ</strong><p>入力支援・編集効率化</p></div>
+      <div><strong>ファイルサイズ</strong><p>~15KB</p></div>
+      <div><strong>更新日</strong><p>2025年9月</p></div>
+    </div>
+  </section>
+
+  <!-- Features -->
+  <section class="kb-section kb-container">
+    <h2 class="kb-section-title">機能</h2>
+    <ul class="kb-feature-list"><li>『=』『＋』で始まる式を安全に評価</li><li>全角記号・数字を半角に正規化</li><li>小数・括弧・四則演算に対応</li><li>フォーカスアウト/保存時に自動変換</li><li>対象フィールドをアプリ設定で選択（サブテーブル対応）</li><li>文字列→数値の出力マッピング</li><li>結果を数値フィールドへ写して保存</li><li>PC/モバイルの作成・編集で動作</li></ul>
+  </section>
+
+  <!-- Screenshots (video/image 共通フレーム) -->
+  <section class="kb-section kb-container">
+    <h2 class="kb-section-title">スクリーンショット</h2>
+    <div class="kb-screenshots"><figure class="kb-shot"><div class="kb-shot-media"><button class="kb-video-play" aria-label="Play"><svg viewBox="0 0 64 64" width="56" height="56"><circle cx="32" cy="32" r="30" fill="rgba(0,0,0,.55)"></circle><polygon points="26,20 26,44 46,32" fill="#fff"></polygon></svg></button><video class="kb-video-el" preload="metadata" playsinline webkit-playsinline poster="../assets/number-expression/expression_mv1.png"><source src="../assets/number-expression/expression_mv1.mp4" type="video/mp4"></video></div><figcaption>式を入力→数値に変換</figcaption></figure><figure class="kb-shot"><div class="kb-shot-media"><img src="../assets/number-expression/expression_ss1.png" alt="対象フィールドと出力マッピング設定" loading="lazy"></div><figcaption>対象フィールドと出力マッピング設定</figcaption></figure></div>
+  </section>
+
+  <!-- Steps -->
+  <section class="kb-section kb-container">
+    <h2 class="kb-section-title">使い方</h2>
+    <div class="kb-steps"><div class="kb-step"><div class="kb-step-number">1</div><div><h3>プラグインをインストール</h3><p>システム管理 &gt; プラグインでZIPを追加します。</p></div></div><div class="kb-step"><div class="kb-step-number">2</div><div><h3>アプリに追加</h3><p>対象アプリのプラグイン設定から本プラグインを有効化します。</p></div></div><div class="kb-step"><div class="kb-step-number">3</div><div><h3>対象フィールドを設定</h3><p>文字列（1行）と、必要に応じてサブテーブル列を選択。出力先を設定すると結果を数値フィールドへ保存できます。</p></div></div><div class="kb-step"><div class="kb-step-number">4</div><div><h3>動作確認</h3><p>作成/編集画面で『=1+2』や『+（1+2）×0.5』を入力し、フォーカスアウトまたは保存で数値に変換されることを確認します。</p></div></div></div>
+  </section>
+
+  <!-- Limitations -->
+  <section class="kb-section kb-container">
+    <h2 class="kb-section-title">制限事項</h2>
+    <ul class="kb-limitation-list"><li>数値式のみ評価（関数・フィールド参照・定数は不可）</li><li>無効文字や括弧不整合は変換しない</li><li>0での除算は変換しない</li><li>『=』『＋』で始まらない入力は対象外</li><li>他プラグイン併用時は変換タイミングが前後する可能性</li></ul>
+  </section>
+
+  <!-- FAQ -->
+  <section class="kb-section kb-container kb-faq-block">
+    <h2 class="kb-section-title">よくある質問</h2>
+    <div class="kb-faq"><div class="kb-faq-item"><h3>モバイル対応ですか？</h3><p>はい。作成・編集画面で動作します。</p></div><div class="kb-faq-item"><h3>サブテーブルでも使えますか？</h3><p>はい。サブテーブルの対象列を設定すれば動作します。</p></div><div class="kb-faq-item"><h3>どの記法に対応していますか？</h3><p>四則演算（+ - * /）、括弧、小数点に対応し、全角の数字/記号は自動正規化します。</p></div></div>
+  </section>
+
+  <!-- Related -->
+  <section class="kb-section kb-container">
+    <h2 class="kb-section-title">関連商品</h2>
+    <div class="kb-related-products"></div>
+  </section>
+
+  <footer class="kb-footer kb-container">
+    <nav class="kb-footer-links">
+      <a href="mailto:support@example.com">不具合報告</a>
+      <a href="../terms.html">利用規約</a>
+    </nav>
+    <small>2024 Kintone Mini Plugins. All rights reserved.</small>
+  </footer>
+
+  <!-- Lightbox (images) -->
+  <div id="kb-lightbox"><div class="kb-lb-inner"><img alt=""><button class="kb-lb-close" aria-label="Close">×</button></div></div>
+
+  <!-- Scripts: currency / video play / lightbox -->
+  <script>
+  (function(){
+    const JPY='JPY', USD='USD';
+    const $btns=document.querySelectorAll('.kb-currency-btn');
+    // JAは既定JPY
+    const preferred=localStorage.getItem('preferred-currency')||JPY;
+    function render(cur){
+      document.querySelectorAll('#product-price,.kb-related-price,.kb-price-badge,[data-price-jpy][data-price-usd]')
+        .forEach(el=>{
+          const j=el.getAttribute('data-price-jpy'), u=el.getAttribute('data-price-usd');
+          el.textContent=(cur===USD && u)?'$'+u:'¥'+j;
+        });
+      // update buy links by currency
+      document.querySelectorAll('.kb-buy-btn').forEach(btn=>{
+        const j=btn.getAttribute('data-url-jpy')||btn.getAttribute('href')||'';
+        const u=btn.getAttribute('data-url-usd')||j;
+        btn.setAttribute('href', cur===USD ? u : j);
+      });
+      $btns.forEach(b=>b.classList.toggle('active',b.dataset.currency===cur));
+      localStorage.setItem('preferred-currency',cur);
+    }
+    $btns.forEach(b=>b.addEventListener('click',()=>render(b.dataset.currency)));
+    render(preferred);
+  })();
+
+  // click-to-play (video)
+  document.addEventListener('click',e=>{
+    const btn=e.target.closest('.kb-video-play'); if(!btn) return;
+    const v=btn.closest('.kb-shot,.kb-video')?.querySelector('video.kb-video-el'); if(!v) return;
+    btn.style.display='none';
+    v.setAttribute('controls',''); v.setAttribute('playsinline',''); v.setAttribute('webkit-playsinline','');
+    try{ v.play(); }catch{}
+  });
+
+  // lightbox (images)
+  (()=>{const ov=document.getElementById('kb-lightbox');const imgEl=ov.querySelector('img');
+    const close=()=>{ov.classList.remove('open');document.body.style.overflow='';imgEl.src='';};
+    ov.addEventListener('click',e=>{if(e.target===ov)close();});
+    ov.querySelector('.kb-lb-close').addEventListener('click',close);
+    document.addEventListener('keydown',e=>{if(e.key==='Escape')close();});
+    document.addEventListener('click',e=>{
+      const img=e.target.closest('.kb-shot-media img'); if(!img) return;
+      imgEl.src=img.getAttribute('data-full')||img.currentSrc||img.src;
+      ov.classList.add('open'); document.body.style.overflow='hidden';
+    });
+  })();
+  </script>
+</body>
+</html>

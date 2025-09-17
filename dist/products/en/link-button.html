@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>%%TITLE_EN%% | %%SITE_NAME_EN%%</title>
-  <meta name="description" content="%%SUMMARY_EN%%">
+  <title>Turn Links into Buttons | Mini Plugins for Kintone</title>
+  <meta name="description" content="Adds Kintone-like buttons to record detail pages from LINK/Text fields. Choose placement (Header/Space),   button variants (primary/secondary/danger/outline/mini), optional confirmation, hide original field, and open in a new   tab. Automatically follows the system language (JA/EN).">
   <link rel="stylesheet" href="../../style.css">
 </head>
 <body class="kb-root">
@@ -12,7 +12,7 @@
   <div class="kb-container kb-topbar">
     <a class="kb-back" href="../../en/index.html">← Back to list</a>
     <div class="kb-language-switcher">
-      <a class="kb-lang" href="../%%SLUG%%.html">JP</a>
+      <a class="kb-lang" href="../link-button.html">JP</a>
       <button class="kb-currency-btn active" data-currency="USD">USD</button>
       <button class="kb-currency-btn" data-currency="JPY">JPY</button>
     </div>
@@ -21,16 +21,16 @@
   <!-- Hero -->
   <header class="kb-product-hero kb-product-hero--split">
     <div class="kb-hero-col">
-      <h1>%%TITLE_EN%%</h1>
-      <p class="kb-summary">%%SUMMARY_EN%%</p>
-      <div class="kb-tags">%%TAGS_EN_HTML%%</div>
+      <h1>Turn Links into Buttons</h1>
+      <p class="kb-summary">Adds Kintone-like buttons to record detail pages from LINK/Text fields. Choose placement (Header/Space),   button variants (primary/secondary/danger/outline/mini), optional confirmation, hide original field, and open in a new   tab. Automatically follows the system language (JA/EN).</p>
+      <div class="kb-tags"><span class="kb-tag">Header</span><span class="kb-tag">Space</span><span class="kb-tag">Link</span><span class="kb-tag">Button</span><span class="kb-tag">UI</span><span class="kb-tag">i18n</span></div>
       <div class="kb-hero-side">
-        <img class="kb-hero-image" src="../../%%HERO_IMAGE%%" alt="%%TITLE_EN%%">
+        <img class="kb-hero-image" src="../../assets/link-button/hero.png" alt="Turn Links into Buttons">
       </div>
       <div class="kb-price-box">
         <div id="product-price" class="kb-price"
-             data-price-jpy="%%PRICE_JPY%%" data-price-usd="%%PRICE_USD%%">$%%PRICE_USD%%</div>
-        <a class="kb-buy-btn" href="%%PURCHASE_URL_USD%%" data-url-jpy="%%PURCHASE_URL_JPY%%" data-url-usd="%%PURCHASE_URL_USD%%" target="_blank" rel="noopener">Buy</a>
+             data-price-jpy="1000" data-price-usd="10">$10</div>
+        <a class="kb-buy-btn" href="https://payhip.com/buy?link=Zc2kL" data-url-jpy="https://payhip.com/buy?link=Zc2kL" data-url-usd="https://payhip.com/buy?link=Zc2kL" target="_blank" rel="noopener">Buy</a>
       </div>
     </div>
   </header>
@@ -38,55 +38,55 @@
   <!-- Info -->
   <section class="kb-section kb-container">
     <div class="kb-info-grid">
-      <div><strong>Screens</strong><p>%%SUPPORTED_SCREENS_EN%%</p></div>
-      <div><strong>Category</strong><p>%%CATEGORY_EN%%</p></div>
-      <div><strong>File Size</strong><p>%%FILE_SIZE_EN%%</p></div>
-      <div><strong>Updated</strong><p>%%UPDATED_AT_EN%%</p></div>
+      <div><strong>Screens</strong><p>PC / Record Detail</p></div>
+      <div><strong>Category</strong><p>Navigation & UX</p></div>
+      <div><strong>File Size</strong><p>~15KB</p></div>
+      <div><strong>Updated</strong><p>Sep 2025</p></div>
     </div>
   </section>
 
   <!-- Features -->
   <section class="kb-section kb-container">
     <h2 class="kb-section-title">Features</h2>
-    <ul class="kb-feature-list">%%FEATURES_EN_HTML%%</ul>
+    <ul class="kb-feature-list"><li>URL validation (http/https only)</li><li>Place on header/space</li><li>Button variants (primary/secondary/danger/   outline/mini)</li><li>Confirmation dialog</li><li>Hide original field</li><li>Open in new tab</li><li>Auto language (JA/EN)</li><li>SVG icon (mini)</li></ul>
   </section>
 
   <!-- Screenshots -->
   <section class="kb-section kb-container">
     <h2 class="kb-section-title">Screenshots</h2>
-    <div class="kb-screenshots">%%SCREENSHOTS_EN_HTML%%</div>
+    <div class="kb-screenshots"><figure class="kb-shot"><div class="kb-shot-media"><img src="../../assets/link-button/link-button-ss1.png" alt="Settings" loading="lazy"></div><figcaption>Settings</figcaption></figure><figure class="kb-shot"><div class="kb-shot-media"><img src="../../assets/link-button/link-button-ss2.png" alt="Buttons in header and space" loading="lazy"></div><figcaption>Buttons in header and space</figcaption></figure></div>
   </section>
 
   <!-- Steps -->
   <section class="kb-section kb-container">
     <h2 class="kb-section-title">How to use</h2>
-    <div class="kb-steps">%%STEPS_EN_HTML%%</div>
+    <div class="kb-steps"><div class="kb-step"><div class="kb-step-number">1</div><div><h3>Install the plugin</h3><p>Add and enable the plugin in Kintone admin.</p></div></div><div class="kb-step"><div class="kb-step-number">2</div><div><h3>Add to app</h3><p>Add the plugin to your target app.</p></div></div><div class="kb-step"><div class="kb-step-number">3</div><div><h3>Configure</h3><p>Pick source fields, placement, and button variants, then save.</p></div></div><div class="kb-step"><div class="kb-step-number">4</div><div><h3>Verify</h3><p>Buttons appear on the record detail header/space.</p></div></div></div>
   </section>
 
   <!-- Limitations -->
   <section class="kb-section kb-container">
     <h2 class="kb-section-title">Limitations</h2>
-    <ul class="kb-limitation-list">%%LIMITATIONS_EN_HTML%%</ul>
+    <ul class="kb-limitation-list"><li>No mobile support</li><li>Subtable fields not supported</li><li>Only http/https URLs</li><li>Pop-up blockers may prevent new tabs</li></ul>
   </section>
 
   <!-- FAQ -->
   <section class="kb-section kb-container kb-faq-block">
     <h2 class="kb-section-title">FAQ</h2>
-    <div class="kb-faq">%%FAQ_EN_HTML%%</div>
+    <div class="kb-faq"><div class="kb-faq-item"><h3>Mobile support?</h3><p>PC only for now.</p></div><div class="kb-faq-item"><h3>Subtable URLs?</h3><p>Not supported. Use non-subtable fields.</p></div><div class="kb-faq-item"><h3>Hide original field?</h3><p>Enable “Hide field” in the settings.</p></div></div>
   </section>
 
   <!-- Related -->
   <section class="kb-section kb-container">
     <h2 class="kb-section-title">Related</h2>
-    <div class="kb-related-products">%%RELATED_EN_HTML%%</div>
+    <div class="kb-related-products"></div>
   </section>
 
   <footer class="kb-footer kb-container">
     <nav class="kb-footer-links">
-      <a href="mailto:%%SUPPORT_MAIL%%">Report an issue</a>
+      <a href="mailto:support@example.com">Report an issue</a>
       <a href="../../terms.html">Terms</a>
     </nav>
-    <small>%%SITE_COPYRIGHT%%</small>
+    <small>2024 Kintone Mini Plugins. All rights reserved.</small>
   </footer>
 
   <!-- Lightbox (images) -->
