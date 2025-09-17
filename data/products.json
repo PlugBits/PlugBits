@@ -59,7 +59,7 @@
   },
   {
     "slug": "link-button",
-    "purchase_url": "https://payhip.com/buy/Zc2kL",
+    "purchase_url": "https://payhip.com/buy?product=Zc2kL",
     "price_jpy": "1000",
     "price_usd": "10",
     "hero_image": "assets/link-button/hero.png",
