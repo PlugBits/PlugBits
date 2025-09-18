@@ -21,6 +21,13 @@ function renderLimitations(semicolon){ return (semicolon||'').split(';').map(s=>
 function renderFAQ(lines){ const arr=Array.isArray(lines)?lines.slice(0,3):[]; return arr.map(line=>{const [q,a]=String(line).split('|');return `<div class="kb-faq-item"><h3>${esc(q||'')}</h3><p>${esc(a||'')}</p></div>`;}).join(''); }
 function renderRelated(lines){ const arr=Array.isArray(lines)?lines.slice(0,2):[]; return arr.map(line=>{const [href,title,priceJPY]=String(line).split('|');return `<a class="kb-related-card" href="${esc(href)}"><div class="kb-related-title">${esc(title||'')}</div><div class="kb-related-price" data-price-jpy="${esc(priceJPY||'')}" data-price-usd="">¥${esc(priceJPY||'')}</div></a>`;}).join(''); }
 
+function firstFilled(){
+  for(const arg of arguments){
+    if(arg) return arg;
+  }
+  return '';
+}
+
 /* Screenshots: "path|caption" (img), "path|video|caption" (mp4) */
 function renderScreenshots(list, prefix=''){
   const arr = Array.isArray(list) ? list : (list||'').split(';');
@@ -50,13 +57,15 @@ try{
 
   function fillJA(p){
     let html=tpl.ja;
+    const buyUrlJpy = firstFilled(p.purchase_url_ja_jpy, p.purchase_url_ja, p.purchase_url_jpy, p.purchase_url);
+    const buyUrlUsd = firstFilled(p.purchase_url_ja_usd, p.purchase_url_ja, p.purchase_url_usd, p.purchase_url, buyUrlJpy);
     const map={
       '%%SLUG%%':p.slug,'%%SITE_NAME_JA%%':p.site_name_ja||'Kintone向けミニプラグイン',
       '%%TITLE_JA%%':p.title_ja,'%%SUMMARY_JA%%':p.summary_ja,
       '%%PRICE_JPY%%':p.price_jpy,'%%PRICE_USD%%':p.price_usd,
-      '%%PURCHASE_URL%%':(p.purchase_url_jpy||p.purchase_url||''),
-      '%%PURCHASE_URL_JPY%%':(p.purchase_url_jpy||p.purchase_url||''),
-      '%%PURCHASE_URL_USD%%':(p.purchase_url_usd||p.purchase_url||''),
+      '%%PURCHASE_URL%%':buyUrlJpy,
+      '%%PURCHASE_URL_JPY%%':buyUrlJpy,
+      '%%PURCHASE_URL_USD%%':buyUrlUsd,
       '%%HERO_IMAGE%%':p.hero_image.replace(/^\.?\/*/,''),
       '%%SUPPORTED_SCREENS_JA%%':p.supported_screens_ja,'%%CATEGORY_JA%%':p.category_ja,
       '%%FILE_SIZE_JA%%':p.file_size_ja,'%%UPDATED_AT_JA%%':p.updated_at_ja,
@@ -72,13 +81,15 @@ try{
   }
   function fillEN(p){
     let html=tpl.en;
+    const buyUrlUsd = firstFilled(p.purchase_url_en_usd, p.purchase_url_en, p.purchase_url_usd, p.purchase_url);
+    const buyUrlJpy = firstFilled(p.purchase_url_en_jpy, p.purchase_url_en, p.purchase_url_jpy, p.purchase_url, buyUrlUsd);
     const map={
       '%%SLUG%%':p.slug,'%%SITE_NAME_EN%%':p.site_name_en||'Mini Plugins for Kintone',
       '%%TITLE_EN%%':p.title_en,'%%SUMMARY_EN%%':p.summary_en,
       '%%PRICE_JPY%%':p.price_jpy,'%%PRICE_USD%%':p.price_usd,
-      '%%PURCHASE_URL%%':(p.purchase_url_usd||p.purchase_url||''),
-      '%%PURCHASE_URL_JPY%%':(p.purchase_url_jpy||p.purchase_url||''),
-      '%%PURCHASE_URL_USD%%':(p.purchase_url_usd||p.purchase_url||''),
+      '%%PURCHASE_URL%%':buyUrlUsd,
+      '%%PURCHASE_URL_JPY%%':buyUrlJpy,
+      '%%PURCHASE_URL_USD%%':buyUrlUsd,
       '%%HERO_IMAGE%%':p.hero_image.replace(/^\.?\/*/,''),
       '%%SUPPORTED_SCREENS_EN%%':p.supported_screens_en,'%%CATEGORY_EN%%':p.category_en,
       '%%FILE_SIZE_EN%%':p.file_size_en,'%%UPDATED_AT_EN%%':p.updated_at_en,
