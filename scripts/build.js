@@ -9,8 +9,15 @@ const DIST = path.join(ROOT, 'dist');
 const PRODUCTS_DIR = path.join(DIST, 'products');
 const PRODUCTS_EN_DIR = path.join(PRODUCTS_DIR, 'en');
 
+const ENABLE_EN = false;
+const ENABLE_USD = false;
+
 function esc(s){return String(s ?? '').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));}
-function ensureDirs(){ fs.rmSync(DIST,{recursive:true,force:true}); fs.mkdirSync(PRODUCTS_EN_DIR,{recursive:true}); }
+function ensureDirs(){
+  fs.rmSync(DIST,{recursive:true,force:true});
+  fs.mkdirSync(PRODUCTS_DIR,{recursive:true});
+  if(ENABLE_EN) fs.mkdirSync(PRODUCTS_EN_DIR,{recursive:true});
+}
 function readJSON(p){ return JSON.parse(fs.readFileSync(p,'utf-8')); }
 function readText(p){ return fs.readFileSync(p,'utf-8'); }
 
@@ -19,7 +26,13 @@ function renderFeatures(semicolon){ return (semicolon||'').split(';').map(s=>s.t
 function renderSteps(lines){ const arr=Array.isArray(lines)?lines:[]; return arr.map(line=>{const [n,h,b]=String(line).split('|');return `<div class="kb-step"><div class="kb-step-number">${esc(n||'')}</div><div><h3>${esc(h||'')}</h3><p>${esc(b||'')}</p></div></div>`;}).join(''); }
 function renderLimitations(semicolon){ return (semicolon||'').split(';').map(s=>s.trim()).filter(Boolean).map(x=>`<li>${esc(x)}</li>`).join(''); }
 function renderFAQ(lines){ const arr=Array.isArray(lines)?lines.slice(0,3):[]; return arr.map(line=>{const [q,a]=String(line).split('|');return `<div class="kb-faq-item"><h3>${esc(q||'')}</h3><p>${esc(a||'')}</p></div>`;}).join(''); }
-function renderRelated(lines){ const arr=Array.isArray(lines)?lines.slice(0,2):[]; return arr.map(line=>{const [href,title,priceJPY]=String(line).split('|');return `<a class="kb-related-card" href="${esc(href)}"><div class="kb-related-title">${esc(title||'')}</div><div class="kb-related-price" data-price-jpy="${esc(priceJPY||'')}" data-price-usd="">¥${esc(priceJPY||'')}</div></a>`;}).join(''); }
+function renderRelated(lines){
+  const arr=Array.isArray(lines)?lines.slice(0,2):[];
+  return arr.map(line=>{
+    const [href,title,priceJPY]=String(line).split('|');
+    return `<a class="kb-related-card" href="${esc(href)}"><div class="kb-related-title">${esc(title||'')}</div><div class="kb-related-price" data-price-jpy="${esc(priceJPY||'')}">¥${esc(priceJPY||'')}</div></a>`;
+  }).join('');
+}
 
 function firstFilled(){
   for(const arg of arguments){
@@ -50,19 +63,23 @@ try{
   const products=readJSON(path.join(ROOT,'data','products.json'));
   const tpl={
     ja:readText(path.join(ROOT,'templates','product-ja.html')),
-    en:readText(path.join(ROOT,'templates','product-en.html')),
     indexJa:readText(path.join(ROOT,'templates','index-ja.html')),
-    indexEn:readText(path.join(ROOT,'templates','index-en.html')),
   };
+  if(ENABLE_EN){
+    tpl.en=readText(path.join(ROOT,'templates','product-en.html'));
+    tpl.indexEn=readText(path.join(ROOT,'templates','index-en.html'));
+  }
 
   function fillJA(p){
     let html=tpl.ja;
     const buyUrlJpy = firstFilled(p.purchase_url_ja_jpy, p.purchase_url_ja, p.purchase_url_jpy, p.purchase_url);
-    const buyUrlUsd = firstFilled(p.purchase_url_ja_usd, p.purchase_url_ja, p.purchase_url_usd, p.purchase_url, buyUrlJpy);
+    const buyUrlUsd = ENABLE_USD
+      ? firstFilled(p.purchase_url_ja_usd, p.purchase_url_ja, p.purchase_url_usd, p.purchase_url, buyUrlJpy)
+      : buyUrlJpy;
     const map={
       '%%SLUG%%':p.slug,'%%SITE_NAME_JA%%':p.site_name_ja||'Kintone向けミニプラグイン',
       '%%TITLE_JA%%':p.title_ja,'%%SUMMARY_JA%%':p.summary_ja,
-      '%%PRICE_JPY%%':p.price_jpy,'%%PRICE_USD%%':p.price_usd,
+      '%%PRICE_JPY%%':p.price_jpy,'%%PRICE_USD%%':ENABLE_USD ? p.price_usd : '',
       '%%PURCHASE_URL%%':buyUrlJpy,
       '%%PURCHASE_URL_JPY%%':buyUrlJpy,
       '%%PURCHASE_URL_USD%%':buyUrlUsd,
@@ -79,35 +96,42 @@ try{
     for(const [k,v] of Object.entries(map)) html=html.replaceAll(k,String(v??''));
     return html;
   }
-  function fillEN(p){
-    let html=tpl.en;
-    const buyUrlUsd = firstFilled(p.purchase_url_en_usd, p.purchase_url_en, p.purchase_url_usd, p.purchase_url);
-    const buyUrlJpy = firstFilled(p.purchase_url_en_jpy, p.purchase_url_en, p.purchase_url_jpy, p.purchase_url, buyUrlUsd);
-    const map={
-      '%%SLUG%%':p.slug,'%%SITE_NAME_EN%%':p.site_name_en||'Mini Plugins for Kintone',
-      '%%TITLE_EN%%':p.title_en,'%%SUMMARY_EN%%':p.summary_en,
-      '%%PRICE_JPY%%':p.price_jpy,'%%PRICE_USD%%':p.price_usd,
-      '%%PURCHASE_URL%%':buyUrlUsd,
-      '%%PURCHASE_URL_JPY%%':buyUrlJpy,
-      '%%PURCHASE_URL_USD%%':buyUrlUsd,
-      '%%HERO_IMAGE%%':p.hero_image.replace(/^\.?\/*/,''),
-      '%%SUPPORTED_SCREENS_EN%%':p.supported_screens_en,'%%CATEGORY_EN%%':p.category_en,
-      '%%FILE_SIZE_EN%%':p.file_size_en,'%%UPDATED_AT_EN%%':p.updated_at_en,
-      '%%TAGS_EN_HTML%%':renderTags(p.tags_en),'%%FEATURES_EN_HTML%%':renderFeatures(p.features_en),
-      '%%SCREENSHOTS_EN_HTML%%':renderScreenshots(p.screenshots_en,'../../'),
-      '%%STEPS_EN_HTML%%':renderSteps(p.steps_en),'%%LIMITATIONS_EN_HTML%%':renderLimitations(p.limitations_en),
-      '%%FAQ_EN_HTML%%':renderFAQ(p.faq_en),'%%RELATED_EN_HTML%%':renderRelated(p.related_en),
-      '%%CTA_HEADLINE_EN%%':p.cta_headline_en,'%%CTA_TEXT_EN%%':p.cta_text_en,
-      '%%SUPPORT_MAIL%%':p.support_mail,'%%SITE_COPYRIGHT%%':p.site_copyright
+  let fillEN;
+  if(ENABLE_EN){
+    fillEN = function(p){
+      let html=tpl.en;
+      const buyUrlUsd = ENABLE_USD
+        ? firstFilled(p.purchase_url_en_usd, p.purchase_url_en, p.purchase_url_usd, p.purchase_url)
+        : firstFilled(p.purchase_url_en, p.purchase_url, p.purchase_url_jpy, p.purchase_url_ja);
+      const buyUrlJpy = firstFilled(p.purchase_url_en_jpy, p.purchase_url_en, p.purchase_url_jpy, p.purchase_url, buyUrlUsd);
+      const map={
+        '%%SLUG%%':p.slug,'%%SITE_NAME_EN%%':p.site_name_en||'Mini Plugins for Kintone',
+        '%%TITLE_EN%%':p.title_en,'%%SUMMARY_EN%%':p.summary_en,
+        '%%PRICE_JPY%%':p.price_jpy,'%%PRICE_USD%%':ENABLE_USD ? p.price_usd : '',
+        '%%PURCHASE_URL%%':buyUrlUsd,
+        '%%PURCHASE_URL_JPY%%':buyUrlJpy,
+        '%%PURCHASE_URL_USD%%':buyUrlUsd,
+        '%%HERO_IMAGE%%':p.hero_image.replace(/^\.?\/*/,''),
+        '%%SUPPORTED_SCREENS_EN%%':p.supported_screens_en,'%%CATEGORY_EN%%':p.category_en,
+        '%%FILE_SIZE_EN%%':p.file_size_en,'%%UPDATED_AT_EN%%':p.updated_at_en,
+        '%%TAGS_EN_HTML%%':renderTags(p.tags_en),'%%FEATURES_EN_HTML%%':renderFeatures(p.features_en),
+        '%%SCREENSHOTS_EN_HTML%%':renderScreenshots(p.screenshots_en,'../../'),
+        '%%STEPS_EN_HTML%%':renderSteps(p.steps_en),'%%LIMITATIONS_EN_HTML%%':renderLimitations(p.limitations_en),
+        '%%FAQ_EN_HTML%%':renderFAQ(p.faq_en),'%%RELATED_EN_HTML%%':renderRelated(p.related_en),
+        '%%CTA_HEADLINE_EN%%':p.cta_headline_en,'%%CTA_TEXT_EN%%':p.cta_text_en,
+        '%%SUPPORT_MAIL%%':p.support_mail,'%%SITE_COPYRIGHT%%':p.site_copyright
+      };
+      for(const [k,v] of Object.entries(map)) html=html.replaceAll(k,String(v??''));
+      return html;
     };
-    for(const [k,v] of Object.entries(map)) html=html.replaceAll(k,String(v??''));
-    return html;
   }
 
   // product pages
   for(const p of products){
     fs.writeFileSync(path.join(PRODUCTS_DIR,`${p.slug}.html`),fillJA(p));
-    fs.writeFileSync(path.join(PRODUCTS_EN_DIR,`${p.slug}.html`),fillEN(p));
+    if(ENABLE_EN && fillEN){
+      fs.writeFileSync(path.join(PRODUCTS_EN_DIR,`${p.slug}.html`),fillEN(p));
+    }
   }
 
   // index pages (カード簡易版)
@@ -116,20 +140,23 @@ try{
       <div class="kb-card-img"><img class="kb-hero-image" src="${esc(p.hero_image)}" alt="${esc(p.title_ja)}" loading="lazy"></div>
       <div class="kb-card-body">
         <h3 class="kb-card-title">${esc(p.title_ja)}</h3>
-        <div class="kb-card-foot"><div class="kb-price-badge" data-price-jpy="${esc(p.price_jpy)}" data-price-usd="${esc(p.price_usd)}">¥${esc(p.price_jpy)}</div><span class="kb-btn">詳細</span></div>
+        <div class="kb-card-foot"><div class="kb-price-badge" data-price-jpy="${esc(p.price_jpy)}">¥${esc(p.price_jpy)}</div><span class="kb-btn">詳細</span></div>
       </div>
     </a>`).join('\n');
 
-  const cardsEn=products.map(p=>`
-    <a class="kb-card" href="../products/en/${p.slug}.html">
-      <div class="kb-card-img"><img class="kb-hero-image" src="../${esc(p.hero_image)}" alt="${esc(p.title_en)}" loading="lazy"></div>
-      <div class="kb-card-body">
-        <h3 class="kb-card-title">${esc(p.title_en)}</h3>
-        <div class="kb-card-foot"><div class="kb-price-badge" data-price-jpy="${esc(p.price_jpy)}" data-price-usd="${esc(p.price_usd)}">$${esc(p.price_usd)}</div><span class="kb-btn">Details</span></div>
-      </div>
-    </a>`).join('\n');
+  let cardsEn='';
+  if(ENABLE_EN){
+    cardsEn=products.map(p=>`
+      <a class="kb-card" href="../products/en/${p.slug}.html">
+        <div class="kb-card-img"><img class="kb-hero-image" src="../${esc(p.hero_image)}" alt="${esc(p.title_en)}" loading="lazy"></div>
+        <div class="kb-card-body">
+          <h3 class="kb-card-title">${esc(p.title_en)}</h3>
+          <div class="kb-card-foot"><div class="kb-price-badge" data-price-jpy="${esc(p.price_jpy)}"${ENABLE_USD?` data-price-usd="${esc(p.price_usd)}"`:''}>${ENABLE_USD?`$${esc(p.price_usd)}`:`¥${esc(p.price_jpy)}`}</div><span class="kb-btn">Details</span></div>
+        </div>
+      </a>`).join('\n');
+  }
 
-  fs.mkdirSync(path.join(DIST,'en'),{recursive:true});
+  if(ENABLE_EN) fs.mkdirSync(path.join(DIST,'en'),{recursive:true});
   fs.writeFileSync(path.join(DIST,'index.html'),
     tpl.indexJa
       .replaceAll('%%PRODUCT_CARDS_JA%%',cardsJa)
@@ -137,13 +164,15 @@ try{
       .replaceAll('%%SITE_COPYRIGHT%%',esc(products[0]?.site_copyright||''))
       .replaceAll('%%SITE_NAME_JA%%',esc(products[0]?.site_name_ja||'Kintone向けミニプラグイン'))
   );
-  fs.writeFileSync(path.join(DIST,'en','index.html'),
-    tpl.indexEn
-      .replaceAll('%%PRODUCT_CARDS_EN%%',cardsEn)
-      .replaceAll('%%SUPPORT_MAIL%%',esc(products[0]?.support_mail||'support@example.com'))
-      .replaceAll('%%SITE_COPYRIGHT%%',esc(products[0]?.site_copyright||''))
-      .replaceAll('%%SITE_NAME_EN%%',esc(products[0]?.site_name_en||'Mini Plugins for Kintone'))
-  );
+  if(ENABLE_EN){
+    fs.writeFileSync(path.join(DIST,'en','index.html'),
+      tpl.indexEn
+        .replaceAll('%%PRODUCT_CARDS_EN%%',cardsEn)
+        .replaceAll('%%SUPPORT_MAIL%%',esc(products[0]?.support_mail||'support@example.com'))
+        .replaceAll('%%SITE_COPYRIGHT%%',esc(products[0]?.site_copyright||''))
+        .replaceAll('%%SITE_NAME_EN%%',esc(products[0]?.site_name_en||'Mini Plugins for Kintone'))
+    );
+  }
 
   // static files
   const copy = rel=>{
@@ -160,7 +189,13 @@ try{
   // sitemap
   const basePath=path.join(DIST,'sitemap-base.xml');
   const base=fs.existsSync(basePath)?fs.readFileSync(basePath,'utf-8'):'<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"></urlset>';
-  const urls=['/index.html','/en/index.html','/terms.html', ...products.flatMap(p=>[`/products/${p.slug}.html`,`/products/en/${p.slug}.html`])];
+  const urls=['/index.html'];
+  if(ENABLE_EN) urls.push('/en/index.html');
+  urls.push('/terms.html');
+  for(const p of products){
+    urls.push(`/products/${p.slug}.html`);
+    if(ENABLE_EN) urls.push(`/products/en/${p.slug}.html`);
+  }
   const xml=base.replace('</urlset>',urls.map(u=>`<url><loc>{{BASE_URL}}${u}</loc></url>`).join('')+'</urlset>');
   fs.writeFileSync(path.join(DIST,'sitemap.xml'),xml);
 

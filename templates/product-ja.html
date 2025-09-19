@@ -11,11 +11,6 @@
   <!-- Topbar -->
   <div class="kb-container kb-topbar">
     <a class="kb-back" href="../index.html">← 商品一覧に戻る</a>
-    <div class="kb-language-switcher">
-      <a class="kb-lang" href="en/%%SLUG%%.html">EN</a>
-      <button class="kb-currency-btn active" data-currency="JPY">JPY</button>
-      <button class="kb-currency-btn" data-currency="USD">USD</button>
-    </div>
   </div>
 
   <!-- Hero -->
@@ -29,8 +24,8 @@
       </div>
       <div class="kb-price-box">
         <div id="product-price" class="kb-price"
-             data-price-jpy="%%PRICE_JPY%%" data-price-usd="%%PRICE_USD%%">¥%%PRICE_JPY%%</div>
-        <a class="kb-buy-btn" href="%%PURCHASE_URL_JPY%%" data-url-jpy="%%PURCHASE_URL_JPY%%" data-url-usd="%%PURCHASE_URL_USD%%" target="_blank" rel="noopener">購入</a>
+             data-price-jpy="%%PRICE_JPY%%">¥%%PRICE_JPY%%</div>
+        <a class="kb-buy-btn" href="%%PURCHASE_URL_JPY%%" data-url-jpy="%%PURCHASE_URL_JPY%%" target="_blank" rel="noopener">購入</a>
       </div>
     </div>
   </header>
@@ -92,32 +87,8 @@
   <!-- Lightbox (images) -->
   <div id="kb-lightbox"><div class="kb-lb-inner"><img alt=""><button class="kb-lb-close" aria-label="Close">×</button></div></div>
 
-  <!-- Scripts: currency / video play / lightbox -->
+  <!-- Scripts: video play / lightbox -->
   <script>
-  (function(){
-    const JPY='JPY', USD='USD';
-    const $btns=document.querySelectorAll('.kb-currency-btn');
-    // JAは既定JPY
-    const preferred=localStorage.getItem('preferred-currency')||JPY;
-    function render(cur){
-      document.querySelectorAll('#product-price,.kb-related-price,.kb-price-badge,[data-price-jpy][data-price-usd]')
-        .forEach(el=>{
-          const j=el.getAttribute('data-price-jpy'), u=el.getAttribute('data-price-usd');
-          el.textContent=(cur===USD && u)?'$'+u:'¥'+j;
-        });
-      // update buy links by currency
-      document.querySelectorAll('.kb-buy-btn').forEach(btn=>{
-        const j=btn.getAttribute('data-url-jpy')||btn.getAttribute('href')||'';
-        const u=btn.getAttribute('data-url-usd')||j;
-        btn.setAttribute('href', cur===USD ? u : j);
-      });
-      $btns.forEach(b=>b.classList.toggle('active',b.dataset.currency===cur));
-      localStorage.setItem('preferred-currency',cur);
-    }
-    $btns.forEach(b=>b.addEventListener('click',()=>render(b.dataset.currency)));
-    render(preferred);
-  })();
-
   // click-to-play (video)
   document.addEventListener('click',e=>{
     const btn=e.target.closest('.kb-video-play'); if(!btn) return;
