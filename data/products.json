@@ -2,8 +2,8 @@
   {
     "slug": "number-expression",
     "purchase_url": "https://example.com/store/number-expression",
-    "purchase_url_ja": "https://payhip.com/buy?link=JA-DEFAULT-001",
-    "purchase_url_ja_jpy": "https://payhip.com/buy?link=JA-JPY-001",
+    "purchase_url_ja": "https://payhip.com/buy?link=ROHQE",
+    "purchase_url_ja_jpy": "https://payhip.com/buy?link=ROHQE",
     "purchase_url_ja_usd": "https://payhip.com/buy?link=JA-USD-001",
     "purchase_url_en": "https://payhip.com/buy?link=EN-DEFAULT-001",
     "purchase_url_en_jpy": "https://payhip.com/buy?link=EN-JPY-001",
@@ -66,8 +66,8 @@
   {
     "slug": "link-button",
     "purchase_url": "https://payhip.com/buy?link=Zc2kL",
-    "purchase_url_ja": "https://payhip.com/buy?link=JA-DEFAULT-002",
-    "purchase_url_ja_jpy": "https://payhip.com/buy?link=JA-JPY-002",
+    "purchase_url_ja": "https://payhip.com/buy?link=Zc2kL",
+    "purchase_url_ja_jpy":"https://payhip.com/buy?link=Zc2kL",
     "purchase_url_ja_usd": "https://payhip.com/buy?link=JA-USD-002",
     "purchase_url_en": "https://payhip.com/buy?link=EN-DEFAULT-002",
     "purchase_url_en_jpy": "https://payhip.com/buy?link=EN-JPY-002",
