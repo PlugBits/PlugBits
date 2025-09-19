@@ -11,11 +11,6 @@
   <!-- Topbar -->
   <div class="kb-container kb-topbar">
     <div class="kb-brand">%%SITE_NAME_JA%%</div>
-    <div class="kb-language-switcher">
-      <a class="kb-lang" href="en/index.html">EN</a>
-      <button class="kb-currency-btn active" data-currency="JPY">JPY</button>
-      <button class="kb-currency-btn" data-currency="USD">USD</button>
-    </div>
   </div>
 
   <!-- Hero -->
@@ -40,7 +35,7 @@
       <div class="kb-faq">
         <div class="kb-faq-item"><h3>購入前に試せますか？</h3><p>デモ動画・スクショを掲載。要望あれば体験版も検討します。</p></div>
         <div class="kb-faq-item"><h3>サポートは？</h3><p>不具合報告に対応します。機能要望は可能な範囲で検討します。</p></div>
-        <div class="kb-faq-item"><h3>支払い通貨は？</h3><p>JPY / USD を切り替えて表示できます。決済画面は販売サイト準拠です。</p></div>
+        <div class="kb-faq-item"><h3>支払い通貨は？</h3><p>現在はJPYのみの対応です。USD決済は準備中です。</p></div>
       </div>
     </section>
   </main>
@@ -53,27 +48,5 @@
     </nav>
     <small>%%SITE_COPYRIGHT%%</small>
   </footer>
-
-  <!-- Currency switch -->
-  <script>
-  (function(){
-    const JPY='JPY', USD='USD';
-    const $btns=document.querySelectorAll('.kb-currency-btn');
-    const preferred=localStorage.getItem('preferred-currency')||JPY;
-    function render(cur){
-      document.querySelectorAll('.kb-price,[data-price-jpy][data-price-usd],.kb-price-badge')
-        .forEach(el=>{
-          const j=el.getAttribute('data-price-jpy');
-          const u=el.getAttribute('data-price-usd');
-          if(cur===USD && u){ el.textContent='$'+u; }
-          else{ el.textContent='¥'+j; }
-        });
-      $btns.forEach(b=>b.classList.toggle('active',b.dataset.currency===cur));
-      localStorage.setItem('preferred-currency',cur);
-    }
-    $btns.forEach(b=>b.addEventListener('click',()=>render(b.dataset.currency)));
-    render(preferred);
-  })();
-  </script>
 </body>
 </html>
