@@ -93,7 +93,7 @@
 .kb-hero-side{margin:16px 0;display:flex;justify-content:center;width:100%}
 .kb-hero-side .kb-hero-image{max-width:420px;width:100%;border:1px solid #e9eff7;border-radius:14px;padding:12px;background:#fbfcff}
 .kb-price-box{display:flex;justify-content:center;align-items:center;gap:12px;margin-top:8px}
-#product-price{color:#0b1f33;font-weight:800;font-size:18px}
+#product-price{color:#fff;font-weight:800;font-size:18px}
 
 /* Tags (product hero) */
 .kb-hero-col .kb-tags{
@@ -413,5 +413,4 @@
   opacity: .85; cursor: pointer;
 }
 #kb-lightbox .kb-lb-close:hover{ opacity: 1; }
-
 
