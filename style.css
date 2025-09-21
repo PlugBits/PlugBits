@@ -66,8 +66,8 @@
 .kb-hero .kb-container{padding:72px 0 60px}
 .kb-hero-title{font-size:40px;line-height:1.2;margin:0 0 12px;font-weight:800}
 .kb-hero-sub{color:#5b6b7a;margin:0 0 18px}
-.kb-cta-primary,
-.kb-cta-primary:visited{display:inline-flex;align-items:center;justify-content:center;min-height:46px;min-width:180px;padding:12px 24px;border-radius:12px;background:var(--kb-primary);color:#fff;box-shadow:0 6px 18px rgba(47,100,226,.25);font-weight:800}
+.kb-root .kb-cta-primary,
+.kb-root .kb-cta-primary:visited{display:inline-flex;align-items:center;justify-content:center;min-height:46px;min-width:180px;padding:12px 24px;border-radius:12px;background:var(--kb-primary);color:#fff;box-shadow:0 6px 18px rgba(47,100,226,.25);font-weight:800}
 .kb-cta-primary:hover{filter:brightness(1.08);box-shadow:0 8px 22px rgba(47,100,226,.35)}
 
 /* ===== PRODUCT GRID (INDEX) ===== */
