@@ -21,30 +21,38 @@ body:
     validations: { required: true }
 
   - type: input
-    id: purchase_url_jpy
+    id: purchase_url_ja
     attributes:
-      label: PURCHASE_URL_JPY (optional)
-      description: 通貨がJPYのときに使用するURL。未指定なら上の PURCHASE_URL を使用します。
-      placeholder: https://payhip.com/buy?link=XXXX
+      label: PURCHASE_URL_JA
+      description: 日本語ページ既定の購入URL。未指定なら上の PURCHASE_URL を使用します。
+      placeholder: https://payhip.com/buy?link=JA-DEFAULT
     validations: { required: false }
 
   - type: input
-    id: purchase_url_usd
+    id: purchase_url_ja_jpy
     attributes:
-      label: PURCHASE_URL_USD (optional)
-      description: 通貨がUSDのときに使用するURL。未指定なら上の PURCHASE_URL を使用します。
-      placeholder: https://payhip.com/buy?link=YYYY
+      label: PURCHASE_URL_JA_JPY (optional)
+      description: 通貨がJPYのときに使用するURL。未指定なら PURCHASE_URL_JA / PURCHASE_URL を使用します。
+      placeholder: https://payhip.com/buy?link=JA-JPY
     validations: { required: false }
+
+  # - type: input
+  #   id: purchase_url_usd
+  #   attributes:
+  #     label: PURCHASE_URL_USD (optional)
+  #     description: 通貨がUSDのときに使用するURL。未指定なら上の PURCHASE_URL を使用します。
+  #     placeholder: https://payhip.com/buy?link=YYYY
+  #   validations: { required: false }
 
   - type: input
     id: price_jpy
     attributes: { label: PRICE_JPY, placeholder: "300" }
     validations: { required: true }
 
-  - type: input
-    id: price_usd
-    attributes: { label: PRICE_USD, placeholder: "2" }
-    validations: { required: true }
+  # - type: input
+  #   id: price_usd
+  #   attributes: { label: PRICE_USD, placeholder: "2" }
+  #   validations: { required: true }
 
   - type: input
     id: hero_image
@@ -120,40 +128,52 @@ body:
     id: updated_at_ja
     attributes: { label: UPDATED_AT_JA, placeholder: 2024年8月 }
 
-  # ---- EN ----
   - type: input
-    id: title_en
-    attributes: { label: TITLE_EN }
+    id: support_mail
+    attributes:
+      label: SUPPORT_MAIL
+      placeholder: support@example.com
+
   - type: input
-    id: summary_en
-    attributes: { label: SUMMARY_EN }
-  - type: input
-    id: tags_en
-    attributes: { label: TAGS_EN }
-  - type: input
-    id: features_en
-    attributes: { label: FEATURES_EN }
-  - type: input
-    id: screenshots_en
-    attributes: { label: SCREENSHOTS_EN }
-  - type: textarea
-    id: steps_en
-    attributes: { label: STEPS_EN（3 lines "No|Heading|Body"） }
-  - type: input
-    id: limitations_en
-    attributes: { label: LIMITATIONS_EN }
-  - type: textarea
-    id: faq_en
-    attributes: { label: FAQ_EN（3 lines "Q|A"） }
-  - type: input
-    id: supported_screens_en
-    attributes: { label: SUPPORTED_SCREENS_EN, placeholder: PC / Edit & New }
-  - type: input
-    id: category_en
-    attributes: { label: CATEGORY_EN, placeholder: Edit efficiency }
-  - type: input
-    id: file_size_en
-    attributes: { label: FILE_SIZE_EN, placeholder: ~15KB }
-  - type: input
-    id: updated_at_en
-    attributes: { label: UPDATED_AT_EN, placeholder: Aug 2024 }
+    id: site_copyright
+    attributes:
+      label: SITE_COPYRIGHT
+      placeholder: 2024 Kintone Mini Plugins. All rights reserved.
+
+  # ---- EN (paused) ----
+  # - type: input
+  #   id: title_en
+  #   attributes: { label: TITLE_EN }
+  # - type: input
+  #   id: summary_en
+  #   attributes: { label: SUMMARY_EN }
+  # - type: input
+  #   id: tags_en
+  #   attributes: { label: TAGS_EN }
+  # - type: input
+  #   id: features_en
+  #   attributes: { label: FEATURES_EN }
+  # - type: input
+  #   id: screenshots_en
+  #   attributes: { label: SCREENSHOTS_EN }
+  # - type: textarea
+  #   id: steps_en
+  #   attributes: { label: STEPS_EN（3 lines "No|Heading|Body"） }
+  # - type: input
+  #   id: limitations_en
+  #   attributes: { label: LIMITATIONS_EN }
+  # - type: textarea
+  #   id: faq_en
+  #   attributes: { label: FAQ_EN（3 lines "Q|A"） }
+  # - type: input
+  #   id: supported_screens_en
+  #   attributes: { label: SUPPORTED_SCREENS_EN, placeholder: PC / Edit & New }
+  # - type: input
+  #   id: category_en
+  #   attributes: { label: CATEGORY_EN, placeholder: Edit efficiency }
+  # - type: input
+  #   id: file_size_en
+  #   attributes: { label: FILE_SIZE_EN, placeholder: ~15KB }
+  # - type: input
+  #   id: updated_at_en
+  #   attributes: { label: UPDATED_AT_EN, placeholder: Aug 2024 }
