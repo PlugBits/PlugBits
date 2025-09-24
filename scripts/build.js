@@ -160,7 +160,7 @@ try{
   fs.writeFileSync(path.join(DIST,'index.html'),
     tpl.indexJa
       .replaceAll('%%PRODUCT_CARDS_JA%%',cardsJa)
-      .replaceAll('%%SUPPORT_MAIL%%',esc(products[0]?.support_mail||'support@example.com'))
+      .replaceAll('%%SUPPORT_MAIL%%',esc(products[0]?.support_mail||'c.otkyaaa@gmail.com'))
       .replaceAll('%%SITE_COPYRIGHT%%',esc(products[0]?.site_copyright||''))
       .replaceAll('%%SITE_NAME_JA%%',esc(products[0]?.site_name_ja||'Puchi Add-on Plugins'))
   );
@@ -168,7 +168,7 @@ try{
     fs.writeFileSync(path.join(DIST,'en','index.html'),
       tpl.indexEn
         .replaceAll('%%PRODUCT_CARDS_EN%%',cardsEn)
-        .replaceAll('%%SUPPORT_MAIL%%',esc(products[0]?.support_mail||'support@example.com'))
+        .replaceAll('%%SUPPORT_MAIL%%',esc(products[0]?.support_mail||'c.otkyaaa@gmail.com'))
         .replaceAll('%%SITE_COPYRIGHT%%',esc(products[0]?.site_copyright||''))
         .replaceAll('%%SITE_NAME_EN%%',esc(products[0]?.site_name_en||'Puchi Add-on Plugins'))
     );
