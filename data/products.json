@@ -79,7 +79,7 @@
     "summary_ja": "kintoneの一覧画面に、選択したフィールドの集計結果を常時表示できるプラグインです。\n合計・平均・件数・最大・最小に対応し、一覧のフィルター条件に応じてリアルタイムに再計算。\n設定はプラグイン設定画面から簡単に行えます。",
     "tags_ja": "一覧画面, 可視化",
     "features_ja": "合計/平均/最大/最小/カウント; フィールドごとに設定;  ビュー条件と連動して自動集計",
-    "screenshots_ja": "ssets/list-aggregator-plus-header.png|一覧ヘッダーの集計チップ; assets/list-aggregator-plus-config.png|設定画面",
+    "screenshots_ja": "assets/list-aggregator/image.png|一覧ヘッダーに集計表を表示; assets/list-aggregator/setting.png|設定画面　フィールド選択、集計方法選択",
     "steps_ja": [
       "1|プラグインを追加|一覧アプリにプラグインZIPをインストールします。",
       "2|集計ルールを設定|対象フィールドと演算を選択し、表示書式を調整します。",
