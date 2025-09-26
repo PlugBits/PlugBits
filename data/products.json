@@ -128,7 +128,7 @@
     "summary_ja": "Excelやスプレッドシートからコピーした1行を貼り付けて、フィールドとのマッピングで素早くレコードを登録できるプラグイン。",
     "tags_ja": "一覧画面, データ登録, インポート",
     "features_ja": "Excel/CSVの1行ペースト→即登録; 必須フィールドの赤字アラート; マッピングプリセット保存; ラジオ初期値の自動スキップ",
-    "screenshots_ja": "assets/paste-to-record/modal.png|貼り付けモーダル; assets/paste-to-record/mapping.png|フィールドマッピング",
+    "screenshots_ja": "assets/paste-to-record/paste-to-record-mv1.mp4|video|コピペ後初回はフィールドを指定して登録。;assets/paste-to-record/modal.png|貼り付けモーダル; assets/paste-to-record/config.png|設定画面はマッピング消去のみ",
     "steps_ja": [
       "1|ボタンからモーダルを開く|アプリのヘッダーボタン「コピペ登録」をクリックします。",
       "2|Excelの行を貼り付け|貼り付けエリアに1行コピーした値を入力し、区切りやオプションを設定します。",
