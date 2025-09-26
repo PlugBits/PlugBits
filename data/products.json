@@ -123,7 +123,7 @@
     "purchase_url_en_usd": "",
     "price_jpy": "2000",
     "price_usd": "",
-    "hero_image": "ssets/paste-to-record/hero.png",
+    "hero_image": "assets/paste-to-record/hero.png",
     "title_ja": "Excel一行コピペ登録プラグイン",
     "summary_ja": "Excelやスプレッドシートからコピーした1行を貼り付けて、フィールドとのマッピングで素早くレコードを登録できるプラグイン。",
     "tags_ja": "一覧画面, データ登録, インポート",
