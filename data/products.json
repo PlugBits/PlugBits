@@ -177,7 +177,7 @@
     "summary_ja": "一覧画面のセルを、条件式に応じて自動で色付け（背景/文字色）するプラグインです。しきい値・範囲・文字列一致/含む・相対日付などの条件で、重要なレコードをひと目で把握できます。\n      対応演算子:\n      - Number: `= != > >= < <= between notBetween`\n      - Text: `contains notContains = != regex`\n      - Date: `today yesterday tomorrow past future withinDays olderThanDays`\n      - Empty: `isEmpty isNotEmpty`",
     "tags_ja": "一覧, 条件, 色付け, 強調, 見える化",
     "features_ja": "数値/文字列/日付/空欄の条件演算子; 列単位・セル単位で色付け; today/withinDays等の相対日付; しきい値・範囲・含む/一致; 設定はアプリごとに保存",
-    "screenshots_ja": "ssets/list-conditional-color/setup.png|条件設定画面; assets/list-conditional-color/result.png|色付け結果（一覧）",
+    "screenshots_ja": "ssets/list-conditional-color/config.png|条件設定画面; assets/list-conditional-color/cell-color.png|色付け結果（一覧）",
     "steps_ja": [
       "1|プラグインをインストール|プラグインファイルをKintoneにアップロードし、有効化します。",
       "2|アプリに追加|対象アプリに本プラグインを追加して設定画面を開きます。",
