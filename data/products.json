@@ -172,7 +172,7 @@
     "purchase_url_en_usd": "",
     "price_jpy": "100",
     "price_usd": "",
-    "hero_image": "assets/list-conditional-color/hero.png",
+    "hero_image": "assets/list-conditional-color/hero.webp",
     "title_ja": "一覧セル条件色付けプラグイン",
     "summary_ja": "一覧画面のセルを、条件式に応じて自動で色付け（背景/文字色）するプラグインです。しきい値・範囲・文字列一致/含む・相対日付などの条件で、重要なレコードをひと目で把握できます。\n      対応演算子:\n      - Number: `= != > >= < <= between notBetween`\n      - Text: `contains notContains = != regex`\n      - Date: `today yesterday tomorrow past future withinDays olderThanDays`\n      - Empty: `isEmpty isNotEmpty`",
     "tags_ja": "一覧, 条件, 色付け, 強調, 見える化",
