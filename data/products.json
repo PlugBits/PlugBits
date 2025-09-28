@@ -112,7 +112,7 @@
   },
   {
     "slug": "paste-to-record",
-    "purchase_url": "https://example.com/products/paste-to-record",
+    "purchase_url": "https://payhip.com/buy?link=paste-to-record",
     "purchase_url_jpy": "",
     "purchase_url_usd": "",
     "purchase_url_ja": "",
@@ -161,7 +161,7 @@
   },
   {
     "slug": "list-conditional-color",
-    "purchase_url": "https://example.com/buy?link=BASE",
+    "purchase_url": "https://payhip.com/buy?link=zpSMW",
     "purchase_url_jpy": "",
     "purchase_url_usd": "",
     "purchase_url_ja": "",
