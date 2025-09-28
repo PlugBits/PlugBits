@@ -158,5 +158,53 @@
     "updated_at_en": "",
     "support_mail": "c.otkyaaa@gmail.com",
     "site_copyright": "2025 Puchi Add-on Plugins. All rights reserved."
+  },
+  {
+    "slug": "list-conditional-color",
+    "purchase_url": "https://example.com/buy?link=BASE",
+    "purchase_url_jpy": "",
+    "purchase_url_usd": "",
+    "purchase_url_ja": "",
+    "purchase_url_ja_jpy": "",
+    "purchase_url_ja_usd": "",
+    "purchase_url_en": "",
+    "purchase_url_en_jpy": "",
+    "purchase_url_en_usd": "",
+    "price_jpy": "100",
+    "price_usd": "",
+    "hero_image": "ssets/list-conditional-color/hero.png",
+    "title_ja": "一覧セル条件色付けプラグイン",
+    "summary_ja": "一覧画面のセルを、条件式に応じて自動で色付け（背景/文字色）するプラグインです。しきい値・範囲・文字列一致/含む・相対日付などの条件で、重要なレコードをひと目で把握できます。\n      対応演算子:\n      - Number: `= != > >= < <= between notBetween`\n      - Text: `contains notContains = != regex`\n      - Date: `today yesterday tomorrow past future withinDays olderThanDays`\n      - Empty: `isEmpty isNotEmpty`",
+    "tags_ja": "一覧, 条件, 色付け, 強調, 見える化",
+    "features_ja": "数値/文字列/日付/空欄の条件演算子; 列単位・セル単位で色付け; today/withinDays等の相対日付; しきい値・範囲・含む/一致; 設定はアプリごとに保存",
+    "screenshots_ja": "ssets/list-conditional-color/setup.png|条件設定画面; assets/list-conditional-color/result.png|色付け結果（一覧）",
+    "steps_ja": [
+      "1|プラグインをインストール|プラグインファイルをKintoneにアップロードし、有効化します。",
+      "2|アプリに追加|対象アプリに本プラグインを追加して設定画面を開きます。",
+      "3|条件を設定|フィールドと演算子を選び、色（背景/文字）を指定して保存します。"
+    ],
+    "limitations_ja": "モバイル未対応; 添付/リンク計算等の一部フィールドは非対象; サブテーブル内セルは現状非対応; レコードが非常に多い一覧では表示に僅かな遅延が発生する場合あり;  数値フィールドに単位記号がある場合、色付けができない場合あり",
+    "faq_ja": [
+      "色はどこまで指定できますか？|背景色と文字色をセットで設定できます。",
+      "標準機能と干渉しますか？|一覧の表示のみを変更します。レコードデータ自体は変更しません。"
+    ],
+    "supported_screens_ja": "PC / 一覧",
+    "category_ja": "見える化・品質",
+    "file_size_ja": "約15KB",
+    "updated_at_ja": "2025年9月",
+    "title_en": "",
+    "summary_en": "",
+    "tags_en": "",
+    "features_en": "",
+    "screenshots_en": "",
+    "steps_en": [],
+    "limitations_en": "",
+    "faq_en": [],
+    "supported_screens_en": "",
+    "category_en": "",
+    "file_size_en": "",
+    "updated_at_en": "",
+    "support_mail": "c.otkyaaa@gmail.com",
+    "site_copyright": "2025 Puchi Add-on Plugins. All rights reserved."
   }
 ]
