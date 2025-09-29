@@ -11,8 +11,10 @@
   --kb-sub:#6b7280;
   --kb-line:#e6eef7;
   --kb-primary:#2f64e2;
+  --kb-primary-050:#f3f6ff;
   --kb-primary-100:#eaf0ff;
   --kb-primary-200:#d8e4ff;
+  --kb-primary-300:#c4d4ff;
   --kb-primary-600:#2b57c7;
   --kb-primary-700:#224bb1;
   --kb-ink:#0b1f33;
@@ -61,18 +63,19 @@
 .kb-article-check li::before{content:"✔";position:absolute;left:16px;top:14px;font-size:16px;color:#15803d;font-weight:700}
 .kb-article-ordered{list-style:decimal;padding-left:1.6em;margin:12px 0 0;display:grid;gap:6px;font-weight:600}
 .kb-article-ordered a{color:var(--kb-primary)}
-.kb-article-toc{margin:48px 0;background:linear-gradient(160deg,#26457b 0%,#3d6ee8 100%);border-radius:20px;padding:28px 32px;box-shadow:0 18px 36px rgba(35,70,140,.28);color:#f8fbff}
-.kb-article-toc h2{margin:0 0 12px;font-size:18px;font-weight:700;color:#f8fbff}
-.kb-article-toc a{color:#dbe7ff;font-weight:600}
-.kb-article-toc a:hover{color:#fff}
+.kb-article-toc{margin:48px 0;background:linear-gradient(160deg,#f7f9ff 0%,#edf2ff 100%);border-radius:24px;padding:32px 36px;box-shadow:0 18px 32px rgba(47,100,226,.12);color:#3a4b74;border:1px solid rgba(47,100,226,.12)}
+.kb-article-toc h2{margin:0 0 16px;font-size:18px;font-weight:700;color:#2c3a64}
+.kb-article-toc a{color:#3758a0;font-weight:600}
+.kb-article-toc a:hover{color:#223b7d}
 .kb-article-steps{list-style:none;margin:0;display:grid;gap:18px;color:var(--kb-text);counter-reset:step}
-.kb-article-steps li{position:relative;padding:22px 22px 22px 68px;border-radius:20px;background:#fff;border:1px solid rgba(45,60,86,.12);box-shadow:0 18px 32px rgba(15,23,42,.06)}
-.kb-article-steps li::before{content:counter(step,decimal-leading-zero);counter-increment:step;background:var(--kb-primary);color:#fff;font-weight:700;border-radius:14px;padding:12px 16px;font-size:16px;position:absolute;left:22px;top:22px;min-width:36px;text-align:center;box-shadow:0 10px 22px rgba(47,100,226,.35)}
+.kb-article-steps li{position:relative;padding:24px 26px 24px 88px;border-radius:22px;background:#fff;border:1px solid rgba(45,60,86,.08);box-shadow:0 16px 30px rgba(15,23,42,.05)}
+.kb-article-steps li::before{content:counter(step,decimal-leading-zero);counter-increment:step;background:var(--kb-primary-050);color:#27428f;font-weight:700;border-radius:16px;padding:12px 16px;font-size:16px;position:absolute;left:28px;top:28px;min-width:44px;text-align:center;box-shadow:0 8px 18px rgba(47,100,226,.18);border:1px solid rgba(47,100,226,.18)}
 .kb-article-steps h3{font-size:17px;font-weight:700;margin:0 0 8px;color:var(--kb-text)}
 .kb-article-steps p{margin:0 0 6px;color:var(--kb-sub);line-height:1.7}
-.kb-article-callout{margin-top:20px;padding:18px 22px;border-radius:16px;background:#fff7eb;border-left:5px solid #f59e0b;font-size:14px;color:#8a5300;box-shadow:0 12px 28px rgba(245,158,11,.18)}
-.kb-article-hint{margin-top:20px;padding:16px 22px;border-radius:16px;background:#eef5ff;border-left:5px solid #3b82f6;color:#2c4a7a;font-size:14px;box-shadow:0 12px 28px rgba(59,130,246,.18)}
-.kb-screenshot-callout{margin-top:12px;padding:12px 16px;border-radius:12px;border:1px dashed var(--kb-line);background:#f9fbff;font-size:13px;color:#4b5563}
+.kb-article-callout{margin-top:20px;padding:20px 24px;border-radius:18px;background:#fff9ed;border:1px solid rgba(245,158,11,.26);font-size:14px;color:#8a5a06;box-shadow:0 12px 26px rgba(245,158,11,.14)}
+.kb-article-callout strong{color:#b45309}
+.kb-article-hint{margin-top:20px;padding:18px 24px;border-radius:18px;background:linear-gradient(140deg,#f3f7ff 0%,#eef4ff 100%);border:1px solid rgba(59,130,246,.22);color:#2f4a7a;font-size:14px;box-shadow:0 12px 26px rgba(59,130,246,.14)}
+.kb-screenshot-callout{margin-top:14px;padding:14px 18px;border-radius:14px;border:1px dashed var(--kb-line);background:#f9fbff;font-size:13px;color:#4b5563}
 .kb-article-subheading{margin:28px 0 10px;font-size:18px;font-weight:700;color:var(--kb-text)}
 .kb-article-footer{margin-top:56px;font-size:12.5px;color:var(--kb-sub);text-align:center}
 .kb-support-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:18px;margin-top:18px}
