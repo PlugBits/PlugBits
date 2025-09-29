@@ -1,0 +1,225 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>プラグイン導入ガイド | Puchi Add-on Plugins</title>
+  <meta name="description" content="kintone ミニプラグインのインストールからアップデートまでの共通手順をまとめたガイドです。">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="kb-root">
+  <div class="kb-container kb-topbar">
+    <a class="kb-back" href="index.html">← 商品一覧に戻る</a>
+    <div class="kb-brand">Puchi Add-on Plugins</div>
+  </div>
+
+  <main class="kb-container">
+    <article class="kb-article">
+      <header class="kb-article-header">
+        <p class="kb-article-label">kintone ミニプラグイン導入ガイド</p>
+        <h1>インストール〜アップデートまでの共通手順</h1>
+        <div class="kb-article-meta">
+          <div class="kb-meta-chip">
+            <strong>最終更新</strong>
+            <span>2025年9月</span>
+          </div>
+          <div class="kb-meta-chip">
+            <strong>対象</strong>
+            <span>kintone システム管理者・アプリ管理者</span>
+          </div>
+          <div class="kb-meta-chip">
+            <strong>サポート窓口</strong>
+            <span>ご購入時にご案内したメールアドレスまで</span>
+          </div>
+        </div>
+      </header>
+
+      <div class="kb-article-body">
+        <section class="kb-article-section">
+          <h2>配布ファイル構成</h2>
+          <div class="kb-section-card">
+            <ul class="kb-article-list">
+              <li><strong>プラグイン本体（ZIP）</strong>：kintone へそのままアップロードしてください。</li>
+              <li><strong>導入ガイド（PDF）</strong>：本ドキュメント。社内共有にもご利用ください。</li>
+            </ul>
+          </div>
+        </section>
+
+        <section class="kb-article-section">
+          <h2>想定読者</h2>
+          <div class="kb-section-card">
+            <p class="kb-article-paragraph">kintone の管理機能にアクセスできる担当者。IT 操作に不慣れな方でも手順を追えるよう記載しています。</p>
+          </div>
+        </section>
+
+        <section class="kb-article-section">
+          <h2>お問い合わせ前に</h2>
+          <div class="kb-section-card">
+            <p class="kb-article-paragraph">プラグイン名・バージョン、発生現象が分かるスクリーンショットをご用意いただくと解決がスムーズです。</p>
+          </div>
+        </section>
+
+        <nav class="kb-article-toc" aria-label="目次">
+          <h2>Contents</h2>
+          <ol class="kb-article-ordered">
+            <li><a href="#checklist">導入前のチェックリスト</a></li>
+            <li><a href="#package">プラグイン配布物の確認</a></li>
+            <li><a href="#install">kintone へのプラグイン追加手順</a></li>
+            <li><a href="#app-enable">アプリでの設定と有効化</a></li>
+            <li><a href="#update">プラグインのアップデート方法</a></li>
+            <li><a href="#troubleshoot">トラブルシュート</a></li>
+            <li><a href="#support">サポート窓口と連絡先</a></li>
+          </ol>
+        </nav>
+
+        <section id="checklist" class="kb-article-section">
+          <h2>1. 導入前のチェックリスト</h2>
+          <div class="kb-section-card kb-section-card--stack">
+            <ul class="kb-article-check">
+              <li>kintone の「システム管理」メニューにアクセスできる権限をお持ちですか？</li>
+              <li>利用する環境（本番 or テスト）でプラグインの動作検証を行うスペース／アプリを用意しましたか？</li>
+              <li>ご利用のブラウザーは最新版ですか？（Google Chrome を推奨）</li>
+              <li>既存のプラグインと併用する場合、念のためテストアプリで競合が無いか確認することをおすすめします。</li>
+            </ul>
+            <p class="kb-article-callout"><strong>ご注意：</strong>プラグインの追加や更新は、アプリに影響が出る可能性があります。本番アプリに適用する前にテストアプリで検証してください。</p>
+          </div>
+        </section>
+
+        <section id="package" class="kb-article-section">
+          <h2>2. プラグイン配布物の確認</h2>
+          <div class="kb-section-card kb-section-card--stack">
+            <p class="kb-article-paragraph">ダウンロードした ZIP の中身を確認し、少なくとも以下のファイルが揃っていることを確かめてください。</p>
+            <ul class="kb-article-list">
+              <li><strong>プラグイン本体（ZIP）</strong>：kintone にアップロードするファイルです。解凍せず、そのまま使用します。</li>
+              <li><strong>導入ガイド PDF</strong>：操作手順書。本ドキュメントが該当します。</li>
+            </ul>
+            <p class="kb-article-hint">ヒント：Windows で ZIP を右クリックし「すべて展開」を選ぶとフォルダーが開きます。Mac の場合はダブルクリックで展開されます。</p>
+          </div>
+        </section>
+
+        <section id="install" class="kb-article-section">
+          <h2>3. kintone へのプラグイン追加手順</h2>
+          <div class="kb-section-card">
+            <ol class="kb-article-steps">
+              <li>
+                <h3>kintone のシステム管理を開きます</h3>
+                <p>画面右上のアカウントメニューから 「システム管理」（または「管理者設定」）を選択します。</p>
+                <p class="kb-screenshot-callout">★ スクリーンショット「システム管理メニュー」の挿入位置</p>
+              </li>
+              <li>
+                <h3>プラグイン管理画面へ移動</h3>
+                <p>左側のメニューから 「カスタマイズ／サービス連携」&gt;「プラグイン」 を開き、右上の 「プラグインの追加」&gt;「ファイルから」 をクリックします。</p>
+              </li>
+              <li>
+                <h3>プラグインファイルを選択</h3>
+                <p>配布されたプラグイン本体（ZIP）を選択し、「追加」をクリックします。アップロード完了後、一覧に表示されます。</p>
+                <p class="kb-screenshot-callout">★ スクリーンショット「プラグイン一覧に表示」の挿入位置</p>
+              </li>
+              <li>
+                <h3>有効化の準備</h3>
+                <p>追加できたら、該当プラグインのステータスが「利用可能」になっていることを確認してください。アプリへの適用は次の章で行います。</p>
+              </li>
+            </ol>
+          </div>
+        </section>
+
+        <section id="app-enable" class="kb-article-section">
+          <h2>4. アプリでの設定と有効化</h2>
+          <div class="kb-section-card">
+            <ol class="kb-article-steps">
+              <li>
+                <h3>プラグインを使うアプリを開く</h3>
+                <p>アプリの設定（歯車アイコン）&gt; 「プラグイン」 を選択し、「+ プラグインを追加」 をクリックします。</p>
+              </li>
+              <li>
+                <h3>プラグインの設定画面に入る</h3>
+                <p>一覧から対象プラグインを選択し、「設定」ボタンをクリック。画面の案内に沿って必要項目を入力し、保存します。</p>
+                <p class="kb-screenshot-callout">★ スクリーンショット「設定画面」の挿入位置</p>
+              </li>
+              <li>
+                <h3>アプリを更新（再利用）</h3>
+                <p>設定を保存したら、アプリ設定画面右上の 「保存」、続いて黄色の 「アプリを更新」 ボタンを押してください。これでプラグインが有効になります。</p>
+              </li>
+              <li>
+                <h3>動作確認</h3>
+                <p>アプリ画面に戻り、想定どおりに動作するか確認します。問題がある場合は設定値や他プラグインとの競合をチェックしてください。</p>
+              </li>
+            </ol>
+          </div>
+        </section>
+
+        <section id="update" class="kb-article-section">
+          <h2>5. プラグインのアップデート方法</h2>
+          <div class="kb-section-card">
+            <ol class="kb-article-steps">
+              <li>配布サイトから最新版のプラグイン本体（ZIP）とガイドをダウンロードします。</li>
+              <li>kintone システム管理 &gt; プラグイン一覧で対象プラグインの 「…（メニュー）」&gt;「更新」 を選択します。</li>
+              <li>新しい ZIP を指定し、アップロード後にアプリ設定画面で 「アプリを更新」 を忘れずに実行します。</li>
+              <li>必要に応じて、リリースノートや変更点をアプリ利用者へ共有してください。</li>
+              <li>旧バージョンの ZIP はバックアップとして保管しておくと、万一のロールバック時に安心です。</li>
+            </ol>
+          </div>
+        </section>
+
+        <section id="troubleshoot" class="kb-article-section">
+          <h2>6. トラブルシュート</h2>
+          <div class="kb-section-card kb-section-card--stack">
+            <div>
+              <h3 class="kb-article-subheading">画面が真っ白になる／プラグインが動かない場合</h3>
+              <ul class="kb-article-check">
+                <li>ブラウザーの再読み込み（Ctrl + F5 または Cmd + Shift + R）を実行してください。</li>
+                <li>他プラグインを一時的に無効化し、競合が無いか切り分けます。</li>
+                <li>プラグイン設定内容が正しいか、入力漏れが無いか確認します。</li>
+              </ul>
+            </div>
+            <div>
+              <h3 class="kb-article-subheading">アップデート後にエラーが出る場合</h3>
+              <ul class="kb-article-check">
+                <li>アプリを更新し忘れていないか確認してください。</li>
+                <li>アプリのカスタマイズ JavaScript / CSS との競合も考えられるため、一時的に無効化して様子を見ます。</li>
+                <li>エラーメッセージが表示される場合は、スクリーンショットを撮影してサポート窓口へお知らせください。</li>
+              </ul>
+            </div>
+          </div>
+        </section>
+
+        <div class="kb-divider" role="presentation"></div>
+
+        <section id="support" class="kb-article-section">
+          <h2>7. サポート窓口と連絡先</h2>
+          <div class="kb-section-card">
+            <p class="kb-article-paragraph">解決しない場合は、以下の情報を添えてサポート窓口までご連絡ください。</p>
+            <div class="kb-support-cards">
+              <div class="kb-support-card">
+                <strong>お問い合わせ時のチェック項目</strong>
+                <ul>
+                  <li>ご利用中のプラグイン名とバージョン</li>
+                  <li>発生日時・操作手順</li>
+                  <li>表示されたエラーメッセージやスクリーンショット</li>
+                  <li>kintone のドメイン名（例：example.cybozu.com）</li>
+                </ul>
+              </div>
+              <div class="kb-support-card">
+                <strong>サポート窓口</strong>
+                <p class="kb-article-paragraph">ご購入時にご案内したメールアドレス / フォームまでご連絡ください。</p>
+                <p class="kb-support-meta">受付時間：平日 10:00 – 18:00（日本時間）<br>※祝日・弊社指定休日を除く</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <p class="kb-article-footer">© 2025 Mini Plugin Team. All rights reserved. 無断転載を禁じます。</p>
+      </div>
+    </article>
+  </main>
+
+  <footer class="kb-footer kb-container">
+    <nav class="kb-footer-links">
+      <a href="mailto:c.otkyaaa@gmail.com">不具合報告</a>
+      <a href="install.html">プラグイン導入ガイド</a>
+      <a href="terms.html">利用規約</a>
+    </nav>
+    <small>© 2025 Mini Plugin Team. All rights reserved.</small>
+  </footer>
+</body>
+</html>
