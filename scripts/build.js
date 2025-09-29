@@ -184,7 +184,7 @@ try{
   // assets は丸ごと
   copy('assets');
   // 単体ファイル
-  ['style.css','terms.html','robots.txt','sitemap-base.xml','404.html'].forEach(copy);
+  ['style.css','terms.html','install.html','robots.txt','sitemap-base.xml','404.html'].forEach(copy);
 
   // sitemap
   const basePath=path.join(DIST,'sitemap-base.xml');
@@ -192,6 +192,7 @@ try{
   const urls=['/index.html'];
   if(ENABLE_EN) urls.push('/en/index.html');
   urls.push('/terms.html');
+  urls.push('/install.html');
   for(const p of products){
     urls.push(`/products/${p.slug}.html`);
     if(ENABLE_EN) urls.push(`/products/en/${p.slug}.html`);
