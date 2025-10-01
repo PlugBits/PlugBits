@@ -274,7 +274,7 @@
     "summary_ja": "ラジオボタンの選択・変更時に、対応する日付フィールドへ「本日」を自動入力します（初回自動入力までは手入力不可）。\n行を追加して「ラジオフィールド → 日付フィールド」の組み合わせを複数登録可能。編集時・新規作成時の入力ミスを防ぎ、業務記録の正確性を高めます。",
     "tags_ja": "入力支援, 自動入力, 本日, ラジオボタン, 日付",
     "features_ja": "ラジオと日付の組み合わせ登録; ラジオ選択・変更時に本日を自動入力; 初回入力まで日付欄をロック; マッピングを複数行登録; 利用許可の設定; 編集/新規画面で動作",
-    "screenshots_ja": "assets/radio-today/config.png|設定画面（ラジオ→日付の行追加）; assets/radio-today/before.png|初回入力前（日付は入力不可）; assets/radio-today/after.png|ラジオ選択で本日が自動入力",
+    "screenshots_ja": "assets/radio-today/demo-movie.mp4|video|デモ動画;assets/radio-today/config.png|設定画面（ラジオ→日付の行追加）; assets/radio-today/detail-before.png|初回入力前（日付は入力不可）; assets/radio-today/detail-after.png|ラジオ選択で本日が自動入力",
     "steps_ja": [
       "1|プラグインをインストール|プラグインファイルをKintoneにアップロードし有効化します。",
       "2|アプリに追加|設定画面で「ラジオフィールド」と「日付フィールド」の組み合わせを行として登録します（複数可）。",
