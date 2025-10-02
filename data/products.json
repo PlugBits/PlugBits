@@ -209,7 +209,7 @@
   },
   {
     "slug": "field-value-copy",
-    "purchase_url": "https://example.com/buy?link=BASE",
+    "purchase_url": "https://payhip.com/buy?link=l0Bb5",
     "purchase_url_jpy": "",
     "purchase_url_usd": "",
     "purchase_url_ja": "",
@@ -258,7 +258,7 @@
   },
   {
     "slug": "radio-today",
-    "purchase_url": "https://example.com/buy?link=BASE",
+    "purchase_url": "https://payhip.com/buy?link=x1Q9c",
     "purchase_url_jpy": "",
     "purchase_url_usd": "",
     "purchase_url_ja": "_No response_-",
@@ -307,7 +307,7 @@
   },
   {
     "slug": "list-date-slider-plus",
-    "purchase_url": "https://example.com/buy?link=BASE",
+    "purchase_url": "https://payhip.com/buy?link=zFTl8",
     "purchase_url_jpy": "",
     "purchase_url_usd": "",
     "purchase_url_ja": "",
