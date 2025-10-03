@@ -483,5 +483,5 @@
 /* もし“動画は必ず16:9で大きく”見せたい場合（任意） */
 .kb-screenshots .kb-shot:has(video) .kb-shot-media {aspect-ratio: 16 / 9;     /* 既定と同じでもOK。必要なら高さを確保 */}
 
-.screenshot {max-width: 420px; width:100%; height: auto; border: 1px solid #ddd; border-radius: 4px; padding: 4px;}
+.kb-ins-screenshot {max-width: 220px; width:100%; height: auto; border: 1px solid #ddd; border-radius: 4px; padding: 4px;}
 
