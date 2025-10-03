@@ -477,3 +477,10 @@
 }
 #kb-lightbox .kb-lb-close:hover{ opacity: 1; }
 
+/* Screenshots: 動画を含むタイルは全幅で1カラム表示 */
+.kb-screenshots .kb-shot:has(video), .kb-screenshots .kb-video:has(video) {grid-column: 1 / -1;      /* グリッドを横断（全幅） */}
+
+/* もし“動画は必ず16:9で大きく”見せたい場合（任意） */
+.kb-screenshots .kb-shot:has(video) .kb-shot-media {aspect-ratio: 16 / 9;     /* 既定と同じでもOK。必要なら高さを確保 */}
+
+
