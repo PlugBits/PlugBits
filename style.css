@@ -492,5 +492,6 @@
 
 .kb-tag { display:inline-block; padding:2px 8px; border-radius:999px; background:#5D93FF; color:#fff; font-weight:600; font-size:12px;}
 
-.kb-price-badge.kb-price-free { background:#10B981; /* 緑 */ color:#fff;}
+.kb-price-badge.kb-price-free { background:#10B981; /* 緑 */ color:#fff; border:none; box-shadow:none;}
 
+.kb-price-badge.kb-price-free:hover, .kb-card-foot a:hover, .kb-btn:hover { text-decoration: none !important; box-shadow: none !important;}
