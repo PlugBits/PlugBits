@@ -158,21 +158,23 @@ try{
     const desc = shortText(p.short_summary_ja || p.summary_ja, 64);
     const tags = renderTagsFlex(p.tags_ja || p.category_ja); // どちらか入っている方を利用
     const priceHtml = renderPriceJPY(p.price_jpy);
-    return `
-      <a class="kb-card" href="products/${p.slug}.html">
-        <div class="kb-card-img">
-          <img class="kb-hero-image" src="${esc(p.hero_image)}" alt="${esc(p.title_ja)}" loading="lazy">
-        </div>
-        <div class="kb-card-body">
-          <h3 class="kb-card-title">${esc(p.title_ja)}</h3>
-          <p class="kb-card-desc">${esc(desc)}</p>
-          <div class="kb-card-tags">${tags}</div>
-          <div class="kb-card-foot">
-            ${priceHtml}
-            <span class="kb-btn">詳細</span>
-          </div>
-        </div>
-      </a>`;
+    return [
+      '<a class="kb-card" href="products/', esc(p.slug), '.html">',
+      '  <div class="kb-card-img">',
+      '    <img class="kb-hero-image" src="', esc(p.hero_image),
+      '" alt="', esc(p.title_ja), '" loading="lazy">',
+      '  </div>',
+      '  <div class="kb-card-body">',
+      '    <h3 class="kb-card-title">', esc(p.title_ja), '</h3>',
+      '    <p class="kb-card-desc">', esc(desc), '</p>',
+      '    <div class="kb-card-tags">', tags, '</div>',
+      '    <div class="kb-card-foot">',
+           priceHtml,
+      '      <span class="kb-btn">詳細</span>',
+      '    </div>',
+      '  </div>',
+      '</a>'
+    ].join('');
   }).join('\n');
 
   let cardsEn='';
