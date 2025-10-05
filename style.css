@@ -490,7 +490,7 @@
 
 .kb-card-tags { display:flex; flex-wrap:wrap; gap:6px; }
 
-.kb-tag { display:inline-block; padding:2px 8px; border-radius:999px; background:rgba(11, 99, 243, 0.2);　color: #0B63F3; font-weight:600; font-size:12px;}
+.kb-tag { display:inline-block; padding:2px 8px; border-radius:999px; background:#5D93FF; color:#fff; font-weight:600; font-size:12px;}
 
 .kb-price-badge.kb-price-free { background:#10B981; /* 緑 */ color:#fff;}
 
