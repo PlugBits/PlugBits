@@ -484,4 +484,13 @@
 .kb-screenshots .kb-shot:has(video) .kb-shot-media {aspect-ratio: 16 / 9;     /* 既定と同じでもOK。必要なら高さを確保 */}
 
 .kb-ins-screenshot {max-width: 220px; width:100%; height: auto; border: 1px solid #ddd; border-radius: 4px; padding: 4px;}
+.kb-card-body { display:flex; flex-direction:column; gap:8px; }
+
+.kb-card-desc {color:#374151; font-size:0.92rem; line-height:1.4; min-height:2.5em; /* 2行分を確保して高さブレ抑制 */ margin:0;}
+
+.kb-card-tags { display:flex; flex-wrap:wrap; gap:6px; }
+
+.kb-tag { display:inline-block; padding:2px 8px; border-radius:999px; background:#0B63F3; color:#fff; font-weight:600; font-size:12px;}
+
+.kb-price-badge.kb-price-free { background:#10B981; /* 緑 */ color:#fff;}
 
