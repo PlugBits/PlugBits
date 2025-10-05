@@ -20,7 +20,14 @@ function ensureDirs(){
 }
 function readJSON(p){ return JSON.parse(fs.readFileSync(p,'utf-8')); }
 function readText(p){ return fs.readFileSync(p,'utf-8'); }
-
+function renderPriceJPY(v) {
+  const n = Number(v);
+  if (!isFinite(n) || n <= 0) {
+    return '<div class="kb-price-badge kb-price-free">¥0（無料）</div>';
+  }
+  // 数値はdata属性に素のまま、表示は桁区切り
+  return `<div class="kb-price-badge" data-price-jpy="${esc(n)}">¥${n.toLocaleString('ja-JP')}</div>`;
+}
 function renderTags(csv){ return (csv||'').split(',').map(s=>s.trim()).filter(Boolean).map(t=>`<span class="kb-tag">${esc(t)}</span>`).join(''); }
 function renderFeatures(semicolon){ return (semicolon||'').split(';').map(s=>s.trim()).filter(Boolean).map(x=>`<li>${esc(x)}</li>`).join(''); }
 function renderSteps(lines){ const arr=Array.isArray(lines)?lines:[]; return arr.map(line=>{const [n,h,b]=String(line).split('|');return `<div class="kb-step"><div class="kb-step-number">${esc(n||'')}</div><div><h3>${esc(h||'')}</h3><p>${esc(b||'')}</p></div></div>`;}).join(''); }
@@ -150,7 +157,7 @@ try{
   const cardsJa=products.map(p=>`
     const desc = shortText(p.short_summary_ja || p.summary_ja, 64);
     const tags = renderTagsFlex(p.tags_ja || p.category_ja); // どちらか入っている方を利用
-    const priceHtml = Number(p.price_jpy) === 0
+    const priceHtml = renderPriceJPY(p.price_jpy);
       ? `<div class="kb-price-badge kb-price-free">¥0（無料）</div>`
       : `<div class="kb-price-badge" data-price-jpy="${esc(p.price_jpy)}">¥${esc(p.price_jpy)}</div>`;
   
