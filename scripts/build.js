@@ -178,17 +178,32 @@ try{
   }).join('\n');
 
   let cardsEn='';
-  if(ENABLE_EN){
-    cardsEn=products.map(p=>`
-      <a class="kb-card" href="../products/en/${p.slug}.html">
-        <div class="kb-card-img"><img class="kb-hero-image" src="../${esc(p.hero_image)}" alt="${esc(p.title_en)}" loading="lazy"></div>
-        <div class="kb-card-body">
-          <h3 class="kb-card-title">${esc(p.title_en)}</h3>
-          <div class="kb-card-foot"><div class="kb-price-badge" data-price-jpy="${esc(p.price_jpy)}"${ENABLE_USD?` data-price-usd="${esc(p.price_usd)}"`:''}>${ENABLE_USD?`$${esc(p.price_usd)}`:`¥${esc(p.price_jpy)}`}</div><span class="kb-btn">Details</span></div>
-        </div>
-      </a>`).join('\n');
+  if (ENABLE_EN) {
+    cardsEn = products.map(p => {
+      const usdAttr   = (ENABLE_USD && p.price_usd)
+        ? ` data-price-usd="${esc(p.price_usd)}"`
+        : '';
+      const priceText = (ENABLE_USD && p.price_usd)
+        ? `$${esc(p.price_usd)}`
+        : `¥${esc(p.price_jpy)}`;
+  
+      return `
+        <a class="kb-card" href="../products/en/${esc(p.slug)}.html">
+          <div class="kb-card-img">
+            <img class="kb-hero-image" src="../${esc(p.hero_image)}"
+                 alt="${esc(p.title_en)}" loading="lazy">
+          </div>
+          <div class="kb-card-body">
+            <h3 class="kb-card-title">${esc(p.title_en)}</h3>
+            <div class="kb-card-foot">
+              <div class="kb-price-badge"
+                   data-price-jpy="${esc(p.price_jpy)}"${usdAttr}>${priceText}</div>
+              <span class="kb-btn">Details</span>
+            </div>
+          </div>
+        </a>`;
+    }).join('\n');
   }
-
   if(ENABLE_EN) fs.mkdirSync(path.join(DIST,'en'),{recursive:true});
   fs.writeFileSync(path.join(DIST,'index.html'),
     tpl.indexJa
