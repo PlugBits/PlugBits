@@ -40,7 +40,19 @@ function firstFilled(){
   }
   return '';
 }
-
+function shortText(s, n = 64) {
+  s = String(s || '').replace(/\s+/g, ' ').trim();
+  return s.length > n ? s.slice(0, n - 1) + '…' : s;
+}
+// Array でも CSV でも受けられるように renderTags を拡張
+function renderTagsFlex(v){
+  const list = Array.isArray(v) ? v : String(v||'').split(',');
+  return list
+    .map(s => s.trim())
+    .filter(Boolean)
+    .map(t => `<span class="kb-tag">${esc(t)}</span>`)
+    .join('');
+}
 /* Screenshots: "path|caption" (img), "path|video|caption" (mp4) */
 function renderScreenshots(list, prefix=''){
   const arr = Array.isArray(list) ? list : (list||'').split(';');
@@ -136,13 +148,28 @@ try{
 
   // index pages (カード簡易版)
   const cardsJa=products.map(p=>`
-    <a class="kb-card" href="products/${p.slug}.html">
-      <div class="kb-card-img"><img class="kb-hero-image" src="${esc(p.hero_image)}" alt="${esc(p.title_ja)}" loading="lazy"></div>
-      <div class="kb-card-body">
-        <h3 class="kb-card-title">${esc(p.title_ja)}</h3>
-        <div class="kb-card-foot"><div class="kb-price-badge" data-price-jpy="${esc(p.price_jpy)}">¥${esc(p.price_jpy)}</div><span class="kb-btn">詳細</span></div>
-      </div>
-    </a>`).join('\n');
+    const desc = shortText(p.short_summary_ja || p.summary_ja, 64);
+    const tags = renderTagsFlex(p.tags_ja || p.category_ja); // どちらか入っている方を利用
+    const priceHtml = Number(p.price_jpy) === 0
+      ? `<div class="kb-price-badge kb-price-free">¥0（無料）</div>`
+      : `<div class="kb-price-badge" data-price-jpy="${esc(p.price_jpy)}">¥${esc(p.price_jpy)}</div>`;
+  
+    return `
+      <a class="kb-card" href="products/${p.slug}.html">
+        <div class="kb-card-img">
+          <img class="kb-hero-image" src="${esc(p.hero_image)}" alt="${esc(p.title_ja)}" loading="lazy">
+        </div>
+        <div class="kb-card-body">
+          <h3 class="kb-card-title">${esc(p.title_ja)}</h3>
+          <p class="kb-card-desc">${esc(desc)}</p>
+          <div class="kb-card-tags">${tags}</div>
+          <div class="kb-card-foot">
+            ${priceHtml}
+            <span class="kb-btn">詳細</span>
+          </div>
+        </div>
+      </a>`;
+  }).join('\n');
 
   let cardsEn='';
   if(ENABLE_EN){
