@@ -154,7 +154,7 @@ try{
   }
 
   // index pages (カード簡易版)
-  const cardsJa=products.map(p=>`
+  const cardsJa=products.map(p => {
     const desc = shortText(p.short_summary_ja || p.summary_ja, 64);
     const tags = renderTagsFlex(p.tags_ja || p.category_ja); // どちらか入っている方を利用
     const priceHtml = renderPriceJPY(p.price_jpy);
