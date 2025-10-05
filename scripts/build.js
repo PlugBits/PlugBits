@@ -158,9 +158,6 @@ try{
     const desc = shortText(p.short_summary_ja || p.summary_ja, 64);
     const tags = renderTagsFlex(p.tags_ja || p.category_ja); // どちらか入っている方を利用
     const priceHtml = renderPriceJPY(p.price_jpy);
-      ? `<div class="kb-price-badge kb-price-free">¥0（無料）</div>`
-      : `<div class="kb-price-badge" data-price-jpy="${esc(p.price_jpy)}">¥${esc(p.price_jpy)}</div>`;
-  
     return `
       <a class="kb-card" href="products/${p.slug}.html">
         <div class="kb-card-img">
