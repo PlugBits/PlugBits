@@ -126,7 +126,7 @@ body:
 
   - type: input
     id: updated_at_ja
-    attributes: { label: UPDATED_AT_JA, placeholder: 2024年8月 }
+    attributes: { label: UPDATED_AT_JA, placeholder: 2025年10月 }
 
   - type: input
     id: support_mail
@@ -138,8 +138,7 @@ body:
     id: site_copyright
     attributes:
       label: SITE_COPYRIGHT
-      placeholder: 2024 Kintone Mini Plugins. All rights reserved.
-
+      placeholder: 2025 PlugBits. All rights reserved.
   # ---- EN (paused) ----
   # - type: input
   #   id: title_en
