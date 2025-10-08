@@ -96,7 +96,7 @@ try{
       ? firstFilled(p.purchase_url_ja_usd, p.purchase_url_ja, p.purchase_url_usd, p.purchase_url, buyUrlJpy)
       : buyUrlJpy;
     const map={
-      '%%SLUG%%':p.slug,'%%SITE_NAME_JA%%':p.site_name_ja||'Puchi Add-on Plugins',
+      '%%SLUG%%':p.slug,'%%SITE_NAME_JA%%':p.site_name_ja||'PlugBits for kintone',
       '%%TITLE_JA%%':p.title_ja,'%%SUMMARY_JA%%':p.summary_ja,
       '%%PRICE_JPY%%':p.price_jpy,'%%PRICE_USD%%':ENABLE_USD ? p.price_usd : '',
       '%%PURCHASE_URL%%':buyUrlJpy,
@@ -124,7 +124,7 @@ try{
         : firstFilled(p.purchase_url_en, p.purchase_url, p.purchase_url_jpy, p.purchase_url_ja);
       const buyUrlJpy = firstFilled(p.purchase_url_en_jpy, p.purchase_url_en, p.purchase_url_jpy, p.purchase_url, buyUrlUsd);
       const map={
-        '%%SLUG%%':p.slug,'%%SITE_NAME_EN%%':p.site_name_en||'Puchi Add-on Plugins',
+        '%%SLUG%%':p.slug,'%%SITE_NAME_EN%%':p.site_name_en||'PlugBits for kintone',
         '%%TITLE_EN%%':p.title_en,'%%SUMMARY_EN%%':p.summary_en,
         '%%PRICE_JPY%%':p.price_jpy,'%%PRICE_USD%%':ENABLE_USD ? p.price_usd : '',
         '%%PURCHASE_URL%%':buyUrlUsd,
@@ -210,7 +210,7 @@ try{
       .replaceAll('%%PRODUCT_CARDS_JA%%',cardsJa)
       .replaceAll('%%SUPPORT_MAIL%%',esc(products[0]?.support_mail||'c.otkyaaa@gmail.com'))
       .replaceAll('%%SITE_COPYRIGHT%%',esc(products[0]?.site_copyright||''))
-      .replaceAll('%%SITE_NAME_JA%%',esc(products[0]?.site_name_ja||'Puchi Add-on Plugins'))
+      .replaceAll('%%SITE_NAME_JA%%',esc(products[0]?.site_name_ja||'PlugBits for kintone'))
   );
   if(ENABLE_EN){
     fs.writeFileSync(path.join(DIST,'en','index.html'),
@@ -218,7 +218,7 @@ try{
         .replaceAll('%%PRODUCT_CARDS_EN%%',cardsEn)
         .replaceAll('%%SUPPORT_MAIL%%',esc(products[0]?.support_mail||'c.otkyaaa@gmail.com'))
         .replaceAll('%%SITE_COPYRIGHT%%',esc(products[0]?.site_copyright||''))
-        .replaceAll('%%SITE_NAME_EN%%',esc(products[0]?.site_name_en||'Puchi Add-on Plugins'))
+        .replaceAll('%%SITE_NAME_EN%%',esc(products[0]?.site_name_en||'PlugBits for kintone'))
     );
   }
 
