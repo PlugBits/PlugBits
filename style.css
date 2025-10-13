@@ -501,3 +501,12 @@
 .kb-install-desc {font-size: 14.5px;color: #4b5563;margin: 0 0 16px;}
 .kb-install-btn {display: inline-block;background: var(--kb-primary);color: #fff !important;padding: 10px 24px;border-radius: 10px;font-weight: 700;text-decoration: none;box-shadow: 0 6px 14px rgba(47,100,226,.25);transition: all 0.2s ease;}
 .kb-install-btn:hover {background: var(--kb-primary-600);transform: translateY(-2px);}
+
+/* 一覧カード：準備中 */
+.kb-card--coming { position: relative; opacity: .55; }
+.kb-card--coming::after { content: "COMING SOON"; position: absolute; top: 8px; right: 8px; font-size: 12px; font-weight: 700; background: #0B63F3; color: #fff; padding: 4px 8px; border-radius: 8px;}
+.is-coming-soon .kb-buy-btn { pointer-events: none; opacity: .4; cursor: not-allowed; }
+.kb-coming-label { display: none; margin-left: 8px; font-weight: 700; color: #0B63F3; }
+.is-coming-soon .kb-coming-label { display: inline-block; }
+.kb-price-coming {background: #999; color: #fff; border-radius: 999px; padding: 2px 8px; font-size: 12px;}
+
