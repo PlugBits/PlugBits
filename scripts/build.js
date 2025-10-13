@@ -110,7 +110,8 @@ try{
       '%%STEPS_JA_HTML%%':renderSteps(p.steps_ja),'%%LIMITATIONS_JA_HTML%%':renderLimitations(p.limitations_ja),
       '%%FAQ_JA_HTML%%':renderFAQ(p.faq_ja),'%%RELATED_JA_HTML%%':renderRelated(p.related_ja),
       '%%CTA_HEADLINE_JA%%':p.cta_headline_ja,'%%CTA_TEXT_JA%%':p.cta_text_ja,
-      '%%SUPPORT_MAIL%%':p.support_mail,'%%SITE_COPYRIGHT%%':p.site_copyright
+      '%%SUPPORT_MAIL%%':p.support_mail,'%%SITE_COPYRIGHT%%':p.site_copyright,
+      '%%STATUS_CLASS%%': (p.status === 'coming-soon' ? 'is-coming-soon' : '')
     };
     for(const [k,v] of Object.entries(map)) html=html.replaceAll(k,String(v??''));
     return html;
@@ -155,9 +156,13 @@ try{
 
   // index pages (カード簡易版)
   const cardsJa=products.map(p => {
+    const isComing = (p.status === 'coming-soon');
     const desc = shortText(p.short_summary_ja || p.summary_ja, 64);
     const tags = renderTagsFlex(p.tags_ja || p.category_ja); // どちらか入っている方を利用
-    const priceHtml = renderPriceJPY(p.price_jpy);
+    const priceHtml = isComing
+    ? '<div class="kb-price-badge kb-price-coming">COMING SOON</div>'
+    : renderPriceJPY(p.price_jpy);
+    const cardClass = 'kb-card' + (isComing ? ' kb-card--coming' : '');
     return [
       '<a class="kb-card" href="products/', esc(p.slug), '.html">',
       '  <div class="kb-card-img">',
@@ -170,7 +175,7 @@ try{
       '    <div class="kb-card-tags">', tags, '</div>',
       '    <div class="kb-card-foot">',
            priceHtml,
-      '      <span class="kb-btn">詳細</span>',
+      '      <span class="kb-btn">', (isComing ? '準備中' : '詳細'), '</span>',
       '    </div>',
       '  </div>',
       '</a>'
