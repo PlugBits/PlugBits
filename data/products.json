@@ -5,7 +5,7 @@
     "purchase_url_ja": "https://payhip.com/buy?link=ROHQE",
     "purchase_url_ja_jpy": "https://payhip.com/buy?link=ROHQE",
     "price_jpy": "0",
-    "status": "public",
+    "status": "coming-soon",
     "hero_image": "assets/number-expression/hero.webp",
     "title_ja": "数式入力（数値化）プラグイン",
     "summary_ja": "作成/編集画面で、選択した文字列（1行）フィールドに『=』または『＋』で始まる式　\n（例: =1+2、+（1+2）×0.5）を入力すると、その場で数値へ変換します。サブテーブル対応。\n　任意で『文字列フィールド→数値フィールド』の出力を設定でき、\n  文字列フィールドで計算式を書くと、結果を数値フィールドへ写して保存できます。",
