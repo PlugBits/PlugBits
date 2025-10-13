@@ -139,6 +139,19 @@ body:
     attributes:
       label: SITE_COPYRIGHT
       placeholder: 2025 PlugBits. All rights reserved.
+
+  - type: dropdown
+  id: status
+  attributes:
+    label: 公開ステータス
+    description: 一覧や詳細での扱いを選びます（公開 or 準備中）
+    options:
+      - public
+      - coming-soon
+    default: public
+  validations:
+    required: true
+
   # ---- EN (paused) ----
   # - type: input
   #   id: title_en
