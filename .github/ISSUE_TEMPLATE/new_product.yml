@@ -148,7 +148,7 @@ body:
       options:
         - public
         - coming-soon
-      default: public
+      default: 0
     validations:
       required: true
 
