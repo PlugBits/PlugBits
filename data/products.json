@@ -390,7 +390,7 @@
     "short_summary_ja":"一覧画面のビュー選択ドロップダウンが地味に面倒。ドロップダウン選択するその＋１動作を無くします。",
     "tags_ja": "一覧画面, 作業効率",
     "features_ja": "表示タブの順序・アイコン表示・表示数は設定画面で変更できます。",
-    "screenshots_ja": "assets/view-tabs/ss1.png|一覧のタイプごとに異なったアイコンが表示されます。;assets/view-tabs/ss2.png|インライン表示上限を超えた場合はその他ドロップダウンに集約されます。;assets/view-tabs/ss3.png|多めの表示にした場合 ;assets/view-tabs/config.png|設定画面"
+    "screenshots_ja": "assets/view-tabs/ss1.png|一覧のタイプごとに異なったアイコンが表示されます。;assets/view-tabs/ss2.png|インライン表示上限を超えた場合はその他ドロップダウンに集約されます。;assets/view-tabs/ss3.png|多めの表示にした場合 ;assets/view-tabs/config.png|設定画面",
     "steps_ja": [
       "1|プラグインをインストール|プラグインをアプリにインストールします。",
       "2| アプリに追加|設定画面で「表示タブ」「順序」「アイコン」「インライン数」を調整します。",
