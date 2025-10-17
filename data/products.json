@@ -11,7 +11,7 @@
     "summary_ja": "作成・編集画面で『=1+2』のように式を入力すると、その場で数値に変換します。必要に応じて結果を数値フィールドへ保存できます。",
     "short_summary_ja": "『=1+2』で数値化。文字列からその場で計算できます。",
     "tags_ja": "編集画面, 作成画面, 入力支援, 文字列フィールド, 数値, サブテーブル, 計算, 正規化",
-    "features_ja": "・『=』『＋』で始まる式を安全に評価;・全角の数字・記号を自動で半角に正規化;・四則演算・小数・括弧に対応;・フォーカスアウト/Enterで自動変換;・結果を数値フィールドへ写して保存可能（任意）",
+    "features_ja": "『=』『＋』で始まる式を安全に評価;全角の数字・記号を自動で半角に正規化;四則演算・小数・括弧に対応;フォーカスアウト/Enterで自動変換;結果を数値フィールドへ写して保存可能（任意）",
     "screenshots_ja": "assets/number-expression/expression_mv1.mp4|video|式を入力→数値に変換; assets/number-expression/expression_ss1.png|対象フィールドと出力マッピング設定",
     "steps_ja": [
       "1|プラグインを登録|Kintoneの管理画面でプラグインZIPを追加します。",
@@ -43,7 +43,7 @@
     "summary_ja": "レコード詳細に、LINK/文字列(1行)フィールドのURLをKintone標準UI風のボタンとして表示します。",
     "short_summary_ja": "LINKをボタンとして表示。",
     "tags_ja": "ヘッダー, スペース, リンク, ボタン, UI, i18n",
-    "features_ja": "・URLの自動検証(http/httpsのみ);・ヘッダー/スペースに配置;・ボタン種別(プライマリ/セカンダリ/警告/アウトライン/ミニ);・確認ダイアログ\n・元フィールドの非表示;・新しいタブで開く;・システム言語(JA/EN)自動対応;・SVGアイコン(ミニ)",
+    "features_ja": "URLの自動検証(http/httpsのみ);ヘッダー/スペースに配置;ボタン種別(プライマリ/セカンダリ/警告/アウトライン/ミニ);確認ダイアログ\n元フィールドの非表示;新しいタブで開く;システム言語(JA/EN)自動対応;SVGアイコン(ミニ)",
     "screenshots_ja": "assets/link-button/link-button-ss1.png|設定画面; assets/link-button/link-button-ss2.png|ヘッダー,スペースににボタンを配置",
     "steps_ja": [
       "1|プラグインをインストール|kintone 管理からプラグインを追加し有効化します。",
@@ -83,7 +83,7 @@
     "summary_ja": "一覧を開くだけで、合計・平均・件数・最大・最小が自動で表示されます。Excelに移さず、その場で数字を確認できます。",
     "short_summary_ja": "一覧に集計を自動表示。Excelいらずで数字が見えます。",
     "tags_ja": "一覧画面, 可視化",
-    "features_ja": "・合計・平均・最大・最小・件数を一覧下に自動表示;・ビューの条件変更に即時追随して再計算;・複数フィールドの集計に対応;・開くだけで動作（操作不要）",
+    "features_ja": "合計・平均・最大・最小・件数を一覧下に自動表示;ビューの条件変更に即時追随して再計算;複数フィールドの集計に対応;開くだけで動作（操作不要）",
     "screenshots_ja": "assets/list-aggregator/image.png|一覧ヘッダーに集計表を表示; assets/list-aggregator/setting.png|設定画面　フィールド選択、集計方法選択",
     "steps_ja": [
       "1|プラグインを登録|Kintoneの管理画面でプラグインZIPを追加します。",
@@ -134,7 +134,7 @@
     "summary_ja": "Excel/スプレッドシートの1行を貼り付けて、そのままレコード登録できます。少量の登録作業を素早く終わらせたい場面に向いています。",
     "short_summary_ja": "Excelの1行を貼るだけでレコード登録。",
     "tags_ja": "一覧画面, データ登録, インポート",
-    "features_ja": "・Excel/CSVの1行ペースト→そのまま登録;・必須フィールドは赤字でアラート;・フィールドの割り当てをプリセット保存;・ラジオ初期値は自動スキップ",
+    "features_ja": "Excel/CSVの1行ペースト→そのまま登録;必須フィールドは赤字でアラート;フィールドの割り当てをプリセット保存;ラジオ初期値は自動スキップ",
     "screenshots_ja": "assets/paste-to-record/paste-to-record-mv1.mp4|video|コピペ後初回はフィールドを指定して登録。;assets/paste-to-record/modal.png|貼り付けモーダル; assets/paste-to-record/config.png|設定画面はマッピング消去のみ",
     "steps_ja": [
       "1|ボタンを押す|一覧のヘッダーから「コピペ登録」をクリックします。",
@@ -185,7 +185,7 @@
     "summary_ja": "一覧のセルを条件に合わせて自動で色付けします。しきい値や文字列、相対日付で“目立たせたい行”をひと目で見分けられます。",
     "short_summary_ja": "条件に応じてセルを自動色付け。重要行がすぐわかる。",
     "tags_ja": "一覧, 条件, 色付け, 強調, 見える化",
-    "features_ja": "・数値・文字列・日付・空欄の条件に対応;・列単位/セル単位で色付けを指定;・today/withinDays など相対日付に対応;・“含む/一致/範囲/しきい値”を設定可能",
+    "features_ja": "数値・文字列・日付・空欄の条件に対応;列単位/セル単位で色付けを指定;today/withinDays など相対日付に対応;“含む/一致/範囲/しきい値”を設定可能",
     "screenshots_ja": "assets/list-conditional-color/config.png|条件設定画面; assets/list-conditional-color/cell-color.png|色付け結果（一覧）",
     "steps_ja": [
       "1|プラグインを登録|プラグインファイルをKintoneに追加して有効化します。",
@@ -235,7 +235,7 @@
     "short_summary_ja": "ワンクリックで値をコピー。よく使うIDなどに。",
     "summary_ja": "一覧・詳細で指定したフィールドの横にコピーアイコンを表示し、ワンクリックで値をクリップボードへコピーできます。",
     "tags_ja": "入力支援, コピー, フィールド, 値, クリップボード",
-    "features_ja": "・一覧/詳細にコピーアイコンを表示;・複数フィールドの値をワンクリックでコピー;・設定は対象フィールドとテーマ色を選ぶだけ;・5種のテーマ色に対応",
+    "features_ja": "一覧/詳細にコピーアイコンを表示;複数フィールドの値をワンクリックでコピー;設定は対象フィールドとテーマ色を選ぶだけ;5種のテーマ色に対応",
     "screenshots_ja": "assets/value-copy/config.png|設定画面（対象フィールドとテーマ選択）; assets/value-copy/themes.png|設定画面（5種類からテーマカラー選択）;assets/value-copy/detail.png|詳細画面でのコピーアイコン; assets/value-copy/index.png|一覧画面でのコピーアイコン表示",
     "steps_ja": [
       "1|プラグインを登録|プラグインをKintoneに追加・有効化します。",
@@ -286,7 +286,7 @@
     "summary_ja": "ラジオボタンを選ぶと、対応する日付フィールドに“本日”を自動入力します。入力ミスを防ぎ、進捗記録を楽にします。",
     "short_summary_ja": "ラジオ選択で“本日”を自動入力。進捗記録が楽に。",
     "tags_ja": "入力支援, 自動入力, 本日, ラジオボタン, 日付",
-    "features_ja": "・ラジオと日付の組み合わせを複数登録;・ラジオ選択で日付に“本日”を自動入力;・初回自動入力までは日付欄をロック;・編集/新規画面で動作",
+    "features_ja": "ラジオと日付の組み合わせを複数登録;ラジオ選択で日付に“本日”を自動入力;初回自動入力までは日付欄をロック;編集/新規画面で動作",
     "screenshots_ja": "assets/radio-today/demo-movie.mp4|video|デモ動画;assets/radio-today/config.png|設定画面（ラジオ→日付の行追加）; assets/radio-today/detail-before.png|初回入力前（日付は入力不可）; assets/radio-today/detail-after.png|ラジオ選択で本日が自動入力",
     "steps_ja": [
       "1|プラグインを登録|プラグインファイルをKintoneに追加します。",
@@ -337,7 +337,7 @@
     "summary_ja": "一覧に“期間指定モーダル＋スライダー”を追加し、日付で素早く絞り込めます。今日/直近7日などのプリセットでワンクリック適用。",
     "short_summary_ja": "日付の絞り込みをスライダーとプリセットで一瞬に。",
     "tags_ja": "一覧, 日付, スライダー, フィルター, モーダル",
-    "features_ja": "・対象日付フィールドを選ぶだけで利用可能;・今日/昨日/直近7・30日/今週/今月/四半期/今年 等のプリセット;・レンジスライダー＋日付ピッカーで直感操作;・ワンクリックで適用/解除、設定はアプリごとに保持;・テーマ色（light/mono-blue/mint/pale/rose）対応",
+    "features_ja": "対象日付フィールドを選ぶだけで利用可能;今日/昨日/直近7・30日/今週/今月/四半期/今年 等のプリセット;レンジスライダー＋日付ピッカーで直感操作;ワンクリックで適用/解除、設定はアプリごとに保持;テーマ色（light/mono-blue/mint/pale/rose）対応",
     "screenshots_ja": "assets/slider-plus/demo-movie.mp4|video|デモ動画; assets/slider-plus/config.png|設定画面（対象フィールド・プリセット・テーマ）; assets/slider-plus/modal.png|モーダル（期間選択・スライダー・適用）;　assets/slider-plus/icon.png|kitnone風のボタンアイコン; assets/slider-plus/themes.png|テーマ選択（light/mono-blue/mint/pale/rose）; assets/slider-plus/themes-modal.png|テーマを適用したモーダル（rose）",
     "steps_ja": [
       "1|プラグインを登録|プラグインをKintoneに追加・有効化します。",
@@ -388,7 +388,7 @@
     "summary_ja": "一覧のビュー選択をタブ表示にし、クリック1回で切り替えられます。よく使うビューを前に出して、切り替えのひと手間をなくします。",
     "short_summary_ja": "ビュー選択をタブ化して切替をスムーズに。",
     "tags_ja": "一覧画面, 作業効率",
-    "features_ja": "・ビュー選択をタブ化してクリック切替;・表示順・アイコン・インライン数を設定可能;・多い場合は“その他”に自動集約",
+    "features_ja": "ビュー選択をタブ化してクリック切替;表示順・アイコン・インライン数を設定可能;多い場合は“その他”に自動集約",
     "screenshots_ja": "assets/view-tabs/ss1.png|一覧のタイプごとに異なったアイコンが表示されます。;assets/view-tabs/ss2.png|インライン表示上限を超えた場合はその他ドロップダウンに集約されます。;assets/view-tabs/ss3.png|多めの表示にした場合 ;assets/view-tabs/config.png|設定画面",
     "steps_ja": [
       "1|プラグインを登録|プラグインをアプリにインストールします。",
