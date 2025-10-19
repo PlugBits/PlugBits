@@ -1,0 +1,241 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>プラグイン導入ガイド | PlugBits for kintone</title>
+  <meta name="description" content="kintone ミニプラグインのインストールからアップデートまでの共通手順を、初めての方にも分かりやすく解説します。">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="kb-root">
+  <div class="kb-container kb-topbar">
+    <a class="kb-back" href="index.html">← 商品一覧に戻る</a>
+    <div class="kb-brand">PlugBits for kintone</div>
+  </div>
+
+  <main class="kb-container">
+    <article class="kb-article">
+      <header class="kb-article-header">
+        <p class="kb-article-label">kintone ミニプラグイン導入ガイド</p>
+        <h1>インストール〜アップデートまでの共通手順</h1>
+        <div class="kb-article-meta">
+          <div class="kb-meta-chip">
+            <strong>最終更新</strong>
+            <span>2025年9月</span>
+          </div>
+          <div class="kb-meta-chip">
+            <strong>対象</strong>
+            <span>kintone システム管理者・アプリ管理者</span>
+          </div>
+          <div class="kb-meta-chip">
+            <strong>サポート窓口</strong>
+            <span>ご購入時にご案内したメールアドレスまで</span>
+          </div>
+        </div>
+        <!-- 追加：導入意図（やさしい導入文） -->
+        <p class="kb-article-intro">
+          このガイドでは、PlugBits for kintone のプラグインを<strong>「購入後すぐ使える状態」</strong>にするまでの流れを、画面つきでやさしく解説します。<br>
+          はじめての方でも、この手順のとおり進めれば導入できます。
+        </p>
+      </header>
+
+      <div class="kb-article-body">
+        <section class="kb-article-section">
+          <h2>配布ファイル構成</h2>
+          <div class="kb-section-card">
+            <ul class="kb-article-list">
+              <li><strong>プラグイン本体（ZIP）</strong>：kintone へそのままアップロードしてください。</li>
+              <li><strong>導入ガイド（PDF）</strong>：本ドキュメント。社内共有にもご利用ください。</li>
+            </ul>
+          </div>
+        </section>
+
+        <section class="kb-article-section">
+          <h2>想定読者</h2>
+          <div class="kb-section-card">
+            <p class="kb-article-paragraph">kintone の管理機能にアクセスできる担当者（非エンジニア歓迎）。</p>
+          </div>
+        </section>
+
+        <section class="kb-article-section">
+          <h2>お問い合わせ前に</h2>
+          <div class="kb-section-card">
+            <p class="kb-article-paragraph">状況が分かる情報（プラグイン名・バージョン、症状のスクリーンショット）があると、解決がスムーズです。<br>不明点があれば、どうぞお気軽にご連絡ください。</p>
+          </div>
+        </section>
+
+        <nav class="kb-article-toc" aria-label="目次">
+          <h2>Contents</h2>
+          <ol class="kb-article-ordered">
+            <li><a href="#checklist">導入前のチェックリスト</a></li>
+            <li><a href="#package">プラグイン配布物の確認</a></li>
+            <li><a href="#install">kintone へのプラグイン追加手順（システム管理者）</a></li>
+            <li><a href="#app-enable">アプリでの設定と有効化（アプリ管理者）</a></li>
+            <li><a href="#update">プラグインのアップデート方法</a></li>
+            <li><a href="#troubleshoot">トラブルシュート</a></li>
+            <li><a href="#support">サポート窓口と連絡先</a></li>
+          </ol>
+        </nav>
+
+        <section id="checklist" class="kb-article-section">
+          <h2>1. 導入前のチェックリスト</h2>
+          <div class="kb-section-card kb-section-card--stack">
+            <ul class="kb-article-check">
+              <li>kintone の「システム管理」メニューにアクセスできる権限をお持ちですか？</li>
+              <li>利用する環境（本番 or テスト）でプラグインを試すアプリを用意しましたか？</li>
+              <li>ご利用のブラウザーは最新版ですか？（Google Chrome を推奨）</li>
+              <li>既存のプラグインと併用する場合は、念のためテストアプリで併用確認をしましょう。</li>
+            </ul>
+            <p class="kb-article-callout"><strong>ご注意：</strong>プラグインの追加や更新は、アプリに影響が出る可能性があります。本番に適用する前に、必ずテストアプリで検証してください。</p>
+          </div>
+        </section>
+
+        <section id="package" class="kb-article-section">
+          <h2>2. プラグイン配布物の確認</h2>
+          <div class="kb-section-card kb-section-card--stack">
+            <p class="kb-article-paragraph">ダウンロードした ZIP の中身を確認し、少なくとも以下のファイルが揃っていることを確かめてください。</p>
+            <ul class="kb-article-list">
+              <li><strong>プラグイン本体（ZIP）</strong>：kintone にアップロードするファイルです。<strong>解凍せず、そのまま</strong>使用します。</li>
+              <li><strong>導入ガイド PDF</strong>：操作手順書。本ドキュメントが該当します。</li>
+            </ul>
+            <p class="kb-article-hint">ヒント：Windows は ZIP を右クリック→「すべて展開」、Mac はダブルクリックで展開されます（※プラグイン本体 ZIP は展開しません）。</p>
+            <p class="kb-article-callout kb-article-callout--warn">※ <strong>やってはいけない例：</strong> プラグイン ZIP を展開（解凍）してアップロードすると正しく読み込めません。必ず ZIP のまま読み込んでください。</p>
+          </div>
+        </section>
+
+        <section id="install" class="kb-article-section">
+          <h2>3. kintone へのプラグイン追加手順（システム管理者）</h2>
+          <div class="kb-section-card">
+            <ol class="kb-article-steps">
+              <li>
+                <h3>kintone のシステム管理を開く</h3>
+                <p>画面右上のアカウントメニューから「システム管理」（または「管理者設定」）を選びます。</p>
+                <figure class="kb-screenshot-callout">
+                  <img src="assets/install/ss-1.webp" alt="kintone システム管理メニュー" class="kb-ins-screenshot">
+                  <figcaption>① システム管理を開く</figcaption>
+                </figure>
+              </li>
+              <li>
+                <h3>プラグイン管理画面へ移動</h3>
+                <p>左メニューの「カスタマイズ／サービス連携」→「プラグイン」を開き、左上の「読み込む」→「参照」をクリックします。</p>
+              </li>
+              <li>
+                <h3>プラグイン ZIP を選ぶ</h3>
+                <p>配布されたプラグイン本体（ZIP）を選んで「読み込む」をクリック。アップロード完了後、一覧に表示されます。</p>
+                <figure class="kb-screenshot-callout">
+                  <img src="assets/install/ss-2.webp" alt="プラグイン読み込み画面" class="kb-ins-screenshot">
+                  <figcaption>② ZIP のまま読み込む</figcaption>
+                </figure>
+              </li>
+              <li>
+                <h3>有効化の準備</h3>
+                <p>プラグインのステータスが「利用可能」になっているか確認します。アプリへの適用は次の章で行います。</p>
+              </li>
+            </ol>
+          </div>
+        </section>
+
+        <section id="app-enable" class="kb-article-section">
+          <h2>4. アプリでの設定と有効化（アプリ管理者）</h2>
+          <div class="kb-section-card">
+            <ol class="kb-article-steps">
+              <li>
+                <h3>プラグインを使うアプリを開く</h3>
+                <p>アプリの設定（歯車アイコン）→「プラグイン」を選び、「+ プラグインを追加」をクリックします。</p>
+              </li>
+              <li>
+                <h3>プラグインの設定画面に入る</h3>
+                <p>一覧から対象プラグインを選び「設定」をクリック。画面の案内に沿って必要項目を入力し、保存します。</p>
+                <figure class="kb-screenshot-callout">
+                  <img src="assets/install/ss-3.webp" alt="プラグイン設定画面" class="kb-ins-screenshot">
+                  <figcaption>③ 設定を保存</figcaption>
+                </figure>
+              </li>
+              <li>
+                <h3>アプリを保存して公開する</h3>
+                <p>設定を保存したら、アプリ設定画面右上の「保存」を押し、続いて黄色の「アプリを更新」ボタンを押します。これでプラグインが有効になります。</p>
+              </li>
+              <li>
+                <h3>動作確認</h3>
+                <p>アプリ画面に戻り、想定どおり動くか確認します。うまくいかない場合は、設定値や他プラグインの影響を確認しましょう（次章の「トラブルシュート」も参照）。</p>
+              </li>
+            </ol>
+          </div>
+        </section>
+
+        <section id="update" class="kb-article-section">
+          <h2>5. プラグインのアップデート方法</h2>
+          <div class="kb-section-card">
+            <ol class="kb-article-steps">
+              <li>配布サイトから最新版のプラグイン本体（ZIP）とガイドをダウンロードします。</li>
+              <li>画面右上のアカウントメニューから「システム管理」（または「管理者設定」）を選びます。</li>
+              <li>左メニューの「カスタマイズ／サービス連携」→「プラグイン」を開き、左上の「読み込む」→「参照」をクリックします。</li>
+              <li>配布されたプラグイン本体（ZIP）を選び、「読み込む」をクリックします。アップロード完了後、最新版に更新されます。</li>
+              <li>必要に応じて、リリースノートや変更点をアプリ利用者へ共有してください。</li>
+              <li>旧バージョンの ZIP は保管しておくと、万一のロールバック時に安心です。</li>
+            </ol>
+          </div>
+        </section>
+
+        <section id="troubleshoot" class="kb-article-section">
+          <h2>6. トラブルシュート</h2>
+          <div class="kb-section-card kb-section-card--stack">
+            <div>
+              <h3 class="kb-article-subheading">画面が真っ白になる／プラグインが動かない</h3>
+              <ul class="kb-article-check">
+                <li>ブラウザーを再読み込み（Ctrl + F5 または Cmd + Shift + R）します。</li>
+                <li>他のプラグインを一時的にオフにして、影響がないか確認します。</li>
+                <li>プラグインの設定値に抜けや誤りがないか確認します。</li>
+              </ul>
+            </div>
+            <div>
+              <h3 class="kb-article-subheading">アップデート後にエラーが出る</h3>
+              <ul class="kb-article-check">
+                <li>アプリを「保存→アプリを更新」まで実施したか確認します。</li>
+                <li>アプリのカスタマイズ（JavaScript / CSS）を一時的にオフにして様子を見ます。</li>
+                <li>エラーメッセージが出る場合は、スクリーンショットを撮影してサポートへご連絡ください。</li>
+              </ul>
+            </div>
+          </div>
+        </section>
+
+        <div class="kb-divider" role="presentation"></div>
+
+        <section id="support" class="kb-article-section">
+          <h2>7. サポート窓口と連絡先</h2>
+          <div class="kb-section-card">
+            <p class="kb-article-paragraph">解決しない場合は、以下の情報を添えてご連絡ください。できる範囲で大丈夫です。</p>
+            <div class="kb-support-cards">
+              <div class="kb-support-card">
+                <strong>お問い合わせ時のチェック項目</strong>
+                <ul>
+                  <li>ご利用中のプラグイン名とバージョン</li>
+                  <li>発生日時・操作手順</li>
+                  <li>表示されたエラーメッセージやスクリーンショット</li>
+                  <li>kintone のドメイン名（例：example.cybozu.com）</li>
+                </ul>
+              </div>
+              <div class="kb-support-card">
+                <strong>サポート窓口</strong>
+                <p class="kb-article-paragraph">ご購入時にご案内したメールアドレス / フォームまでご連絡ください。</p>
+                <p class="kb-support-meta">受付時間：平日 10:00 – 18:00（日本時間）<br>※祝日・弊社指定休日を除く</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <p class="kb-article-footer">© 2025 PlugBits. All rights reserved. 無断転載を禁じます。</p>
+      </div>
+    </article>
+  </main>
+
+  <footer class="kb-footer kb-container">
+    <nav class="kb-footer-links">
+      <a href="mailto:c.otkyaaa@gmail.com">お問い合わせ</a>
+      <a href="install.html">プラグイン導入ガイド</a>
+      <a href="terms.html">利用規約</a>
+    </nav>
+    <small>© 2025 PlugBits. All rights reserved.</small>
+  </footer>
+</body>
+</html>
