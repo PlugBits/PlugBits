@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>PlugBits プラグイン導入ガイド — Modern</title>
+  <title>PlugBits プラグイン導入ガイド — Modern Wide</title>
   <meta name="description" content="kintone用ミニプラグインの導入からアップデートまでを、最新のドキュメントUIで分かりやすく解説。">
   <!-- Self-contained modern stylesheet (no external deps). Prefix: .gd-* -->
   <style>
@@ -18,10 +18,10 @@
       --gd-warn:#ffb4a6;         /* soft coral */
       --gd-radius:16px;
       --gd-shadow:0 10px 30px rgba(6,10,30,.35);
-      --gd-width: 900px;         /* content max width */
+      --gd-width: 1120px;         /* content max width (wider) */
     }
     @media (prefers-color-scheme: light){
-      :root{ --gd-bg:#f6f8ff; --gd-surface:#ffffff; --gd-text:#0e132a; --gd-sub:#475170; --gd-line:rgba(15,23,42,.08); --gd-shadow:0 10px 24px rgba(16,24,40,.08);}    }
+      :root{ --gd-bg:#f6f8ff; --gd-surface:#ffffff; --gd-text:#0e132a; --gd-sub:#475170; --gd-line:rgba(16,24,40,.08); --gd-shadow:0 10px 24px rgba(16,24,40,.08);}    }
 
     /* ===== Base ===== */
     .gd-root{font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans JP", "Hiragino Kaku Gothic ProN", "Yu Gothic", sans-serif; background: radial-gradient(1200px 600px at 10% -20%, rgba(122,162,255,.18), transparent), radial-gradient(900px 480px at 95% 10%, rgba(112,240,197,.14), transparent), var(--gd-bg); color:var(--gd-text); line-height:1.75;}
@@ -29,6 +29,8 @@
     .gd-topbar{display:flex; align-items:center; justify-content:space-between; gap:16px; margin-bottom:22px;}
     .gd-topbar a{color:var(--gd-sub); text-decoration:none; font-weight:600}
     .gd-topbar a:hover{color:var(--gd-text)}
+    .gd-toggle{appearance:none; border:1px solid var(--gd-line); background:linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.02)); color:var(--gd-text); border-radius:10px; padding:8px 10px; font-weight:700; cursor:pointer}
+    .gd-toggle:hover{filter:brightness(1.05)}
 
     /* ===== Hero ===== */
     .gd-hero{background: linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,0)); border:1px solid var(--gd-line); border-radius:24px; box-shadow:var(--gd-shadow); padding:28px 28px 22px; backdrop-filter: blur(6px);}
@@ -41,8 +43,10 @@
     .gd-intro{margin-top:18px; background: linear-gradient(180deg, rgba(122,162,255,.08), rgba(112,240,197,.06)); border: 1px solid var(--gd-line); border-radius: 14px; padding:14px 16px; color:var(--gd-text)}
 
     /* ===== Layout: TOC + Content ===== */
-    .gd-grid{display:grid; grid-template-columns: 260px 1fr; gap:24px; margin-top:22px}
-    @media (max-width: 980px){ .gd-grid{ grid-template-columns: 1fr; } }
+    .gd-grid{display:grid; grid-template-columns: 220px 1fr; gap:28px; margin-top:22px}
+    body.toc-hidden .gd-grid{grid-template-columns: 1fr}
+    body.toc-hidden .gd-toc{display:none}
+    @media (max-width: 980px){ .gd-grid{ grid-template-columns: 1fr; } .gd-topbar .gd-toggle{display:none} }
 
     /* TOC */
     .gd-toc{position:sticky; top:20px; align-self:start; background: linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02)); border:1px solid var(--gd-line); border-radius:16px; padding:16px; box-shadow:var(--gd-shadow)}
@@ -92,7 +96,10 @@
   <div class="gd-wrap">
     <div class="gd-topbar">
       <a href="index.html">← 商品一覧に戻る</a>
-      <a href="#support">サポート</a>
+      <div style="display:flex; gap:10px; align-items:center">
+        <button class="gd-toggle" id="tocToggle" aria-pressed="false" aria-controls="toc">目次を隠す</button>
+        <a href="#support">サポート</a>
+      </div>
     </div>
 
     <header class="gd-hero">
@@ -108,7 +115,7 @@
     </header>
 
     <div class="gd-grid">
-      <aside class="gd-toc" aria-label="目次">
+      <aside class="gd-toc" id="toc" aria-label="目次">
         <h2>Contents</h2>
         <ol>
           <li><a href="#checklist">導入前のチェックリスト</a></li>
@@ -270,5 +277,24 @@
       </article>
     </div>
   </div>
+
+  <script>
+    (function(){
+      var KEY = 'pb.tocHidden';
+      var body = document.body;
+      var btn = document.getElementById('tocToggle');
+      function apply(state){
+        if(state){ body.classList.add('toc-hidden'); btn&&btn.setAttribute('aria-pressed','true'); btn&&(btn.textContent='目次を表示'); }
+        else{ body.classList.remove('toc-hidden'); btn&&btn.setAttribute('aria-pressed','false'); btn&&(btn.textContent='目次を隠す'); }
+      }
+      var saved = localStorage.getItem(KEY) === '1';
+      apply(saved);
+      btn&&btn.addEventListener('click',function(){
+        var next = !body.classList.contains('toc-hidden');
+        apply(next);
+        try{ localStorage.setItem(KEY, next ? '1':'0'); }catch(e){}
+      });
+    })();
+  </script>
 </body>
 </html>
