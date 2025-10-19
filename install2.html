@@ -2,240 +2,273 @@
 <html lang="ja">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>プラグイン導入ガイド | PlugBits for kintone</title>
-  <meta name="description" content="kintone ミニプラグインのインストールからアップデートまでの共通手順を、初めての方にも分かりやすく解説します。">
-  <link rel="stylesheet" href="style.css">
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>PlugBits プラグイン導入ガイド — Modern</title>
+  <meta name="description" content="kintone用ミニプラグインの導入からアップデートまでを、最新のドキュメントUIで分かりやすく解説。">
+  <!-- Self-contained modern stylesheet (no external deps). Prefix: .gd-* -->
+  <style>
+    :root{
+      --gd-bg:#0b1020;           /* page bg (dark gradient base) */
+      --gd-surface:#0f1428;      /* cards / content bg */
+      --gd-text:#e9ecf8;         /* main text */
+      --gd-sub:#b3bdd4;          /* secondary text */
+      --gd-line:rgba(255,255,255,.08);
+      --gd-accent:#7aa2ff;       /* accent blue */
+      --gd-accent-2:#70f0c5;     /* mint for hints */
+      --gd-warn:#ffb4a6;         /* soft coral */
+      --gd-radius:16px;
+      --gd-shadow:0 10px 30px rgba(6,10,30,.35);
+      --gd-width: 900px;         /* content max width */
+    }
+    @media (prefers-color-scheme: light){
+      :root{ --gd-bg:#f6f8ff; --gd-surface:#ffffff; --gd-text:#0e132a; --gd-sub:#475170; --gd-line:rgba(15,23,42,.08); --gd-shadow:0 10px 24px rgba(16,24,40,.08);}    }
+
+    /* ===== Base ===== */
+    .gd-root{font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans JP", "Hiragino Kaku Gothic ProN", "Yu Gothic", sans-serif; background: radial-gradient(1200px 600px at 10% -20%, rgba(122,162,255,.18), transparent), radial-gradient(900px 480px at 95% 10%, rgba(112,240,197,.14), transparent), var(--gd-bg); color:var(--gd-text); line-height:1.75;}
+    .gd-wrap{max-width:var(--gd-width); margin:0 auto; padding:28px 20px 64px;}
+    .gd-topbar{display:flex; align-items:center; justify-content:space-between; gap:16px; margin-bottom:22px;}
+    .gd-topbar a{color:var(--gd-sub); text-decoration:none; font-weight:600}
+    .gd-topbar a:hover{color:var(--gd-text)}
+
+    /* ===== Hero ===== */
+    .gd-hero{background: linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,0)); border:1px solid var(--gd-line); border-radius:24px; box-shadow:var(--gd-shadow); padding:28px 28px 22px; backdrop-filter: blur(6px);}
+    .gd-eyebrow{display:inline-flex; gap:8px; align-items:center; font-size:12.5px; letter-spacing:.06em; font-weight:800; color:var(--gd-sub); text-transform:uppercase;}
+    .gd-eyebrow .dot{width:6px; height:6px; border-radius:999px; background: var(--gd-accent)}
+    .gd-title{margin:8px 0 8px; font-size: clamp(26px, 4.2vw, 38px); font-weight:900; letter-spacing:.1px}
+    .gd-kicker{margin:0; color:var(--gd-sub)}
+    .gd-meta{display:flex; flex-wrap:wrap; gap:10px 14px; margin-top:14px}
+    .gd-chip{display:inline-flex; gap:8px; align-items:center; padding:8px 12px; border:1px solid var(--gd-line); border-radius:999px; font-size:12.5px; color:var(--gd-sub); background: linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.01));}
+    .gd-intro{margin-top:18px; background: linear-gradient(180deg, rgba(122,162,255,.08), rgba(112,240,197,.06)); border: 1px solid var(--gd-line); border-radius: 14px; padding:14px 16px; color:var(--gd-text)}
+
+    /* ===== Layout: TOC + Content ===== */
+    .gd-grid{display:grid; grid-template-columns: 260px 1fr; gap:24px; margin-top:22px}
+    @media (max-width: 980px){ .gd-grid{ grid-template-columns: 1fr; } }
+
+    /* TOC */
+    .gd-toc{position:sticky; top:20px; align-self:start; background: linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02)); border:1px solid var(--gd-line); border-radius:16px; padding:16px; box-shadow:var(--gd-shadow)}
+    .gd-toc h2{margin:0 0 10px; font-size:13px; color:var(--gd-sub); letter-spacing:.1em; text-transform:uppercase}
+    .gd-toc ol{margin:0; padding-left:1.2em; display:grid; gap:6px}
+    .gd-toc a{color:var(--gd-sub); text-decoration:none}
+    .gd-toc a:hover{color:var(--gd-text)}
+
+    /* Article */
+    .gd-article{background: linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.02)); border:1px solid var(--gd-line); border-radius:24px; padding:28px; box-shadow:var(--gd-shadow)}
+    .gd-sec + .gd-sec{margin-top:28px}
+    .gd-sec h2{margin:0 0 10px; font-size:18px; font-weight:800}
+    .gd-card{background: linear-gradient(160deg, rgba(255,255,255,.03), rgba(255,255,255,.01)); border:1px solid var(--gd-line); border-radius:16px; padding:18px}
+    .gd-list{list-style:none; margin:0; padding:0; display:grid; gap:10px}
+    .gd-list li{padding:12px 12px 12px 40px; position:relative; background:rgba(255,255,255,.02); border:1px solid var(--gd-line); border-radius:12px}
+    .gd-list li::before{content:""; position:absolute; left:12px; top:14px; width:16px; height:16px; border-radius:4px; background: conic-gradient(from 180deg, var(--gd-accent), var(--gd-accent-2)); opacity:.9}
+
+    /* Steps */
+    .gd-steps{list-style:none; margin:0; display:grid; gap:16px; counter-reset: step}
+    .gd-steps li{position:relative; border:1px solid var(--gd-line); border-radius:16px; padding:18px 16px 16px 70px; background:rgba(255,255,255,.02)}
+    .gd-steps li::before{content: counter(step, decimal-leading-zero); counter-increment: step; position:absolute; left:16px; top:16px; width:40px; height:40px; border-radius:12px; display:grid; place-items:center; font-weight:900; color:#0b1020; background: linear-gradient(150deg, var(--gd-accent), var(--gd-accent-2)); box-shadow: inset 0 0 0 1px rgba(255,255,255,.25)}
+    .gd-steps h3{margin:0 0 6px; font-size:16px}
+    .gd-steps p{margin:0; color:var(--gd-sub)}
+
+    /* Callouts */
+    .gd-call{margin-top:12px; border-radius:12px; padding:12px 14px; border:1px solid var(--gd-line); font-size:14px}
+    .gd-call.warn{background:linear-gradient(180deg, rgba(255,180,166,.14), rgba(255,180,166,.06)); color:#2b0f0d}
+    .gd-call.hint{background:linear-gradient(180deg, rgba(112,240,197,.18), rgba(112,240,197,.06)); color:#0b2b23}
+
+    /* Media (screenshots) */
+    .gd-shot{margin-top:10px; border:1px dashed var(--gd-line); border-radius:14px; padding:10px; background:rgba(255,255,255,.02)}
+    .gd-shot img{display:block; width:100%; height:auto; border-radius:10px}
+    .gd-shot figcaption{margin-top:6px; font-size:12.5px; color:var(--gd-sub)}
+
+    /* Support cards */
+    .gd-support{display:grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap:14px}
+    .gd-support .card{border:1px solid var(--gd-line); border-radius:16px; padding:14px; background:rgba(255,255,255,.02)}
+
+    /* Footer */
+    .gd-footer{margin-top:20px; color:var(--gd-sub); font-size:12.5px; display:flex; align-items:center; justify-content:space-between; border-top:1px solid var(--gd-line); padding-top:14px}
+    .gd-links{display:flex; gap:12px}
+    .gd-links a{color:var(--gd-sub); text-decoration:none}
+    .gd-links a:hover{color:var(--gd-text)}
+  </style>
 </head>
-<body class="kb-root">
-  <div class="kb-container kb-topbar">
-    <a class="kb-back" href="index.html">← 商品一覧に戻る</a>
-    <div class="kb-brand">PlugBits for kintone</div>
-  </div>
+<body class="gd-root">
+  <div class="gd-wrap">
+    <div class="gd-topbar">
+      <a href="index.html">← 商品一覧に戻る</a>
+      <a href="#support">サポート</a>
+    </div>
 
-  <main class="kb-container">
-    <article class="kb-article">
-      <header class="kb-article-header">
-        <p class="kb-article-label">kintone ミニプラグイン導入ガイド</p>
-        <h1>インストール〜アップデートまでの共通手順</h1>
-        <div class="kb-article-meta">
-          <div class="kb-meta-chip">
-            <strong>最終更新</strong>
-            <span>2025年9月</span>
-          </div>
-          <div class="kb-meta-chip">
-            <strong>対象</strong>
-            <span>kintone システム管理者・アプリ管理者</span>
-          </div>
-          <div class="kb-meta-chip">
-            <strong>サポート窓口</strong>
-            <span>ご購入時にご案内したメールアドレスまで</span>
-          </div>
-        </div>
-        <!-- 追加：導入意図（やさしい導入文） -->
-        <p class="kb-article-intro">
-          このガイドでは、PlugBits for kintone のプラグインを<strong>「購入後すぐ使える状態」</strong>にするまでの流れを、画面つきでやさしく解説します。<br>
-          はじめての方でも、この手順のとおり進めれば導入できます。
-        </p>
-      </header>
+    <header class="gd-hero">
+      <div class="gd-eyebrow"><span class="dot"></span> PlugBits for kintone</div>
+      <h1 class="gd-title">プラグイン導入ガイド（インストール〜アップデート）</h1>
+      <p class="gd-kicker">初めての方でも、この手順のとおり進めれば導入できます。</p>
+      <div class="gd-meta">
+        <span class="gd-chip">最終更新：2025年9月</span>
+        <span class="gd-chip">対象：システム管理者・アプリ管理者</span>
+        <span class="gd-chip">サポート：ご購入時ご案内のメール宛</span>
+      </div>
+      <p class="gd-intro">このガイドでは、PlugBits のプラグインを<strong>「購入後すぐ使える状態」</strong>にするまでを、最新UIの読みやすいフォーマットでまとめました。</p>
+    </header>
 
-      <div class="kb-article-body">
-        <section class="kb-article-section">
-          <h2>配布ファイル構成</h2>
-          <div class="kb-section-card">
-            <ul class="kb-article-list">
-              <li><strong>プラグイン本体（ZIP）</strong>：kintone へそのままアップロードしてください。</li>
-              <li><strong>導入ガイド（PDF）</strong>：本ドキュメント。社内共有にもご利用ください。</li>
-            </ul>
-          </div>
-        </section>
+    <div class="gd-grid">
+      <aside class="gd-toc" aria-label="目次">
+        <h2>Contents</h2>
+        <ol>
+          <li><a href="#checklist">導入前のチェックリスト</a></li>
+          <li><a href="#package">配布物の確認</a></li>
+          <li><a href="#install">kintone に追加（システム管理）</a></li>
+          <li><a href="#app">アプリで有効化（アプリ管理）</a></li>
+          <li><a href="#update">アップデート方法</a></li>
+          <li><a href="#trouble">トラブルシュート</a></li>
+          <li><a href="#support">サポート窓口</a></li>
+        </ol>
+      </aside>
 
-        <section class="kb-article-section">
-          <h2>想定読者</h2>
-          <div class="kb-section-card">
-            <p class="kb-article-paragraph">kintone の管理機能にアクセスできる担当者（非エンジニア歓迎）。</p>
-          </div>
-        </section>
-
-        <section class="kb-article-section">
-          <h2>お問い合わせ前に</h2>
-          <div class="kb-section-card">
-            <p class="kb-article-paragraph">状況が分かる情報（プラグイン名・バージョン、症状のスクリーンショット）があると、解決がスムーズです。<br>不明点があれば、どうぞお気軽にご連絡ください。</p>
-          </div>
-        </section>
-
-        <nav class="kb-article-toc" aria-label="目次">
-          <h2>Contents</h2>
-          <ol class="kb-article-ordered">
-            <li><a href="#checklist">導入前のチェックリスト</a></li>
-            <li><a href="#package">プラグイン配布物の確認</a></li>
-            <li><a href="#install">kintone へのプラグイン追加手順（システム管理者）</a></li>
-            <li><a href="#app-enable">アプリでの設定と有効化（アプリ管理者）</a></li>
-            <li><a href="#update">プラグインのアップデート方法</a></li>
-            <li><a href="#troubleshoot">トラブルシュート</a></li>
-            <li><a href="#support">サポート窓口と連絡先</a></li>
-          </ol>
-        </nav>
-
-        <section id="checklist" class="kb-article-section">
+      <article class="gd-article">
+        <section id="checklist" class="gd-sec">
           <h2>1. 導入前のチェックリスト</h2>
-          <div class="kb-section-card kb-section-card--stack">
-            <ul class="kb-article-check">
-              <li>kintone の「システム管理」メニューにアクセスできる権限をお持ちですか？</li>
-              <li>利用する環境（本番 or テスト）でプラグインを試すアプリを用意しましたか？</li>
-              <li>ご利用のブラウザーは最新版ですか？（Google Chrome を推奨）</li>
-              <li>既存のプラグインと併用する場合は、念のためテストアプリで併用確認をしましょう。</li>
+          <div class="gd-card">
+            <ul class="gd-list">
+              <li>「システム管理」メニューにアクセスできる権限がありますか？</li>
+              <li>テスト用アプリ（本番のコピーなど）を用意しましたか？</li>
+              <li>ブラウザーは最新版ですか？（推奨：Google Chrome）</li>
+              <li>他プラグインと併用する場合は、事前にテストアプリで動作確認をしましょう。</li>
             </ul>
-            <p class="kb-article-callout"><strong>ご注意：</strong>プラグインの追加や更新は、アプリに影響が出る可能性があります。本番に適用する前に、必ずテストアプリで検証してください。</p>
+            <p class="gd-call warn"><strong>ご注意：</strong> 追加や更新は本番へ影響する可能性があります。本番適用の前に必ずテストアプリで検証してください。</p>
           </div>
         </section>
 
-        <section id="package" class="kb-article-section">
+        <section id="package" class="gd-sec">
           <h2>2. プラグイン配布物の確認</h2>
-          <div class="kb-section-card kb-section-card--stack">
-            <p class="kb-article-paragraph">ダウンロードした ZIP の中身を確認し、少なくとも以下のファイルが揃っていることを確かめてください。</p>
-            <ul class="kb-article-list">
-              <li><strong>プラグイン本体（ZIP）</strong>：kintone にアップロードするファイルです。<strong>解凍せず、そのまま</strong>使用します。</li>
-              <li><strong>導入ガイド PDF</strong>：操作手順書。本ドキュメントが該当します。</li>
+          <div class="gd-card">
+            <p>ダウンロードした ZIP 内に、少なくとも次のファイルが含まれていることを確認します。</p>
+            <ul class="gd-list">
+              <li><strong>プラグイン本体（ZIP）</strong>：kintone にアップロードするファイル。<strong>解凍せず</strong>そのまま使用します。</li>
+              <li><strong>導入ガイド（PDF）</strong>：社内共有向けの操作手順書（本ドキュメント）。</li>
             </ul>
-            <p class="kb-article-hint">ヒント：Windows は ZIP を右クリック→「すべて展開」、Mac はダブルクリックで展開されます（※プラグイン本体 ZIP は展開しません）。</p>
-            <p class="kb-article-callout kb-article-callout--warn">※ <strong>やってはいけない例：</strong> プラグイン ZIP を展開（解凍）してアップロードすると正しく読み込めません。必ず ZIP のまま読み込んでください。</p>
+            <p class="gd-call hint">ヒント：Windows は ZIP を右クリック→「すべて展開」、Mac はダブルクリックで展開できます（※プラグイン本体 ZIP は展開しません）。</p>
+            <p class="gd-call warn"><strong>やってはいけない例：</strong> ZIP を展開してアップロードすると読み込めません。必ず ZIP のまま読み込んでください。</p>
           </div>
         </section>
 
-        <section id="install" class="kb-article-section">
-          <h2>3. kintone へのプラグイン追加手順（システム管理者）</h2>
-          <div class="kb-section-card">
-            <ol class="kb-article-steps">
+        <section id="install" class="gd-sec">
+          <h2>3. kintone へのプラグイン追加（システム管理）</h2>
+          <div class="gd-card">
+            <ol class="gd-steps">
               <li>
-                <h3>kintone のシステム管理を開く</h3>
-                <p>画面右上のアカウントメニューから「システム管理」（または「管理者設定」）を選びます。</p>
-                <figure class="kb-screenshot-callout">
-                  <img src="assets/install/ss-1.webp" alt="kintone システム管理メニュー" class="kb-ins-screenshot">
+                <h3>システム管理を開く</h3>
+                <p>画面右上のアカウントメニューから「システム管理」（または「管理者設定」）を選択します。</p>
+                <figure class="gd-shot">
+                  <img src="assets/install/ss-1.webp" alt="kintone システム管理メニュー">
                   <figcaption>① システム管理を開く</figcaption>
                 </figure>
               </li>
               <li>
-                <h3>プラグイン管理画面へ移動</h3>
-                <p>左メニューの「カスタマイズ／サービス連携」→「プラグイン」を開き、左上の「読み込む」→「参照」をクリックします。</p>
+                <h3>プラグイン管理画面へ</h3>
+                <p>左メニューで「カスタマイズ／サービス連携」→「プラグイン」を開き、左上の「読み込む」→「参照」をクリックします。</p>
               </li>
               <li>
-                <h3>プラグイン ZIP を選ぶ</h3>
-                <p>配布されたプラグイン本体（ZIP）を選んで「読み込む」をクリック。アップロード完了後、一覧に表示されます。</p>
-                <figure class="kb-screenshot-callout">
-                  <img src="assets/install/ss-2.webp" alt="プラグイン読み込み画面" class="kb-ins-screenshot">
+                <h3>プラグイン ZIP を選択</h3>
+                <p>配布された ZIP を選び「読み込む」をクリック。アップロード後、一覧に表示されます。</p>
+                <figure class="gd-shot">
+                  <img src="assets/install/ss-2.webp" alt="プラグイン読み込み画面">
                   <figcaption>② ZIP のまま読み込む</figcaption>
                 </figure>
               </li>
               <li>
                 <h3>有効化の準備</h3>
-                <p>プラグインのステータスが「利用可能」になっているか確認します。アプリへの適用は次の章で行います。</p>
+                <p>ステータスが「利用可能」になっていることを確認。アプリ適用は次の章で行います。</p>
               </li>
             </ol>
           </div>
         </section>
 
-        <section id="app-enable" class="kb-article-section">
-          <h2>4. アプリでの設定と有効化（アプリ管理者）</h2>
-          <div class="kb-section-card">
-            <ol class="kb-article-steps">
+        <section id="app" class="gd-sec">
+          <h2>4. アプリで設定＆有効化（アプリ管理）</h2>
+          <div class="gd-card">
+            <ol class="gd-steps">
               <li>
-                <h3>プラグインを使うアプリを開く</h3>
-                <p>アプリの設定（歯車アイコン）→「プラグイン」を選び、「+ プラグインを追加」をクリックします。</p>
+                <h3>対象アプリを開く</h3>
+                <p>アプリの設定（歯車）→「プラグイン」→「+ プラグインを追加」をクリックします。</p>
               </li>
               <li>
-                <h3>プラグインの設定画面に入る</h3>
-                <p>一覧から対象プラグインを選び「設定」をクリック。画面の案内に沿って必要項目を入力し、保存します。</p>
-                <figure class="kb-screenshot-callout">
-                  <img src="assets/install/ss-3.webp" alt="プラグイン設定画面" class="kb-ins-screenshot">
+                <h3>プラグインの設定</h3>
+                <p>一覧から対象を選び「設定」をクリック。案内に沿って入力し、保存します。</p>
+                <figure class="gd-shot">
+                  <img src="assets/install/ss-3.webp" alt="プラグイン設定画面">
                   <figcaption>③ 設定を保存</figcaption>
                 </figure>
               </li>
               <li>
-                <h3>アプリを保存して公開する</h3>
-                <p>設定を保存したら、アプリ設定画面右上の「保存」を押し、続いて黄色の「アプリを更新」ボタンを押します。これでプラグインが有効になります。</p>
+                <h3>アプリを保存して公開</h3>
+                <p>設定保存後、画面右上の「保存」→黄色の「アプリを更新」を押します。これで有効になります。</p>
               </li>
               <li>
                 <h3>動作確認</h3>
-                <p>アプリ画面に戻り、想定どおり動くか確認します。うまくいかない場合は、設定値や他プラグインの影響を確認しましょう（次章の「トラブルシュート」も参照）。</p>
+                <p>アプリ画面で想定どおりに動くかを確認。うまくいかない場合は、設定や他プラグインの影響を確認し、次章も参照してください。</p>
               </li>
             </ol>
           </div>
         </section>
 
-        <section id="update" class="kb-article-section">
-          <h2>5. プラグインのアップデート方法</h2>
-          <div class="kb-section-card">
-            <ol class="kb-article-steps">
+        <section id="update" class="gd-sec">
+          <h2>5. プラグインのアップデート</h2>
+          <div class="gd-card">
+            <ol class="gd-steps">
               <li>配布サイトから最新版のプラグイン本体（ZIP）とガイドをダウンロードします。</li>
-              <li>画面右上のアカウントメニューから「システム管理」（または「管理者設定」）を選びます。</li>
-              <li>左メニューの「カスタマイズ／サービス連携」→「プラグイン」を開き、左上の「読み込む」→「参照」をクリックします。</li>
-              <li>配布されたプラグイン本体（ZIP）を選び、「読み込む」をクリックします。アップロード完了後、最新版に更新されます。</li>
-              <li>必要に応じて、リリースノートや変更点をアプリ利用者へ共有してください。</li>
+              <li>アカウントメニュー→「システム管理」（または「管理者設定」）を選びます。</li>
+              <li>「カスタマイズ／サービス連携」→「プラグイン」→「読み込む」→「参照」。</li>
+              <li>ZIP を選び「読み込む」。アップロード完了後、最新版に更新されます。</li>
+              <li>必要に応じて変更点をアプリ利用者へ共有してください。</li>
               <li>旧バージョンの ZIP は保管しておくと、万一のロールバック時に安心です。</li>
             </ol>
           </div>
         </section>
 
-        <section id="troubleshoot" class="kb-article-section">
+        <section id="trouble" class="gd-sec">
           <h2>6. トラブルシュート</h2>
-          <div class="kb-section-card kb-section-card--stack">
-            <div>
-              <h3 class="kb-article-subheading">画面が真っ白になる／プラグインが動かない</h3>
-              <ul class="kb-article-check">
-                <li>ブラウザーを再読み込み（Ctrl + F5 または Cmd + Shift + R）します。</li>
-                <li>他のプラグインを一時的にオフにして、影響がないか確認します。</li>
-                <li>プラグインの設定値に抜けや誤りがないか確認します。</li>
+          <div class="gd-card">
+            <h3>画面が真っ白／動かない</h3>
+            <ul class="gd-list">
+              <li>ブラウザー再読み込み（Ctrl + F5 / Cmd + Shift + R）。</li>
+              <li>他のプラグインを一時的にOFF → 影響を切り分け。</li>
+              <li>設定値の抜けや誤りがないか確認。</li>
+            </ul>
+            <h3 style="margin-top:14px">アップデート後にエラー</h3>
+            <ul class="gd-list">
+              <li>「保存 → アプリを更新」を実施したか確認。</li>
+              <li>アプリのカスタマイズ（JavaScript / CSS）を一時的にOFF。</li>
+              <li>エラーメッセージはスクショを撮り、サポートへ。</li>
+            </ul>
+          </div>
+        </section>
+
+        <section id="support" class="gd-sec">
+          <h2>7. サポート窓口</h2>
+          <div class="gd-support">
+            <div class="card">
+              <strong>お問い合わせ時のチェック</strong>
+              <ul class="gd-list" style="margin-top:8px">
+                <li>プラグイン名とバージョン</li>
+                <li>発生日時・操作手順</li>
+                <li>エラーメッセージ／スクリーンショット</li>
+                <li>kintone ドメイン（例：example.cybozu.com）</li>
               </ul>
             </div>
-            <div>
-              <h3 class="kb-article-subheading">アップデート後にエラーが出る</h3>
-              <ul class="kb-article-check">
-                <li>アプリを「保存→アプリを更新」まで実施したか確認します。</li>
-                <li>アプリのカスタマイズ（JavaScript / CSS）を一時的にオフにして様子を見ます。</li>
-                <li>エラーメッセージが出る場合は、スクリーンショットを撮影してサポートへご連絡ください。</li>
-              </ul>
+            <div class="card">
+              <strong>連絡先</strong>
+              <p style="margin:8px 0 0; color:var(--gd-sub)">ご購入時にご案内したメールアドレス / フォームまでご連絡ください。</p>
+              <p style="margin:6px 0 0; color:var(--gd-sub)">受付：平日 10:00–18:00（日本時間）※祝日・弊社指定休日を除く</p>
             </div>
           </div>
         </section>
 
-        <div class="kb-divider" role="presentation"></div>
-
-        <section id="support" class="kb-article-section">
-          <h2>7. サポート窓口と連絡先</h2>
-          <div class="kb-section-card">
-            <p class="kb-article-paragraph">解決しない場合は、以下の情報を添えてご連絡ください。できる範囲で大丈夫です。</p>
-            <div class="kb-support-cards">
-              <div class="kb-support-card">
-                <strong>お問い合わせ時のチェック項目</strong>
-                <ul>
-                  <li>ご利用中のプラグイン名とバージョン</li>
-                  <li>発生日時・操作手順</li>
-                  <li>表示されたエラーメッセージやスクリーンショット</li>
-                  <li>kintone のドメイン名（例：example.cybozu.com）</li>
-                </ul>
-              </div>
-              <div class="kb-support-card">
-                <strong>サポート窓口</strong>
-                <p class="kb-article-paragraph">ご購入時にご案内したメールアドレス / フォームまでご連絡ください。</p>
-                <p class="kb-support-meta">受付時間：平日 10:00 – 18:00（日本時間）<br>※祝日・弊社指定休日を除く</p>
-              </div>
-            </div>
+        <div class="gd-footer">
+          <div class="gd-links">
+            <a href="mailto:c.otkyaaa@gmail.com">お問い合わせ</a>
+            <a href="#">利用規約</a>
           </div>
-        </section>
-
-        <p class="kb-article-footer">© 2025 PlugBits. All rights reserved. 無断転載を禁じます。</p>
-      </div>
-    </article>
-  </main>
-
-  <footer class="kb-footer kb-container">
-    <nav class="kb-footer-links">
-      <a href="mailto:c.otkyaaa@gmail.com">お問い合わせ</a>
-      <a href="install.html">プラグイン導入ガイド</a>
-      <a href="terms.html">利用規約</a>
-    </nav>
-    <small>© 2025 PlugBits. All rights reserved.</small>
-  </footer>
+          <small>© 2025 PlugBits. All rights reserved.</small>
+        </div>
+      </article>
+    </div>
+  </div>
 </body>
 </html>
