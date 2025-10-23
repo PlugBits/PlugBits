@@ -338,7 +338,7 @@
     "short_summary_ja": "日付の絞り込みをスライダーとプリセットで一瞬に。",
     "tags_ja": "一覧, 日付, スライダー, フィルター, モーダル",
     "features_ja": "対象日付フィールドを選ぶだけで利用可能;今日/昨日/直近7・30日/今週/今月/四半期/今年 等のプリセット;レンジスライダー＋日付ピッカーで直感操作;ワンクリックで適用/解除",
-    "screenshots_ja": "assets/slider-plus/demo-movie.mp4|video|デモ動画; assets/slider-plus/config.png|設定画面（対象フィールド・プリセット）; assets/slider-plus/modal.png|モーダル（期間選択・スライダー・適用）;　assets/slider-plus/icon.png|kitnone風のボタンアイコン;",
+    "screenshots_ja": "assets/slider-plus/demo-movie.mp4|video|デモ動画; assets/slider-plus/config.png|設定画面（対象フィールド・プリセット）; assets/slider-plus/modal.png|モーダル（期間選択・スライダー・適用）;　assets/slider-plus/icon.png|kitnone風のボタンアイコン",
     "steps_ja": [
       "1|プラグインを登録|プラグインをKintoneに追加・有効化します。",
       "2|設定する|対象日付フィールド、週の開始、プリセット、既定を選びます。",
