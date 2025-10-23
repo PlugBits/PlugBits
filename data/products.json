@@ -337,18 +337,18 @@
     "summary_ja": "一覧に“期間指定モーダル＋スライダー”を追加し、日付で素早く絞り込めます。今日/直近7日などのプリセットでワンクリック適用。",
     "short_summary_ja": "日付の絞り込みをスライダーとプリセットで一瞬に。",
     "tags_ja": "一覧, 日付, スライダー, フィルター, モーダル",
-    "features_ja": "対象日付フィールドを選ぶだけで利用可能;今日/昨日/直近7・30日/今週/今月/四半期/今年 等のプリセット;レンジスライダー＋日付ピッカーで直感操作;ワンクリックで適用/解除、設定はアプリごとに保持;テーマ色（light/mono-blue/mint/pale/rose）対応",
-    "screenshots_ja": "assets/slider-plus/demo-movie.mp4|video|デモ動画; assets/slider-plus/config.png|設定画面（対象フィールド・プリセット・テーマ）; assets/slider-plus/modal.png|モーダル（期間選択・スライダー・適用）;　assets/slider-plus/icon.png|kitnone風のボタンアイコン; assets/slider-plus/themes.png|テーマ選択（light/mono-blue/mint/pale/rose）; assets/slider-plus/themes-modal.png|テーマを適用したモーダル（rose）",
+    "features_ja": "対象日付フィールドを選ぶだけで利用可能;今日/昨日/直近7・30日/今週/今月/四半期/今年 等のプリセット;レンジスライダー＋日付ピッカーで直感操作;ワンクリックで適用/解除",
+    "screenshots_ja": "assets/slider-plus/demo-movie.mp4|video|デモ動画; assets/slider-plus/config.png|設定画面（対象フィールド・プリセット）; assets/slider-plus/modal.png|モーダル（期間選択・スライダー・適用）;　assets/slider-plus/icon.png|kitnone風のボタンアイコン;",
     "steps_ja": [
       "1|プラグインを登録|プラグインをKintoneに追加・有効化します。",
-      "2|設定する|対象日付フィールド、週の開始、プリセット、既定、テーマを選びます。",
+      "2|設定する|対象日付フィールド、週の開始、プリセット、既定を選びます。",
       "3|一覧で使う|ボタンからモーダルを開き、プリセットやスライダーで期間を選んで適用します。"
     ],
     "limitations_ja": "モバイルは非対応; 日付/日時フィールドのみ対象; レコードが非常に多い場合は適用に数秒かかることがあります。",
     "faq_ja": [
       "どのプリセットが使えますか？|今日/昨日/直近7・30日/今週/先週/今月/先月/四半期/半期/今年/昨年などから選べます。",
       "設定は保存されますか？|はい。アプリごとに保持されます。",
-      "テーマは変更できますか？|はい。light/mono-blue/mint/pale/rose から選べます。"
+      "日付はカレンダーからも選べますか？|はい。開始と終了の２つのカレンダーが用意されているので、カレンダーで日付指定が可能です。"
     ],
     "supported_screens_ja": "PC / 一覧",
     "category_ja": "フィルター・見える化",
