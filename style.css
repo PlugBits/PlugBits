@@ -148,10 +148,6 @@
   width:100%;
   max-width:540px;
 }
-.kb-hero-guarantee::before{
-  content:"🛡️";
-  font-size:18px;
-}
 .kb-hero-guarantee .kb-guarantee-copy{
   flex:1 1 auto;
   min-width:0;
