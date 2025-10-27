@@ -133,16 +133,28 @@
   display:flex;
   align-items:center;
   justify-content:center;
-  gap:8px;
+  gap:10px;
+  flex-wrap:wrap;
   padding:12px 24px;
   border-radius:999px;
-  background:rgba(255,255,255,.9);
+  background:rgba(255,255,255,.88);
   border:1px solid var(--kb-primary-200);
   box-shadow:0 10px 26px rgba(47,100,226,.18);
   color:#26438f;
   font-weight:700;
-  margin:20px 5px 28px;
+  margin:24px auto 32px;
   text-align:center;
+  line-height:1.6;
+  width:100%;
+  max-width:540px;
+}
+.kb-hero-guarantee::before{
+  content:"🛡️";
+  font-size:18px;
+}
+.kb-hero-guarantee .kb-guarantee-copy{
+  flex:1 1 auto;
+  min-width:0;
 }
 .kb-hero-guarantee a{
   color:inherit;
@@ -180,7 +192,33 @@
 .kb-hero-side .kb-hero-image{max-width:420px;width:100%;border:1px solid #e9eff7;border-radius:14px;padding:12px;background:#fbfcff}
 .kb-price-box{display:flex;justify-content:center;align-items:center;gap:12px;margin-top:8px}
 #product-price{color:#fff;font-weight:800;font-size:18px}
-.kb-guarantee-note{justify-ontent:center; margin:16px 5px 0;max-width:460px;padding:14px 18px;border-radius:14px;background:rgba(238,244,255,.92);border:1px solid var(--kb-primary-200);color:#2b3f7a;font-size:14px;line-height:1.7;box-shadow:0 8px 20px rgba(47,100,226,.16);text-align:center}
+.kb-guarantee-note{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:10px;
+  flex-wrap:wrap;
+  margin:20px auto 0;
+  padding:16px 20px;
+  border-radius:16px;
+  background:rgba(238,244,255,.9);
+  border:1px solid var(--kb-primary-200);
+  color:#2b3f7a;
+  font-size:14px;
+  line-height:1.7;
+  box-shadow:0 8px 20px rgba(47,100,226,.16);
+  text-align:center;
+  width:100%;
+  max-width:520px;
+}
+.kb-guarantee-note::before{
+  content:"🛡️";
+  font-size:18px;
+}
+.kb-guarantee-note .kb-guarantee-copy{
+  flex:1 1 auto;
+  min-width:0;
+}
 .kb-guarantee-note a{color:inherit;font-weight:700;text-decoration:underline;text-decoration-thickness:1.5px;text-underline-offset:3px}
 .kb-guarantee-note a:hover{opacity:.85}
 
