@@ -207,10 +207,6 @@
   width:100%;
   max-width:520px;
 }
-.kb-guarantee-note::before{
-  content:"🛡️";
-  font-size:18px;
-}
 .kb-guarantee-note .kb-guarantee-copy{
   flex:1 1 auto;
   min-width:0;
