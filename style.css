@@ -130,31 +130,22 @@
 .kb-hero-title{font-size:40px;line-height:1.2;margin:0 0 12px;font-weight:800}
 .kb-hero-sub{color:#5b6b7a;margin:0 0 18px}
 .kb-hero-guarantee{
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  gap:10px;
-  flex-wrap:wrap;
-  padding:12px 24px;
-  border-radius:999px;
-  background:rgba(255,255,255,.88);
-  border:1px solid var(--kb-primary-200);
-  box-shadow:0 10px 26px rgba(47,100,226,.18);
-  color:#26438f;
-  font-weight:700;
-  margin:24px auto 32px;
+  margin:24px 0 32px;
+  padding:16px 20px;
+  border-radius:18px;
+  background:#f5f7ff;
+  color:#1e2d55;
+  font-size:15px;
+  font-weight:400;
+  line-height:1.7;
   text-align:center;
-  line-height:1.6;
   width:100%;
-  max-width:540px;
-}
-.kb-hero-guarantee .kb-guarantee-copy{
-  flex:1 1 auto;
-  min-width:0;
 }
 .kb-hero-guarantee a{
+  display:inline-block;
+  margin-top:6px;
   color:inherit;
-  font-weight:700;
+  font-weight:500;
   text-decoration:underline;
   text-decoration-thickness:1.5px;
   text-underline-offset:3px;
@@ -189,29 +180,18 @@
 .kb-price-box{display:flex;justify-content:center;align-items:center;gap:12px;margin-top:8px}
 #product-price{color:#fff;font-weight:800;font-size:18px}
 .kb-guarantee-note{
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  gap:10px;
-  flex-wrap:wrap;
-  margin:20px auto 0;
+  margin:20px 0 0;
   padding:16px 20px;
-  border-radius:16px;
-  background:rgba(238,244,255,.9);
-  border:1px solid var(--kb-primary-200);
-  color:#2b3f7a;
-  font-size:14px;
+  border-radius:18px;
+  background:#f5f7ff;
+  color:#1e2d55;
+  font-size:15px;
+  font-weight:400;
   line-height:1.7;
-  box-shadow:0 8px 20px rgba(47,100,226,.16);
-  text-align:center;
+  text-align:left;
   width:100%;
-  max-width:520px;
 }
-.kb-guarantee-note .kb-guarantee-copy{
-  flex:1 1 auto;
-  min-width:0;
-}
-.kb-guarantee-note a{color:inherit;font-weight:700;text-decoration:underline;text-decoration-thickness:1.5px;text-underline-offset:3px}
+.kb-guarantee-note a{color:inherit;font-weight:500;text-decoration:underline;text-decoration-thickness:1.5px;text-underline-offset:3px}
 .kb-guarantee-note a:hover{opacity:.85}
 
 /* Tags (product hero) */
@@ -272,6 +252,15 @@
   .kb-hero-title{font-size:28px}
   .kb-hero-sub{font-size:16px}
   .kb-section-title{font-size:22px}
+}
+
+@media (max-width:600px){
+  .kb-hero-guarantee,
+  .kb-guarantee-note{
+    margin:20px 0;
+    padding:18px;
+    text-align:center;
+  }
 }
 
 /* === Safe overrides: center hero & 4-col grid === */
