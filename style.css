@@ -138,10 +138,12 @@
   font-size:15px;
   font-weight:400;
   line-height:1.7;
-  text-align:left;
+  text-align:center;
   width:100%;
 }
 .kb-hero-guarantee a{
+  display:inline-block;
+  margin-top:6px;
   color:inherit;
   font-weight:500;
   text-decoration:underline;
