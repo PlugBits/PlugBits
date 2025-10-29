@@ -180,7 +180,7 @@
 .kb-price-box{display:flex;justify-content:center;align-items:center;gap:12px;margin-top:8px}
 #product-price{color:#fff;font-weight:800;font-size:18px}
 .kb-guarantee-note{
-  margin:20px 0 0;
+  margin:20px auto 0;
   padding:16px 20px;
   border-radius:18px;
   background:#f5f7ff;
@@ -188,11 +188,36 @@
   font-size:15px;
   font-weight:400;
   line-height:1.7;
-  text-align:left;
+  text-align:center;
   width:100%;
+  max-width:580px;
 }
-.kb-guarantee-note a{color:inherit;font-weight:500;text-decoration:underline;text-decoration-thickness:1.5px;text-underline-offset:3px}
+.kb-guarantee-note a{
+  display:inline-block;
+  margin-top:6px;
+  color:inherit;
+  font-weight:500;
+  text-decoration:underline;
+  text-decoration-thickness:1.5px;
+  text-underline-offset:3px;
+}
 .kb-guarantee-note a:hover{opacity:.85}
+
+.kb-product-cta{
+  padding:40px 0;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:18px;
+  text-align:center;
+}
+.kb-product-cta .kb-price-box{
+  margin-top:0;
+  flex-wrap:wrap;
+}
+.kb-product-cta .kb-guarantee-note{
+  margin:0 auto;
+}
 
 /* Tags (product hero) */
 .kb-hero-col .kb-tags{
