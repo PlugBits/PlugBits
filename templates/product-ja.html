@@ -110,6 +110,21 @@
 
   <!-- Scripts: video play / lightbox -->
   <script>
+  (function(){
+    document.querySelectorAll('.kb-price-box [data-price-jpy]').forEach(el=>{
+      const raw=(el.getAttribute('data-price-jpy')||'').replace(/[^0-9.]/g,'');
+      const num=Number(raw);
+      el.classList.add('kb-price-badge');
+      if(!Number.isFinite(num) || num<=0){
+        el.textContent='¥0（無料）';
+        el.classList.add('kb-price-free');
+      }else{
+        el.textContent='¥'+num.toLocaleString('ja-JP');
+        el.classList.remove('kb-price-free');
+      }
+    });
+  })();
+
   // click-to-play (video)
   document.addEventListener('click',e=>{
     const btn=e.target.closest('.kb-video-play'); if(!btn) return;

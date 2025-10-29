@@ -181,7 +181,7 @@
 #product-price{color:#fff;font-weight:800;font-size:18px}
 .kb-guarantee-note{
   margin:20px auto 0;
-  padding:16px 20px;
+  padding:20px 28px;
   border-radius:18px;
   background:#f5f7ff;
   color:#1e2d55;
@@ -190,7 +190,7 @@
   line-height:1.7;
   text-align:center;
   width:100%;
-  max-width:580px;
+  max-width:720px;
 }
 .kb-guarantee-note a{
   display:inline-block;
