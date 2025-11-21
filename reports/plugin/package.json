@@ -1,0 +1,20 @@
+{
+  "name": "plugbits-kintone-plugin",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "clean": "rimraf dist",
+    "build": "npm run clean && npm run build:desktop && npm run build:config && node copy-dist.js",
+    "build:desktop": "esbuild src/desktop/index.ts --bundle --format=iife --outfile=dist/desktop.js",
+    "build:config": "esbuild src/config/index.ts --bundle --format=iife --outfile=dist/config.js",
+    "typecheck": "tsc --noEmit",
+    "pack": "npm run build && npx kintone-plugin-packer manifest --out dist/plugin.zip"
+  },
+  "devDependencies": {
+    "@kintone/plugin-packer": "^9.0.0",
+    "esbuild": "^0.24.0",
+    "rimraf": "^5.0.10",
+    "typescript": "^5.6.3"
+  }
+}

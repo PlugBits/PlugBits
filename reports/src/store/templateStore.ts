@@ -24,6 +24,7 @@ type TemplateStore = {
   updateTemplate: (template: TemplateDefinition) => void;
   saveTemplate: (templateId: string) => Promise<void>;
   deleteTemplate: (templateId: string) => Promise<void>;
+  addElement: (templateId: string, element: TemplateElement) => void;
   updateElement: (
     templateId: string,
     elementId: string,
@@ -138,6 +139,18 @@ export const useTemplateStore = create<TemplateStore>((set, get) => ({
       set({ error: error instanceof Error ? error.message : 'テンプレートの削除に失敗しました' });
       throw error;
     }
+  },
+  addElement: (templateId, element) => {
+    set((state) => {
+      const template = state.templates[templateId];
+      if (!template) return state;
+      return {
+        templates: {
+          ...state.templates,
+          [templateId]: { ...template, elements: [...template.elements, element] },
+        },
+      };
+    });
   },
   updateElement: (templateId, elementId, updates) => {
     const template = get().templates[templateId];

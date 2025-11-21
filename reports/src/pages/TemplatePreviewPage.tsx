@@ -11,9 +11,9 @@ const TemplatePreviewPage = () => {
   const initialize = useTemplateStore((state) => state.initialize);
   const hasLoaded = useTemplateStore((state) => state.hasLoaded);
   const saveTemplate = useTemplateStore((state) => state.saveTemplate);
-  const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
+  const [status, setStatus] = useState<'idle' | 'saving' | 'rendering' | 'success' | 'error'>('idle');
+  const [statusMessage, setStatusMessage] = useState('');
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const [errorMessage, setErrorMessage] = useState('');
   const [initialPreviewDone, setInitialPreviewDone] = useState(false);
 
   const sampleData = useMemo<TemplateDataRecord>(() => SAMPLE_DATA, []);
@@ -39,19 +39,23 @@ const TemplatePreviewPage = () => {
   const handlePreview = async () => {
     if (!template) return;
 
-    setStatus('loading');
-    setErrorMessage('');
+    setStatus('saving');
+    setStatusMessage('テンプレートを保存しています...');
 
     try {
       await saveTemplate(template.id);
     } catch (error) {
       setStatus('error');
-      setErrorMessage(
-        error instanceof Error ? error.message : 'テンプレートの保存に失敗しました。API設定を確認してください。',
+      setStatusMessage(
+        error instanceof Error
+          ? error.message
+          : 'テンプレートの保存に失敗しました。API設定を確認してください。',
       );
       return;
     }
 
+    setStatus('rendering');
+    setStatusMessage('PDF を生成しています...');
     try {
       const blob = await requestPreviewPdf(template, sampleData);
       const nextUrl = URL.createObjectURL(blob);
@@ -60,9 +64,10 @@ const TemplatePreviewPage = () => {
         return nextUrl;
       });
       setStatus('success');
+      setStatusMessage('最新のプレビューを表示しています');
     } catch (error) {
       setStatus('error');
-      setErrorMessage(error instanceof Error ? error.message : 'プレビューに失敗しました');
+      setStatusMessage(error instanceof Error ? error.message : 'プレビューに失敗しました');
     }
   };
 
@@ -86,11 +91,11 @@ const TemplatePreviewPage = () => {
     <section className="editor-panel" style={{ padding: '1.5rem' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
         <div>
-          <h2 style={{ margin: 0 }}>{template.name} プレビュー</h2>
+          <h2 style={{ margin: 0 }}>{template.name || '名称未設定'} プレビュー</h2>
           <p style={{ margin: 0, color: '#475467', fontSize: '0.9rem' }}>サンプルデータで PDF を生成します</p>
         </div>
         <div className="button-row">
-          <button className="secondary" onClick={handlePreview} disabled={status === 'loading'}>
+          <button className="secondary" onClick={handlePreview} disabled={status === 'saving' || status === 'rendering'}>
             再生成
           </button>
           <button className="ghost" onClick={() => navigate(`/templates/${template.id}`)}>
@@ -100,9 +105,15 @@ const TemplatePreviewPage = () => {
       </div>
 
       <div style={{ marginBottom: '1rem' }}>
-        {status === 'loading' && <span className="status-pill pending">レンダリング中...</span>}
-        {status === 'success' && <span className="status-pill success">最新のプレビューを表示しています</span>}
-        {status === 'error' && <span className="status-pill error">{errorMessage}</span>}
+        {status !== 'idle' && (
+          <span
+            className={`status-pill ${
+              status === 'error' ? 'error' : status === 'success' ? 'success' : 'pending'
+            }`}
+          >
+            {statusMessage}
+          </span>
+        )}
       </div>
 
       {previewUrl ? (

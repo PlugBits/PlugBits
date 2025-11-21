@@ -10,6 +10,7 @@ import {
 interface Env {
   API_KEY?: string;
   TEMPLATE_KV?: KVNamespace;
+  FONT_SOURCE_URL?: string;
 }
 
 type PreviewRequestBody = {
@@ -103,7 +104,7 @@ const handleRenderPreview = async (request: Request, env: Env) => {
   const data = body.data ?? SAMPLE_DATA;
   let fontBytes: Uint8Array;
   try {
-    fontBytes = await loadFontFromKv(env.TEMPLATE_KV);
+    fontBytes = await loadFontFromKv(env);
   } catch (error) {
     console.error('Failed to load font', error);
     return fontUnavailable();
@@ -135,7 +136,7 @@ const handleRender = async (request: Request, env: Env) => {
 
   let fontBytes: Uint8Array;
   try {
-    fontBytes = await loadFontFromKv(env.TEMPLATE_KV);
+    fontBytes = await loadFontFromKv(env);
   } catch (error) {
     console.error('Failed to load font', error);
     return fontUnavailable();

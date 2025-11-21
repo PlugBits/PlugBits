@@ -1,9 +1,12 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import type { TemplateElement } from '@shared/template.ts';
+import type { TemplateElement, TextElement, TableElement, LabelElement } from '@shared/template.ts';
 import TemplateCanvas from '../components/TemplateCanvas.tsx';
 import ElementInspector from '../components/ElementInspector.tsx';
+import Toast from '../components/Toast.tsx';
 import { selectTemplateById, useTemplateStore } from '../store/templateStore.ts';
+
+const AUTOSAVE_DELAY = 4000;
 
 const TemplateEditorPage = () => {
   const { templateId } = useParams();
@@ -15,9 +18,15 @@ const TemplateEditorPage = () => {
   const saveTemplate = useTemplateStore((state) => state.saveTemplate);
   const updateElement = useTemplateStore((state) => state.updateElement);
   const updateTemplate = useTemplateStore((state) => state.updateTemplate);
+  const addElementToTemplate = useTemplateStore((state) => state.addElement);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'success' | 'error'>('idle');
   const [saveError, setSaveError] = useState('');
   const [nameDraft, setNameDraft] = useState('');
+  const [toast, setToast] = useState<{ type: 'success' | 'error' | 'info'; message: string; subMessage?: string } | null>(null);
+  const previousTemplateId = useRef<string | null>(null);
+  const autosaveTimer = useRef<number | null>(null);
+  const pendingSave = useRef(false);
+  const lastSavedSignature = useRef<string>('');
 
   useEffect(() => {
     if (!hasLoaded) {
@@ -26,11 +35,53 @@ const TemplateEditorPage = () => {
   }, [hasLoaded, initialize]);
 
   useEffect(() => {
-    if (template) {
+    if (!template) return;
+
+    if (previousTemplateId.current !== template.id) {
       setSelectedElementId(template.elements[0]?.id ?? null);
       setNameDraft(template.name);
+      previousTemplateId.current = template.id;
+      return;
     }
-  }, [templateId, template]);
+
+    if (selectedElementId && template.elements.some((el) => el.id === selectedElementId)) {
+      return;
+    }
+
+    setSelectedElementId(template.elements[0]?.id ?? null);
+  }, [template, selectedElementId]);
+
+  const templateSignature = useMemo(() => {
+    if (!template) return '';
+    return JSON.stringify({ name: template.name, elements: template.elements });
+  }, [template]);
+
+  useEffect(() => {
+    if (!templateSignature || templateSignature === lastSavedSignature.current) {
+      return undefined;
+    }
+
+    if (autosaveTimer.current) {
+      window.clearTimeout(autosaveTimer.current);
+    }
+
+    autosaveTimer.current = window.setTimeout(() => {
+      if (pendingSave.current) return;
+      pendingSave.current = true;
+      handleSave(true)
+        .catch((error) => console.error('Autosave failed', error))
+        .finally(() => {
+          pendingSave.current = false;
+        });
+    }, AUTOSAVE_DELAY);
+
+    return () => {
+      if (autosaveTimer.current) {
+        window.clearTimeout(autosaveTimer.current);
+        autosaveTimer.current = null;
+      }
+    };
+  }, [templateSignature]);
 
   const selectedElement = useMemo<TemplateElement | null>(() => {
     if (!template || !selectedElementId) return null;
@@ -47,7 +98,58 @@ const TemplateEditorPage = () => {
     return normalized;
   };
 
-  const handleSave = async () => {
+  const handleAddText = () => {
+    if (!template) return;
+    const newElement: TextElement = {
+      id: `text_${Date.now()}`,
+      type: 'text',
+      x: 40,
+      y: 700,
+      fontSize: 12,
+      width: 160,
+      height: 24,
+      dataSource: { type: 'static', value: '新しいテキスト' },
+    };
+    addElementToTemplate(template.id, newElement);
+    setSelectedElementId(newElement.id);
+  };
+
+  const handleAddTable = () => {
+    if (!template) return;
+    const newElement: TableElement = {
+      id: `table_${Date.now()}`,
+      type: 'table',
+      x: 40,
+      y: 600,
+      width: 400,
+      rowHeight: 18,
+      headerHeight: 24,
+      showGrid: true,
+      dataSource: { type: 'kintoneSubtable', fieldCode: 'Subtable' },
+      columns: [
+        { id: `col_${Date.now()}_1`, title: '列1', fieldCode: 'Field1', width: 160 },
+        { id: `col_${Date.now()}_2`, title: '列2', fieldCode: 'Field2', width: 160 },
+      ],
+    };
+    addElementToTemplate(template.id, newElement);
+    setSelectedElementId(newElement.id);
+  };
+
+  const handleAddLabel = () => {
+    if (!template) return;
+    const newElement: LabelElement = {
+      id: `label_${Date.now()}`,
+      type: 'label',
+      x: 40,
+      y: 750,
+      fontSize: 12,
+      text: 'ラベル',
+    };
+    addElementToTemplate(template.id, newElement);
+    setSelectedElementId(newElement.id);
+  };
+
+  const handleSave = async (isAutosave = false) => {
     if (!template) return;
     setSaveStatus('saving');
     setSaveError('');
@@ -55,10 +157,18 @@ const TemplateEditorPage = () => {
       const normalizedName = persistTemplateName();
       updateTemplate({ ...template, name: normalizedName });
       await saveTemplate(template.id);
+      lastSavedSignature.current = JSON.stringify({ name: normalizedName, elements: template.elements });
       setSaveStatus('success');
+      setToast({
+        type: 'success',
+        message: 'テンプレートを保存しました',
+        subMessage: isAutosave ? '自動保存が完了しました' : undefined,
+      });
     } catch (error) {
+      const message = error instanceof Error ? error.message : '保存に失敗しました';
       setSaveStatus('error');
-      setSaveError(error instanceof Error ? error.message : '保存に失敗しました');
+      setSaveError(message);
+      setToast({ type: 'error', message });
     }
   };
 
@@ -106,6 +216,15 @@ const TemplateEditorPage = () => {
             <p style={{ margin: 0, color: '#475467' }}>要素数: {template.elements.length}</p>
           </div>
           <div className="button-row">
+            <button className="ghost" onClick={handleAddLabel}>
+              + ラベル
+            </button>
+            <button className="ghost" onClick={handleAddText}>
+              + テキスト
+            </button>
+            <button className="ghost" onClick={handleAddTable}>
+              + テーブル
+            </button>
             <button className="secondary" onClick={() => navigate(`/templates/${template.id}/preview`)}>
               プレビュー
             </button>
@@ -134,6 +253,12 @@ const TemplateEditorPage = () => {
           <ElementInspector templateId={template.id} element={selectedElement} />
         </div>
       </div>
+
+      {toast && (
+        <div className="toast-container">
+          <Toast type={toast.type} message={toast.message} subMessage={toast.subMessage} onClose={() => setToast(null)} />
+        </div>
+      )}
     </section>
   );
 };

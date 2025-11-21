@@ -4,8 +4,9 @@ import type {
   PageSize,
   TemplateDataRecord,
   TemplateDefinition,
-  TableElement,
   TextElement,
+  LabelElement,
+  TableElement,
 } from '../../../shared/template.ts';
 
 const PAGE_DIMENSIONS: Record<PageSize, { portrait: [number, number]; landscape: [number, number] }> = {
@@ -29,19 +30,29 @@ export async function renderTemplateToPdf(
 
   const font = await pdf.embedFont(fontBytes, { subset: true });
 
+  // ★ DEBUG 用の drawText('DEBUG', ...) は削除してOK
+
   for (const element of template.elements) {
     if (element.type === 'text') {
-      drawTextElement(page, element, data, font);
+      drawTextElement(page, element as TextElement, data, font);
+      continue;
+    }
+
+    if (element.type === 'label') {
+      drawLabelElement(page, element as LabelElement, font);
       continue;
     }
 
     if (element.type === 'table') {
-      drawTableElement(page, element, data, font);
+      drawTableElement(page, element as TableElement, data, font);
+      continue;
     }
   }
 
   return pdf.save();
 }
+
+// ---------- text / label ----------
 
 const resolveValue = (dataSource: TextElement['dataSource'], data: TemplateDataRecord): string => {
   if (dataSource.type === 'static') {
@@ -49,9 +60,7 @@ const resolveValue = (dataSource: TextElement['dataSource'], data: TemplateDataR
   }
 
   const value = data[dataSource.fieldCode];
-  if (value === null || value === undefined) {
-    return '';
-  }
+  if (value === null || value === undefined) return '';
 
   if (typeof value === 'number') {
     return new Intl.NumberFormat('ja-JP').format(value);
@@ -78,13 +87,30 @@ const drawTextElement = (
 ) => {
   const text = resolveValue(element.dataSource, data);
   const fontSize = element.fontSize ?? 12;
+
   page.drawText(text, {
     x: element.x,
     y: element.y,
     size: fontSize,
     font,
+    color: rgb(0, 0, 0),
   });
 };
+
+const drawLabelElement = (page: PDFPage, element: LabelElement, font: PDFFont) => {
+  const fontSize = element.fontSize ?? 12;
+  const text = element.text ?? '';
+
+  page.drawText(text, {
+    x: element.x,
+    y: element.y,
+    size: fontSize,
+    font,
+    color: rgb(0, 0, 0),
+  });
+};
+
+// ---------- table 描画 ----------
 
 const drawTableElement = (
   page: PDFPage,
@@ -100,16 +126,20 @@ const drawTableElement = (
   const headerHeight = element.headerHeight ?? 24;
   const tableWidth = element.columns.reduce<number>((sum, column) => sum + column.width, 0);
   const totalHeight = headerHeight + rowHeight * rows.length;
+
   const startX = element.x;
   const startY = element.y;
 
-  drawTableGrid(page, startX, startY, tableWidth, totalHeight, element, rows.length);
+  if (element.showGrid ?? true) {
+    drawTableGrid(page, startX, startY, tableWidth, totalHeight, element, rows.length);
+  }
 
   const cellPaddingX = 6;
   const headerFontSize = 11;
   const bodyFontSize = 10;
-  let cursorY = startY - 8;
 
+  // ヘッダー行
+  let cursorY = startY - 8;
   for (const column of element.columns) {
     drawAlignedText({
       page,
@@ -123,13 +153,14 @@ const drawTableElement = (
     });
   }
 
+  // ボディ行
   cursorY -= headerHeight;
-
   for (const row of rows) {
     for (const column of element.columns) {
       const rawValue =
         typeof row === 'object' && row !== null ? (row as TemplateDataRecord)[column.fieldCode] : '';
       const text = rawValue === undefined || rawValue === null ? '' : String(rawValue);
+
       drawAlignedText({
         page,
         font,
@@ -148,9 +179,7 @@ const drawTableElement = (
 const getColumnOffset = (element: TableElement, columnId: string) => {
   let offset = 0;
   for (const column of element.columns) {
-    if (column.id === columnId) {
-      break;
-    }
+    if (column.id === columnId) break;
     offset += column.width;
   }
   return offset;
@@ -202,6 +231,8 @@ const drawTableGrid = (
   }
 };
 
+// ---------- 共通テキスト描画 ----------
+
 type Align = 'left' | 'center' | 'right';
 
 type DrawTextOptions = {
@@ -218,6 +249,7 @@ type DrawTextOptions = {
 const drawAlignedText = ({ page, font, text, x, y, width, align, fontSize }: DrawTextOptions) => {
   const safeText = text ?? '';
   const textWidth = font.widthOfTextAtSize(safeText, fontSize);
+
   let drawX = x;
   if (align === 'center') {
     drawX = x + Math.max(0, (width - textWidth) / 2);
@@ -230,5 +262,6 @@ const drawAlignedText = ({ page, font, text, x, y, width, align, fontSize }: Dra
     y,
     size: fontSize,
     font,
+    color: rgb(0, 0, 0),
   });
 };

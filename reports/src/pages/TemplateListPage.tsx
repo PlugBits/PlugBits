@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTemplateStore } from '../store/templateStore.ts';
+import Toast from '../components/Toast.tsx';
 
 const TemplateListPage = () => {
   const navigate = useNavigate();
@@ -15,13 +16,7 @@ const TemplateListPage = () => {
   const hasLoaded = useTemplateStore((state) => state.hasLoaded);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
-  const [banner, setBanner] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
-
-  useEffect(() => {
-    if (!banner) return;
-    const timer = setTimeout(() => setBanner(null), 4000);
-    return () => clearTimeout(timer);
-  }, [banner]);
+  const [toast, setToast] = useState<{ type: 'success' | 'error' | 'info'; message: string } | null>(null);
 
   useEffect(() => {
     if (!hasLoaded) {
@@ -37,10 +32,10 @@ const TemplateListPage = () => {
     setCreating(true);
     try {
       const template = await createTemplate(`カスタムテンプレート ${templateList.length + 1}`);
-      setBanner({ type: 'success', message: 'テンプレートを作成しました' });
+      setToast({ type: 'success', message: 'テンプレートを作成しました' });
       navigate(`/templates/${template.id}`);
     } catch (error) {
-      setBanner({
+      setToast({
         type: 'error',
         message: error instanceof Error ? error.message : 'テンプレートの作成に失敗しました',
       });
@@ -54,9 +49,9 @@ const TemplateListPage = () => {
     setDeletingId(templateId);
     try {
       await deleteTemplate(templateId);
-      setBanner({ type: 'success', message: 'テンプレートを削除しました' });
+      setToast({ type: 'success', message: 'テンプレートを削除しました' });
     } catch (error) {
-      setBanner({
+      setToast({
         type: 'error',
         message: error instanceof Error ? error.message : 'テンプレートの削除に失敗しました',
       });
@@ -67,9 +62,9 @@ const TemplateListPage = () => {
 
   const handleRefresh = () => {
     void refreshTemplates()
-      .then(() => setBanner({ type: 'success', message: '最新のテンプレートを取得しました' }))
+      .then(() => setToast({ type: 'info', message: '最新のテンプレートを取得しました' }))
       .catch((refreshError) =>
-        setBanner({
+        setToast({
           type: 'error',
           message:
             refreshError instanceof Error ? refreshError.message : 'テンプレートの取得に失敗しました',
@@ -95,9 +90,6 @@ const TemplateListPage = () => {
           </button>
           {loading && <span className="status-pill pending">読み込み中...</span>}
           {error && <span className="status-pill error">{error}</span>}
-          {banner && (
-            <span className={`status-pill ${banner.type === 'success' ? 'success' : 'error'}`}>{banner.message}</span>
-          )}
         </div>
       </div>
 
@@ -138,6 +130,12 @@ const TemplateListPage = () => {
           </button>
         </div>
       </div>
+
+      {toast && (
+        <div className="toast-container">
+          <Toast type={toast.type} message={toast.message} onClose={() => setToast(null)} />
+        </div>
+      )}
     </section>
   );
 };

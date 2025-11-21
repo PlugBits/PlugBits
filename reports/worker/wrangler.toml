@@ -2,6 +2,9 @@ name = "plugbits-reports"
 main = "src/index.ts"
 compatibility_date = "2024-11-15"
 
+[vars]
+FONT_SOURCE_URL = "https://raw.githubusercontent.com/adobe-fonts/source-han-sans/release/SubsetOTF/JP/SourceHanSansJP-Regular.otf"
+
 [[kv_namespaces]]
 binding = "TEMPLATE_KV"
 id = "d624574989f54971a833e53bcd1ef268"

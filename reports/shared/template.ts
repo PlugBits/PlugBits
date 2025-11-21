@@ -8,7 +8,7 @@ export type DataSource =
 
 export interface BaseElement {
   id: string;
-  type: 'text' | 'table' | 'image';
+  type: 'text' | 'table' | 'image'　| 'label';
   x: number;
   y: number;
   width?: number;
@@ -20,6 +20,13 @@ export interface TextElement extends BaseElement {
   fontSize?: number;
   fontWeight?: 'normal' | 'bold';
   dataSource: DataSource;
+}
+
+export interface LabelElement extends BaseElement {
+  type: 'label';
+  fontSize?: number;
+  fontWeight?: 'normal' | 'bold';
+  text: string;
 }
 
 export interface TableColumn {
@@ -36,6 +43,7 @@ export interface TableElement extends BaseElement {
   headerHeight?: number;
   dataSource: Extract<DataSource, { type: 'kintoneSubtable' }>;
   columns: TableColumn[];
+  showGrid?: boolean;
 }
 
 export interface ImageElement extends BaseElement {
@@ -43,7 +51,7 @@ export interface ImageElement extends BaseElement {
   dataSource: Extract<DataSource, { type: 'static' }>;
 }
 
-export type TemplateElement = TextElement | TableElement | ImageElement;
+export type TemplateElement = TextElement | LabelElement | TableElement | ImageElement;
 
 export interface TemplateDefinition {
   id: string;

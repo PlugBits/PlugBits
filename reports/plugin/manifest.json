@@ -1,0 +1,29 @@
+{
+  "manifest_version": 1,
+  "version": 1,
+  "type": "APP",
+  "name": {
+    "en": "PlugBits Reports",
+    "ja": "PlugBits 帳票プラグイン"
+  },
+  "description": {
+    "en": "Adds a PlugBits PDF button to kintone records",
+    "ja": "PlugBits 帳票ボタンをレコード詳細に追加します"
+  },
+  "icon": "images/icon.png",
+  "homepage_url": {
+    "en": "https://plugbits.com",
+    "ja": "https://plugbits.com"
+  },
+  "desktop": {
+    "js": [
+      "dist/desktop.js"
+    ],
+    "css": []
+  },
+  "config": {
+    "html": "config.html",
+    "js": ["dist/config.js"],
+    "css": []
+  }
+}

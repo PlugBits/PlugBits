@@ -55,6 +55,10 @@ const describeDataSource = (element: TemplateElement) => {
     return `サブテーブル: ${element.dataSource.fieldCode}`;
   }
 
+  if (element.type === 'label') {
+    return element.text;
+  }
+
   if (element.dataSource.type === 'static') {
     return element.dataSource.value;
   }
