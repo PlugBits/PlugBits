@@ -1,60 +1,87 @@
-import type { TemplateDefinition } from '@shared/template.ts';
+// src/services/templateService.ts
 
-const WORKER_BASE_URL = import.meta.env.VITE_WORKER_BASE_URL ?? 'http://localhost:8787';
-const WORKER_API_KEY = import.meta.env.VITE_WORKER_API_KEY;
+import type { TemplateDefinition } from '@shared/template';
+import { SAMPLE_TEMPLATE } from '@shared/template';
 
-const buildHeaders = () => ({
-  'Content-Type': 'application/json',
-  ...(WORKER_API_KEY ? { 'x-api-key': WORKER_API_KEY } : {}),
-});
+const STORAGE_KEY = 'plugbits_reports_templates_v1';
 
-const handleResponse = async <T>(response: Response): Promise<T> => {
-  if (!response.ok) {
-    const message = await response.text();
-    throw new Error(message || 'API request failed');
-  }
-  return (await response.json()) as T;
-};
+// ---- 共通ユーティリティ ----
 
-export const fetchTemplates = async (): Promise<TemplateDefinition[]> => {
-  const response = await fetch(`${WORKER_BASE_URL}/templates`, {
-    method: 'GET',
-    headers: buildHeaders(),
-  });
-  const payload = await handleResponse<{ templates: TemplateDefinition[] }>(response);
-  return payload.templates;
-};
-
-export const createTemplateRemote = async (template: TemplateDefinition): Promise<TemplateDefinition> => {
-  const response = await fetch(`${WORKER_BASE_URL}/templates`, {
-    method: 'POST',
-    headers: buildHeaders(),
-    body: JSON.stringify(template),
-  });
-  return handleResponse<TemplateDefinition>(response);
-};
-
-export const updateTemplateRemote = async (template: TemplateDefinition): Promise<TemplateDefinition> => {
-  const response = await fetch(`${WORKER_BASE_URL}/templates/${encodeURIComponent(template.id)}`, {
-    method: 'PUT',
-    headers: buildHeaders(),
-    body: JSON.stringify(template),
-  });
-  return handleResponse<TemplateDefinition>(response);
-};
-
-export const deleteTemplateRemote = async (templateId: string): Promise<void> => {
-  const response = await fetch(`${WORKER_BASE_URL}/templates/${encodeURIComponent(templateId)}`, {
-    method: 'DELETE',
-    headers: buildHeaders(),
-  });
-  // 204 = 正常削除、404 = もともと存在しない → どちらも成功扱いで OK
-  if (response.status === 204 || response.status === 404) {
-    return;
+function readFromStorage(): TemplateDefinition[] {
+  if (typeof localStorage === 'undefined') {
+    // Worker や SSR で呼ばれた時の保険
+    return [SAMPLE_TEMPLATE];
   }
 
-  if (!response.ok) {
-    const message = await response.text();
-    throw new Error(message || "Failed to delete template");
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) {
+      return [SAMPLE_TEMPLATE];
+    }
+
+    const parsed = JSON.parse(raw) as TemplateDefinition[];
+    if (!Array.isArray(parsed) || parsed.length === 0) {
+      return [SAMPLE_TEMPLATE];
+    }
+
+    return parsed;
+  } catch {
+    return [SAMPLE_TEMPLATE];
   }
-};
+}
+
+function writeToStorage(templates: TemplateDefinition[]): void {
+  if (typeof localStorage === 'undefined') return;
+
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(templates));
+  } catch {
+    // 容量オーバーやシークレットモードなどで失敗することもあるが、
+    // ここでは例外を投げずに無視しておく
+  }
+}
+
+// ---- 公開 API（templateStore から呼ぶやつ） ----
+
+/**
+ * テンプレート一覧を取得
+ * 将来的に Cloudflare Worker / D1 に差し替える場合も
+ * この関数の中身だけ変えれば OK な想定。
+ */
+export async function fetchTemplates(): Promise<TemplateDefinition[]> {
+  const templates = readFromStorage();
+  return templates;
+}
+
+/**
+ * テンプレートを新規作成 or 上書き保存
+ * - id が既存と被っていれば上書き
+ * - そうでなければ追加
+ */
+export async function createTemplateRemote(
+  template: TemplateDefinition,
+): Promise<TemplateDefinition> {
+  const templates = readFromStorage();
+
+  const existingIndex = templates.findIndex((t) => t.id === template.id);
+  let next: TemplateDefinition[];
+
+  if (existingIndex >= 0) {
+    next = [...templates];
+    next[existingIndex] = template;
+  } else {
+    next = [...templates, template];
+  }
+
+  writeToStorage(next);
+  return template;
+}
+
+/**
+ * テンプレートを削除
+ */
+export async function deleteTemplateRemote(templateId: string): Promise<void> {
+  const templates = readFromStorage();
+  const next = templates.filter((t) => t.id !== templateId);
+  writeToStorage(next);
+}

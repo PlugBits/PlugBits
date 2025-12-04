@@ -1,6 +1,6 @@
 {
   "manifest_version": 1,
-  "version": 1,
+  "version": "0.1.0",
   "type": "APP",
   "name": {
     "en": "PlugBits Reports",
@@ -17,13 +17,13 @@
   },
   "desktop": {
     "js": [
-      "dist/desktop.js"
+      "src/js/desktop.js"
     ],
     "css": []
   },
   "config": {
-    "html": "config.html",
-    "js": ["dist/config.js"],
-    "css": []
+    "html": "src/html/config.html",
+    "js": ["src/js/config.js"],
+    "css": ["src/css/kb-shell.css"]
   }
 }

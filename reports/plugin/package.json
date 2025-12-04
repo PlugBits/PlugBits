@@ -9,7 +9,7 @@
     "build:desktop": "esbuild src/desktop/index.ts --bundle --format=iife --outfile=dist/desktop.js",
     "build:config": "esbuild src/config/index.ts --bundle --format=iife --outfile=dist/config.js",
     "typecheck": "tsc --noEmit",
-    "pack": "npm run build && npx kintone-plugin-packer manifest --out dist/plugin.zip"
+    "pack": "npm run build && npx kintone-plugin-packer manifest --out dist/plugin.zip --ppk signing/plugbits-reports.ppk"
   },
   "devDependencies": {
     "@kintone/plugin-packer": "^9.0.0",

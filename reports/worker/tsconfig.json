@@ -9,7 +9,8 @@
     "forceConsistentCasingInFileNames": true,
     "skipLibCheck": true,
     "types": ["@cloudflare/workers-types"],
-    "allowImportingTsExtensions": true
+    "allowImportingTsExtensions": true,
+    "noEmit": true
   },
   "include": ["src", "../shared"]
 }

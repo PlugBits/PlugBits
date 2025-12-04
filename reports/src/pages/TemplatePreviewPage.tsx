@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { SAMPLE_DATA, type TemplateDataRecord } from '@shared/template.ts';
+import { SAMPLE_DATA, type TemplateDataRecord } from '@shared/template';
 import { requestPreviewPdf } from '../services/renderService.ts';
 import { selectTemplateById, useTemplateStore } from '../store/templateStore.ts';
 
@@ -11,12 +11,18 @@ const TemplatePreviewPage = () => {
   const initialize = useTemplateStore((state) => state.initialize);
   const hasLoaded = useTemplateStore((state) => state.hasLoaded);
   const saveTemplate = useTemplateStore((state) => state.saveTemplate);
+  const updateTemplateState = useTemplateStore((state) => state.updateTemplate);
   const [status, setStatus] = useState<'idle' | 'saving' | 'rendering' | 'success' | 'error'>('idle');
   const [statusMessage, setStatusMessage] = useState('');
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [initialPreviewDone, setInitialPreviewDone] = useState(false);
+  const [sampleDataDraft, setSampleDataDraft] = useState('');
+  const [sampleDataDirty, setSampleDataDirty] = useState(false);
+  const [sampleDataError, setSampleDataError] = useState<string | null>(null);
+  const [sampleDataInfo, setSampleDataInfo] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  const [sampleDataSaving, setSampleDataSaving] = useState(false);
 
-  const sampleData = useMemo<TemplateDataRecord>(() => SAMPLE_DATA, []);
+  const templateSampleData = useMemo<TemplateDataRecord>(() => template?.sampleData ?? SAMPLE_DATA, [template]);
 
   useEffect(() => {
     if (!hasLoaded) {
@@ -29,6 +35,14 @@ const TemplatePreviewPage = () => {
   }, [templateId]);
 
   useEffect(() => {
+    if (!template) return;
+    if (sampleDataDirty) return;
+    setSampleDataDraft(JSON.stringify(templateSampleData, null, 2));
+    setSampleDataError(null);
+    setSampleDataInfo(null);
+  }, [template, templateId, templateSampleData, sampleDataDirty]);
+
+  useEffect(() => {
     return () => {
       if (previewUrl) {
         URL.revokeObjectURL(previewUrl);
@@ -36,14 +50,55 @@ const TemplatePreviewPage = () => {
     };
   }, [previewUrl]);
 
+  const parseSampleDataDraft = (): TemplateDataRecord | null => {
+    try {
+      const parsed = JSON.parse(sampleDataDraft || '{}') as TemplateDataRecord;
+      return parsed;
+    } catch (error) {
+      console.error('Failed to parse sample data', error);
+      setSampleDataError('JSON の形式を確認してください');
+      return null;
+    }
+  };
+
+  const commitSampleDataDraft = () => {
+    if (!template) return null;
+    if (!sampleDataDirty) {
+      return {
+        template,
+        data: (template.sampleData as TemplateDataRecord | undefined) ?? SAMPLE_DATA,
+      };
+    }
+
+    const parsed = parseSampleDataDraft();
+    if (!parsed) {
+      return null;
+    }
+
+    const nextTemplate = { ...template, sampleData: parsed };
+    updateTemplateState(nextTemplate);
+    setSampleDataDirty(false);
+    setSampleDataError(null);
+    return { template: nextTemplate, data: parsed };
+  };
+
   const handlePreview = async () => {
     if (!template) return;
+
+    const committed = commitSampleDataDraft();
+    if (!committed) {
+      setStatus('error');
+      setStatusMessage('サンプルデータの JSON を確認してください');
+      return;
+    }
+
+    const { template: previewTemplate, data } = committed;
 
     setStatus('saving');
     setStatusMessage('テンプレートを保存しています...');
 
     try {
-      await saveTemplate(template.id);
+      await saveTemplate(previewTemplate.id);
     } catch (error) {
       setStatus('error');
       setStatusMessage(
@@ -57,7 +112,7 @@ const TemplatePreviewPage = () => {
     setStatus('rendering');
     setStatusMessage('PDF を生成しています...');
     try {
-      const blob = await requestPreviewPdf(template, sampleData);
+      const blob = await requestPreviewPdf(previewTemplate, data);
       const nextUrl = URL.createObjectURL(blob);
       setPreviewUrl((previous) => {
         if (previous) URL.revokeObjectURL(previous);
@@ -69,6 +124,37 @@ const TemplatePreviewPage = () => {
       setStatus('error');
       setStatusMessage(error instanceof Error ? error.message : 'プレビューに失敗しました');
     }
+  };
+
+  const handleSampleDataSave = async () => {
+    if (!template) return;
+    const committed = commitSampleDataDraft();
+    if (!committed) {
+      setSampleDataInfo({ type: 'error', message: 'JSON の形式を確認してください' });
+      return;
+    }
+
+    setSampleDataSaving(true);
+    setSampleDataInfo(null);
+    try {
+      await saveTemplate(committed.template.id);
+      setSampleDataInfo({ type: 'success', message: 'サンプルデータを保存しました' });
+    } catch (error) {
+      setSampleDataInfo({
+        type: 'error',
+        message: error instanceof Error ? error.message : 'サンプルデータの保存に失敗しました',
+      });
+    } finally {
+      setSampleDataSaving(false);
+    }
+  };
+
+  const handleSampleDataRevert = () => {
+    if (!template) return;
+    setSampleDataDraft(JSON.stringify(templateSampleData, null, 2));
+    setSampleDataDirty(false);
+    setSampleDataError(null);
+    setSampleDataInfo(null);
   };
 
   useEffect(() => {
@@ -123,6 +209,37 @@ const TemplatePreviewPage = () => {
           <p style={{ color: '#475467' }}>プレビューを生成して表示します。</p>
         </div>
       )}
+
+      <div className="card" style={{ marginTop: '1.5rem' }}>
+        <h3 style={{ marginTop: 0 }}>プレビュー用サンプルデータ</h3>
+        <p style={{ color: '#475467', marginTop: 0 }}>
+          kintone から取得されるレコードを想定した JSON を入力すると、プレビューにそのまま反映されます。
+        </p>
+        <textarea
+          style={{ width: '100%', minHeight: '240px', fontFamily: 'monospace', fontSize: '0.9rem', padding: '0.75rem' }}
+          value={sampleDataDraft}
+          onChange={(event) => {
+            setSampleDataDraft(event.target.value);
+            setSampleDataDirty(true);
+            setSampleDataError(null);
+            setSampleDataInfo(null);
+          }}
+        />
+        {sampleDataError && <p style={{ color: '#b42318' }}>{sampleDataError}</p>}
+        <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.75rem', flexWrap: 'wrap' }}>
+          <button className="primary" type="button" onClick={handleSampleDataSave} disabled={sampleDataSaving}>
+            {sampleDataSaving ? '保存中...' : 'サンプルデータを保存'}
+          </button>
+          <button className="ghost" type="button" onClick={handleSampleDataRevert} disabled={!sampleDataDirty}>
+            編集を破棄
+          </button>
+        </div>
+        {sampleDataInfo && (
+          <p className={`status-pill ${sampleDataInfo.type === 'success' ? 'success' : 'error'}`} style={{ marginTop: '0.75rem' }}>
+            {sampleDataInfo.message}
+          </p>
+        )}
+      </div>
     </section>
   );
 };

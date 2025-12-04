@@ -1,0 +1,126 @@
+/* Yahata kb-shell.css — shared UI shell scoped under .kb-root */
+
+/* Tokens */
+.kb-root {
+  --kb-bg: #f6f7f9;
+  --kb-surface: #ffffff;
+  --kb-text: #111827;
+  --kb-sub: #6b7280;
+  --kb-line: #e5e7eb;
+  --kb-primary: #0b5fff;
+  --kb-primary-hover: #0a54e8;
+  --kb-primary-ink: #ffffff;
+  --kb-danger: #e11d48;
+  --kb-danger-hover: #be123c;
+  --kb-focus: #2563eb;
+  --kb-radius: 10px;
+  --kb-gap: 8px;
+  --kb-gap-lg: 16px;
+  --kb-shadow: 0 1px 2px rgba(0,0,0,.06), 0 4px 12px rgba(0,0,0,.08);
+  color: var(--kb-text);
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Hiragino Sans", "Noto Sans JP", "Yu Gothic", sans-serif;
+  font-size: 12px; /* requested size */
+  line-height: 1.5;
+}
+
+@media (prefers-color-scheme: dark) {
+  .kb-root {
+    --kb-bg: #0f172a;
+    --kb-surface: #111827;
+    --kb-text: #e5e7eb;
+    --kb-sub: #9ca3af;
+    --kb-line: #1f2937;
+    --kb-primary: #3b82f6;
+    --kb-primary-hover: #2563eb;
+    --kb-primary-ink: #ffffff;
+    --kb-danger: #fb7185;
+    --kb-danger-hover: #f43f5e;
+    --kb-focus: #60a5fa;
+    --kb-shadow: 0 1px 2px rgba(0,0,0,.3), 0 6px 18px rgba(0,0,0,.35);
+  }
+}
+
+/* Base */
+.kb-root *, .kb-root *::before, .kb-root *::after { box-sizing: border-box; }
+
+/* Page container for config pages */
+.kb-page { margin: 24px; }
+
+/* Components */
+.kb-card {
+  background: var(--kb-surface);
+  border: 1px solid var(--kb-line);
+  border-radius: var(--kb-radius);
+  box-shadow: var(--kb-shadow);
+  padding: var(--kb-gap-lg);
+}
+
+.kb-row { display: flex; align-items: center; gap: var(--kb-gap); }
+
+.kb-label { display:block; margin: 12px 0 6px; font-weight: 600; color: var(--kb-sub); }
+
+.kb-title { margin: 0 0 8px; font-size: 14px; font-weight: 700; }
+.kb-desc { margin: 0 0 16px; color: var(--kb-sub); }
+.kb-muted { color: var(--kb-sub); }
+
+.kb-input {
+  display: inline-block;
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--kb-line);
+  border-radius: var(--kb-radius);
+  background: var(--kb-surface);
+  color: var(--kb-text);
+  font-size: inherit;
+}
+.kb-input:focus { outline: 2px solid var(--kb-focus); outline-offset: 2px; }
+
+.kb-btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 8px 14px;
+  background: var(--kb-surface);
+  color: var(--kb-text);
+  border: 1px solid var(--kb-line);
+  border-radius: var(--kb-radius);
+  cursor: pointer;
+  font-size: inherit;
+}
+.kb-btn:hover { filter: brightness(0.98); }
+.kb-btn:focus { outline: 2px solid var(--kb-focus); outline-offset: 2px; }
+.kb-btn.kb-primary { background: var(--kb-primary); color: var(--kb-primary-ink); border-color: var(--kb-primary); }
+.kb-btn.kb-primary:hover { background: var(--kb-primary-hover); border-color: var(--kb-primary-hover); }
+.kb-btn.kb-danger  { background: var(--kb-danger); color: #fff; border-color: var(--kb-danger); }
+.kb-btn.kb-danger:hover  { background: var(--kb-danger-hover); border-color: var(--kb-danger-hover); }
+.kb-btn.kb-inline-btn { padding: 4px 8px; font-size: 12px; border-radius: 6px; }
+.kb-btn:active { transform: translateY(1px); }
+
+.kb-ico { width: 16px; height: 16px; fill: currentColor; }
+
+/* Header bar host area (if used in app header) */
+.kb-head { display: inline-flex; gap: var(--kb-gap); }
+
+/* Toast */
+.kb-toast {
+  position: fixed; top: 16px; left: 50%; transform: translateX(-50%);
+  z-index: 9999; padding: 10px 14px; border-radius: var(--kb-radius);
+  background: var(--kb-surface); color: var(--kb-text);
+  border: 1px solid var(--kb-line); box-shadow: var(--kb-shadow);
+}
+
+/* Modal */
+.kb-backdrop {
+  position: fixed; inset: 0; z-index: 9997; background: rgba(0,0,0,.25); backdrop-filter: blur(2px);
+}
+.kb-modal {
+  position: fixed; inset: 0; z-index: 9998; display: grid; place-items: center; padding: 24px;
+}
+.kb-modal > .kb-card { max-width: 720px; width: 100%; }
+
+/* Table defaults inside kb-root (lightweight, kintone-like) */
+.kb-root table { width: 100%; border-collapse: collapse; }
+.kb-root th, .kb-root td { border-bottom: 1px solid var(--kb-line); padding: 8px; text-align: left; }
+.kb-root thead th { color: var(--kb-sub); font-weight: 600; }
+.kb-toolbar { display: flex; align-items: center; gap: var(--kb-gap); margin: 12px 0; }
+.kb-container { max-width: 640px; margin: 0 auto; }
+.kb-right { text-align: right; }
+.kb-table { margin-bottom: 12px; }

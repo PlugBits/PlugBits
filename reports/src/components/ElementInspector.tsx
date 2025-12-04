@@ -1,13 +1,14 @@
 import { useMemo, useEffect, useState } from 'react';
 import type { ChangeEvent } from 'react';
 import type {
+  DataSource,
   ImageElement,
   LabelElement,
   TableElement,
   TableColumn,
   TemplateElement,
   TextElement,
-} from '@shared/template.ts';
+} from '@shared/template';
 import { useTemplateStore } from '../store/templateStore.ts';
 
 type ElementInspectorProps = {
@@ -45,19 +46,9 @@ const ElementInspector = ({ templateId, element }: ElementInspectorProps) => {
         フォントサイズ
         <input type="number" value={textElement.fontSize ?? 12} onChange={handleNumberChange('fontSize')} />
       </label>
-      <label>
-        フィールドコード
-        <input
-          type="text"
-          value={textElement.dataSource.type === 'static' ? textElement.dataSource.value : textElement.dataSource.fieldCode}
-          onChange={(event) => {
-            const payload = textElement.dataSource.type === 'static'
-              ? { ...textElement.dataSource, value: event.target.value }
-              : { ...textElement.dataSource, fieldCode: event.target.value };
-            updateElement(templateId, element.id, { dataSource: payload } as Partial<TemplateElement>);
-          }}
-        />
-      </label>
+      {renderDataSourceControls(textElement.dataSource, (next) =>
+        updateElement(templateId, element.id, { dataSource: next } as Partial<TemplateElement>),
+      )}
     </>
   );
 
@@ -98,6 +89,19 @@ const ElementInspector = ({ templateId, element }: ElementInspectorProps) => {
           onChange={(event) => updateElement(templateId, element.id, { showGrid: event.target.checked })}
         />
         グリッド線を表示
+      </label>
+
+      <label>
+        サブテーブルフィールド
+        <input
+          type="text"
+          value={tableElement.dataSource.fieldCode}
+          onChange={(event) =>
+            updateElement(templateId, element.id, {
+              dataSource: { ...tableElement.dataSource, fieldCode: event.target.value },
+            } as Partial<TemplateElement>)
+          }
+        />
       </label>
 
       <div style={{ marginTop: '0.5rem' }}>
@@ -164,20 +168,15 @@ const ElementInspector = ({ templateId, element }: ElementInspectorProps) => {
     </>
   );
 
-  const renderImageControls = (imageElement: ImageElement) => (
-    <label>
-      画像ID
-      <input
-        type="text"
-        value={imageElement.dataSource.value}
-        onChange={(event) => {
-          updateElement(templateId, element.id, {
-            dataSource: { ...imageElement.dataSource, value: event.target.value },
-          } as Partial<TemplateElement>);
-        }}
-      />
-    </label>
-  );
+  const renderImageControls = (imageElement: ImageElement) =>
+    renderDataSourceControls(
+      imageElement.dataSource,
+      (next) =>
+        updateElement(templateId, element.id, {
+          dataSource: next,
+        } as Partial<TemplateElement>),
+      ['static'],
+    );
 
   return (
     <div className="inspector-fields">
@@ -296,5 +295,61 @@ const renderLabelControls = (
     </label>
   </>
 );
+
+const renderDataSourceControls = (
+  dataSource: DataSource,
+  onChange: (next: DataSource) => void,
+  allowedTypes: DataSource['type'][] = ['static', 'kintone', 'kintoneSubtable'],
+) => {
+  const typeOptions = allowedTypes;
+  const handleTypeChange = (nextType: DataSource['type']) => {
+    if (nextType === dataSource.type) return;
+    if (nextType === 'static') {
+      onChange({ type: 'static', value: '' });
+      return;
+    }
+    onChange({ type: nextType, fieldCode: '' });
+  };
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+      <label>
+        データソース種別
+        <select
+          value={dataSource.type}
+          onChange={(event) => handleTypeChange(event.target.value as DataSource['type'])}
+          disabled={typeOptions.length === 1}
+        >
+          {typeOptions.map((type) => (
+            <option key={type} value={type}>
+              {type === 'static' ? '固定文字' : type === 'kintone' ? 'kintone フィールド' : 'kintone サブテーブル'}
+            </option>
+          ))}
+        </select>
+      </label>
+      {dataSource.type === 'static' ? (
+        <label>
+          固定テキスト
+          <input
+            type="text"
+            value={dataSource.value}
+            onChange={(event) => onChange({ type: 'static', value: event.target.value })}
+          />
+        </label>
+      ) : (
+        <label>
+          フィールドコード
+          <input
+            type="text"
+            value={dataSource.fieldCode}
+            onChange={(event) =>
+              onChange({ type: dataSource.type, fieldCode: event.target.value })
+            }
+          />
+        </label>
+      )}
+    </div>
+  );
+};
 
 export default ElementInspector;

@@ -1,267 +1,347 @@
 import { PDFDocument, rgb, type PDFPage, type PDFFont } from 'pdf-lib';
 import fontkit from '@pdf-lib/fontkit';
 import type {
-  PageSize,
-  TemplateDataRecord,
   TemplateDefinition,
+  TemplateElement,
   TextElement,
   LabelElement,
   TableElement,
-} from '../../../shared/template.ts';
+  ImageElement,
+  TemplateDataRecord,
+  DataSource,
+  PageSize,
+} from '../../../shared/template.js';
 
-const PAGE_DIMENSIONS: Record<PageSize, { portrait: [number, number]; landscape: [number, number] }> = {
+/**
+ * ページサイズ定義
+ */
+const PAGE_DIMENSIONS: Record<
+  PageSize,
+  { portrait: [number, number]; landscape: [number, number] }
+> = {
   A4: {
-    portrait: [595, 842],
-    landscape: [842, 595],
+    // ざっくり A4（もともとの値と同じくらい）
+    portrait: [595.28, 841.89],
+    landscape: [841.89, 595.28],
   },
 };
 
-export async function renderTemplateToPdf(
-  template: TemplateDefinition,
-  data: TemplateDataRecord,
-  fontBytes: Uint8Array,
-): Promise<Uint8Array> {
-  const pdf = await PDFDocument.create();
-  pdf.registerFontkit(fontkit);
-
+/**
+ * テンプレートからページ幅・高さを決定
+ */
+function getPageSize(template: TemplateDefinition): [number, number] {
   const dims = PAGE_DIMENSIONS[template.pageSize] ?? PAGE_DIMENSIONS.A4;
-  const [width, height] = dims[template.orientation];
-  const page = pdf.addPage([width, height]);
-
-  const font = await pdf.embedFont(fontBytes, { subset: true });
-
-  // ★ DEBUG 用の drawText('DEBUG', ...) は削除してOK
-
-  for (const element of template.elements) {
-    if (element.type === 'text') {
-      drawTextElement(page, element as TextElement, data, font);
-      continue;
-    }
-
-    if (element.type === 'label') {
-      drawLabelElement(page, element as LabelElement, font);
-      continue;
-    }
-
-    if (element.type === 'table') {
-      drawTableElement(page, element as TableElement, data, font);
-      continue;
-    }
-  }
-
-  return pdf.save();
+  return template.orientation === 'landscape'
+    ? dims.landscape
+    : dims.portrait;
 }
 
-// ---------- text / label ----------
+/**
+ * UI の Y（上から） → PDF の Y（下から）に変換
+ * もともと使っていた toPdfY と同じロジック：
+ *   PDF_Y = pageHeight - uiY - height
+ */
+const UI_CANVAS_HEIGHT = 800; // ← エディタ側のキャンバス高さに合わせる
 
-const resolveValue = (dataSource: TextElement['dataSource'], data: TemplateDataRecord): string => {
-  if (dataSource.type === 'static') {
-    return dataSource.value;
+function toPdfY(uiY: number, height: number, pageHeight: number): number {
+  const scale = pageHeight / UI_CANVAS_HEIGHT;
+  // 必要なら baseline 用に height 分ずらしても OK
+  return uiY * scale;
+}
+
+/**
+ * kintone / static などのデータソースを解決
+ */
+function resolveDataSource(
+  source: DataSource | undefined,
+  data: TemplateDataRecord | undefined,
+): string {
+  if (!source) return '';
+
+  // 固定値
+  if (source.type === 'static') {
+    return source.value ?? '';
   }
 
-  const value = data[dataSource.fieldCode];
-  if (value === null || value === undefined) return '';
+  if (!data) return '';
 
-  if (typeof value === 'number') {
-    return new Intl.NumberFormat('ja-JP').format(value);
+  // kintone / kintoneSubtable 系
+  if ('fieldCode' in source && source.fieldCode) {
+    const value = data[source.fieldCode];
+
+    if (value === null || value === undefined) return '';
+
+    if (typeof value === 'number') {
+      return new Intl.NumberFormat('ja-JP').format(value);
+    }
+
+    if (value instanceof Date) {
+      return value.toISOString();
+    }
+
+    if (Array.isArray(value)) {
+      return value
+        .map((item) => (typeof item === 'object' ? JSON.stringify(item) : String(item)))
+        .join(', ');
+    }
+
+    return String(value);
   }
 
-  if (value instanceof Date) {
-    return value.toISOString();
+  return '';
+}
+
+/**
+ * メイン：テンプレートを PDF のバイト列に変換
+ */
+export async function renderTemplateToPdf(
+  template: TemplateDefinition,
+  data: TemplateDataRecord | undefined,
+  fontBytes: Uint8Array,
+): Promise<Uint8Array> {
+  console.log(
+    '==== renderTemplateToPdf START ====',
+  );
+
+  const pdfDoc = await PDFDocument.create();
+  pdfDoc.registerFontkit(fontkit);
+
+  const [pageWidth, pageHeight] = getPageSize(template);
+  const page = pdfDoc.addPage([pageWidth, pageHeight]);
+
+  // 日本語対応フォントを埋め込み
+  const font = await pdfDoc.embedFont(fontBytes, { subset: false });
+
+  console.log(
+    'TEMPLATE ELEMENTS:',
+    template.elements.map((e) => ({
+      id: e.id,
+      type: e.type,
+      text: (e as any).text,
+      x: e.x,
+      y: e.y,
+    })),
+  );
+
+  for (const element of template.elements) {
+    switch (element.type) {
+      case 'label':
+        drawLabel(page, element as LabelElement, font, pageHeight);
+        break;
+      case 'text':
+        drawText(page, element as TextElement, font, pageHeight, data);
+        break;
+      case 'table':
+        drawTable(page, element as TableElement, font, pageHeight, data);
+        break;
+      case 'image':
+        // 画像はまだプレースホルダ
+        drawImagePlaceholder(page, element as ImageElement, pageHeight);
+        break;
+      default:
+        console.warn('Unknown element type', (element as TemplateElement).type);
+    }
   }
 
-  if (Array.isArray(value)) {
-    return value
-      .map((item) => (typeof item === 'object' ? JSON.stringify(item) : String(item)))
-      .join(', ');
-  }
+  const bytes = await pdfDoc.save();
+  console.log('==== renderTemplateToPdf END ====');
+  return bytes;
+}
 
-  return String(value);
-};
+// ============================
+// Label
+// ============================
 
-const drawTextElement = (
+function drawLabel(
   page: PDFPage,
-  element: TextElement,
-  data: TemplateDataRecord,
+  element: LabelElement,
   font: PDFFont,
-) => {
-  const text = resolveValue(element.dataSource, data);
+  pageHeight: number,
+) {
   const fontSize = element.fontSize ?? 12;
-
-  page.drawText(text, {
-    x: element.x,
-    y: element.y,
-    size: fontSize,
-    font,
-    color: rgb(0, 0, 0),
-  });
-};
-
-const drawLabelElement = (page: PDFPage, element: LabelElement, font: PDFFont) => {
-  const fontSize = element.fontSize ?? 12;
+  const textHeight = fontSize;
   const text = element.text ?? '';
 
+  const pdfY = toPdfY(element.y, textHeight, pageHeight);
+
+  console.log('DRAW LABEL', {
+    id: element.id,
+    text,
+    uiY: element.y,
+    pdfY,
+  });
+
   page.drawText(text, {
     x: element.x,
-    y: element.y,
+    y: pdfY,
     size: fontSize,
     font,
     color: rgb(0, 0, 0),
   });
-};
+}
 
-// ---------- table 描画 ----------
+// ============================
+// Text
+// ============================
 
-const drawTableElement = (
+function drawText(
+  page: PDFPage,
+  element: TextElement,
+  font: PDFFont,
+  pageHeight: number,
+  data: TemplateDataRecord | undefined,
+) {
+  const fontSize = element.fontSize ?? 12;
+  const textHeight = fontSize;
+
+  const resolved = resolveDataSource(element.dataSource, data);
+  const text = resolved || element.text || '';
+
+  const pdfY = toPdfY(element.y, textHeight, pageHeight);
+
+  console.log('DRAW TEXT', {
+    id: element.id,
+    text,
+    uiY: element.y,
+    pdfY,
+  });
+
+  page.drawText(text, {
+    x: element.x,
+    y: pdfY,
+    size: fontSize,
+    font,
+    color: rgb(0, 0, 0),
+  });
+}
+
+// ============================
+// Table
+// ============================
+
+function drawTable(
   page: PDFPage,
   element: TableElement,
-  data: TemplateDataRecord,
   font: PDFFont,
-) => {
-  const rows = Array.isArray(data[element.dataSource.fieldCode])
-    ? (data[element.dataSource.fieldCode] as TemplateDataRecord[])
-    : [];
-
+  pageHeight: number,
+  data: TemplateDataRecord | undefined,
+) {
   const rowHeight = element.rowHeight ?? 18;
-  const headerHeight = element.headerHeight ?? 24;
-  const tableWidth = element.columns.reduce<number>((sum, column) => sum + column.width, 0);
-  const totalHeight = headerHeight + rowHeight * rows.length;
+  const headerHeight = element.headerHeight ?? rowHeight;
+  const fontSize = 10;
 
-  const startX = element.x;
-  const startY = element.y;
+  const originX = element.x;
+  const originY = toPdfY(element.y, headerHeight, pageHeight);
 
-  if (element.showGrid ?? true) {
-    drawTableGrid(page, startX, startY, tableWidth, totalHeight, element, rows.length);
-  }
+  // サブテーブル行
+  const rows =
+    data &&
+    element.dataSource &&
+    element.dataSource.type === 'kintoneSubtable'
+      ? (data[element.dataSource.fieldCode] as any[] | undefined)
+      : undefined;
 
-  const cellPaddingX = 6;
-  const headerFontSize = 11;
-  const bodyFontSize = 10;
+  console.log('DRAW TABLE', {
+    id: element.id,
+    uiY: element.y,
+    startY: originY,
+    rows: rows?.length ?? 0,
+  });
 
   // ヘッダー行
-  let cursorY = startY - 8;
-  for (const column of element.columns) {
-    drawAlignedText({
-      page,
+  let currentX = originX;
+  for (const col of element.columns) {
+    const colWidth = col.width;
+
+    // 枠線
+    page.drawRectangle({
+      x: currentX,
+      y: originY,
+      width: colWidth,
+      height: headerHeight,
+      borderColor: rgb(0.7, 0.7, 0.7),
+      borderWidth: 0.5,
+    });
+
+    // タイトル
+    page.drawText(col.title, {
+      x: currentX + 4,
+      y: originY + headerHeight / 2 - fontSize / 2,
+      size: fontSize,
       font,
-      text: column.title,
-      x: startX + getColumnOffset(element, column.id) + cellPaddingX,
-      y: cursorY,
-      width: column.width - cellPaddingX * 2,
-      align: column.align ?? 'left',
-      fontSize: headerFontSize,
+      color: rgb(0, 0, 0),
     });
+
+    currentX += colWidth;
   }
 
-  // ボディ行
-  cursorY -= headerHeight;
+  if (!rows || rows.length === 0) return;
+
+  // データ行
+  let rowIndex = 0;
   for (const row of rows) {
-    for (const column of element.columns) {
-      const rawValue =
-        typeof row === 'object' && row !== null ? (row as TemplateDataRecord)[column.fieldCode] : '';
-      const text = rawValue === undefined || rawValue === null ? '' : String(rawValue);
+    const rowTopY = originY - headerHeight - rowIndex * rowHeight;
+    currentX = originX;
 
-      drawAlignedText({
-        page,
+    for (const col of element.columns) {
+      const colWidth = col.width;
+
+      if (element.showGrid) {
+        page.drawRectangle({
+          x: currentX,
+          y: rowTopY,
+          width: colWidth,
+          height: rowHeight,
+          borderColor: rgb(0.85, 0.85, 0.85),
+          borderWidth: 0.5,
+        });
+      }
+
+      const cellValue =
+        row[col.fieldCode] != null ? String(row[col.fieldCode]) : '';
+
+      page.drawText(cellValue, {
+        x: currentX + 4,
+        y: rowTopY + rowHeight / 2 - fontSize / 2,
+        size: fontSize,
         font,
-        text,
-        x: startX + getColumnOffset(element, column.id) + cellPaddingX,
-        y: cursorY,
-        width: column.width - cellPaddingX * 2,
-        align: column.align ?? 'left',
-        fontSize: bodyFontSize,
+        color: rgb(0, 0, 0),
       });
+
+      currentX += colWidth;
     }
-    cursorY -= rowHeight;
-  }
-};
 
-const getColumnOffset = (element: TableElement, columnId: string) => {
-  let offset = 0;
-  for (const column of element.columns) {
-    if (column.id === columnId) break;
-    offset += column.width;
+    rowIndex += 1;
   }
-  return offset;
-};
+}
 
-const drawTableGrid = (
+// ============================
+// Image placeholder（まだ枠だけ）
+// ============================
+
+function drawImagePlaceholder(
   page: PDFPage,
-  startX: number,
-  startY: number,
-  tableWidth: number,
-  totalHeight: number,
-  element: TableElement,
-  bodyRowCount: number,
-) => {
-  const rowHeight = element.rowHeight ?? 18;
-  const headerHeight = element.headerHeight ?? 24;
-  const heights = [headerHeight, ...Array(bodyRowCount).fill(rowHeight)];
+  element: ImageElement,
+  pageHeight: number,
+) {
+  const width = element.width ?? 120;
+  const height = element.height ?? 80;
 
-  let offset = 0;
-  for (let i = 0; i <= heights.length; i += 1) {
-    const y = startY - offset;
-    page.drawLine({
-      start: { x: startX, y },
-      end: { x: startX + tableWidth, y },
-      thickness: 0.5,
-      color: rgb(0.8, 0.8, 0.8),
-    });
-    if (i < heights.length) {
-      offset += heights[i];
-    }
-  }
+  const pdfY = toPdfY(element.y, height, pageHeight);
 
-  let columnX = startX;
-  page.drawLine({
-    start: { x: startX, y: startY },
-    end: { x: startX, y: startY - totalHeight },
-    thickness: 0.5,
-    color: rgb(0.8, 0.8, 0.8),
+  page.drawRectangle({
+    x: element.x,
+    y: pdfY,
+    width,
+    height,
+    borderColor: rgb(0.5, 0.5, 0.5),
+    borderWidth: 1,
   });
 
-  for (const column of element.columns) {
-    columnX += column.width;
-    page.drawLine({
-      start: { x: columnX, y: startY },
-      end: { x: columnX, y: startY - totalHeight },
-      thickness: 0.5,
-      color: rgb(0.8, 0.8, 0.8),
-    });
-  }
-};
-
-// ---------- 共通テキスト描画 ----------
-
-type Align = 'left' | 'center' | 'right';
-
-type DrawTextOptions = {
-  page: PDFPage;
-  font: PDFFont;
-  text: string;
-  x: number;
-  y: number;
-  width: number;
-  align: Align;
-  fontSize: number;
-};
-
-const drawAlignedText = ({ page, font, text, x, y, width, align, fontSize }: DrawTextOptions) => {
-  const safeText = text ?? '';
-  const textWidth = font.widthOfTextAtSize(safeText, fontSize);
-
-  let drawX = x;
-  if (align === 'center') {
-    drawX = x + Math.max(0, (width - textWidth) / 2);
-  } else if (align === 'right') {
-    drawX = x + Math.max(0, width - textWidth);
-  }
-
-  page.drawText(safeText, {
-    x: drawX,
-    y,
-    size: fontSize,
-    font,
-    color: rgb(0, 0, 0),
+  page.drawText('IMAGE', {
+    x: element.x + 8,
+    y: pdfY + height / 2 - 6,
+    size: 10,
+    color: rgb(0.4, 0.4, 0.4),
   });
-};
+}

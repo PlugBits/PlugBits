@@ -1,12 +1,15 @@
 import { useEffect, useState } from 'react';
 import type { CSSProperties, MouseEvent as ReactMouseEvent } from 'react';
-import type { TemplateDefinition, TemplateElement } from '@shared/template.ts';
+import type { TemplateDefinition, TemplateElement } from '@shared/template';
 
 type CanvasProps = {
   template: TemplateDefinition;
   selectedElementId: string | null;
   onSelect: (element: TemplateElement | null) => void;
   onUpdateElement: (elementId: string, updates: Partial<TemplateElement>) => void;
+  snapEnabled?: boolean;
+  showGrid?: boolean;
+  showGuides?: boolean;
 };
 
 type DragState = {
@@ -28,6 +31,29 @@ type ResizeState = {
 const CANVAS_WIDTH = 595;
 const CANVAS_HEIGHT = 842;
 const GRID_SIZE = 5;
+
+const getTableWidth = (element: TemplateElement) => {
+  if (element.type !== 'table') {
+    return element.width ?? 140;
+  }
+  return element.columns.reduce((sum, column) => sum + column.width, 0);
+};
+
+const getElementWidthValue = (element: TemplateElement) => {
+  if (element.type === 'table') {
+    return getTableWidth(element);
+  }
+  return element.width ?? 140;
+};
+
+const getElementHeightValue = (element: TemplateElement) => {
+  if (element.type === 'table') {
+    const header = element.headerHeight ?? 24;
+    const rows = (element.rowHeight ?? 18) * 3;
+    return header + rows;
+  }
+  return element.height ?? 32;
+};
 
 const getElementStyle = (element: TemplateElement): CSSProperties => {
   const base: CSSProperties = {
@@ -66,9 +92,31 @@ const describeDataSource = (element: TemplateElement) => {
   return `{{${element.dataSource.fieldCode}}}`;
 };
 
-const TemplateCanvas = ({ template, selectedElementId, onSelect, onUpdateElement }: CanvasProps) => {
+const TemplateCanvas = ({
+  template,
+  selectedElementId,
+  onSelect,
+  onUpdateElement,
+  snapEnabled = true,
+  showGrid = true,
+  showGuides = true,
+}: CanvasProps) => {
   const [dragState, setDragState] = useState<DragState | null>(null);
   const [resizeState, setResizeState] = useState<ResizeState | null>(null);
+  const selectedElement = selectedElementId
+    ? template.elements.find((el) => el.id === selectedElementId)
+    : null;
+
+  const canvasStyle: CSSProperties = showGrid
+    ? {
+        backgroundImage:
+          'linear-gradient(90deg, rgba(15,23,42,0.05) 1px, transparent 1px), linear-gradient(0deg, rgba(15,23,42,0.05) 1px, transparent 1px)',
+        backgroundSize: `${GRID_SIZE * 4}px ${GRID_SIZE * 4}px`,
+        backgroundColor: '#fff',
+      }
+    : { backgroundColor: '#fff' };
+
+  const applySnap = (value: number) => (snapEnabled ? snapToGrid(value) : value);
 
   useEffect(() => {
     if (!dragState && !resizeState) return;
@@ -79,16 +127,16 @@ const TemplateCanvas = ({ template, selectedElementId, onSelect, onUpdateElement
       if (dragState) {
         const deltaX = event.clientX - dragState.originX;
         const deltaY = event.clientY - dragState.originY;
-        const nextX = clampToCanvas(snapToGrid(dragState.startX + deltaX), CANVAS_WIDTH);
-        const nextY = clampToCanvas(snapToGrid(dragState.startY - deltaY), CANVAS_HEIGHT);
+        const nextX = clampToCanvas(applySnap(dragState.startX + deltaX), CANVAS_WIDTH);
+        const nextY = clampToCanvas(applySnap(dragState.startY - deltaY), CANVAS_HEIGHT);
         onUpdateElement(dragState.id, { x: nextX, y: nextY });
       }
 
       if (resizeState) {
         const deltaX = event.clientX - resizeState.originX;
         const deltaY = event.clientY - resizeState.originY;
-        const nextWidth = Math.max(20, snapToGrid(resizeState.startWidth + deltaX));
-        const nextHeight = Math.max(12, snapToGrid(resizeState.startHeight + deltaY));
+        const nextWidth = Math.max(20, applySnap(resizeState.startWidth + deltaX));
+        const nextHeight = Math.max(12, applySnap(resizeState.startHeight + deltaY));
         onUpdateElement(resizeState.id, { width: nextWidth, height: nextHeight });
       }
     };
@@ -139,8 +187,26 @@ const TemplateCanvas = ({ template, selectedElementId, onSelect, onUpdateElement
     }
   };
 
+  const guideElements = showGuides && selectedElement
+    ? (() => {
+        const width = getElementWidthValue(selectedElement);
+        const height = getElementHeightValue(selectedElement);
+        const badgeLeft = Math.min(selectedElement.x + width + 12, CANVAS_WIDTH - 80);
+        const badgeBottom = Math.min(selectedElement.y + height + 12, CANVAS_HEIGHT - 24);
+        return (
+          <>
+            <div className="canvas-guide horizontal" style={{ bottom: `${selectedElement.y}px` }} />
+            <div className="canvas-guide vertical" style={{ left: `${selectedElement.x}px` }} />
+            <div className="canvas-coord-badge" style={{ left: `${badgeLeft}px`, bottom: `${badgeBottom}px` }}>
+              {selectedElement.x}px / {selectedElement.y}px
+            </div>
+          </>
+        );
+      })()
+    : null;
+
   return (
-    <div className="template-canvas" onMouseDown={handleCanvasMouseDown}>
+    <div className="template-canvas" style={canvasStyle} onMouseDown={handleCanvasMouseDown}>
       {template.elements.map((element) => (
         <div
           key={element.id}
@@ -155,6 +221,11 @@ const TemplateCanvas = ({ template, selectedElementId, onSelect, onUpdateElement
           )}
         </div>
       ))}
+      {guideElements}
+      <div className="canvas-meta">
+        <span className="canvas-pill">{snapEnabled ? 'SNAP ON' : 'SNAP OFF'}</span>
+        {showGrid && <span className="canvas-pill">GRID</span>}
+      </div>
     </div>
   );
 };

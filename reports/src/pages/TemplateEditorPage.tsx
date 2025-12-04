@@ -1,10 +1,11 @@
+import { previewPdf } from '../api/previewPdf';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import type { TemplateElement, TextElement, TableElement, LabelElement } from '@shared/template.ts';
-import TemplateCanvas from '../components/TemplateCanvas.tsx';
-import ElementInspector from '../components/ElementInspector.tsx';
-import Toast from '../components/Toast.tsx';
-import { selectTemplateById, useTemplateStore } from '../store/templateStore.ts';
+import type { TemplateElement, TextElement, TableElement, LabelElement, ImageElement } from '@shared/template';
+import TemplateCanvas from '../components/TemplateCanvas';
+import ElementInspector from '../components/ElementInspector';
+import Toast from '../components/Toast';
+import { selectTemplateById, useTemplateStore } from '../store/templateStore';
 
 const AUTOSAVE_DELAY = 4000;
 
@@ -27,6 +28,9 @@ const TemplateEditorPage = () => {
   const autosaveTimer = useRef<number | null>(null);
   const pendingSave = useRef(false);
   const lastSavedSignature = useRef<string>('');
+  const [gridVisible, setGridVisible] = useState(true);
+  const [snapEnabled, setSnapEnabled] = useState(true);
+  const [guideVisible, setGuideVisible] = useState(true);
 
   useEffect(() => {
     if (!hasLoaded) {
@@ -89,7 +93,7 @@ const TemplateEditorPage = () => {
   }, [template, selectedElementId]);
 
   const persistTemplateName = () => {
-    if (!template) return template?.name ?? '';
+    if (!template) return '';
     const normalized = nameDraft.trim() || template.name || '名称未設定';
     if (normalized !== nameDraft) {
       setNameDraft(normalized);
@@ -144,6 +148,21 @@ const TemplateEditorPage = () => {
       y: 750,
       fontSize: 12,
       text: 'ラベル',
+    };
+    addElementToTemplate(template.id, newElement);
+    setSelectedElementId(newElement.id);
+  };
+
+  const handleAddImage = () => {
+    if (!template) return;
+    const newElement: ImageElement = {
+      id: `image_${Date.now()}`,
+      type: 'image',
+      x: 60,
+      y: 520,
+      width: 120,
+      height: 80,
+      dataSource: { type: 'static', value: 'logo-placeholder' },
     };
     addElementToTemplate(template.id, newElement);
     setSelectedElementId(newElement.id);
@@ -225,10 +244,18 @@ const TemplateEditorPage = () => {
             <button className="ghost" onClick={handleAddTable}>
               + テーブル
             </button>
-            <button className="secondary" onClick={() => navigate(`/templates/${template.id}/preview`)}>
-              プレビュー
+            <button className="ghost" onClick={handleAddImage}>
+              + 画像
             </button>
-            <button className="ghost" onClick={handleSave} disabled={saveStatus === 'saving'}>
+            <button
+              className="secondary"
+              onClick={() => { void previewPdf(template); }}
+            >
+              PDFプレビュー
+            </button>
+
+
+            <button className="ghost" onClick={() => { void handleSave(); }}  disabled={saveStatus === 'saving'}>
               {saveStatus === 'saving' ? '保存中...' : '保存'}
             </button>
             <button className="ghost" onClick={() => navigate('/')}>一覧</button>
@@ -237,6 +264,28 @@ const TemplateEditorPage = () => {
         <div style={{ marginTop: '0.5rem' }}>
           {saveStatus === 'success' && <span className="status-pill success">保存しました</span>}
           {saveStatus === 'error' && <span className="status-pill error">{saveError}</span>}
+        </div>
+        <div
+          style={{
+            display: 'flex',
+            gap: '1.25rem',
+            flexWrap: 'wrap',
+            marginTop: '0.75rem',
+            fontSize: '0.9rem',
+          }}
+        >
+          <label style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+            <input type="checkbox" checked={gridVisible} onChange={(event) => setGridVisible(event.target.checked)} />
+            グリッド表示
+          </label>
+          <label style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+            <input type="checkbox" checked={snapEnabled} onChange={(event) => setSnapEnabled(event.target.checked)} />
+            グリッドにスナップ
+          </label>
+          <label style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+            <input type="checkbox" checked={guideVisible} onChange={(event) => setGuideVisible(event.target.checked)} />
+            ガイドライン表示
+          </label>
         </div>
       </div>
 
@@ -247,6 +296,9 @@ const TemplateEditorPage = () => {
             selectedElementId={selectedElementId}
             onSelect={(element) => setSelectedElementId(element?.id ?? null)}
             onUpdateElement={(elementId, updates) => updateElement(template.id, elementId, updates)}
+            showGrid={gridVisible}
+            snapEnabled={snapEnabled}
+            showGuides={guideVisible}
           />
         </div>
         <div className="editor-panel">
