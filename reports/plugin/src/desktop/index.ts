@@ -1,17 +1,18 @@
-const PLUGIN_ID = (window as any).kintone?.$PLUGIN_ID || '';
+const PLUGIN_ID =
+  (typeof kintone !== 'undefined' ? (kintone as any).$PLUGIN_ID : '') || '';
 
-type PluginConfig = {
-  apiBaseUrl: string;
-  apiKey: string;
-  kintoneApiToken: string;
-  templateId: string;
-  attachmentFieldCode: string;
-};
 
+import type { PluginConfig } from "../config/index.ts";
+
+// ✅ 修正後
 const getConfig = (): PluginConfig | null => {
-  if (!PLUGIN_ID) return null;
-  const raw = (window as any).kintone?.plugin?.app?.getConfig(PLUGIN_ID);
-  if (!raw) return null;
+  // TypeScript 的に型を逃がすためだけ any キャスト
+  const raw =
+    (kintone as any).plugin?.app?.getConfig(PLUGIN_ID) || {};
+
+  // 設定が一切保存されていないときは null 扱い
+  if (!raw || Object.keys(raw).length === 0) return null;
+
   return {
     apiBaseUrl: raw.apiBaseUrl ?? '',
     apiKey: raw.apiKey ?? '',
@@ -20,6 +21,7 @@ const getConfig = (): PluginConfig | null => {
     attachmentFieldCode: raw.attachmentFieldCode ?? '',
   };
 };
+
 
 const createButton = (label: string) => {
   const button = document.createElement('button');
@@ -150,26 +152,48 @@ const setButtonLoading = (button: HTMLButtonElement, loading: boolean) => {
   }
 };
 
+const getRequestToken = () =>
+  (window as any).kintone?.getRequestToken?.() as string | undefined;
+
+
 const isConfigComplete = (config: PluginConfig) =>
   Boolean(
     config.apiBaseUrl &&
       config.apiKey &&
-      config.kintoneApiToken &&
+      //config.kintoneApiToken &&
       config.templateId &&
       config.attachmentFieldCode,
   );
 
 const uploadFile = async (blob: Blob): Promise<string> => {
   const formData = new FormData();
-  formData.append('file', blob);
+
+  // CSRFトークン（フォーム側にも入れておく）
+  const token = getRequestToken();
+  if (token) {
+    formData.append('__REQUEST_TOKEN__', token);
+  }
+
+  // ファイル本体
+  formData.append('file', blob, 'PlugBitsReport.pdf');
+
+  // ← ここがポイント：X-Requested-With を付ける
+  const headers: Record<string, string> = {
+    'X-Requested-With': 'XMLHttpRequest',
+  };
+  if (token) {
+    headers['X-Cybozu-Request-Token'] = token;
+  }
 
   const response = await fetch('/k/v1/file.json', {
     method: 'POST',
-    body: formData,
+    headers,
+    body: formData,          // Content-Type は書かない！
   });
 
   if (!response.ok) {
     const text = await response.text();
+    console.error('file.json error:', text);
     throw new Error(`ファイルアップロードに失敗しました: ${text}`);
   }
 
@@ -182,31 +206,76 @@ const updateRecordAttachment = async (
   attachmentFieldCode: string,
   fileKey: string,
 ) => {
+  const token = getRequestToken();
+
+  // 送信するJSONペイロード
+  const payload: any = {
+    app: (window as any).kintone?.app?.getId?.(),
+    id: recordId,
+    record: {
+      [attachmentFieldCode]: {
+        value: [
+          {
+            fileKey,
+            name: 'PlugBitsReport.pdf',
+          },
+        ],
+      },
+    },
+  };
+
+  // ★ ここがポイント：CSRFトークンをボディに入れる
+  if (token) {
+    payload.__REQUEST_TOKEN__ = token;
+  }
+
   const response = await fetch('/k/v1/record.json', {
     method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      app: (window as any).kintone?.app?.getId?.(),
-      id: recordId,
-      record: {
-        [attachmentFieldCode]: {
-          value: [
-            {
-              fileKey,
-            },
-          ],
-        },
-      },
-    }),
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Requested-With': 'XMLHttpRequest',
+      // ← ここでは X-Cybozu-Request-Token は付けない（ボディ優先）
+    },
+    body: JSON.stringify(payload),
   });
 
   if (!response.ok) {
     const text = await response.text();
+    console.error('record.json error:', text);
     throw new Error(`レコード更新に失敗しました: ${text}`);
   }
 };
 
-const callRenderApi = async (config: PluginConfig, recordId: string): Promise<Blob> => {
+
+function buildTemplateDataFromKintoneRecord(record: any) {
+  const data: Record<string, any> = {};
+
+  Object.keys(record).forEach((fieldCode) => {
+    const field = record[fieldCode];
+    if (!field) return;
+
+    if (field.type === "SUBTABLE") {
+      data[fieldCode] = field.value.map((row: any) => {
+        const rowData: Record<string, any> = {};
+        Object.keys(row.value).forEach((innerCode) => {
+          const innerField = row.value[innerCode];
+          rowData[innerCode] = innerField?.value;
+        });
+        return rowData;
+      });
+    } else {
+      data[fieldCode] = field.value;
+    }
+  });
+
+  return data;
+}
+
+const callRenderApi = async (
+  config: PluginConfig,
+  recordId: string,
+  templateData: any,
+): Promise<Blob> => {
   const response = await fetch(`${config.apiBaseUrl.replace(/\/$/, '')}/render`, {
     method: 'POST',
     headers: {
@@ -215,6 +284,7 @@ const callRenderApi = async (config: PluginConfig, recordId: string): Promise<Bl
     },
     body: JSON.stringify({
       templateId: config.templateId,
+      data: templateData,
       kintone: {
         baseUrl: location.origin,
         appId: (window as any).kintone?.app?.getId?.(),
@@ -225,13 +295,20 @@ const callRenderApi = async (config: PluginConfig, recordId: string): Promise<Bl
   });
 
   if (!response.ok) {
-    let message: string;
+    // ★ body は一度だけ読む
+    let message = '';
     try {
-      const payload = (await response.json()) as { error?: string };
-      message = payload.error ?? (await response.text());
+      const text = await response.text();
+      try {
+        const payload = JSON.parse(text) as { error?: string };
+        message = payload.error ?? text;
+      } catch {
+        message = text || 'Unknown error';
+      }
     } catch {
-      message = await response.text();
+      message = 'Unknown error (failed to read response body)';
     }
+
     throw new Error(`PDF生成に失敗しました: ${message}`);
   }
 
@@ -259,15 +336,32 @@ const addButton = (config: PluginConfig) => {
       return;
     }
 
+    const templateData = buildTemplateDataFromKintoneRecord(record);
     setButtonLoading(button, true);
 
     try {
-      const pdfBlob = await callRenderApi(config, recordId);
+      const pdfBlob = await callRenderApi(config, recordId, templateData);
+
+      // ① PDF表示
+      const url = URL.createObjectURL(pdfBlob);
+      window.open(url, "_blank");
+
+      // ここから添付処理 --------------------
+      console.log('PlugBits: start upload');  // ← デバッグ用
+
       const fileKey = await uploadFile(pdfBlob);
+      console.log('PlugBits: fileKey', fileKey);
+
       await updateRecordAttachment(recordId, config.attachmentFieldCode, fileKey);
+      console.log('PlugBits: record updated');
+
       notify('PDFを添付フィールドに保存しました', 'success');
-      (window as any).kintone?.app?.record?.set(record);
+
+      // 画面リロード（添付を反映）
+      location.reload();
+      // -----------------------------------
     } catch (error) {
+      console.error(error);
       notify(error instanceof Error ? error.message : 'PDF生成に失敗しました', 'error');
     } finally {
       setButtonLoading(button, false);

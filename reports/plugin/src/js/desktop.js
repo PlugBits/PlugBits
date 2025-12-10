@@ -60,7 +60,28 @@
       throw new Error(`\u30EC\u30B3\u30FC\u30C9\u66F4\u65B0\u306B\u5931\u6557\u3057\u307E\u3057\u305F: ${text}`);
     }
   };
-  var callRenderApi = async (config, recordId) => {
+  var buildTemplateDataFromKintoneRecord = (record) => {
+    const data = {};
+    Object.keys(record).forEach((fieldCode) => {
+      const field = record[fieldCode];
+      if (!field) return;
+      if (field.type === "SUBTABLE") {
+        data[fieldCode] = field.value.map((row) => {
+          const rowData = {};
+          Object.keys(row.value).forEach((innerCode) => {
+            const innerField = row.value[innerCode];
+            rowData[innerCode] = innerField && innerField.value;
+          });
+          return rowData;
+        });
+      } else {
+        data[fieldCode] = field.value;
+      }
+    });
+    return data;
+  };
+
+  var callRenderApi = async (config, recordId, templateData) => {
     const response = await fetch(`${config.apiBaseUrl.replace(/\/$/, "")}/render`, {
       method: "POST",
       headers: {
@@ -69,6 +90,7 @@
       },
       body: JSON.stringify({
         templateId: config.templateId,
+        data: templateData,
         kintone: {
           baseUrl: location.origin,
           appId: window.kintone?.app?.getId?.(),
@@ -79,7 +101,7 @@
     });
     if (!response.ok) {
       const text = await response.text();
-      throw new Error(`PDF\u751F\u6210\u306B\u5931\u6557\u3057\u307E\u3057\u305F: ${text}`);
+      throw new Error(`PDF生成に失敗しました: ${text}`);
     }
     return response.blob();
   };
@@ -100,10 +122,16 @@
         notify("\u30EC\u30B3\u30FC\u30C9ID\u304C\u53D6\u5F97\u3067\u304D\u307E\u305B\u3093");
         return;
       }
+
+      const templateData = buildTemplateDataFromKintoneRecord(record);
       button.disabled = true;
       button.textContent = "PDF\u751F\u6210\u4E2D...";
       try {
-        const pdfBlob = await callRenderApi(config, recordId);
+        const pdfBlob = await callRenderApi(config, recordId, templateData);
+
+        const objectUrl = URL.createObjectURL(pdfBlob);
+        window.open(objectUrl, "_blank");
+
         const fileKey = await uploadFile(pdfBlob);
         await updateRecordAttachment(recordId, config.attachmentFieldCode, fileKey);
         notify("PDF\u3092\u6DFB\u4ED8\u30D5\u30A3\u30FC\u30EB\u30C9\u306B\u4FDD\u5B58\u3057\u307E\u3057\u305F");

@@ -1,13 +1,20 @@
-// worker/src/fonts/fontLoader.ts
-import { NOTO_SANS_JP_BASE64 } from "./notoSansJpBase64.js";
+// src/fonts/fontLoader.ts
 
-export function getDefaultFontBytes(): Uint8Array {
-  const binary = globalThis.atob(NOTO_SANS_JP_BASE64);
-  const len = binary.length;
-  const bytes = new Uint8Array(len);
-  for (let i = 0; i < len; i++) {
-    bytes[i] = binary.charCodeAt(i);
+// Env 型は index.ts の Env と同じでOK or ここで定義してもOK
+export interface Env {
+  FONT_SOURCE_URL?: string;
+}
+
+// Worker外部に置いたフォントを取得する
+export async function getDefaultFontBytes(env: Env): Promise<Uint8Array> {
+  const url =
+    env.FONT_SOURCE_URL ??
+    "https://raw.githubusercontent.com/xxxx/your-font-path/NotoSansJP-Regular.otf";
+
+  const res = await fetch(url);
+  if (!res.ok) {
+    throw new Error(`Failed to fetch font from ${url}: ${res.status}`);
   }
-  console.log("NotoSansJP font byteLength:", bytes.length);
-  return bytes;
+  const arrayBuffer = await res.arrayBuffer();
+  return new Uint8Array(arrayBuffer);
 }

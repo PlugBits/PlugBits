@@ -1,6 +1,9 @@
-const getPluginId = () => (window as any).kintone?.$PLUGIN_ID || '';
 
-type PluginConfig = {
+const PLUGIN_ID =
+  (typeof kintone !== 'undefined' ? (kintone as any).$PLUGIN_ID : '') || '';
+
+
+export type PluginConfig = {
   apiBaseUrl: string;
   apiKey: string;
   kintoneApiToken: string;
@@ -17,12 +20,14 @@ const buildInitialConfig = (): PluginConfig => ({
 });
 
 const loadConfig = (): PluginConfig => {
-  const pluginId = getPluginId();
-  if (!pluginId) {
+  if (!PLUGIN_ID) {
+    // 開発中などで kintone がまだ無い場合用（または初期値）
     return buildInitialConfig();
   }
 
-  const rawConfig = (window as any).kintone?.plugin?.app?.getConfig(pluginId) || {};
+  const rawConfig =
+    (kintone as any).plugin?.app?.getConfig(PLUGIN_ID) || {};
+
   return {
     apiBaseUrl: rawConfig.apiBaseUrl ?? '',
     apiKey: rawConfig.apiKey ?? '',
@@ -31,6 +36,8 @@ const loadConfig = (): PluginConfig => {
     attachmentFieldCode: rawConfig.attachmentFieldCode ?? '',
   };
 };
+
+
 
 const renderForm = () => {
   const container = document.getElementById('plugbits-plugin-config');
@@ -90,21 +97,15 @@ const renderForm = () => {
     if (
       !payload.apiBaseUrl ||
       !payload.apiKey ||
-      !payload.kintoneApiToken ||
       !payload.templateId ||
       !payload.attachmentFieldCode
     ) {
-      alert('必須項目が未入力です');
+      alert('API ベースURL、API キー、テンプレートID、添付フィールドコードは必須です');
       return;
     }
 
-    const pluginId = getPluginId();
-    if (!pluginId) {
-      alert('プラグインIDが検出できませんでした');
-      return;
-    }
+    (kintone as any).plugin?.app?.setConfig(payload);
 
-    (window as any).kintone?.plugin?.app?.setConfig(payload);
   });
 
   document.getElementById('cancelButton')?.addEventListener('click', () => {
