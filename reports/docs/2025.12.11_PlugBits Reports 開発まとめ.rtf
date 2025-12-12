@@ -1,0 +1,238 @@
+{\rtf1\ansi\ansicpg932\cocoartf2867
+\cocoatextscaling0\cocoaplatform0{\fonttbl\f0\fswiss\fcharset0 Helvetica;\f1\fmodern\fcharset0 Courier-Bold;\f2\froman\fcharset0 Times-Bold;
+\f3\froman\fcharset0 Times-Roman;}
+{\colortbl;\red255\green255\blue255;\red0\green0\blue0;\red109\green109\blue109;}
+{\*\expandedcolortbl;;\cssrgb\c0\c0\c0;\cssrgb\c50196\c50196\c50196;}
+{\*\listtable{\list\listtemplateid1\listhybrid{\listlevel\levelnfc23\levelnfcn23\leveljc0\leveljcn0\levelfollow0\levelstartat1\levelspace360\levelindent0{\*\levelmarker \{disc\}}{\leveltext\leveltemplateid1\'01\uc0\u8226 ;}{\levelnumbers;}\fi-360\li720\lin720 }{\listname ;}\listid1}
+{\list\listtemplateid2\listhybrid{\listlevel\levelnfc23\levelnfcn23\leveljc0\leveljcn0\levelfollow0\levelstartat1\levelspace360\levelindent0{\*\levelmarker \{disc\}}{\leveltext\leveltemplateid101\'01\uc0\u8226 ;}{\levelnumbers;}\fi-360\li720\lin720 }{\listname ;}\listid2}
+{\list\listtemplateid3\listhybrid{\listlevel\levelnfc23\levelnfcn23\leveljc0\leveljcn0\levelfollow0\levelstartat1\levelspace360\levelindent0{\*\levelmarker \{disc\}}{\leveltext\leveltemplateid201\'01\uc0\u8226 ;}{\levelnumbers;}\fi-360\li720\lin720 }{\listname ;}\listid3}
+{\list\listtemplateid4\listhybrid{\listlevel\levelnfc23\levelnfcn23\leveljc0\leveljcn0\levelfollow0\levelstartat1\levelspace360\levelindent0{\*\levelmarker \{disc\}}{\leveltext\leveltemplateid301\'01\uc0\u8226 ;}{\levelnumbers;}\fi-360\li720\lin720 }{\listname ;}\listid4}
+{\list\listtemplateid5\listhybrid{\listlevel\levelnfc0\levelnfcn0\leveljc0\leveljcn0\levelfollow0\levelstartat1\levelspace360\levelindent0{\*\levelmarker \{decimal\}}{\leveltext\leveltemplateid401\'01\'00;}{\levelnumbers\'01;}\fi-360\li720\lin720 }{\listname ;}\listid5}}
+{\*\listoverridetable{\listoverride\listid1\listoverridecount0\ls1}{\listoverride\listid2\listoverridecount0\ls2}{\listoverride\listid3\listoverridecount0\ls3}{\listoverride\listid4\listoverridecount0\ls4}{\listoverride\listid5\listoverridecount0\ls5}}
+\margl1440\margr1440\vieww11520\viewh8400\viewkind0
+\pard\tx566\tx1133\tx1700\tx2267\tx2834\tx3401\tx3968\tx4535\tx5102\tx5669\tx6236\tx6803\pardirnatural\partightenfactor0
+
+\f0\fs24 \cf0 # PlugBits Reports \uc0\u38283 \u30330 \u12414 \u12392 \u12417 \u65288 \u12316 2025/12/10\u65289 \
+\
+## 1. \uc0\u29694 \u22312 \u12398 \u23455 \u35013 \u29366 \u27841 \
+\
+### \uc0\u10004  Cloudflare Workers \u12505 \u12540 \u12473 \u12398  PDF \u29983 \u25104  API \u23436 \u25104 \
+- `/render` \uc0\u12395  JSON \u12434  POST \u12377 \u12427 \u12392  PDF \u12434 \u36820 \u12377 \u20181 \u32068 \u12415 \u12364 \u23433 \u23450 \u21205 \u20316 \u12290 \
+- kintone \uc0\u12503 \u12521 \u12464 \u12452 \u12531 \u12363 \u12425 \u12398 \u12522 \u12463 \u12456 \u12473 \u12488 \u12418 \u20966 \u29702 \u21487 \u33021 \u12290 \
+- CORS & API Key \uc0\u23550 \u24540 \u28168 \u12415 \u12290 \
+\
+### \uc0\u10004  \u12486 \u12531 \u12503 \u12524 \u12540 \u12488 \u27083 \u36896 \u65288 TemplateDefinition\u65289 \
+- \uc0\u12486 \u12461 \u12473 \u12488 \u12289 \u12521 \u12505 \u12523 \u12289 \u12486 \u12540 \u12502 \u12523 \u12289 \u30011 \u20687 \u65288 \u26528 \u12398 \u12415 \u65289 \u12395 \u23550 \u24540 \u12290 \
+- `dataSource` \uc0\u12391  kintone \u12501 \u12451 \u12540 \u12523 \u12489 \u12392 \u32016 \u12389 \u12369 \u12290 \
+- \uc0\u12486 \u12531 \u12503 \u12524 \u12540 \u12488 \u12399  JSON \u12392 \u12375 \u12390  KV \u12395 \u20445 \u23384 \u12375 \u12289 `templateId` \u12391 \u21628 \u12403 \u20986 \u12375 \u21487 \u33021 \u12290 \
+\
+### \uc0\u10004  kintone \u36899 \u25658 \u65288 \u12503 \u12521 \u12464 \u12452 \u12531 \u20596 \u65289 \
+- \uc0\u12524 \u12467 \u12540 \u12489 \u30011 \u38754 \u12395 \u12300 PDF\u20986 \u21147 (PlugBits)\u12301 \u12508 \u12479 \u12531 \u12434 \u36861 \u21152 \u12290 \
+- \uc0\u12503 \u12521 \u12464 \u12452 \u12531 \u35373 \u23450 \u30011 \u38754 \u12391 \u20197 \u19979 \u12434 \u25351 \u23450 \u65306 \
+  - API Base URL\
+  - API Key\
+  - TemplateId\
+  - \uc0\u28155 \u20184 \u12501 \u12449 \u12452 \u12523 \u12501 \u12451 \u12540 \u12523 \u12489 \u12467 \u12540 \u12489 \
+- PDF \uc0\u20986 \u21147 \u24460 \u12289 \u33258 \u21205 \u12391 \u12501 \u12449 \u12452 \u12523 \u12450 \u12483 \u12503 \u12525 \u12540 \u12489  \u8594  \u28155 \u20184 \u12501 \u12451 \u12540 \u12523 \u12489 \u12408 \u21453 \u26144 \u28168 \u12415 \u12290 \
+\
+### \uc0\u10004  kintone \u8594  PDF \u12408 \u12398 \u12487 \u12540 \u12479 \u22475 \u12417 \u36796 \u12415 \
+- \uc0\u12524 \u12467 \u12540 \u12489 \u12398 \u12501 \u12451 \u12540 \u12523 \u12489 \u20516 \u12434 \u33258 \u21205 \u12391 \u25277 \u20986 \u12375 \u12289 \u12486 \u12531 \u12503 \u12524 \u12540 \u12488 \u12398  text \u35201 \u32032 \u12408 \u25407 \u20837 \u25104 \u21151 \u12290 \
+- `buildTemplateDataFromKintoneRecord()` \uc0\u12395 \u12424 \u12426 \u20840 \u12501 \u12451 \u12540 \u12523 \u12489 \u23550 \u24540 \u28168 \u12415 \u12290 \
+- \uc0\u12469 \u12502 \u12486 \u12540 \u12502 \u12523 \u12398 \u20516 \u12418 \u12486 \u12540 \u12502 \u12523 \u25551 \u30011 \u12395 \u21453 \u26144 \u21487 \u33021 \u12290 \
+\
+---\
+\
+## 2. \uc0\u12501 \u12457 \u12531 \u12488 \u26368 \u36969 \u21270 \u65288 \u37325 \u35201 \u36914 \u25431 \u65289 \
+\
+### \uc0\u10004  \u26085 \u26412 \u35486 \u12501 \u12457 \u12531 \u12488 \u65288 NotoSansJP\u65289 \u12398 \u12469 \u12502 \u12475 \u12483 \u12488 \u21270 \u23436 \u20102 \
+- business \uc0\u29992 \u12398 \u25991 \u23383 \u12475 \u12483 \u12488 \u12384 \u12369 \u12395 \u32094 \u12426 \u36796 \u12415 \u25104 \u21151 \u12290 \
+- \uc0\u20803 \u12398  16MB \u12463 \u12521 \u12473  \u8594  \u32004  **1.2MB** \u12398 \u36605 \u37327 \u21270 \u12290 \
+- PDF\uc0\u12469 \u12452 \u12474 \u12418  900KB\u12316 1.2MB \u31243 \u24230 \u12395 \u21454 \u12414 \u12387 \u12383 \u12290 \
+\
+### \uc0\u10004  \u27431 \u25991 \u12501 \u12457 \u12531 \u12488 \u65288 Roboto\u65289 \u12398 \u23566 \u20837 \
+- \uc0\u26085 \u26412 \u35486 \u12501 \u12457 \u12531 \u12488 \u12392 \u12399 \u21029 \u12395  **Latin \u12501 \u12457 \u12531 \u12488 \u65288 Roboto-Regular\u65289 ** \u12434 \u22475 \u12417 \u36796 \u12416 \u26041 \u24335 \u12408 \u22793 \u26356 \u12290 \
+- \uc0\u25968 \u23383 \u12539 \u35352 \u21495 \u12539 \u37329 \u38989 \u12364 \u22311 \u20498 \u30340 \u12395 \u35211 \u12420 \u12377 \u12367 \u25913 \u21892 \u12290 \
+- PDF \uc0\u12398 \u35211 \u12383 \u30446 \u12364 \u24115 \u31080  SaaS \u12524 \u12505 \u12523 \u12408 \u21040 \u36948 \u12290 \
+\
+### \uc0\u10004  \u33258 \u21205 \u12501 \u12457 \u12531 \u12488 \u20999 \u12426 \u26367 \u12360 \u12525 \u12472 \u12483 \u12463 \u23455 \u35013 \
+- \uc0\u25968 \u23383 \u12398 \u12415 \u12398 \u25991 \u23383 \u21015 \u12399  latinFont \u12434 \u20351 \u29992 \u12290 \
+- \uc0\u26085 \u26412 \u35486 \u12364 \u21547 \u12414 \u12428 \u12428 \u12400  jpFont \u12434 \u20351 \u29992 \u12290 \
+- \uc0\u12486 \u12540 \u12502 \u12523 \u12475 \u12523 \u12395 \u12418 \u23550 \u24540 \u12290 \
+\
+---\
+\
+## 3. Worker \uc0\u20596 \u12467 \u12540 \u12489 \u12398 \u20027 \u12394 \u22793 \u26356 \u28857 \
+\
+### \uc0\u10004  \u12501 \u12457 \u12531 \u12488 \u35501 \u12415 \u36796 \u12415 \u26041 \u27861 \u12434  `getFonts()` \u12395 \u32113 \u19968 \
+- `FONT_SOURCE_URL`: \uc0\u26085 \u26412 \u35486 \u12469 \u12502 \u12475 \u12483 \u12488 \u12501 \u12457 \u12531 \u12488 \
+- `LATIN_FONT_URL`: Roboto-Regular\
+\
+```ts\
+const fonts = await getFonts(env);\
+const jpFont = await pdfDoc.embedFont(fonts.jp);\
+const latinFont = await pdfDoc.embedFont(fonts.latin);\
+\
+# PlugBits Reports \uc0\u38283 \u30330 \u12414 \u12392 \u12417 \u65288 \u12316 2025/12/10\u65289 \
+\
+## 1. \uc0\u29694 \u22312 \u12398 \u23455 \u35013 \u29366 \u27841 \
+\
+### \uc0\u10004  Cloudflare Workers \u12505 \u12540 \u12473 \u12398  PDF \u29983 \u25104  API \u23436 \u25104 \
+- `/render` \uc0\u12395  JSON \u12434  POST \u12377 \u12427 \u12392  PDF \u12434 \u36820 \u12377 \u20181 \u32068 \u12415 \u12364 \u23433 \u23450 \u21205 \u20316 \u12290 \
+- kintone \uc0\u12503 \u12521 \u12464 \u12452 \u12531 \u12363 \u12425 \u12398 \u12522 \u12463 \u12456 \u12473 \u12488 \u12418 \u20966 \u29702 \u21487 \u33021 \u12290 \
+- CORS & API Key \uc0\u23550 \u24540 \u28168 \u12415 \u12290 \
+\
+### \uc0\u10004  \u12486 \u12531 \u12503 \u12524 \u12540 \u12488 \u27083 \u36896 \u65288 TemplateDefinition\u65289 \
+- \uc0\u12486 \u12461 \u12473 \u12488 \u12289 \u12521 \u12505 \u12523 \u12289 \u12486 \u12540 \u12502 \u12523 \u12289 \u30011 \u20687 \u65288 \u26528 \u12398 \u12415 \u65289 \u12395 \u23550 \u24540 \u12290 \
+- `dataSource` \uc0\u12391  kintone \u12501 \u12451 \u12540 \u12523 \u12489 \u12392 \u32016 \u12389 \u12369 \u12290 \
+- \uc0\u12486 \u12531 \u12503 \u12524 \u12540 \u12488 \u12399  JSON \u12392 \u12375 \u12390  KV \u12395 \u20445 \u23384 \u12375 \u12289 `templateId` \u12391 \u21628 \u12403 \u20986 \u12375 \u21487 \u33021 \u12290 \
+\
+### \uc0\u10004  kintone \u36899 \u25658 \u65288 \u12503 \u12521 \u12464 \u12452 \u12531 \u20596 \u65289 \
+- \uc0\u12524 \u12467 \u12540 \u12489 \u30011 \u38754 \u12395 \u12300 PDF\u20986 \u21147 (PlugBits)\u12301 \u12508 \u12479 \u12531 \u12434 \u36861 \u21152 \u12290 \
+- \uc0\u12503 \u12521 \u12464 \u12452 \u12531 \u35373 \u23450 \u30011 \u38754 \u12391 \u20197 \u19979 \u12434 \u25351 \u23450 \u65306 \
+  - API Base URL\
+  - API Key\
+  - TemplateId\
+  - \uc0\u28155 \u20184 \u12501 \u12449 \u12452 \u12523 \u12501 \u12451 \u12540 \u12523 \u12489 \u12467 \u12540 \u12489 \
+- PDF \uc0\u20986 \u21147 \u24460 \u12289 \u33258 \u21205 \u12391 \u12501 \u12449 \u12452 \u12523 \u12450 \u12483 \u12503 \u12525 \u12540 \u12489  \u8594  \u28155 \u20184 \u12501 \u12451 \u12540 \u12523 \u12489 \u12408 \u21453 \u26144 \u28168 \u12415 \u12290 \
+\
+### \uc0\u10004  kintone \u8594  PDF \u12408 \u12398 \u12487 \u12540 \u12479 \u22475 \u12417 \u36796 \u12415 \
+- \uc0\u12524 \u12467 \u12540 \u12489 \u12398 \u12501 \u12451 \u12540 \u12523 \u12489 \u20516 \u12434 \u33258 \u21205 \u12391 \u25277 \u20986 \u12375 \u12289 \u12486 \u12531 \u12503 \u12524 \u12540 \u12488 \u12398  text \u35201 \u32032 \u12408 \u25407 \u20837 \u25104 \u21151 \u12290 \
+- `buildTemplateDataFromKintoneRecord()` \uc0\u12395 \u12424 \u12426 \u20840 \u12501 \u12451 \u12540 \u12523 \u12489 \u23550 \u24540 \u28168 \u12415 \u12290 \
+- \uc0\u12469 \u12502 \u12486 \u12540 \u12502 \u12523 \u12398 \u20516 \u12418 \u12486 \u12540 \u12502 \u12523 \u25551 \u30011 \u12395 \u21453 \u26144 \u21487 \u33021 \u12290 \
+\
+---\
+\
+## 2. \uc0\u12501 \u12457 \u12531 \u12488 \u26368 \u36969 \u21270 \u65288 \u37325 \u35201 \u36914 \u25431 \u65289 \
+\
+### \uc0\u10004  \u26085 \u26412 \u35486 \u12501 \u12457 \u12531 \u12488 \u65288 NotoSansJP\u65289 \u12398 \u12469 \u12502 \u12475 \u12483 \u12488 \u21270 \u23436 \u20102 \
+- business \uc0\u29992 \u12398 \u25991 \u23383 \u12475 \u12483 \u12488 \u12384 \u12369 \u12395 \u32094 \u12426 \u36796 \u12415 \u25104 \u21151 \u12290 \
+- \uc0\u20803 \u12398  16MB \u12463 \u12521 \u12473  \u8594  \u32004  **1.2MB** \u12398 \u36605 \u37327 \u21270 \u12290 \
+- PDF\uc0\u12469 \u12452 \u12474 \u12418  900KB\u12316 1.2MB \u31243 \u24230 \u12395 \u21454 \u12414 \u12387 \u12383 \u12290 \
+\
+### \uc0\u10004  \u27431 \u25991 \u12501 \u12457 \u12531 \u12488 \u65288 Roboto\u65289 \u12398 \u23566 \u20837 \
+- \uc0\u26085 \u26412 \u35486 \u12501 \u12457 \u12531 \u12488 \u12392 \u12399 \u21029 \u12395  **Latin \u12501 \u12457 \u12531 \u12488 \u65288 Roboto-Regular\u65289 ** \u12434 \u22475 \u12417 \u36796 \u12416 \u26041 \u24335 \u12408 \u22793 \u26356 \u12290 \
+- \uc0\u25968 \u23383 \u12539 \u35352 \u21495 \u12539 \u37329 \u38989 \u12364 \u22311 \u20498 \u30340 \u12395 \u35211 \u12420 \u12377 \u12367 \u25913 \u21892 \u12290 \
+- PDF \uc0\u12398 \u35211 \u12383 \u30446 \u12364 \u24115 \u31080  SaaS \u12524 \u12505 \u12523 \u12408 \u21040 \u36948 \u12290 \
+\
+### \uc0\u10004  \u33258 \u21205 \u12501 \u12457 \u12531 \u12488 \u20999 \u12426 \u26367 \u12360 \u12525 \u12472 \u12483 \u12463 \u23455 \u35013 \
+- \uc0\u25968 \u23383 \u12398 \u12415 \u12398 \u25991 \u23383 \u21015 \u12399  latinFont \u12434 \u20351 \u29992 \u12290 \
+- \uc0\u26085 \u26412 \u35486 \u12364 \u21547 \u12414 \u12428 \u12428 \u12400  jpFont \u12434 \u20351 \u29992 \u12290 \
+- \uc0\u12486 \u12540 \u12502 \u12523 \u12475 \u12523 \u12395 \u12418 \u23550 \u24540 \u12290 \
+\
+---\
+\
+## 3. Worker \uc0\u20596 \u12467 \u12540 \u12489 \u12398 \u20027 \u12394 \u22793 \u26356 \u28857 \
+\
+### \uc0\u10004  \u12501 \u12457 \u12531 \u12488 \u35501 \u12415 \u36796 \u12415 \u26041 \u27861 \u12434  `getFonts()` \u12395 \u32113 \u19968 \
+- `FONT_SOURCE_URL`: \uc0\u26085 \u26412 \u35486 \u12469 \u12502 \u12475 \u12483 \u12488 \u12501 \u12457 \u12531 \u12488 \
+- `LATIN_FONT_URL`: Roboto-Regular\
+\
+```ts\
+const fonts = await getFonts(env);\
+const jpFont = await pdfDoc.embedFont(fonts.jp);\
+const latinFont = await pdfDoc.embedFont(fonts.latin);\
+\pard\pardeftab720\sa280\partightenfactor0
+
+\f1\b\fs30\fsmilli15210 \cf0 \expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec2 /render
+\f2\fs28  API \uc0\u12398 \u20869 \u37096 \u12418  2\u12501 \u12457 \u12531 \u12488 \u23550 \u24540 \u12408 \u31227 \u34892 \u28168 \u12415 \u12290 \
+\pard\pardeftab720\partightenfactor0
+
+\f3\b0\fs24 \cf3 \strokec3 \
+\pard\pardeftab720\sa298\partightenfactor0
+
+\f2\b\fs36 \cf0 \strokec2 4. \uc0\u29694 \u26178 \u28857 \u12398  PDF \u20986 \u21147 \u21697 \u36074 \
+\pard\pardeftab720\sa280\partightenfactor0
+
+\fs28 \cf0 \uc0\u10004  \u27491 \u24120 \u12395  kintone \u12501 \u12451 \u12540 \u12523 \u12489  \u8594  PDF \u12395 \u21453 \u26144 \
+\uc0\u10004  \u26085 \u26412 \u35486 \u37096 \u20998 \u12399  Noto Sans JP\
+\uc0\u10004  \u25968 \u23383 \u12539 \u37329 \u38989 \u12399  Roboto Regular\
+\uc0\u10004  PDF \u12501 \u12449 \u12452 \u12523 \u12469 \u12452 \u12474 \u65306 \u32004  1\u12316 1.2MB\
+\pard\pardeftab720\sa240\partightenfactor0
+
+\f3\b0\fs24 \cf0 \uc0\u8594  \u26989 \u21209 \u24115 \u31080 \u12392 \u12375 \u12390 \u23455 \u29992 \u21313 \u20998 \u12290 \
+\pard\pardeftab720\partightenfactor0
+\cf3 \strokec3 \
+\pard\pardeftab720\sa298\partightenfactor0
+
+\f2\b\fs36 \cf0 \strokec2 5. \uc0\u12469 \u12540 \u12499 \u12473 \u12392 \u12375 \u12390 \u36914 \u25431 \u12375 \u12383 \u28857 \
+\pard\tx220\tx720\pardeftab720\li720\fi-720\sa240\partightenfactor0
+\ls1\ilvl0
+\f3\b0\fs24 \cf0 \kerning1\expnd0\expndtw0 \outl0\strokewidth0 {\listtext	\uc0\u8226 	}\expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec2 \uc0\u12503 \u12521 \u12464 \u12452 \u12531  \u8594  Worker \u8594  PDF \u12392 \u12356 \u12358 \u19968 \u36899 \u12398 \u27969 \u12428 \u12364 \u23436 \u25104 \u12290 \
+\ls1\ilvl0\kerning1\expnd0\expndtw0 \outl0\strokewidth0 {\listtext	\uc0\u8226 	}\expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec2 \uc0\u23455 \u38555 \u12398 \u24115 \u31080 \u12486 \u12531 \u12503 \u12524 \u12540 \u12488  JSON \u12418 \u21205 \u20316 \u26908 \u35388 \u28168 \u12415 \u12290 \
+\ls1\ilvl0\kerning1\expnd0\expndtw0 \outl0\strokewidth0 {\listtext	\uc0\u8226 	}\expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec2 SaaS\uc0\u12392 \u12375 \u12390  MVP \u12364 \u25104 \u31435 \u12391 \u12365 \u12427 \u12524 \u12505 \u12523 \u12395 \u21040 \u36948 \u12290 \
+\pard\pardeftab720\partightenfactor0
+\cf3 \strokec3 \
+\pard\pardeftab720\sa298\partightenfactor0
+
+\f2\b\fs36 \cf0 \strokec2 6. \uc0\u20170 \u24460 \u12398 \u38283 \u30330 \u20505 \u35036 \u65288 \u27425 \u12473 \u12524 \u12391 \u23550 \u24540 \u20104 \u23450 \u65289 \
+\pard\pardeftab720\sa280\partightenfactor0
+
+\fs28 \cf0 \uc0\u55357 \u56613  \u20778 \u20808 \u24230 \u39640 \
+\pard\tx220\tx720\pardeftab720\li720\fi-720\sa240\partightenfactor0
+\ls2\ilvl0
+\f3\b0\fs24 \cf0 \kerning1\expnd0\expndtw0 \outl0\strokewidth0 {\listtext	\uc0\u8226 	}\expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec2 \uc0\u12486 \u12540 \u12502 \u12523 \u12398  
+\f2\b \uc0\u35079 \u25968 \u12506 \u12540 \u12472 \u23550 \u24540 
+\f3\b0 \uc0\u65288 \u25913 \u12506 \u12540 \u12472 \u20966 \u29702 \u65289 \
+\ls2\ilvl0\kerning1\expnd0\expndtw0 \outl0\strokewidth0 {\listtext	\uc0\u8226 	}\expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec2 PDF \uc0\u20869 \u12398  
+\f2\b \uc0\u38917 \u30446 \u12496 \u12521 \u12531 \u12473 \u35519 \u25972 
+\f3\b0 \uc0\u65288 \u34892 \u38291 \u12539 \u20313 \u30333 \u65289 \
+\ls2\ilvl0\kerning1\expnd0\expndtw0 \outl0\strokewidth0 {\listtext	\uc0\u8226 	}\expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec2 \uc0\u12486 \u12531 \u12503 \u12524 \u12540 \u12488 \u12456 \u12487 \u12451 \u12479  UI\u65288 Web\u12450 \u12503 \u12522 \u21270 \u65289 \
+\ls2\ilvl0\kerning1\expnd0\expndtw0 \outl0\strokewidth0 {\listtext	\uc0\u8226 	}\expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec2 \uc0\u12486 \u12531 \u12503 \u12524  KV \u31649 \u29702 \u12398 \u33258 \u21205 \u21270 \u65288 \u19968 \u35239  / \u32232 \u38598 \u65289 \
+\pard\pardeftab720\sa280\partightenfactor0
+
+\f2\b\fs28 \cf0 \uc0\u55357 \u56613  \u20013 \u20778 \u20808 \
+\pard\tx220\tx720\pardeftab720\li720\fi-720\sa240\partightenfactor0
+\ls3\ilvl0
+\f3\b0\fs24 \cf0 \kerning1\expnd0\expndtw0 \outl0\strokewidth0 {\listtext	\uc0\u8226 	}\expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec2 Roboto \uc0\u12398 \u12469 \u12502 \u12475 \u12483 \u12488 \u21270 \u65288 \u25968 \u23383 \u12384 \u12369 \u27531 \u12377  \u8594  \u12373 \u12425 \u12395 \u36605 \u37327 \u21270 \u65289 \
+\ls3\ilvl0\kerning1\expnd0\expndtw0 \outl0\strokewidth0 {\listtext	\uc0\u8226 	}\expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec2 \uc0\u30011 \u20687 \u35201 \u32032 \u12398 \u23455 \u35013 \u65288 \u12525 \u12468 \u25407 \u20837 \u12394 \u12393 \u65289 \
+\ls3\ilvl0\kerning1\expnd0\expndtw0 \outl0\strokewidth0 {\listtext	\uc0\u8226 	}\expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec2 \uc0\u32619 \u32218 \u12398 \u22826 \u12373  / \u12473 \u12479 \u12452 \u12523 \u35373 \u23450 \
+\pard\pardeftab720\sa280\partightenfactor0
+
+\f2\b\fs28 \cf0 \uc0\u55357 \u56613  \u20302 \u20778 \u20808 \
+\pard\tx220\tx720\pardeftab720\li720\fi-720\sa240\partightenfactor0
+\ls4\ilvl0
+\f3\b0\fs24 \cf0 \kerning1\expnd0\expndtw0 \outl0\strokewidth0 {\listtext	\uc0\u8226 	}\expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec2 PDF \uc0\u22311 \u32302 \u65288 \u21487 \u33021 \u12384 \u12364 \u20778 \u20808 \u24230 \u20302 \u65289 \
+\ls4\ilvl0\kerning1\expnd0\expndtw0 \outl0\strokewidth0 {\listtext	\uc0\u8226 	}\expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec2 SaaS\uc0\u35506 \u37329 \u12414 \u12431 \u12426 \u65288 Stripe integration\u65289 \
+\pard\pardeftab720\partightenfactor0
+\cf3 \strokec3 \
+\pard\pardeftab720\sa298\partightenfactor0
+
+\f2\b\fs36 \cf0 \strokec2 7. \uc0\u29694 \u26178 \u28857 \u12398 \u12414 \u12392 \u12417 \u65288 \u37325 \u35201 \u65289 \
+\pard\tx220\tx720\pardeftab720\li720\fi-720\sa240\partightenfactor0
+\ls5\ilvl0
+\fs24 \cf0 \kerning1\expnd0\expndtw0 \outl0\strokewidth0 {\listtext	1	}\expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec2 PlugBits Reports \uc0\u12398 \u22522 \u30436 \u65288 PDF\u29983 \u25104 \u65289 \u12399 \u23436 \u25104 \u12524 \u12505 \u12523 
+\f3\b0 \
+\ls5\ilvl0
+\f2\b \kerning1\expnd0\expndtw0 \outl0\strokewidth0 {\listtext	2	}\expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec2 kintone \uc0\u12392 \u12398 \u12522 \u12450 \u12523 \u36899 \u25658 \u12418 \u31292 \u20685 \u28168 \u12415 
+\f3\b0 \
+\ls5\ilvl0
+\f2\b \kerning1\expnd0\expndtw0 \outl0\strokewidth0 {\listtext	3	}\expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec2 \uc0\u12501 \u12457 \u12531 \u12488 \u21839 \u38988 \u12364 \u35299 \u27770 \u12375 \u12289 \u24115 \u31080 \u12398 \u35211 \u12383 \u30446 \u12364 \u19968 \u27671 \u12395 \u39640 \u21697 \u36074 \u21270 
+\f3\b0 \
+\ls5\ilvl0
+\f2\b \kerning1\expnd0\expndtw0 \outl0\strokewidth0 {\listtext	4	}\expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec2 \uc0\u12371 \u12371 \u12363 \u12425 \u12399 \u27231 \u33021 \u25313 \u24373 \u12501 \u12455 \u12540 \u12474 \u65288 \u12486 \u12531 \u12503 \u12524 UI / \u25913 \u12506 \u12540 \u12472  / \u12486 \u12540 \u12502 \u12523 \u24375 \u21270 \u65289 
+\f3\b0 \
+\ls5\ilvl0\kerning1\expnd0\expndtw0 \outl0\strokewidth0 {\listtext	5	}\expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec2 SaaS\uc0\u12392 \u12375 \u12390 \u24066 \u22580 \u25237 \u20837 \u21487 \u33021 \u12394  MVP \u36335 \u32218 \u12364 \u35211 \u12360 \u12390 \u12365 \u12383 \u12290 \
+\pard\pardeftab720\partightenfactor0
+\cf3 \strokec3 \
+\pard\tx566\tx1133\tx1700\tx2267\tx2834\tx3401\tx3968\tx4535\tx5102\tx5669\tx6236\tx6803\pardirnatural\partightenfactor0
+
+\f0 \cf0 \kerning1\expnd0\expndtw0 \outl0\strokewidth0 \
+}

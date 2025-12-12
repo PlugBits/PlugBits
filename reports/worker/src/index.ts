@@ -5,13 +5,13 @@ import type {
 } from "../../shared/template.js";
 
 import { renderTemplateToPdf } from "./pdf/renderTemplate.js";
-import { getDefaultFontBytes } from "./fonts/fontLoader.js";
-import { SAMPLE_TEMPLATE } from "../../shared/template.js";
+import { getFonts } from "./fonts/fontLoader.js";
 
 
 // Wrangler の env 定義（あってもなくても動くよう optional にする）
 export interface Env {
   FONT_SOURCE_URL?: string;
+  LATIN_FONT_URL?: string; 
   TEMPLATE_KV: KVNamespace;
 }
 
@@ -38,9 +38,9 @@ const CORS_HEADERS: Record<string, string> = {
 };
 
 // フォント読み込み（今はデフォルト埋め込みフォントだけ）
-async function loadFontBytes(env: Env): Promise<Uint8Array> {
+async function loadFonts(env: Env): Promise<{ jp: Uint8Array; latin: Uint8Array }> {
   // 将来 FONT_SOURCE_URL から外部フォントを読む場合はここに処理を追加
-  return getDefaultFontBytes(env);
+  return getFonts(env);
 }
 
 
@@ -71,108 +71,116 @@ async function getTemplateById(
 
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
-    const url = new URL(request.url);
+    try {
+      const url = new URL(request.url);
 
-    // CORS preflight
-    if (request.method === "OPTIONS") {
-      return new Response(null, {
-        status: 204,
-        headers: CORS_HEADERS,
-      });
-    }
-
-    // ヘルスチェック
-    if (url.pathname === "/" && request.method === "GET") {
-      return new Response("PlugBits report worker is running.", {
-        status: 200,
-        headers: CORS_HEADERS,
-      });
-    }
-
-    // PDF レンダリング API
-    if (url.pathname === "/render" && request.method === "POST") {
-      let body: RenderRequestBody;
-
-      // JSON パース
-      try {
-        body = (await request.json()) as RenderRequestBody;
-      } catch {
-        return new Response("Invalid JSON body", {
-          status: 400,
+      // CORS preflight
+      if (request.method === "OPTIONS") {
+        return new Response(null, {
+          status: 204,
           headers: CORS_HEADERS,
         });
       }
 
-      // template / templateId のどちらかから TemplateDefinition を決定
-      let template: TemplateDefinition<TemplateDataRecord>;
+      // ヘルスチェック
+      if (url.pathname === "/" && request.method === "GET") {
+        return new Response("PlugBits report worker is running.", {
+          status: 200,
+          headers: CORS_HEADERS,
+        });
+      }
 
-      if (body.template) {
-        // 既存の UI などから template 本体を送ってくるパターン
-        template = body.template;
-      } else if (body.templateId) {
-        // kintone プラグインから templateId だけ送ってくるパターン
+      // PDF レンダリング API
+      if (url.pathname === "/render" && request.method === "POST") {
+        let body: RenderRequestBody;
+
+        // JSON パース
         try {
-          template = await getTemplateById(body.templateId, env);
-
-        } catch (err) {
-          const msg =
-            err instanceof Error ? err.message : "Unknown templateId";
-          return new Response(msg, {
+          body = (await request.json()) as RenderRequestBody;
+        } catch {
+          return new Response("Invalid JSON body", {
             status: 400,
             headers: CORS_HEADERS,
           });
         }
-      } else {
-        // どちらもない場合はエラー
-        return new Response(
-          "Missing 'template' or 'templateId' in request body",
-          {
-            status: 400,
+
+        // template / templateId のどちらかから TemplateDefinition を決定
+        let template: TemplateDefinition<TemplateDataRecord>;
+
+        if (body.template) {
+          template = body.template;
+        } else if (body.templateId) {
+          try {
+            template = await getTemplateById(body.templateId, env);
+          } catch (err) {
+            const msg =
+              err instanceof Error ? err.message : "Unknown templateId";
+            return new Response(msg, {
+              status: 400,
+              headers: CORS_HEADERS,
+            });
+          }
+        } else {
+          return new Response(
+            "Missing 'template' or 'templateId' in request body",
+            {
+              status: 400,
+              headers: CORS_HEADERS,
+            },
+          );
+        }
+
+        // フォント読み込み
+        let fonts: { jp: Uint8Array; latin: Uint8Array };  // ← これが大事！！
+        try {
+          fonts = await loadFonts(env);
+          console.log(
+            "jpFont length:", fonts.jp.length,
+            "latinFont length:", fonts.latin.length,
+          );
+        } catch (err) {
+          console.error("Failed to load font:", err);
+          return new Response("Failed to load font", {
+            status: 500,
             headers: CORS_HEADERS,
-          },
-        );
+          });
+        }
+
+        // PDF 生成
+        try {
+          const rawPdfBytes = await renderTemplateToPdf(
+            template,
+            body.data as TemplateDataRecord | undefined,
+            fonts,
+          );
+
+          const pdfBytes = new Uint8Array(rawPdfBytes);
+
+          return new Response(pdfBytes, {
+            status: 200,
+            headers: {
+              ...CORS_HEADERS,
+              "Content-Type": "application/pdf",
+            },
+          });
+        } catch (err) {
+          console.error("Failed to render template:", err);
+          return new Response("Failed to render template", {
+            status: 500,
+            headers: CORS_HEADERS,
+          });
+        }
       }
 
-      // フォント読み込み
-      let fontBytes: Uint8Array;
-      try {
-        fontBytes = await loadFontBytes(env);
-        console.log("fontBytes length:", fontBytes.length);
-      } catch (err) {
-        console.error("Failed to load font:", err);
-        return new Response("Failed to load font", {
-          status: 500,
-          headers: CORS_HEADERS,
-        });
-      }
-
-      // PDF 生成
-      try {
-        const rawPdfBytes = await renderTemplateToPdf(
-          template,
-          body.data as TemplateDataRecord | undefined,
-          fontBytes,
-        );
-
-        const pdfBytes = new Uint8Array(rawPdfBytes);
-
-        return new Response(pdfBytes, {
-          status: 200,
-          headers: {
-            ...CORS_HEADERS,
-            "Content-Type": "application/pdf",
-          },
-        });
-      } catch (err) {
-        console.error("Failed to render template:", err);
-        return new Response("Failed to render template", {
-          status: 500,
-          headers: CORS_HEADERS,
-        });
-      }
+      // その他のパス
+      return new Response("Not Found", { status: 404, headers: CORS_HEADERS });
+    } catch (err) {
+      // ここに来るのは「本当に想定外」の例外
+      console.error("Unhandled error in worker:", err);
+      return new Response("Internal error", {
+        status: 500,
+        headers: CORS_HEADERS,
+      });
     }
-
-    // その他のパス
-    return new Response("Not Found", { status: 404, headers: CORS_HEADERS });
   },
 };

@@ -337,6 +337,7 @@ const addButton = (config: PluginConfig) => {
     }
 
     const templateData = buildTemplateDataFromKintoneRecord(record);
+    console.log('PlugBits templateData:', templateData);
     setButtonLoading(button, true);
 
     try {

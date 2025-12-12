@@ -97,7 +97,7 @@ function resolveDataSource(
 export async function renderTemplateToPdf(
   template: TemplateDefinition,
   data: TemplateDataRecord | undefined,
-  fontBytes: Uint8Array,
+  fonts: { jp: Uint8Array; latin: Uint8Array },
 ): Promise<Uint8Array> {
   console.log(
     '==== renderTemplateToPdf START ====',
@@ -110,7 +110,8 @@ export async function renderTemplateToPdf(
   const page = pdfDoc.addPage([pageWidth, pageHeight]);
 
   // 日本語対応フォントを埋め込み
-  const font = await pdfDoc.embedFont(fontBytes, { subset: false });
+  const jpFont = await pdfDoc.embedFont(fonts.jp, { subset: false });
+  const latinFont = await pdfDoc.embedFont(fonts.latin, { subset: false });
 
   console.log(
     'TEMPLATE ELEMENTS:',
@@ -125,28 +126,35 @@ export async function renderTemplateToPdf(
 
   for (const element of template.elements) {
     switch (element.type) {
-      case 'label':
-        drawLabel(page, element as LabelElement, font, pageHeight);
+      case "label":
+        drawLabel(page, element as LabelElement, jpFont, pageHeight);
         break;
-      case 'text':
-        drawText(page, element as TextElement, font, pageHeight, data);
+      case "text":
+        drawText(page, element as TextElement, jpFont, latinFont, pageHeight, data);
         break;
-      case 'table':
-        drawTable(page, element as TableElement, font, pageHeight, data);
+      case "table":
+        drawTable(page, element as TableElement, jpFont, latinFont, pageHeight, data);
         break;
-      case 'image':
-        // 画像はまだプレースホルダ
+      case "image":
         drawImagePlaceholder(page, element as ImageElement, pageHeight);
         break;
       default:
-        console.warn('Unknown element type', (element as TemplateElement).type);
+        console.warn("Unknown element type", (element as TemplateElement).type);
     }
   }
+
 
   const bytes = await pdfDoc.save();
   console.log('==== renderTemplateToPdf END ====');
   return bytes;
 }
+
+function pickFontForText(text: string, jpFont: PDFFont, latinFont: PDFFont): PDFFont {
+  // 数字・カンマ・ドット・通貨記号・スペースあたりは Latin に振る
+  const numericLike = /^[0-9.,+\-() ¥$]*$/.test(text);
+  return numericLike ? latinFont : jpFont;
+}
+
 
 // ============================
 // Label
@@ -155,7 +163,7 @@ export async function renderTemplateToPdf(
 function drawLabel(
   page: PDFPage,
   element: LabelElement,
-  font: PDFFont,
+  jpFont: PDFFont,
   pageHeight: number,
 ) {
   const fontSize = element.fontSize ?? 12;
@@ -175,7 +183,7 @@ function drawLabel(
     x: element.x,
     y: pdfY,
     size: fontSize,
-    font,
+    font: jpFont,
     color: rgb(0, 0, 0),
   });
 }
@@ -187,7 +195,8 @@ function drawLabel(
 function drawText(
   page: PDFPage,
   element: TextElement,
-  font: PDFFont,
+  jpFont: PDFFont,
+  latinFont: PDFFont,
   pageHeight: number,
   data: TemplateDataRecord | undefined,
 ) {
@@ -198,6 +207,7 @@ function drawText(
   const text = resolved || element.text || '';
 
   const pdfY = toPdfY(element.y, textHeight, pageHeight);
+  const fontToUse = pickFontForText(text, jpFont, latinFont);
 
   console.log('DRAW TEXT', {
     id: element.id,
@@ -210,7 +220,7 @@ function drawText(
     x: element.x,
     y: pdfY,
     size: fontSize,
-    font,
+    font: fontToUse,
     color: rgb(0, 0, 0),
   });
 }
@@ -222,7 +232,8 @@ function drawText(
 function drawTable(
   page: PDFPage,
   element: TableElement,
-  font: PDFFont,
+  jpFont: PDFFont,
+  latinFont: PDFFont,
   pageHeight: number,
   data: TemplateDataRecord | undefined,
 ) {
@@ -268,7 +279,7 @@ function drawTable(
       x: currentX + 4,
       y: originY + headerHeight / 2 - fontSize / 2,
       size: fontSize,
-      font,
+      font: jpFont,
       color: rgb(0, 0, 0),
     });
 
@@ -299,12 +310,19 @@ function drawTable(
 
       const cellValue =
         row[col.fieldCode] != null ? String(row[col.fieldCode]) : '';
+      
+      const rawVal = row[col.fieldCode];
+      const cellText = rawVal != null ? String(rawVal) : "";
+
+      const fontForCell = pickFontForText(cellText, jpFont, latinFont);
+
+        
 
       page.drawText(cellValue, {
         x: currentX + 4,
         y: rowTopY + rowHeight / 2 - fontSize / 2,
         size: fontSize,
-        font,
+        font: fontForCell,
         color: rgb(0, 0, 0),
       });
 
