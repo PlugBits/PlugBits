@@ -2,6 +2,13 @@
 
 export type PageSize = 'A4';
 export type Orientation = 'portrait' | 'landscape';
+//構造テンプレ種別（将来増やす） ---
+export type StructureType = 'line_items_v1';
+//フッターの繰り返しモード ---
+export type FooterRepeatMode = 'all' | 'last';
+//mapping は MVP では unknown（Adapter側で解釈/検証） ---
+export type TemplateMapping = unknown;
+
 
 export type DataSource =
   | { type: 'static'; value: string }
@@ -15,6 +22,9 @@ export interface BaseElement {
   y: number;
   width?: number;
   height?: number;
+  region?: 'header' | 'body' | 'footer';
+  repeatOnEveryPage?: boolean;
+  footerRepeatMode?: 'all' | 'last';
 }
 
 // 動的 or 静的テキスト
@@ -64,6 +74,10 @@ export interface TableElement extends BaseElement {
 // 静的画像
 export interface ImageElement extends BaseElement {
   type: 'image';
+  width?: number;
+  height?: number;
+  imageUrl?: string;
+  fitMode?: 'fit' | 'fill';
   dataSource: Extract<DataSource, { type: 'static' }>;
 }
 
@@ -84,7 +98,12 @@ export interface TemplateDefinition<
   pageSize: PageSize;
   orientation: Orientation;
   elements: TemplateElement[];
+  structureType?: StructureType;
+  mapping?: TemplateMapping;
+  footerRepeatMode?: FooterRepeatMode;
   sampleData?: TData;
+  footerReserveHeight?: number;
+  advancedLayoutEditing?: boolean;
 }
 
 // ---- サンプル ----
@@ -104,10 +123,14 @@ export const SAMPLE_TEMPLATE: TemplateDefinition = {
   name: '標準見積書',
   pageSize: 'A4',
   orientation: 'portrait',
+  structureType: 'line_items_v1',
+  footerRepeatMode: 'last',
+  footerReserveHeight: 150,
   elements: [
     {
       id: 'title',
       type: 'label',
+      region: 'header',
       x: 50,
       y: 50,
       fontSize: 24,
@@ -117,6 +140,7 @@ export const SAMPLE_TEMPLATE: TemplateDefinition = {
     {
       id: 'customer_name_label',
       type: 'label',
+      region: 'header',
       x: 50,
       y: 100,
       fontSize: 12,
@@ -125,6 +149,7 @@ export const SAMPLE_TEMPLATE: TemplateDefinition = {
     {
       id: 'customer_name',
       type: 'text',
+      region: 'header',
       x: 90,
       y: 100,
       fontSize: 12,
@@ -134,6 +159,7 @@ export const SAMPLE_TEMPLATE: TemplateDefinition = {
     {
       id: 'estimate_date_label',
       type: 'label',
+      region: 'header',
       x: 350,
       y: 100,
       fontSize: 12,
@@ -142,6 +168,7 @@ export const SAMPLE_TEMPLATE: TemplateDefinition = {
     {
       id: 'estimate_date',
       type: 'text',
+      region: 'header',
       x: 410,
       y: 100,
       fontSize: 12,
@@ -150,6 +177,7 @@ export const SAMPLE_TEMPLATE: TemplateDefinition = {
     {
       id: 'items',
       type: 'table',
+      region: 'body',
       x: 50,
       y: 160,
       width: 520,
@@ -179,6 +207,7 @@ export const SAMPLE_TEMPLATE: TemplateDefinition = {
     {
       id: 'total_label',
       type: 'label',
+      region: 'footer',
       x: 300,
       y: 560,
       fontSize: 14,
@@ -188,6 +217,7 @@ export const SAMPLE_TEMPLATE: TemplateDefinition = {
     {
       id: 'total',
       type: 'text',
+      region: 'footer',
       x: 350,
       y: 560,
       fontSize: 14,
@@ -195,5 +225,24 @@ export const SAMPLE_TEMPLATE: TemplateDefinition = {
       dataSource: { type: 'kintone', fieldCode: 'TotalAmount' },
     },
   ],
+    mapping: {
+    header: {
+      doc_title: { kind: 'staticText', text: '御見積書' },
+      to_name: { kind: 'recordField', fieldCode: 'CustomerName' },
+      issue_date: { kind: 'recordField', fieldCode: 'EstimateDate' },
+    },
+    table: {
+      source: { kind: 'subtable', fieldCode: 'Items' },
+      columns: [
+        { id: 'item_name', label: '品名', value: { kind: 'subtableField', subtableCode: 'Items', fieldCode: 'ItemName' }, widthPct: 52, align: 'left', format: 'text' },
+        { id: 'qty', label: '数量', value: { kind: 'subtableField', subtableCode: 'Items', fieldCode: 'Qty' }, widthPct: 12, align: 'right', format: 'number' },
+        { id: 'unit_price', label: '単価', value: { kind: 'subtableField', subtableCode: 'Items', fieldCode: 'UnitPrice' }, widthPct: 18, align: 'right', format: 'currency' },
+        { id: 'amount', label: '金額', value: { kind: 'subtableField', subtableCode: 'Items', fieldCode: 'Amount' }, widthPct: 18, align: 'right', format: 'currency' },
+      ],
+    },
+    footer: {
+      total: { kind: 'recordField', fieldCode: 'TotalAmount' },
+    },
+  },
   sampleData: SAMPLE_DATA,
 };

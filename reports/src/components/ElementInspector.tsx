@@ -9,7 +9,11 @@ import type {
   TemplateElement,
   TextElement,
 } from '@shared/template';
-import { useTemplateStore } from '../store/templateStore.ts';
+import { useTemplateStore } from '../store/templateStore';
+import { selectTemplateById } from '../store/templateStore';
+import { clampYToRegion } from '../utils/regionBounds';
+
+
 
 type ElementInspectorProps = {
   templateId: string;
@@ -17,14 +21,48 @@ type ElementInspectorProps = {
 };
 
 const ElementInspector = ({ templateId, element }: ElementInspectorProps) => {
+  const template = useTemplateStore((s) => selectTemplateById(s, templateId));
+  const isAdvanced = !!template?.advancedLayoutEditing;
+
+  // 通常モードではレイアウト系（X/Y/幅/高さ）はロック（上級者のみ）
+  const canEditLayout = isAdvanced;
+
   const updateElement = useTemplateStore((state) => state.updateElement);
   const [labelDraft, setLabelDraft] = useState('');
+  const commitNumber = (
+    elementId: string,
+    field: 'x' | 'y' | 'width' | 'height',
+    raw: string,
+  ) => {
+    if (isTable) return;
+    const trimmed = raw.trim();
+    if (trimmed === '') return;
+
+    const n = Number(trimmed);
+    if (Number.isNaN(n)) return;
+
+    updateElement(templateId, elementId, { [field]: n } as Partial<TemplateElement>);
+  };
+
+  const [xDraft, setXDraft] = useState('');
+  const [yDraft, setYDraft] = useState('');
+  const [wDraft, setWDraft] = useState('');
+  const [hDraft, setHDraft] = useState('');
 
   useEffect(() => {
     if (element?.type === 'label') {
-      setLabelDraft(element.text);
+      setLabelDraft(element.text ?? '');
     }
   }, [element]);
+
+  useEffect(() => {
+    if (!element) return;
+    setXDraft(String(element.x ?? 0));
+    setYDraft(String(element.y ?? 0));
+    setWDraft(String(element.width ?? 120));
+    setHDraft(String(element.height ?? 32));
+  }, [element?.id]);
+
 
   const coordinatesLabel = useMemo(() => {
     if (!element) return '';
@@ -35,18 +73,49 @@ const ElementInspector = ({ templateId, element }: ElementInspectorProps) => {
     return <p style={{ color: '#475467' }}>編集する要素をキャンバスから選択してください。</p>;
   }
 
-  const handleNumberChange = (field: keyof TemplateElement) => (event: ChangeEvent<HTMLInputElement>) => {
+  const isTable = element.type === 'table';
+
+  // レイアウト編集可否（tableは常に固定）
+  const canEditLayoutForElement = isAdvanced && !isTable;
+
+  // region編集可否（tableは常に固定：body）
+  const canEditRegionForElement = isAdvanced && !isTable;
+
+
+  const handleNumberChange =
+  (field: keyof TemplateElement) => (event: ChangeEvent<HTMLInputElement>) => {
+    const raw = event.target.value;
+
+    // ✅ 入力途中の空文字は許容（0に戻さない）
+    if (raw === '') return;
+
+    const value = Number(raw);
+    if (Number.isNaN(value)) return;
+
+    updateElement(templateId, element.id, { [field]: value } as Partial<TemplateElement>);
+  };
+
+
+  const handleFontSizeChange = (event: ChangeEvent<HTMLInputElement>) => {
     const value = Number(event.target.value);
-    updateElement(templateId, element.id, { [field]: Number.isNaN(value) ? 0 : value });
+    const next = Number.isNaN(value) ? 12 : value;
+
+    updateElement(templateId, element.id, { fontSize: next } as Partial<TemplateElement>);
+  };
+
+  const ensureDataSource = (ds: any): DataSource => {
+    if (ds) return ds as DataSource;
+    return { type: 'static', value: '' };
   };
 
   const renderTextControls = (textElement: TextElement) => (
     <>
       <label>
         フォントサイズ
-        <input type="number" value={textElement.fontSize ?? 12} onChange={handleNumberChange('fontSize')} />
+        <input type="number" value={textElement.fontSize ?? 12} onChange={handleFontSizeChange} />
+        
       </label>
-      {renderDataSourceControls(textElement.dataSource, (next) =>
+      {renderDataSourceControls(ensureDataSource(textElement.dataSource), (next) =>
         updateElement(templateId, element.id, { dataSource: next } as Partial<TemplateElement>),
       )}
     </>
@@ -182,42 +251,110 @@ const ElementInspector = ({ templateId, element }: ElementInspectorProps) => {
     <div className="inspector-fields">
       <p style={{ margin: 0, color: '#101828', fontWeight: 600 }}>{element.type.toUpperCase()}</p>
       <p style={{ margin: 0, color: '#475467', fontSize: '0.85rem' }}>{coordinatesLabel}</p>
-
+          
+    {canEditRegionForElement && (
+      <label>
+        領域（region）
+        <select
+          value={element.region ?? 'body'}
+          onChange={(e) => {
+            const nextRegion = e.target.value as 'header' | 'body' | 'footer';
+            const nextY = clampYToRegion(element.y, nextRegion);
+            updateElement(templateId, element.id, {
+              region: nextRegion,
+              y: nextY,
+            } as Partial<TemplateElement>);
+          }}
+        >
+          <option value="header">header</option>
+          <option value="body">body</option>
+          <option value="footer">footer</option>
+        </select>
+      </label>
+    )}
+    
       <label>
         X 座標
-        <input type="number" value={element.x} onChange={handleNumberChange('x')} />
+        <input
+          inputMode="numeric"
+          value={xDraft}
+          onChange={(e) => setXDraft(e.target.value)}
+          onBlur={() => commitNumber(element.id,'x', xDraft)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') (e.currentTarget as HTMLInputElement).blur();
+          }}
+          disabled={!canEditLayoutForElement}
+        />
+
       </label>
       <label>
         Y 座標
-        <input type="number" value={element.y} onChange={handleNumberChange('y')} />
+        <input
+          inputMode="numeric"
+          value={yDraft}
+          onChange={(e) => setYDraft(e.target.value)}
+          onBlur={() => commitNumber(element.id,'y', yDraft)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') (e.currentTarget as HTMLInputElement).blur();
+          }}
+          disabled={!canEditLayoutForElement}
+        />
+
       </label>
+      {!canEditLayout && (
+        <p style={{ margin: '0.25rem 0 0', color: '#667085', fontSize: '0.8rem' }}>
+          レイアウト（X/Y）の編集は「テンプレ設定 → 上級者モード」をONにすると有効になります。
+        </p>
+      )}
+
 
       {element.type !== 'table' && (
         <>
           <label>
             幅
             <input
-              type="number"
-              value={element.width ?? 120}
-              onChange={handleNumberChange('width')}
+              inputMode="numeric"
+              value={wDraft}
+              onChange={(e) => setWDraft(e.target.value)}
+              onBlur={() => commitNumber(element.id,'width', wDraft)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') (e.currentTarget as HTMLInputElement).blur();
+              }}
+              disabled={!canEditLayoutForElement}
             />
           </label>
           <label>
             高さ
             <input
-              type="number"
-              value={element.height ?? 32}
-              onChange={handleNumberChange('height')}
+              inputMode="numeric"
+              value={hDraft}
+              onChange={(e) => setHDraft(e.target.value)}
+              onBlur={() => commitNumber(element.id,'height', hDraft)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') (e.currentTarget as HTMLInputElement).blur();
+              }}
+              disabled={!canEditLayoutForElement}
             />
           </label>
         </>
       )}
 
-      {element.type === 'text' && renderTextControls(element)}
+      {element.type === 'text' && renderTextControls(element as TextElement)}
       {element.type === 'label' &&
-        renderLabelControls(labelDraft, setLabelDraft, templateId, element, updateElement)}
-      {element.type === 'table' && renderTableControls(element)}
-      {element.type === 'image' && renderImageControls(element)}
+        renderLabelControls(labelDraft, setLabelDraft, templateId, element as TextElement, updateElement)}
+      {element.type === 'table' && (
+        isAdvanced ? (
+          renderTableControls(element)
+        ) : (
+          <div style={{ marginTop: '0.75rem', padding: '0.75rem', border: '1px solid #e4e7ec', borderRadius: '0.6rem', color: '#475467' }}>
+            明細テーブルの設定（サブテーブル/列/幅）は「フィールド割当（Mapping）」タブで行います。
+            <div style={{ marginTop: '0.5rem', fontSize: '0.85rem', opacity: 0.9 }}>
+              ※ 上級者モードをONにすると、ここから直接編集もできます（自己責任）。
+            </div>
+          </div>
+        )
+      )}
+      {element.type === 'image' && renderImageControls(element )}
     </div>
   );
 };

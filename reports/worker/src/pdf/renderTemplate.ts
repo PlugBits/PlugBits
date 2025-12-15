@@ -11,6 +11,47 @@ import type {
   DataSource,
   PageSize,
 } from '../../../shared/template.js';
+import type { PDFImage } from 'pdf-lib'; // 先頭の import に追加
+
+// 画像を事前に埋め込んでキャッシュ
+async function preloadImages(
+  pdfDoc: PDFDocument,
+  template: TemplateDefinition,
+): Promise<Map<string, PDFImage>> {
+  const map = new Map<string, PDFImage>();
+
+  const imageElements = template.elements.filter(
+    (e) => e.type === 'image',
+  ) as ImageElement[];
+
+  const urls = Array.from(
+    new Set(
+      imageElements
+        .map((e) => e.imageUrl)
+        .filter((u): u is string => !!u),
+    ),
+  );
+
+  for (const url of urls) {
+    const res = await fetch(url);
+    if (!res.ok) {
+      console.warn('Failed to fetch image:', url, res.status);
+      continue;
+    }
+    const buf = new Uint8Array(await res.arrayBuffer());
+    const lower = url.toLowerCase();
+    let embedded: PDFImage;
+    if (lower.endsWith('.jpg') || lower.endsWith('.jpeg')) {
+      embedded = await pdfDoc.embedJpg(buf);
+    } else {
+      embedded = await pdfDoc.embedPng(buf);
+    }
+    map.set(url, embedded);
+    console.log('Embedded image', url, 'bytes=', buf.length);
+  }
+
+  return map;
+}
 
 /**
  * ページサイズ定義
@@ -99,17 +140,18 @@ export async function renderTemplateToPdf(
   data: TemplateDataRecord | undefined,
   fonts: { jp: Uint8Array; latin: Uint8Array },
 ): Promise<Uint8Array> {
-  console.log(
-    '==== renderTemplateToPdf START ====',
-  );
+  console.log('==== renderTemplateToPdf START ====');
 
   const pdfDoc = await PDFDocument.create();
   pdfDoc.registerFontkit(fontkit);
 
   const [pageWidth, pageHeight] = getPageSize(template);
-  const page = pdfDoc.addPage([pageWidth, pageHeight]);
+  const imageMap = await preloadImages(pdfDoc, template);
 
-  // 日本語対応フォントを埋め込み
+  // ★ let にして、テーブル描画の途中で別ページに差し替えられるようにする
+  let page = pdfDoc.addPage([pageWidth, pageHeight]);
+
+  // フォント埋め込み
   const jpFont = await pdfDoc.embedFont(fonts.jp, { subset: false });
   const latinFont = await pdfDoc.embedFont(fonts.latin, { subset: false });
 
@@ -124,23 +166,167 @@ export async function renderTemplateToPdf(
     })),
   );
 
-  for (const element of template.elements) {
-    switch (element.type) {
-      case "label":
-        drawLabel(page, element as LabelElement, jpFont, pageHeight);
-        break;
-      case "text":
-        drawText(page, element as TextElement, jpFont, latinFont, pageHeight, data);
-        break;
-      case "table":
-        drawTable(page, element as TableElement, jpFont, latinFont, pageHeight, data);
-        break;
-      case "image":
-        drawImagePlaceholder(page, element as ImageElement, pageHeight);
-        break;
-      default:
-        console.warn("Unknown element type", (element as TemplateElement).type);
+  // ▼▼ 要素を分解：ヘッダー（毎ページ／1ページのみ）とフッター、テーブル ▼▼
+  const nonTableElements = template.elements.filter(
+    (e) => e.type !== 'table',
+  );
+
+  // region === 'footer' のものだけフッター扱い
+  const footerElements = nonTableElements.filter(
+    (e) => e.region === 'footer',
+  );
+
+  // それ以外（region 未指定 or 'header' 'body'）はヘッダー候補として扱う
+  const headerCandidates = nonTableElements.filter(
+    (e) => e.region !== 'footer',
+  );
+
+  // ヘッダー：毎ページ出すもの（デフォルト）
+  const repeatingHeaderElements = headerCandidates.filter(
+    (e) => e.repeatOnEveryPage !== false,
+  );
+
+  // ヘッダー：1ページ目だけ出すもの
+  const firstPageOnlyHeaderElements = headerCandidates.filter(
+    (e) => e.repeatOnEveryPage === false,
+  );
+
+  // フッター：全ページに出すもの（デフォルト）
+  const footerAllPages = footerElements.filter(
+    (e) => e.footerRepeatMode !== 'last',
+  );
+
+  // フッター：最終ページのみに出すもの
+  const footerLastPageOnly = footerElements.filter(
+    (e) => e.footerRepeatMode === 'last',
+  );
+
+     // --- フッター領域高さを計算 ---
+  const estimatedFooterHeight = (() => {
+    const allFooterElems = [...footerAllPages, ...footerLastPageOnly];
+    if (allFooterElems.length === 0) return 0;
+
+    // ラベル／テキストだけ対象にする
+    const textFooterElems = allFooterElems.filter(
+      (el) => el.type === "label" || el.type === "text",
+    );
+    if (textFooterElems.length === 0) return 0;
+
+    // Y座標でソート（UI座標のままでOK）
+    const sorted = [...textFooterElems].sort((a, b) => a.y - b.y);
+
+    type RowInfo = { y: number; maxFontSize: number };
+
+    const rows: RowInfo[] = [];
+    const ROW_THRESHOLD = 5; // この差以内なら同じ行とみなす
+
+    for (const el of sorted) {
+      const fontSize = (el as any).fontSize ?? 12;
+      if (rows.length === 0) {
+        rows.push({ y: el.y, maxFontSize: fontSize });
+        continue;
+      }
+
+      const lastRow = rows[rows.length - 1];
+      if (Math.abs(el.y - lastRow.y) <= ROW_THRESHOLD) {
+        // 同じ行とみなして、フォントサイズだけ更新
+        if (fontSize > lastRow.maxFontSize) {
+          lastRow.maxFontSize = fontSize;
+        }
+      } else {
+        // 新しい行として追加
+        rows.push({ y: el.y, maxFontSize: fontSize });
+      }
     }
+
+    // 各行の高さ = フォントサイズ + 行間(6pt) として足し合わせる
+    const lineGap = 6;
+    let total = 0;
+    for (const row of rows) {
+      total += row.maxFontSize + lineGap;
+    }
+
+    // 上下にちょっと余白を足す
+    return total + 10;
+  })();
+
+  // テンプレが明示的に footerReserveHeight を持っていればそっちを優先
+  const footerReserveHeight =
+    template.footerReserveHeight ?? estimatedFooterHeight ?? 0;
+
+  const tableElements = template.elements.filter(
+    (e): e is TableElement => e.type === 'table',
+  );
+
+  // 1ページ目にヘッダー要素を描画
+  drawHeaderElements(
+    page,
+    [...repeatingHeaderElements, ...firstPageOnlyHeaderElements],
+    pageHeight,
+    data,
+    jpFont,
+    latinFont,
+    imageMap,
+  );
+
+  // テーブル（複数ある場合は順番に描画）
+  // drawTable には「毎ページヘッダー」だけを渡す
+  for (const tableElement of tableElements) {
+    page = drawTable(
+      pdfDoc,
+      page,
+      pageWidth,
+      pageHeight,
+      tableElement,
+      jpFont,
+      latinFont,
+      data,
+      repeatingHeaderElements,
+      footerReserveHeight, 
+      imageMap,
+    );
+  }
+
+  const pages = pdfDoc.getPages();
+  const totalPages = pages.length;
+  const footerFontSize = 9;
+
+  for (let i = 0; i < totalPages; i++) {
+    const p = pages[i];
+
+    // --- フッター要素（固定文言など）を描画 ---
+    //   - 最終ページだけの要素は最後のページにだけ描く
+    const footerElementsForThisPage =
+      i === totalPages - 1
+        ? [...footerAllPages, ...footerLastPageOnly]
+        : footerAllPages;
+
+    drawFooterElements(
+      p,
+      footerElementsForThisPage,
+      pageHeight,
+      data,
+      jpFont,
+      latinFont,
+      imageMap,
+    );
+
+    // --- ページ番号 (1 / N) を中央下に描画 ---
+    const footerText = `${i + 1} / ${totalPages}`;
+    const textWidth = latinFont.widthOfTextAtSize(
+      footerText,
+      footerFontSize,
+    );
+    const x = (pageWidth - textWidth) / 2;
+    const y = 20; // 下から20pt
+
+    p.drawText(footerText, {
+      x,
+      y,
+      size: footerFontSize,
+      font: latinFont,
+      color: rgb(0.5, 0.5, 0.5),
+    });
   }
 
 
@@ -148,6 +334,8 @@ export async function renderTemplateToPdf(
   console.log('==== renderTemplateToPdf END ====');
   return bytes;
 }
+
+
 
 function pickFontForText(text: string, jpFont: PDFFont, latinFont: PDFFont): PDFFont {
   // 数字・カンマ・ドット・通貨記号・スペースあたりは Latin に振る
@@ -226,23 +414,128 @@ function drawText(
 }
 
 // ============================
+// Header elements (label / text / image) for each page
+// ============================
+
+function drawHeaderElements(
+  page: PDFPage,
+  headerElements: TemplateElement[],
+  pageHeight: number,
+  data: TemplateDataRecord | undefined,
+  jpFont: PDFFont,
+  latinFont: PDFFont,
+  imageMap: Map<string, PDFImage>,
+) {
+  for (const element of headerElements) {
+    switch (element.type) {
+      case 'label':
+        drawLabel(page, element as LabelElement, jpFont, pageHeight);
+        break;
+
+      case 'text':
+        drawText(
+          page,
+          element as TextElement,
+          jpFont,
+          latinFont,
+          pageHeight,
+          data,
+        );
+        break;
+
+      case 'image':
+        drawImageElement(
+          page,
+          element as ImageElement,
+          pageHeight,
+          imageMap,
+        );
+        break;
+
+
+      case 'table':
+        // ヘッダーには含めない（テーブルは別ルートで描画）
+        break;
+
+      default:
+        console.warn(
+          'Unknown header element type:',
+          (element as TemplateElement).type,
+        );
+    }
+  }
+}
+
+// ============================
+// Footer elements（実装は header とほぼ同じ）
+// ============================
+
+function drawFooterElements(
+  page: PDFPage,
+  footerElements: TemplateElement[],
+  pageHeight: number,
+  data: TemplateDataRecord | undefined,
+  jpFont: PDFFont,
+  latinFont: PDFFont,
+  imageMap: Map<string, PDFImage>,
+) {
+  for (const element of footerElements) {
+    switch (element.type) {
+      case 'label':
+        drawLabel(page, element as LabelElement, jpFont, pageHeight);
+        break;
+
+      case 'text':
+        drawText(
+          page,
+          element as TextElement,
+          jpFont,
+          latinFont,
+          pageHeight,
+          data,
+        );
+        break;
+
+      case 'image':
+        drawImagePlaceholder(page, element as ImageElement, pageHeight,);
+        break;
+
+      case 'table':
+        // フッターにはテーブルを描かない想定
+        break;
+
+      default:
+        console.warn(
+          'Unknown footer element type:',
+          (element as TemplateElement).type,
+        );
+    }
+  }
+}
+
+// ============================
 // Table
 // ============================
 
 function drawTable(
+  pdfDoc: PDFDocument,
   page: PDFPage,
+  pageWidth: number,
+  pageHeight: number,
   element: TableElement,
   jpFont: PDFFont,
   latinFont: PDFFont,
-  pageHeight: number,
   data: TemplateDataRecord | undefined,
-) {
+  headerElements: TemplateElement[],
+  footerReserveHeight: number,
+  imageMap: Map<string, PDFImage>, 
+): PDFPage {
   const rowHeight = element.rowHeight ?? 18;
   const headerHeight = element.headerHeight ?? rowHeight;
   const fontSize = 10;
 
   const originX = element.x;
-  const originY = toPdfY(element.y, headerHeight, pageHeight);
+  const bottomMargin = footerReserveHeight + 40; // 下から40ptは余白
 
   // サブテーブル行
   const rows =
@@ -252,53 +545,94 @@ function drawTable(
       ? (data[element.dataSource.fieldCode] as any[] | undefined)
       : undefined;
 
-  console.log('DRAW TABLE', {
+  console.log('DRAW TABLE (multi-page + header)', {
     id: element.id,
     uiY: element.y,
-    startY: originY,
     rows: rows?.length ?? 0,
   });
 
-  // ヘッダー行
-  let currentX = originX;
-  for (const col of element.columns) {
-    const colWidth = col.width;
-
-    // 枠線
-    page.drawRectangle({
-      x: currentX,
-      y: originY,
-      width: colWidth,
-      height: headerHeight,
-      borderColor: rgb(0.7, 0.7, 0.7),
-      borderWidth: 0.5,
-    });
-
-    // タイトル
-    page.drawText(col.title, {
-      x: currentX + 4,
-      y: originY + headerHeight / 2 - fontSize / 2,
-      size: fontSize,
-      font: jpFont,
-      color: rgb(0, 0, 0),
-    });
-
-    currentX += colWidth;
+  if (!rows || rows.length === 0) {
+    return page;
   }
 
-  if (!rows || rows.length === 0) return;
+  // テーブルヘッダー（列タイトル）を描画するヘルパー
+  const drawTableHeaderRow = (targetPage: PDFPage, headerY: number) => {
+    let currentX = originX;
+    for (const col of element.columns) {
+      const colWidth = col.width;
 
-  // データ行
-  let rowIndex = 0;
-  for (const row of rows) {
-    const rowTopY = originY - headerHeight - rowIndex * rowHeight;
-    currentX = originX;
+      // 枠線
+      targetPage.drawRectangle({
+        x: currentX,
+        y: headerY,
+        width: colWidth,
+        height: headerHeight,
+        borderColor: rgb(0.7, 0.7, 0.7),
+        borderWidth: 0.5,
+      });
+
+      // 列タイトル
+      targetPage.drawText(col.title, {
+        x: currentX + 4,
+        y: headerY + headerHeight / 2 - fontSize / 2,
+        size: fontSize,
+        font: jpFont,
+        color: rgb(0, 0, 0),
+      });
+
+      currentX += colWidth;
+    }
+  };
+
+  let currentPage = page;
+  let headerY = toPdfY(element.y, headerHeight, pageHeight);
+  let rowIndexOnPage = 0;
+
+  // 1ページ目には、既に renderTemplateToPdf 側でヘッダー要素が描画済みなので、
+  // ここではテーブルヘッダー行だけ描画する
+  drawTableHeaderRow(currentPage, headerY);
+
+  for (let i = 0; i < rows.length; i++) {
+    const row = rows[i];
+
+    // このページでの行の上端
+    let rowTopY =
+      headerY - headerHeight - rowIndexOnPage * rowHeight;
+
+    // 下余白を割りそうなら改ページ
+    if (rowTopY < bottomMargin) {
+      // 新しいページを追加
+      currentPage = pdfDoc.addPage([pageWidth, pageHeight]);
+
+      // ★ 新ページにもラベル・テキストなどのヘッダー要素を再描画
+      drawHeaderElements(
+        currentPage,
+        headerElements,
+        pageHeight,
+        data,
+        jpFont,
+        latinFont,
+        imageMap,
+      );
+
+      // テーブルヘッダーの位置を再計算して描画
+      headerY = toPdfY(element.y, headerHeight, pageHeight);
+      rowIndexOnPage = 0;
+
+      drawTableHeaderRow(currentPage, headerY);
+
+      // このページでの最初の行位置を再計算
+      rowTopY =
+        headerY - headerHeight - rowIndexOnPage * rowHeight;
+    }
+
+    let currentX = originX;
 
     for (const col of element.columns) {
       const colWidth = col.width;
 
       if (element.showGrid) {
-        page.drawRectangle({
+        currentPage.drawRectangle({
           x: currentX,
           y: rowTopY,
           width: colWidth,
@@ -308,17 +642,11 @@ function drawTable(
         });
       }
 
-      const cellValue =
-        row[col.fieldCode] != null ? String(row[col.fieldCode]) : '';
-      
       const rawVal = row[col.fieldCode];
-      const cellText = rawVal != null ? String(rawVal) : "";
-
+      const cellText = rawVal != null ? String(rawVal) : '';
       const fontForCell = pickFontForText(cellText, jpFont, latinFont);
 
-        
-
-      page.drawText(cellValue, {
+      currentPage.drawText(cellText, {
         x: currentX + 4,
         y: rowTopY + rowHeight / 2 - fontSize / 2,
         size: fontSize,
@@ -329,9 +657,53 @@ function drawTable(
       currentX += colWidth;
     }
 
-    rowIndex += 1;
+    rowIndexOnPage += 1;
   }
+
+  return currentPage;
 }
+
+function drawImageElement(
+  page: PDFPage,
+  element: ImageElement,
+  pageHeight: number,
+  imageMap: Map<string, PDFImage>,
+) {
+  if (!element.imageUrl) {
+    drawImagePlaceholder(page, element, pageHeight);
+    return;
+  }
+
+  const embedded = imageMap.get(element.imageUrl);
+  if (!embedded) {
+    drawImagePlaceholder(page, element, pageHeight);
+    return;
+  }
+
+  const width = element.width ?? embedded.width;
+  const height = element.height ?? embedded.height;
+  const pdfY = toPdfY(element.y, height, pageHeight);
+
+  const { width: imgW, height: imgH } = embedded.size();
+  const fitMode = element.fitMode ?? 'fit';
+
+  let drawWidth = width;
+  let drawHeight = height;
+
+  if (fitMode === 'fit') {
+    const scale = Math.min(width / imgW, height / imgH);
+    drawWidth = imgW * scale;
+    drawHeight = imgH * scale;
+  }
+
+  page.drawImage(embedded, {
+    x: element.x,
+    y: pdfY,
+    width: drawWidth,
+    height: drawHeight,
+  });
+}
+
 
 // ============================
 // Image placeholder（まだ枠だけ）

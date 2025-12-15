@@ -1,14 +1,17 @@
-const BASE_URL = (import.meta.env.VITE_WORKER_BASE_URL ?? '').replace(/\/$/, '');
-const PROXY_PATH = import.meta.env.VITE_WORKER_PROXY_PATH ?? '/worker-proxy';
+const BASE_URL = ((import.meta.env.VITE_REPORTS_API_BASE_URL ?? import.meta.env.VITE_WORKER_BASE_URL ?? '') as string).replace(/\/$/, '');
 const API_KEY = import.meta.env.VITE_WORKER_API_KEY;
 
+
 const buildUrl = (path: string) => {
+  if (!BASE_URL) {
+    throw new Error('Missing VITE_REPORTS_API_BASE_URL (or VITE_WORKER_BASE_URL)');
+  }
+
   const normalized = path.startsWith('/') ? path : `/${path}`;
-  const target = BASE_URL ? `${BASE_URL}${normalized}` : `${PROXY_PATH}${normalized}`;
+  const target = `${BASE_URL}${normalized}`;
   if (import.meta.env.DEV) {
     console.debug('[workerClient] ping URL:', target, {
       BASE_URL,
-      PROXY_PATH,
       hasProxyTarget: Boolean(import.meta.env.VITE_WORKER_PROXY_TARGET),
     });
   }
@@ -21,17 +24,15 @@ export async function pingWorker() {
     headers['x-api-key'] = API_KEY;
   }
 
-  const res = await fetch(buildUrl('/ping'), { headers });
+  // ★ /ping ではなく / を叩く（Worker実装に合わせる）
+  const res = await fetch(buildUrl('/'), { headers });
 
   if (!res.ok) {
     throw new Error(`Worker error: ${res.status}`);
   }
 
-  const contentType = res.headers.get('content-type') ?? '';
-  if (!contentType.includes('application/json')) {
-    const text = await res.text();
-    throw new Error(`Invalid response: ${text.slice(0, 80)}`);
-  }
-
-  return res.json();
+  // ★ JSON縛りはやめる（あなたのWorker "/" は text を返す）
+  const text = await res.text();
+  return { ok: true, text };
 }
+

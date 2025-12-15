@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import type { CSSProperties, MouseEvent as ReactMouseEvent } from 'react';
-import type { TemplateDefinition, TemplateElement } from '@shared/template';
+import type { TemplateDefinition, TemplateElement, DataSource } from '@shared/template';
+import { CANVAS_WIDTH, CANVAS_HEIGHT, REGION_BOUNDS, getRegionOf, clampYToRegion } from '../utils/regionBounds';
+
 
 type CanvasProps = {
   template: TemplateDefinition;
@@ -28,8 +30,6 @@ type ResizeState = {
   startHeight: number;
 };
 
-const CANVAS_WIDTH = 595;
-const CANVAS_HEIGHT = 842;
 const GRID_SIZE = 5;
 
 const getTableWidth = (element: TemplateElement) => {
@@ -77,20 +77,33 @@ const getElementStyle = (element: TemplateElement): CSSProperties => {
 };
 
 const describeDataSource = (element: TemplateElement) => {
+  // table
   if (element.type === 'table') {
-    return `サブテーブル: ${element.dataSource.fieldCode}`;
+    const ds = element.dataSource;
+    return ds ? `サブテーブル: ${ds.fieldCode}` : 'サブテーブル: (未設定)';
   }
 
+  // label
   if (element.type === 'label') {
-    return element.text;
+    return element.text ?? '';
   }
 
-  if (element.dataSource.type === 'static') {
-    return element.dataSource.value;
+  // text / image など dataSource を持つ可能性がある要素
+  const ds = (element as any).dataSource as DataSource | undefined;
+  if (!ds) return '';
+
+  if (ds.type === 'static') {
+    return ds.value ?? '';
   }
 
-  return `{{${element.dataSource.fieldCode}}}`;
+  // kintone / kintoneSubtable
+  if ('fieldCode' in ds) {
+    return `{{${ds.fieldCode}}}`;
+  }
+
+  return '';
 };
+
 
 const TemplateCanvas = ({
   template,
@@ -101,6 +114,8 @@ const TemplateCanvas = ({
   showGrid = true,
   showGuides = true,
 }: CanvasProps) => {
+  const isAdvanced = !!template.advancedLayoutEditing;
+
   const [dragState, setDragState] = useState<DragState | null>(null);
   const [resizeState, setResizeState] = useState<ResizeState | null>(null);
   const selectedElement = selectedElementId
@@ -125,14 +140,28 @@ const TemplateCanvas = ({
       event.preventDefault();
 
       if (dragState) {
+        const el = template.elements.find((e) => e.id === dragState.id);
+        if (el?.type === 'table') return;
+        if (!isAdvanced) return;
+
         const deltaX = event.clientX - dragState.originX;
         const deltaY = event.clientY - dragState.originY;
+        
+        const region = el ? getRegionOf(el) : 'body';
+        const bounds = REGION_BOUNDS[region];
+
         const nextX = clampToCanvas(applySnap(dragState.startX + deltaX), CANVAS_WIDTH);
-        const nextY = clampToCanvas(applySnap(dragState.startY - deltaY), CANVAS_HEIGHT);
+        const rawY = applySnap(dragState.startY - deltaY);
+
+        // region内に収める（yはbottom基準）
+        const nextY = clampYToRegion(rawY, region);
         onUpdateElement(dragState.id, { x: nextX, y: nextY });
+
       }
 
       if (resizeState) {
+        if (!isAdvanced) return;
+
         const deltaX = event.clientX - resizeState.originX;
         const deltaY = event.clientY - resizeState.originY;
         const nextWidth = Math.max(20, applySnap(resizeState.startWidth + deltaX));
@@ -158,6 +187,13 @@ const TemplateCanvas = ({
     if (event.button !== 0) return;
     event.stopPropagation();
     onSelect(element);
+
+    // 通常モードはレイアウト編集しない
+    if (!isAdvanced) return;
+
+    // 明細テーブルは Mapping で管理するので、キャンバス上は固定
+    if (element.type === 'table') return;
+
     setDragState({
       id: element.id,
       originX: event.clientX,
@@ -167,9 +203,16 @@ const TemplateCanvas = ({
     });
   };
 
+
   const handleResizeMouseDown = (event: ReactMouseEvent<HTMLDivElement>, element: TemplateElement) => {
     event.stopPropagation();
     onSelect(element);
+
+    if (!isAdvanced) return;
+
+    // tableは固定（Mappingで制御）
+    if (element.type === 'table') return;
+
     const startWidth = element.width ?? 120;
     const startHeight = element.height ?? 32;
     setResizeState({
@@ -180,6 +223,7 @@ const TemplateCanvas = ({
       startHeight,
     });
   };
+
 
   const handleCanvasMouseDown = (event: ReactMouseEvent<HTMLDivElement>) => {
     if (event.target === event.currentTarget) {
@@ -216,9 +260,10 @@ const TemplateCanvas = ({
         >
           <strong style={{ display: 'block', fontSize: '0.7rem', color: '#475467' }}>{element.type}</strong>
           <span style={{ fontSize: '0.85rem' }}>{describeDataSource(element)}</span>
-          {element.type !== 'table' && (
+          {isAdvanced && element.type !== 'table' && (
             <div className="resize-handle" onMouseDown={(event) => handleResizeMouseDown(event, element)} />
           )}
+
         </div>
       ))}
       {guideElements}

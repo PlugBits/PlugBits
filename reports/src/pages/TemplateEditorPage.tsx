@@ -6,8 +6,11 @@ import TemplateCanvas from '../components/TemplateCanvas';
 import ElementInspector from '../components/ElementInspector';
 import Toast from '../components/Toast';
 import { selectTemplateById, useTemplateStore } from '../store/templateStore';
+import MappingPage from '../editor/Mapping/MappingPage';
+
 
 const AUTOSAVE_DELAY = 4000;
+
 
 const TemplateEditorPage = () => {
   const { templateId } = useParams();
@@ -31,6 +34,10 @@ const TemplateEditorPage = () => {
   const [gridVisible, setGridVisible] = useState(true);
   const [snapEnabled, setSnapEnabled] = useState(true);
   const [guideVisible, setGuideVisible] = useState(true);
+  const [advancedLayoutEditing, setAdvancedLayoutEditing] = useState(!!template?.advancedLayoutEditing);
+  const [activeTab, setActiveTab] = useState<'layout' | 'mapping'>('layout');
+
+
 
   useEffect(() => {
     if (!hasLoaded) {
@@ -44,6 +51,7 @@ const TemplateEditorPage = () => {
     if (previousTemplateId.current !== template.id) {
       setSelectedElementId(template.elements[0]?.id ?? null);
       setNameDraft(template.name);
+      setAdvancedLayoutEditing(!!template.advancedLayoutEditing);
       previousTemplateId.current = template.id;
       return;
     }
@@ -57,8 +65,17 @@ const TemplateEditorPage = () => {
 
   const templateSignature = useMemo(() => {
     if (!template) return '';
-    return JSON.stringify({ name: template.name, elements: template.elements });
+    return JSON.stringify({
+      name: template.name,
+      elements: template.elements,
+      mapping: template.mapping ?? null,
+      structureType: template.structureType ?? null,
+      footerRepeatMode: template.footerRepeatMode ?? null,
+      footerReserveHeight: template.footerReserveHeight ?? null,
+      advancedLayoutEditing: !!template.advancedLayoutEditing,
+    });
   }, [template]);
+
 
   useEffect(() => {
     if (!templateSignature || templateSignature === lastSavedSignature.current) {
@@ -176,7 +193,15 @@ const TemplateEditorPage = () => {
       const normalizedName = persistTemplateName();
       updateTemplate({ ...template, name: normalizedName });
       await saveTemplate(template.id);
-      lastSavedSignature.current = JSON.stringify({ name: normalizedName, elements: template.elements });
+      lastSavedSignature.current = JSON.stringify({
+        name: normalizedName,
+        elements: template.elements,
+        mapping: template.mapping ?? null,
+        structureType: template.structureType ?? null,
+        footerRepeatMode: template.footerRepeatMode ?? null,
+        footerReserveHeight: template.footerReserveHeight ?? null,
+        advancedLayoutEditing: !!template.advancedLayoutEditing,
+      });
       setSaveStatus('success');
       setToast({
         type: 'success',
@@ -260,8 +285,25 @@ const TemplateEditorPage = () => {
             </button>
             <button className="ghost" onClick={() => navigate('/')}>一覧</button>
           </div>
+          <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.75rem' }}>
+            <button className={activeTab === 'layout' ? 'secondary' : 'ghost'} onClick={() => setActiveTab('layout')}>
+              レイアウト
+            </button>
+            <button className={activeTab === 'mapping' ? 'secondary' : 'ghost'} onClick={() => setActiveTab('mapping')}>
+              フィールド割当
+            </button>
+          </div>
+
         </div>
-        <div style={{ marginTop: '0.5rem' }}>
+        <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.75rem' }}>
+          <button className={activeTab === 'layout' ? 'secondary' : 'ghost'} onClick={() => setActiveTab('layout')}>
+            レイアウト
+          </button>
+          <button className={activeTab === 'mapping' ? 'secondary' : 'ghost'} onClick={() => setActiveTab('mapping')}>
+            フィールド割当
+          </button>
+        </div>
+        <div style={{ marginTop: '0.5rem', minHeight: 28, display: 'flex', alignItems: 'center' }}>
           {saveStatus === 'success' && <span className="status-pill success">保存しました</span>}
           {saveStatus === 'error' && <span className="status-pill error">{saveError}</span>}
         </div>
@@ -286,25 +328,39 @@ const TemplateEditorPage = () => {
             <input type="checkbox" checked={guideVisible} onChange={(event) => setGuideVisible(event.target.checked)} />
             ガイドライン表示
           </label>
+          <label>
+            <input type="checkbox" checked={!!template.advancedLayoutEditing} onChange={(event) =>{
+              const enabled = event.target.checked; 
+              setAdvancedLayoutEditing(enabled); 
+              updateTemplate({...template,advancedLayoutEditing: enabled});
+              }}
+            />
+            上級者モード（レイアウトXY編集・自己責任）
+          </label>
         </div>
       </div>
 
-      <div className="editor-layout">
-        <div className="canvas-wrapper">
-          <TemplateCanvas
-            template={template}
-            selectedElementId={selectedElementId}
-            onSelect={(element) => setSelectedElementId(element?.id ?? null)}
-            onUpdateElement={(elementId, updates) => updateElement(template.id, elementId, updates)}
-            showGrid={gridVisible}
-            snapEnabled={snapEnabled}
-            showGuides={guideVisible}
-          />
+      {activeTab === 'layout' ? (
+        <div className="editor-layout">
+          <div className="canvas-wrapper">
+            <TemplateCanvas
+              template={template}
+              selectedElementId={selectedElementId}
+              onSelect={(element) => setSelectedElementId(element?.id ?? null)}
+              onUpdateElement={(elementId, updates) => updateElement(template.id, elementId, updates)}
+              showGrid={gridVisible}
+              snapEnabled={snapEnabled}
+              showGuides={guideVisible}
+            />
+          </div>
+          <div className="editor-panel">
+            <ElementInspector templateId={template.id} element={selectedElement} />
+          </div>
         </div>
-        <div className="editor-panel">
-          <ElementInspector templateId={template.id} element={selectedElement} />
-        </div>
-      </div>
+      ) : (
+      <MappingPage template={template} updateTemplate={updateTemplate} />
+      )}
+
 
       {toast && (
         <div className="toast-container">

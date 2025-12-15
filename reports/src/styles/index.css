@@ -292,6 +292,11 @@ button:disabled {
   flex-direction: column;
   gap: 0.5rem;
   z-index: 1000;
+  pointer-events: none;
+}
+
+.toast-container > * {
+  pointer-events: auto; /* トースト自体はクリックできる */
 }
 
 .toast {
