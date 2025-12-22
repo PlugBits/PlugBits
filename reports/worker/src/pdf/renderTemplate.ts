@@ -1,22 +1,26 @@
 import { PDFDocument, rgb, type PDFPage, type PDFFont } from 'pdf-lib';
 import fontkit from '@pdf-lib/fontkit';
-import type {
-  TemplateDefinition,
-  TemplateElement,
-  TextElement,
-  LabelElement,
-  TableElement,
-  ImageElement,
-  TemplateDataRecord,
-  DataSource,
-  PageSize,
+import {
+  CANVAS_HEIGHT,
+  type TemplateDefinition,
+  type TemplateElement,
+  type TextElement,
+  type LabelElement,
+  type TableElement,
+  type ImageElement,
+  type TemplateDataRecord,
+  type DataSource,
+  type PageSize,
 } from '../../../shared/template.js';
 import type { PDFImage } from 'pdf-lib'; // 先頭の import に追加
+
+const isHttpUrl = (value: string) => /^https?:\/\//i.test(value);
 
 // 画像を事前に埋め込んでキャッシュ
 async function preloadImages(
   pdfDoc: PDFDocument,
   template: TemplateDefinition,
+  data: TemplateDataRecord | undefined,
 ): Promise<Map<string, PDFImage>> {
   const map = new Map<string, PDFImage>();
 
@@ -27,8 +31,8 @@ async function preloadImages(
   const urls = Array.from(
     new Set(
       imageElements
-        .map((e) => e.imageUrl)
-        .filter((u): u is string => !!u),
+        .map((e) => resolveDataSource(e.dataSource, data))
+        .filter((u): u is string => !!u && isHttpUrl(u)),
     ),
   );
 
@@ -78,17 +82,18 @@ function getPageSize(template: TemplateDefinition): [number, number] {
 }
 
 /**
- * UI の Y（上から） → PDF の Y（下から）に変換
- * もともと使っていた toPdfY と同じロジック：
- *   PDF_Y = pageHeight - uiY - height
+ * UI の Y（bottom基準） → PDF の Y（bottom基準）に変換
  */
-const UI_CANVAS_HEIGHT = 800; // ← エディタ側のキャンバス高さに合わせる
-
-function toPdfY(uiY: number, height: number, pageHeight: number): number {
-  const scale = pageHeight / UI_CANVAS_HEIGHT;
-  // 必要なら baseline 用に height 分ずらしても OK
-  return uiY * scale;
+function toPdfYFromBottom(uiBottomY: number, pageHeight: number): number {
+  const scale = pageHeight / CANVAS_HEIGHT;
+  return uiBottomY * scale;
 }
+
+const clampPdfY = (pdfY: number, maxY: number) => {
+  if (Number.isNaN(pdfY)) return 0;
+  const cappedMax = Number.isNaN(maxY) ? 0 : maxY;
+  return Math.min(Math.max(pdfY, 0), cappedMax);
+};
 
 /**
  * kintone / static などのデータソースを解決
@@ -146,7 +151,7 @@ export async function renderTemplateToPdf(
   pdfDoc.registerFontkit(fontkit);
 
   const [pageWidth, pageHeight] = getPageSize(template);
-  const imageMap = await preloadImages(pdfDoc, template);
+  const imageMap = await preloadImages(pdfDoc, template, data);
 
   // ★ let にして、テーブル描画の途中で別ページに差し替えられるようにする
   let page = pdfDoc.addPage([pageWidth, pageHeight]);
@@ -257,6 +262,14 @@ export async function renderTemplateToPdf(
   const tableElements = template.elements.filter(
     (e): e is TableElement => e.type === 'table',
   );
+  if (tableElements.length > 1) {
+    console.warn(
+      'Multiple table elements found; rendering only one.',
+      tableElements.map((el) => el.id),
+    );
+  }
+  const tableElementToRender =
+    tableElements.find((el) => el.id === 'items') ?? tableElements[0];
 
   // 1ページ目にヘッダー要素を描画
   drawHeaderElements(
@@ -271,18 +284,18 @@ export async function renderTemplateToPdf(
 
   // テーブル（複数ある場合は順番に描画）
   // drawTable には「毎ページヘッダー」だけを渡す
-  for (const tableElement of tableElements) {
+  if (tableElementToRender) {
     page = drawTable(
       pdfDoc,
       page,
       pageWidth,
       pageHeight,
-      tableElement,
+      tableElementToRender,
       jpFont,
       latinFont,
       data,
       repeatingHeaderElements,
-      footerReserveHeight, 
+      footerReserveHeight,
       imageMap,
     );
   }
@@ -358,7 +371,8 @@ function drawLabel(
   const textHeight = fontSize;
   const text = element.text ?? '';
 
-  const pdfY = toPdfY(element.y, textHeight, pageHeight);
+  let pdfY = toPdfYFromBottom(element.y, pageHeight);
+  pdfY = clampPdfY(pdfY, pageHeight - textHeight - 2);
 
   console.log('DRAW LABEL', {
     id: element.id,
@@ -394,7 +408,8 @@ function drawText(
   const resolved = resolveDataSource(element.dataSource, data);
   const text = resolved || element.text || '';
 
-  const pdfY = toPdfY(element.y, textHeight, pageHeight);
+  let pdfY = toPdfYFromBottom(element.y, pageHeight);
+  pdfY = clampPdfY(pdfY, pageHeight - textHeight - 2);
   const fontToUse = pickFontForText(text, jpFont, latinFont);
 
   console.log('DRAW TEXT', {
@@ -448,6 +463,7 @@ function drawHeaderElements(
           page,
           element as ImageElement,
           pageHeight,
+          data,
           imageMap,
         );
         break;
@@ -497,7 +513,13 @@ function drawFooterElements(
         break;
 
       case 'image':
-        drawImagePlaceholder(page, element as ImageElement, pageHeight,);
+        drawImageElement(
+          page,
+          element as ImageElement,
+          pageHeight,
+          data,
+          imageMap,
+        );
         break;
 
       case 'table':
@@ -585,8 +607,34 @@ function drawTable(
   };
 
   let currentPage = page;
-  let headerY = toPdfY(element.y, headerHeight, pageHeight);
+  const minHeaderY = bottomMargin + headerHeight + rowHeight;
+  const getHeaderY = () =>
+    clampPdfY(toPdfYFromBottom(element.y, pageHeight), pageHeight - headerHeight);
+  let headerY = getHeaderY();
   let rowIndexOnPage = 0;
+
+  if (headerY < minHeaderY) {
+    currentPage = pdfDoc.addPage([pageWidth, pageHeight]);
+
+    drawHeaderElements(
+      currentPage,
+      headerElements,
+      pageHeight,
+      data,
+      jpFont,
+      latinFont,
+      imageMap,
+    );
+
+    headerY = getHeaderY();
+    if (headerY < minHeaderY) {
+      console.warn('Table header Y is too low for minimum layout.', {
+        id: element.id,
+        headerY,
+        minHeaderY,
+      });
+    }
+  }
 
   // 1ページ目には、既に renderTemplateToPdf 側でヘッダー要素が描画済みなので、
   // ここではテーブルヘッダー行だけ描画する
@@ -595,12 +643,12 @@ function drawTable(
   for (let i = 0; i < rows.length; i++) {
     const row = rows[i];
 
-    // このページでの行の上端
-    let rowTopY =
+    // このページでの行の下端
+    let rowYBottom =
       headerY - headerHeight - rowIndexOnPage * rowHeight;
 
     // 下余白を割りそうなら改ページ
-    if (rowTopY < bottomMargin) {
+    if (rowYBottom < bottomMargin) {
       // 新しいページを追加
       currentPage = pdfDoc.addPage([pageWidth, pageHeight]);
 
@@ -616,13 +664,21 @@ function drawTable(
       );
 
       // テーブルヘッダーの位置を再計算して描画
-      headerY = toPdfY(element.y, headerHeight, pageHeight);
+      headerY = getHeaderY();
       rowIndexOnPage = 0;
+
+      if (headerY < minHeaderY) {
+        console.warn('Table header Y is too low for minimum layout.', {
+          id: element.id,
+          headerY,
+          minHeaderY,
+        });
+      }
 
       drawTableHeaderRow(currentPage, headerY);
 
       // このページでの最初の行位置を再計算
-      rowTopY =
+      rowYBottom =
         headerY - headerHeight - rowIndexOnPage * rowHeight;
     }
 
@@ -634,7 +690,7 @@ function drawTable(
       if (element.showGrid) {
         currentPage.drawRectangle({
           x: currentX,
-          y: rowTopY,
+          y: rowYBottom,
           width: colWidth,
           height: rowHeight,
           borderColor: rgb(0.85, 0.85, 0.85),
@@ -648,7 +704,7 @@ function drawTable(
 
       currentPage.drawText(cellText, {
         x: currentX + 4,
-        y: rowTopY + rowHeight / 2 - fontSize / 2,
+        y: rowYBottom + rowHeight / 2 - fontSize / 2,
         size: fontSize,
         font: fontForCell,
         color: rgb(0, 0, 0),
@@ -667,14 +723,16 @@ function drawImageElement(
   page: PDFPage,
   element: ImageElement,
   pageHeight: number,
+  data: TemplateDataRecord | undefined,
   imageMap: Map<string, PDFImage>,
 ) {
-  if (!element.imageUrl) {
+  const url = resolveDataSource(element.dataSource, data);
+  if (!url || !isHttpUrl(url)) {
     drawImagePlaceholder(page, element, pageHeight);
     return;
   }
 
-  const embedded = imageMap.get(element.imageUrl);
+  const embedded = imageMap.get(url);
   if (!embedded) {
     drawImagePlaceholder(page, element, pageHeight);
     return;
@@ -682,7 +740,8 @@ function drawImageElement(
 
   const width = element.width ?? embedded.width;
   const height = element.height ?? embedded.height;
-  const pdfY = toPdfY(element.y, height, pageHeight);
+  let pdfY = toPdfYFromBottom(element.y, pageHeight);
+  pdfY = clampPdfY(pdfY, pageHeight - height);
 
   const { width: imgW, height: imgH } = embedded.size();
   const fitMode = element.fitMode ?? 'fit';
@@ -717,7 +776,8 @@ function drawImagePlaceholder(
   const width = element.width ?? 120;
   const height = element.height ?? 80;
 
-  const pdfY = toPdfY(element.y, height, pageHeight);
+  let pdfY = toPdfYFromBottom(element.y, pageHeight);
+  pdfY = clampPdfY(pdfY, pageHeight - height);
 
   page.drawRectangle({
     x: element.x,

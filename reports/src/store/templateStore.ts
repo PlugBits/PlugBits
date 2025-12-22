@@ -39,6 +39,8 @@ export type TemplateStore = {
     elementId: string,
     updates: Partial<TemplateElement>,
   ) => void;
+  removeElement: (templateId: string, elementId: string) => void;
+
 };
 
 // ---- 共通ユーティリティ ----
@@ -220,28 +222,44 @@ export const useTemplateStore = create<TemplateStore>((set, get) => ({
 
   // templateStore.ts 内の updateElement をこの形で上書き
 
-updateElement: (templateId, elementId, updates) => {
-  const template = get().templates[templateId];
-  if (!template) return;
+  updateElement: (templateId, elementId, updates) => {
+    const template = get().templates[templateId];
+    if (!template) return;
 
-  const nextElements: TemplateElement[] = template.elements.map((element) =>
-    element.id === elementId
-      ? ({ ...element, ...updates } as TemplateElement) // ← ここで TemplateElement として固定
-      : element,
-  );
+    const nextElements: TemplateElement[] = template.elements.map((element) =>
+      element.id === elementId
+        ? ({ ...element, ...updates } as TemplateElement) // ← ここで TemplateElement として固定
+        : element,
+    );
 
-  const nextTemplate: TemplateDefinition = {
-    ...template,
-    elements: nextElements,
-  };
+    const nextTemplate: TemplateDefinition = {
+      ...template,
+      elements: nextElements,
+    };
 
-  set((state) => ({
-    templates: {
-      ...state.templates,
-      [templateId]: nextTemplate,
-    },
-  }));
-},
+    set((state) => ({
+      templates: {
+        ...state.templates,
+        [templateId]: nextTemplate,
+      },
+    }));
+  },
+  removeElement: (templateId, elementId) => {
+    const template = get().templates[templateId];
+    if (!template) return;
+
+    const nextTemplate: TemplateDefinition = {
+      ...template,
+      elements: template.elements.filter((el) => el.id !== elementId),
+    };
+
+    set((state) => ({
+      templates: {
+        ...state.templates,
+        [templateId]: nextTemplate,
+      },
+    }));
+  },
 
 }));
 

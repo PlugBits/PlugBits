@@ -12,6 +12,7 @@ import type {
 import { useTemplateStore } from '../store/templateStore';
 import { selectTemplateById } from '../store/templateStore';
 import { clampYToRegion } from '../utils/regionBounds';
+import { getAdapter } from '../editor/Mapping/adapters/getAdapter';
 
 
 
@@ -28,6 +29,8 @@ const ElementInspector = ({ templateId, element }: ElementInspectorProps) => {
   const canEditLayout = isAdvanced;
 
   const updateElement = useTemplateStore((state) => state.updateElement);
+  const removeElement = useTemplateStore((state) => state.removeElement);
+
   const [labelDraft, setLabelDraft] = useState('');
   const commitNumber = (
     elementId: string,
@@ -69,11 +72,42 @@ const ElementInspector = ({ templateId, element }: ElementInspectorProps) => {
     return `X: ${element.x}px / Y: ${element.y}px`;
   }, [element]);
 
+  const slotLabelMap = useMemo(() => {
+    if (!template) return {};
+    const structureType = template.structureType ?? 'line_items_v1';
+    const adapter = getAdapter(structureType);
+    const map: Record<string, string> = {};
+    for (const region of adapter.regions) {
+      if (region.kind !== 'slots') continue;
+      for (const slot of region.slots) {
+        map[slot.id] = slot.label;
+      }
+    }
+    return map;
+  }, [template?.structureType, template?.id]);
+
+  const typeLabel = useMemo(() => {
+    if (!element) return '';
+    if (element.type === 'text') return 'テキスト';
+    if (element.type === 'label') return 'ラベル';
+    if (element.type === 'image') return '画像';
+    if (element.type === 'table') return 'テーブル';
+    return '要素';
+  }, [element?.type]);
+
+  const displayName = useMemo(() => {
+    if (!element) return '';
+    const slotId = (element as any).slotId as string | undefined;
+    if (slotId && slotLabelMap[slotId]) return slotLabelMap[slotId];
+    return typeLabel;
+  }, [element, slotLabelMap, typeLabel]);
+
   if (!element) {
     return <p style={{ color: '#475467' }}>編集する要素をキャンバスから選択してください。</p>;
   }
 
   const isTable = element.type === 'table';
+  const isSlotElement = !!(element as any).slotId;
 
   // レイアウト編集可否（tableは常に固定）
   const canEditLayoutForElement = isAdvanced && !isTable;
@@ -249,8 +283,45 @@ const ElementInspector = ({ templateId, element }: ElementInspectorProps) => {
 
   return (
     <div className="inspector-fields">
-      <p style={{ margin: 0, color: '#101828', fontWeight: 600 }}>{element.type.toUpperCase()}</p>
-      <p style={{ margin: 0, color: '#475467', fontSize: '0.85rem' }}>{coordinatesLabel}</p>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+        <div style={{ margin: 0, color: '#101828', fontWeight: 700, fontSize: '0.95rem' }}>
+          {displayName}
+        </div>
+        <span
+          style={{
+            fontSize: '0.7rem',
+            fontWeight: 600,
+            padding: '2px 6px',
+            borderRadius: 999,
+            background: '#f2f4f7',
+            color: '#475467',
+          }}
+        >
+          {typeLabel}
+        </span>
+      </div>
+      <p style={{ margin: '2px 0 0', color: '#475467', fontSize: '0.8rem' }}>{coordinatesLabel}</p>
+      <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 4 }}>
+        <button
+          type="button"
+          className="ghost"
+          style={{
+            color: isSlotElement ? '#98a2b3' : '#b42318',
+            borderColor: isSlotElement ? '#e4e7ec' : '#fda29b',
+            cursor: isSlotElement ? 'not-allowed' : 'pointer',
+          }}
+          disabled={isSlotElement}
+          title={isSlotElement ? 'この要素はテンプレ構造上必須のため削除できません' : undefined}
+          onClick={() => {
+            if (!isSlotElement) {
+              removeElement(templateId, element.id);
+            }
+          }}
+        >
+          この要素を削除
+        </button>
+      </div>
+
           
     {canEditRegionForElement && (
       <label>
@@ -343,17 +414,20 @@ const ElementInspector = ({ templateId, element }: ElementInspectorProps) => {
       {element.type === 'label' &&
         renderLabelControls(labelDraft, setLabelDraft, templateId, element as TextElement, updateElement)}
       {element.type === 'table' && (
-        isAdvanced ? (
-          renderTableControls(element)
-        ) : (
-          <div style={{ marginTop: '0.75rem', padding: '0.75rem', border: '1px solid #e4e7ec', borderRadius: '0.6rem', color: '#475467' }}>
-            明細テーブルの設定（サブテーブル/列/幅）は「フィールド割当（Mapping）」タブで行います。
-            <div style={{ marginTop: '0.5rem', fontSize: '0.85rem', opacity: 0.9 }}>
-              ※ 上級者モードをONにすると、ここから直接編集もできます（自己責任）。
-            </div>
-          </div>
-        )
+        <div
+          style={{
+            marginTop: '0.75rem',
+            padding: '0.75rem',
+            border: '1px solid #e4e7ec',
+            borderRadius: '0.6rem',
+            color: '#475467',
+            lineHeight: 1.5,
+          }}
+        >
+          明細テーブルは固定です。列・サブテーブル・幅の設定は「フィールド割当」タブで行ってください。
+        </div>
       )}
+
       {element.type === 'image' && renderImageControls(element )}
     </div>
   );

@@ -1,7 +1,7 @@
 // src/editor/Mapping/components/ColumnEditor.tsx
-import React from 'react';
+import React, { useEffect, useState } from 'react';
+import { normalizeWidthPct, normalizeWidthPctKeepIndex } from '../mappingUtils';
 import FieldPicker, { type FieldRef } from './FieldPicker';
-import { normalizeWidthPct } from '../mappingUtils';
 
 type Option = { code: string; label: string };
 
@@ -29,6 +29,8 @@ type Props = {
   baseColumns: BaseColumnDef[];
   columns: Column[];
   onChange: (next: Column[]) => void;
+  onFocusFieldRef: (ref: FieldRef | undefined) => void;
+  onClearFocus: () => void;
 };
 
 const ColumnEditor: React.FC<Props> = ({
@@ -39,14 +41,35 @@ const ColumnEditor: React.FC<Props> = ({
   baseColumns,
   columns,
   onChange,
+  onFocusFieldRef,
+  onClearFocus,
 }) => {
   const canAdd = columns.length < maxCols;
   const canRemove = columns.length > minCols;
+  const [widthDraft, setWidthDraft] = useState<string[]>([]);
 
-  const handleNormalize = (next: Column[]) => {
-    const normalized = normalizeWidthPct(next);
-    onChange(normalized as Column[]);
-  };
+  useEffect(() => {
+    setWidthDraft(columns.map((c) => String(c.widthPct ?? '')));
+  }, [columns]);
+
+
+    const handleNormalizeAll = (next: Column[]) => {
+        onChange(normalizeWidthPct(next));
+    };
+
+    const commitWidthPct = (idx: number, rawValue: string) => {
+        const n = Number(rawValue);
+        if (!Number.isFinite(n)) return;
+
+        const nextCols = columns.map((c, i) =>
+        i === idx ? { ...c, widthPct: Math.max(1, Math.round(n)) } : c,
+        );
+
+        const normalized = normalizeWidthPctKeepIndex(nextCols, idx);
+        onChange(normalized);
+        setWidthDraft(normalized.map((c) => String(c.widthPct ?? '')));
+    };
+
 
   const addBaseColumn = (baseId: string) => {
     const def = baseColumns.find((b) => b.id === baseId);
@@ -62,7 +85,7 @@ const ColumnEditor: React.FC<Props> = ({
         format: def.kind === 'currency' ? 'currency' : def.kind === 'number' ? 'number' : def.kind === 'date' ? 'date' : 'text',
       },
     ];
-    handleNormalize(next);
+    handleNormalizeAll(next);
   };
 
   const addCustomColumn = () => {
@@ -72,7 +95,7 @@ const ColumnEditor: React.FC<Props> = ({
       ...columns,
       { id: customId, label: '追加列', widthPct: 10, align: 'left', format: 'text' },
     ];
-    handleNormalize(next);
+    handleNormalizeAll(next);
   };
 
   const updateColumn = (idx: number, patch: Partial<Column>) => {
@@ -83,7 +106,7 @@ const ColumnEditor: React.FC<Props> = ({
   const removeColumn = (idx: number) => {
     if (!canRemove) return;
     const next = columns.filter((_, i) => i !== idx);
-    handleNormalize(next);
+    handleNormalizeAll(next);
   };
 
   return (
@@ -100,73 +123,129 @@ const ColumnEditor: React.FC<Props> = ({
         </button>
       </div>
 
-      <div style={{ overflowX: 'auto' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-          <thead>
-            <tr style={{ textAlign: 'left' }}>
-              <th style={{ padding: 6 }}>列名</th>
-              <th style={{ padding: 6 }}>フィールド</th>
-              <th style={{ padding: 6, width: 90 }}>幅%</th>
-              <th style={{ padding: 6, width: 110 }}>align</th>
-              <th style={{ padding: 6, width: 120 }}>format</th>
-              <th style={{ padding: 6, width: 70 }}></th>
-            </tr>
-          </thead>
-          <tbody>
-            {columns.map((col, idx) => (
-              <tr key={`${col.id}_${idx}`} style={{ borderTop: '1px solid #e5e7eb' }}>
-                <td style={{ padding: 6, minWidth: 140 }}>
-                  <input
-                    value={col.label}
-                    onChange={(e) => updateColumn(idx, { label: e.target.value })}
-                    style={{ width: '100%' }}
-                  />
-                </td>
-                <td style={{ padding: 6, minWidth: 260 }}>
-                  <FieldPicker
-                    mode="subtableField"
-                    subtableCode={subtableCode}
-                    subtableFieldOptions={subtableFieldOptions}
-                    value={col.value}
-                    onChange={(v) => updateColumn(idx, { value: v })}
-                  />
-                </td>
-                <td style={{ padding: 6 }}>
-                  <input
-                    type="number"
-                    value={col.widthPct}
-                    min={1}
-                    max={99}
-                    onChange={(e) => updateColumn(idx, { widthPct: Number(e.target.value) })}
-                    onBlur={() => handleNormalize(columns)}
-                    style={{ width: 70 }}
-                  />
-                </td>
-                <td style={{ padding: 6 }}>
-                  <select value={col.align ?? 'left'} onChange={(e) => updateColumn(idx, { align: e.target.value as any })}>
-                    <option value="left">left</option>
-                    <option value="center">center</option>
-                    <option value="right">right</option>
-                  </select>
-                </td>
-                <td style={{ padding: 6 }}>
-                  <select value={col.format ?? 'text'} onChange={(e) => updateColumn(idx, { format: e.target.value as any })}>
-                    <option value="text">text</option>
-                    <option value="number">number</option>
-                    <option value="currency">currency</option>
-                    <option value="date">date</option>
-                  </select>
-                </td>
-                <td style={{ padding: 6 }}>
-                  <button className="ghost" disabled={!canRemove} onClick={() => removeColumn(idx)} type="button">
-                    削除
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      <div style={{ display: 'grid', gap: 10 }}>
+        {columns.map((col, idx) => (
+          <div
+            key={`${col.id}_${idx}`}
+            className="mapping-row-detail"
+            style={{
+              border: '1px solid #e5e7eb',
+              borderRadius: '0.9rem',
+              padding: 10,
+            }}
+            onMouseEnter={() => {
+              // 列自体が subtableField ならそれを渡す（無ければ subtable を渡す）
+              onFocusFieldRef(col.value ?? (subtableCode ? { kind: 'subtable', fieldCode: subtableCode } : undefined));
+            }}
+            onMouseLeave={onClearFocus}
+          >
+            {/* 上段 */}
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: '160px 1fr auto auto',
+                gap: 10,
+                alignItems: 'center',
+              }}
+            >
+              <input
+                className="mapping-control"
+                value={col.label}
+                onChange={(e) => updateColumn(idx, { label: e.target.value })}
+              />
+
+              <FieldPicker
+                mode="subtableField"
+                subtableCode={subtableCode}
+                subtableFieldOptions={subtableFieldOptions}
+                value={col.value}
+                onChange={(v: FieldRef | undefined) => {
+                  updateColumn(idx, { value: v });
+                  onFocusFieldRef(v);
+                }}
+              />
+
+              <button
+                className="ghost"
+                type="button"
+                onClick={() => updateColumn(idx, { value: undefined })}
+              >
+                解除
+              </button>
+
+              <button
+                className="ghost"
+                disabled={!canRemove}
+                onClick={() => removeColumn(idx)}
+                type="button"
+                style={{ color: '#b42318', borderColor: '#fda29b' }}
+              >
+                削除
+              </button>
+            </div>
+
+            {/* 下段 */}
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: '120px 140px 160px 1fr',
+                gap: 10,
+                marginTop: 10,
+                alignItems: 'center',
+              }}
+            >
+              <label style={{ display: 'grid', gap: 6 }}>
+                <span className="mapping-help">幅%</span>
+                <input
+                  className="mapping-control"
+                  type="number"
+                  inputMode="numeric"
+                  value={widthDraft[idx] ?? ''}
+                  min={1}
+                  max={99}
+                  onChange={(e) => {
+                    const next = [...widthDraft];
+                    next[idx] = e.target.value;     // ← draftだけ更新
+                    setWidthDraft(next);
+                  }}
+                  onBlur={() => commitWidthPct(idx, widthDraft[idx] ?? '')} // ← ここで確定＆正規化
+                />
+
+              </label>
+
+              <label style={{ display: 'grid', gap: 6 }}>
+                <span className="mapping-help">align</span>
+                <select
+                  className="mapping-control mapping-select"
+                  value={col.align ?? 'left'}
+                  onChange={(e) => updateColumn(idx, { align: e.target.value as any })}
+                >
+                  <option value="left">left</option>
+                  <option value="center">center</option>
+                  <option value="right">right</option>
+                </select>
+              </label>
+
+              <label style={{ display: 'grid', gap: 6 }}>
+                <span className="mapping-help">format</span>
+                <select
+                  className="mapping-control mapping-select"
+                  value={col.format ?? 'text'}
+                  onChange={(e) => updateColumn(idx, { format: e.target.value as any })}
+                >
+                  <option value="text">text</option>
+                  <option value="number">number</option>
+                  <option value="currency">currency</option>
+                  <option value="date">date</option>
+                </select>
+              </label>
+
+              <div />
+            </div>
+          </div>
+        ))}
       </div>
+
 
       <div style={{ opacity: 0.8 }}>
         列数: {columns.length}（{minCols}〜{maxCols}）

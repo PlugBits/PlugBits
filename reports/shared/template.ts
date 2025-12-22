@@ -9,6 +9,9 @@ export type FooterRepeatMode = 'all' | 'last';
 //mapping は MVP では unknown（Adapter側で解釈/検証） ---
 export type TemplateMapping = unknown;
 
+// Editor canvas height (bottom-based UI coordinates)
+export const CANVAS_HEIGHT = 842;
+
 
 export type DataSource =
   | { type: 'static'; value: string }
@@ -17,6 +20,7 @@ export type DataSource =
 
 export interface BaseElement {
   id: string;
+  slotId?: string;
   type: 'text' | 'label' | 'table' | 'image';
   x: number;
   y: number;
@@ -129,29 +133,22 @@ export const SAMPLE_TEMPLATE: TemplateDefinition = {
   elements: [
     {
       id: 'title',
-      type: 'label',
+      slotId: 'doc_title',
+      type: 'text',
       region: 'header',
       x: 50,
-      y: 50,
+      y: 782,
       fontSize: 24,
       fontWeight: 'bold',
-      text: '御見積書',
-    },
-    {
-      id: 'customer_name_label',
-      type: 'label',
-      region: 'header',
-      x: 50,
-      y: 100,
-      fontSize: 12,
-      text: '御中',
+      dataSource: { type: 'static', value: '御見積書' },
     },
     {
       id: 'customer_name',
+      slotId: 'to_name',
       type: 'text',
       region: 'header',
       x: 90,
-      y: 100,
+      y: 722,
       fontSize: 12,
       fontWeight: 'bold',
       dataSource: { type: 'kintone', fieldCode: 'CustomerName' },
@@ -161,18 +158,42 @@ export const SAMPLE_TEMPLATE: TemplateDefinition = {
       type: 'label',
       region: 'header',
       x: 350,
-      y: 100,
+      y: 722,
       fontSize: 12,
       text: '見積日',
     },
     {
       id: 'estimate_date',
+      slotId: 'issue_date',
       type: 'text',
       region: 'header',
       x: 410,
-      y: 100,
+      y: 722,
       fontSize: 12,
       dataSource: { type: 'kintone', fieldCode: 'EstimateDate' },
+    },
+    {
+      id: 'doc_no',
+      slotId: 'doc_no',
+      type: 'text',
+      region: 'header',
+      x: 350,
+      y: 752,
+      fontSize: 10,
+      width: 220,
+      height: 20,
+      dataSource: { type: 'static', value: '' },
+    },
+    {
+      id: 'logo',
+      slotId: 'logo',
+      type: 'image',
+      region: 'header',
+      x: 450,
+      y: 772,
+      width: 120,
+      height: 60,
+      dataSource: { type: 'static', value: '' },
     },
     {
       id: 'items',
@@ -205,21 +226,34 @@ export const SAMPLE_TEMPLATE: TemplateDefinition = {
       showGrid: true,
     },
     {
+      id: 'remarks',
+      slotId: 'remarks',
+      type: 'text',
+      region: 'footer',
+      x: 50,
+      y: 120,
+      fontSize: 10,
+      width: 520,
+      height: 60,
+      dataSource: { type: 'static', value: '' },
+    },
+    {
       id: 'total_label',
       type: 'label',
       region: 'footer',
       x: 300,
-      y: 560,
+      y: 70,
       fontSize: 14,
       fontWeight: 'bold',
       text: '合計',
     },
     {
       id: 'total',
+      slotId: 'total',
       type: 'text',
       region: 'footer',
       x: 350,
-      y: 560,
+      y: 70,
       fontSize: 14,
       fontWeight: 'bold',
       dataSource: { type: 'kintone', fieldCode: 'TotalAmount' },

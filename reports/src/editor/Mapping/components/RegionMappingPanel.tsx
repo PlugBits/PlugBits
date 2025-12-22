@@ -1,66 +1,112 @@
 // src/editor/Mapping/components/RegionMappingPanel.tsx
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import type { TemplateDefinition } from '@shared/template';
 import type { RegionDef } from '../adapters/StructureAdapter';
 import FieldPicker, { type FieldRef } from './FieldPicker';
 import ColumnEditor, { type Column } from './ColumnEditor';
-import { extractSchemaFromSampleData, setPath, deepClone, normalizeWidthPct } from '../mappingUtils';
+import { extractSchemaFromSampleData, setPath, deepClone } from '../mappingUtils';
 
 type Props = {
   template: TemplateDefinition;
   region: RegionDef;
   mapping: any;
   onChangeMapping: (nextMapping: any) => void;
+  onFocusFieldRef: (ref: FieldRef | undefined) => void;
+  onClearFocus: () => void;
 };
 
-const RegionMappingPanel: React.FC<Props> = ({ template, region, mapping, onChangeMapping }) => {
+const RegionMappingPanel: React.FC<Props> = ({
+  template, 
+  region, 
+  mapping, 
+  onChangeMapping, 
+  onFocusFieldRef,
+  onClearFocus,
+
+  }) => {
   const schema = useMemo(() => extractSchemaFromSampleData(template.sampleData), [template.sampleData]);
+  const [openSlotId, setOpenSlotId] = useState<string | null>(null);
+  const [openTableRow, setOpenTableRow] = useState<'source' | 'columns' | null>(null);
+
 
   if (region.kind === 'slots') {
     return (
-      <div className="card" style={{ marginBottom: '1rem' }}>
-        <h4 style={{ marginTop: 0 }}>{region.label}</h4>
+      <div className="mapping-card">
+        <div className="mapping-card-title">{region.label}</div>
 
-        <div style={{ display: 'grid', gap: 12 }}>
+        <div className="mapping-list">
           {region.slots.map((slot) => {
             const slotValue: FieldRef | undefined = mapping?.[region.id]?.[slot.id];
+            const isOpen = openSlotId === slot.id;
 
             const allowStaticText = slot.allowedSources?.includes('staticText');
             const allowImageUrl = slot.allowedSources?.includes('imageUrl');
 
-            return (
-              <div key={slot.id} style={{ borderTop: '1px solid #e5e7eb', paddingTop: 10 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'center' }}>
-                  <div style={{ fontWeight: 600 }}>
-                    {slot.label}
-                    {slot.required ? <span style={{ color: '#d92d20' }}> *</span> : null}
-                  </div>
-                  <button
-                    className="ghost"
-                    type="button"
-                    onClick={() => {
-                      const next = setPath(mapping, [region.id, slot.id], undefined);
-                      onChangeMapping(next);
-                    }}
-                  >
-                    解除
-                  </button>
-                </div>
+            const valueLabel = describeFieldRef(slotValue);
+            const isEmpty = !slotValue;
 
-                <div style={{ marginTop: 6 }}>
-                  <FieldPicker
-                    mode="record"
-                    recordOptions={schema.recordFields}
-                    value={slotValue}
-                    onChange={(v) => {
-                      const next = setPath(mapping, [region.id, slot.id], v);
-                      onChangeMapping(next);
-                    }}
-                    allowStaticText={allowStaticText}
-                    allowImageUrl={allowImageUrl}
-                    placeholderStaticText={slot.kind === 'date' ? '2025-12-14' : '固定文字'}
-                  />
-                </div>
+            return (
+              <div key={slot.id} 
+                className={`mapping-row ${isOpen ? 'open' : ''}`}
+                onMouseEnter={() => {
+                  onFocusFieldRef({ kind: 'slot', slotId: slot.id } as any);
+                }}
+                onMouseLeave={() => onClearFocus()}
+              >
+                <button
+                  type="button"
+                  className="mapping-row-summary"
+                  onClick={() => setOpenSlotId(isOpen ? null : slot.id)}
+                >
+                  <div className="mapping-row-left">
+                    <span className="mapping-row-label">
+                      {slot.label}
+                      {slot.required ? <span className="mapping-required"> *</span> : null}
+                    </span>
+                  </div>
+
+                  <div className={`mapping-row-right ${isEmpty ? 'empty' : 'filled'}`}>
+                    {valueLabel || '未設定'}
+                  </div>
+                </button>
+
+                {isOpen && (
+                  <div className="mapping-row-detail">
+                    <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'center' }}>
+                      <div style={{ fontSize: '0.85rem', color: '#667085' }}>
+                        {slot.kind === 'date' ? '日付' : slot.kind === 'image' ? '画像' : 'テキスト'}
+                      </div>
+
+                      <button
+                        className="ghost"
+                        type="button"
+                        onClick={() => {
+                          const next = setPath(mapping, [region.id, slot.id], undefined);
+                          onChangeMapping(next);
+                        }}
+                        disabled={!slotValue}
+                      >
+                        解除
+                      </button>
+                    </div>
+
+                    <div style={{ marginTop: 8 }}>
+                      <FieldPicker
+                        mode="record"
+                        recordOptions={schema.recordFields}
+                        value={slotValue}
+                        onChange={(v) => {
+                          const next = setPath(mapping, [region.id, slot.id], v);
+                          onChangeMapping(next);
+                          onFocusFieldRef({ kind: 'slot', slotId: slot.id } as any);
+                        }}
+                        allowStaticText={allowStaticText}
+                        allowImageUrl={allowImageUrl}
+                        placeholderStaticText={slot.kind === 'date' ? '2025-12-14' : '固定文字'}
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
             );
           })}
@@ -68,6 +114,7 @@ const RegionMappingPanel: React.FC<Props> = ({ template, region, mapping, onChan
       </div>
     );
   }
+
 
   // region.kind === 'table'
   const currentSource = mapping?.[region.id]?.source as { kind: 'subtable'; fieldCode: string } | undefined;
@@ -80,63 +127,138 @@ const RegionMappingPanel: React.FC<Props> = ({ template, region, mapping, onChan
   const columnsRaw = (mapping?.[region.id]?.columns ?? []) as Column[];
   const columns = Array.isArray(columnsRaw) ? columnsRaw : [];
 
-  return (
-    <div className="card" style={{ marginBottom: '1rem' }}>
-      <h4 style={{ marginTop: 0 }}>{region.label}</h4>
+    return (
+    <div className="mapping-card">
+      <div className="mapping-card-title">{region.label}</div>
 
-      <div style={{ display: 'grid', gap: 12 }}>
-        <div>
-          <div style={{ fontWeight: 600, marginBottom: 6 }}>
-            明細サブテーブル{region.sourceRequired ? <span style={{ color: '#d92d20' }}> *</span> : null}
-          </div>
+      <div className="mapping-list">
+        {/* Row 1: サブテーブル */}
+        {(() => {
+          const isOpen = openTableRow === 'source';
+          const isEmpty = !currentSubtableCode;
 
-          <select
-            value={currentSubtableCode}
-            onChange={(e) => {
-              const nextCode = e.target.value;
-              const next = deepClone(mapping ?? {});
-              next[region.id] = next[region.id] ?? {};
-              next[region.id].source = nextCode ? { kind: 'subtable', fieldCode: nextCode } : undefined;
+          return (
+            <div
+              className={`mapping-row ${isOpen ? 'open' : ''}`}
+              onMouseEnter={() => {
+                if (currentSubtableCode) onFocusFieldRef({ kind: 'subtable', fieldCode: currentSubtableCode } as any);
+              }}
+              onMouseLeave={() => onClearFocus()}
+            >
+              <button
+                type="button"
+                className="mapping-row-summary"
+                onClick={() => setOpenTableRow(isOpen ? null : 'source')}
+              >
+                <div className="mapping-row-left">
+                  <span className="mapping-row-label">
+                    明細サブテーブル
+                    {region.sourceRequired ? <span className="mapping-required"> *</span> : null}
+                  </span>
+                </div>
 
-              // サブテーブルが変わったら columns は維持するが fieldOptions が変わるので、value はそのまま（後でユーザーが調整）
-              onChangeMapping(next);
-            }}
-          >
-            <option value="">（選択してください）</option>
-            {subtableOptions.map((st) => (
-              <option key={st.code} value={st.code}>
-                {st.label} ({st.code})
-              </option>
-            ))}
-          </select>
-        </div>
+                <div className={`mapping-row-right ${isEmpty ? 'empty' : 'filled'}`}>
+                  {isEmpty ? '未設定' : `サブテーブル: ${currentSubtableCode}`}
+                </div>
+              </button>
 
-        <div>
-          <div style={{ fontWeight: 600, marginBottom: 6 }}>列設定</div>
-          <ColumnEditor
-            subtableCode={currentSubtableCode}
-            subtableFieldOptions={subtableFieldOptions}
-            minCols={region.minCols}
-            maxCols={region.maxCols}
-            baseColumns={region.baseColumns.map((b) => ({
-              id: b.id,
-              label: b.label,
-              defaultWidthPct: b.defaultWidthPct,
-              kind: b.kind as any,
-            }))}
-            columns={columns}
-            onChange={(nextCols) => {
-              const normalized = normalizeWidthPct(nextCols);
-              const next = deepClone(mapping ?? {});
-              next[region.id] = next[region.id] ?? {};
-              next[region.id].columns = normalized;
-              onChangeMapping(next);
-            }}
-          />
-        </div>
+              {isOpen && (
+                <div className="mapping-row-detail">
+                  <select
+                    className="mapping-control mapping-select"
+                    value={currentSubtableCode}
+                    onChange={(e) => {
+                      const nextCode = e.target.value;
+
+                      const next = deepClone(mapping ?? {});
+                      next[region.id] = next[region.id] ?? {};
+                      next[region.id].source = nextCode ? { kind: 'subtable', fieldCode: nextCode } : undefined;
+
+                      onChangeMapping(next);
+
+                      // ✅ ハイライト：選択された subtable を光らせる
+                      if (nextCode) onFocusFieldRef({ kind: 'subtable', fieldCode: nextCode } as any);
+                      else onClearFocus();
+                    }}
+                  >
+                    <option value="">（選択してください）</option>
+                    {subtableOptions.map((st) => (
+                      <option key={st.code} value={st.code}>
+                        {st.label} ({st.code})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+            </div>
+          );
+        })()}
+
+        {/* Row 2: 列設定 */}
+        {(() => {
+          const isOpen = openTableRow === 'columns';
+
+          return (
+            <div className={`mapping-row ${isOpen ? 'open' : ''}`}>
+              <button
+                type="button"
+                className="mapping-row-summary"
+                onClick={() => setOpenTableRow(isOpen ? null : 'columns')}
+              >
+                <div className="mapping-row-left">
+                  <span className="mapping-row-label">列設定</span>
+                </div>
+
+                <div className="mapping-row-right filled">
+                  {`列数: ${columns.length}（${region.minCols}〜${region.maxCols}）`}
+                </div>
+              </button>
+
+              {isOpen && (
+                <div className="mapping-row-detail">
+                  <ColumnEditor
+                    subtableCode={currentSubtableCode}
+                    subtableFieldOptions={subtableFieldOptions}
+                    minCols={region.minCols}
+                    maxCols={region.maxCols}
+                    baseColumns={region.baseColumns.map((b) => ({
+                      id: b.id,
+                      label: b.label,
+                      defaultWidthPct: b.defaultWidthPct,
+                      kind: b.kind as any,
+                    }))}
+                    columns={columns}
+                    onChange={(nextCols) => {
+                      const next = deepClone(mapping ?? {});
+                      next[region.id] = next[region.id] ?? {};
+                      next[region.id].columns = nextCols;
+                      onChangeMapping(next);
+
+                      // ✅ ここでは source を投げない（ColumnEditor側の hover/focus に任せる）
+                    }}
+                    onFocusFieldRef={onFocusFieldRef}
+                    onClearFocus={onClearFocus}
+                  />
+                </div>
+              )}
+            </div>
+          );
+        })()}
       </div>
     </div>
   );
+
 };
+function describeFieldRef(v?: FieldRef): string {
+  if (!v) return '';
+
+  if (v.kind === 'recordField') return v.fieldCode;
+  if (v.kind === 'staticText') return v.text ? `固定: ${v.text}` : '固定文字';
+  if (v.kind === 'imageUrl') return v.url ? '画像URL' : '画像';
+  if (v.kind === 'subtable') return v.fieldCode ? `サブテーブル: ${v.fieldCode}` : 'サブテーブル';
+  if (v.kind === 'subtableField') return v.fieldCode ? v.fieldCode : 'サブテーブル項目';
+
+  return '';
+}
 
 export default RegionMappingPanel;

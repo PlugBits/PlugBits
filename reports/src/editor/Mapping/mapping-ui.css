@@ -1,0 +1,102 @@
+/* Mapping panel form styles (scoped) */
+.mapping-card,
+.mapping-header {
+  --mp-border: #e4e7ec;
+  --mp-border2: #eef2f6;
+  --mp-text: #101828;
+  --mp-sub: #475467;
+  --mp-sub2: #667085;
+  --mp-bg: #ffffff;
+  --mp-bg2: #fcfcfd;
+  --mp-focus: rgba(59, 130, 246, 0.22);
+}
+
+/* labels / small helper text */
+.mapping-card label,
+.mapping-header label {
+  color: var(--mp-sub);
+  font-size: 0.85rem;
+}
+
+.mapping-help {
+  color: var(--mp-sub2);
+  font-size: 0.82rem;
+}
+
+/* unified controls */
+.mapping-control {
+  width: 100%;
+  appearance: none;
+  border: 1px solid var(--mp-border);
+  border-radius: 0.75rem;
+  padding: 0.55rem 0.7rem;
+  background: var(--mp-bg);
+  color: var(--mp-text);
+  outline: none;
+  box-shadow: 0 1px 0 rgba(16, 24, 40, 0.02);
+}
+
+.mapping-control:focus {
+  border-color: #84caff;
+  box-shadow: 0 0 0 4px var(--mp-focus);
+}
+
+.mapping-control::placeholder {
+  color: #98a2b3;
+}
+
+/* select arrow */
+.mapping-select {
+  background-image:
+    linear-gradient(45deg, transparent 50%, #98a2b3 50%),
+    linear-gradient(135deg, #98a2b3 50%, transparent 50%),
+    linear-gradient(to right, transparent, transparent);
+  background-position:
+    calc(100% - 18px) calc(1em + 2px),
+    calc(100% - 13px) calc(1em + 2px),
+    calc(100% - 2.2em) 0.45em;
+  background-size: 5px 5px, 5px 5px, 1px 1.8em;
+  background-repeat: no-repeat;
+  padding-right: 2.2em;
+}
+
+/* compact row for picker top line */
+.mapping-picker-row {
+  display: grid;
+  grid-template-columns: 140px 1fr;
+  gap: 10px;
+  align-items: center;
+}
+
+/* small pill buttons (for picker mode toggle etc.) */
+.mapping-chipbar {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.mapping-chip {
+  border: 1px solid var(--mp-border);
+  background: var(--mp-bg);
+  color: var(--mp-sub);
+  border-radius: 999px;
+  padding: 6px 10px;
+  font-size: 0.82rem;
+}
+
+.mapping-chip.active {
+  border-color: #84caff;
+  background: #eff8ff;
+  color: #175cd3;
+}
+
+/* reduce “form-y” feel inside row detail */
+.mapping-row-detail {
+  border: 1px solid #d0d5dd !important; /* ←今より濃く */
+  background: #ffffff;
+  box-shadow: 0 1px 2px rgba(16, 24, 40, 0.06);
+}
+
+.mapping-row-detail + .mapping-row-detail {
+  margin-top: 10px;
+}

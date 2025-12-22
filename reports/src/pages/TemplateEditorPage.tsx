@@ -7,10 +7,9 @@ import ElementInspector from '../components/ElementInspector';
 import Toast from '../components/Toast';
 import { selectTemplateById, useTemplateStore } from '../store/templateStore';
 import MappingPage from '../editor/Mapping/MappingPage';
-
+import { getAdapter } from '../editor/Mapping/adapters/getAdapter';
 
 const AUTOSAVE_DELAY = 4000;
-
 
 const TemplateEditorPage = () => {
   const { templateId } = useParams();
@@ -36,7 +35,13 @@ const TemplateEditorPage = () => {
   const [guideVisible, setGuideVisible] = useState(true);
   const [advancedLayoutEditing, setAdvancedLayoutEditing] = useState(!!template?.advancedLayoutEditing);
   const [activeTab, setActiveTab] = useState<'layout' | 'mapping'>('layout');
+  const LS_KEY = 'pb_reports_controls_open';
+  const [controlsOpen, setControlsOpen] = useState<boolean>(() => {
+    const v = localStorage.getItem(LS_KEY);
+    return v === 'true';
+  });
 
+  const [highlightRef, setHighlightRef] = useState<any>(null);
 
 
   useEffect(() => {
@@ -61,7 +66,8 @@ const TemplateEditorPage = () => {
     }
 
     setSelectedElementId(template.elements[0]?.id ?? null);
-  }, [template, selectedElementId]);
+  }, [template?.id, template?.mapping, template?.structureType]);
+
 
   const templateSignature = useMemo(() => {
     if (!template) return '';
@@ -104,10 +110,223 @@ const TemplateEditorPage = () => {
     };
   }, [templateSignature]);
 
+  useEffect(() => {
+  
+    if (!template) return;
+
+    const structureType = template.structureType ?? 'line_items_v1';
+    const adapter = getAdapter(structureType);
+    const mapping = template.mapping ?? adapter.createDefaultMapping();
+
+    const synced = adapter.applyMappingToTemplate(
+      { ...template, structureType, mapping },
+      mapping,
+    );
+
+    const elementsSig = (els: TemplateElement[]) => {
+      const norm = [...(els ?? [])]
+        .sort((a, b) => (a.id ?? '').localeCompare(b.id ?? ''))
+        .map((e) => {
+          const base = {
+            id: e.id,
+            type: e.type,
+            slotId: (e as any).slotId ?? null,
+            region: (e as any).region ?? null,
+          };
+
+          // dataSource（text / image / table）
+          const ds = (e as any).dataSource;
+          const dsSig =
+            ds?.type === 'static'
+              ? `static:${ds.value ?? ''}`
+              : ds?.type === 'kintone'
+              ? `kintone:${ds.fieldCode ?? ''}`
+              : ds?.type === 'kintoneSubtable'
+              ? `subtable:${ds.fieldCode ?? ''}`
+              : '';
+
+          if (e.type === 'label') {
+            return { ...base, ds: '', text: (e as any).text ?? '' };
+          }
+
+          if (e.type === 'text') {
+            return { ...base, ds: dsSig };
+          }
+
+          if (e.type === 'image') {
+            return { ...base, ds: dsSig };
+          }
+
+          if (e.type === 'table') {
+            const cols = ((e as any).columns ?? [])
+              .slice()
+              .sort((a: any, b: any) => (a.id ?? '').localeCompare(b.id ?? ''))
+              .map((c: any) => ({
+                id: c.id ?? '',
+                title: c.title ?? '',
+                fieldCode: c.fieldCode ?? '',
+                width: Number(c.width ?? 0),
+                align: c.align ?? null,
+              }));
+
+            return { ...base, ds: dsSig, cols };
+          }
+
+          return { ...base, ds: dsSig };
+        });
+
+      // JSON stringifyは「norm（軽量化済み）」に対してだけ許可
+      return JSON.stringify(norm);
+    };
+
+    // 無限ループ防止：mapping が変わった時だけ反映
+    const beforeSig = JSON.stringify({
+      structureType: template.structureType,
+      mapping: template.mapping ?? null,
+      elementsSig: elementsSig(template.elements ?? []),
+    });
+    const afterSig = JSON.stringify({
+      structureType: synced.structureType,
+      mapping: synced.mapping ?? null,
+      elementsSig: elementsSig(synced.elements ?? []),
+    });
+
+    if (beforeSig !== afterSig) {
+      updateTemplate(synced);
+    }
+  }, [template?.id, template?.mapping, template?.structureType, updateTemplate]);
+
+
   const selectedElement = useMemo<TemplateElement | null>(() => {
     if (!template || !selectedElementId) return null;
     return template.elements.find((element) => element.id === selectedElementId) ?? null;
   }, [template, selectedElementId]);
+
+  const highlightedElementIds = useMemo(() => {
+    const set = new Set<string>();
+    if (!template || !highlightRef) return set;
+
+    if (highlightRef.kind === 'slot') {
+      for (const el of template.elements) {
+        if ((el as any).slotId === highlightRef.slotId) {
+          set.add(el.id);
+        }
+      }
+      return set;
+    }
+
+    if (highlightRef.kind === 'recordField') {
+      for (const el of template.elements) {
+        const ds = (el as any).dataSource;
+        if (ds?.type === 'kintone' && ds.fieldCode === highlightRef.fieldCode) {
+          set.add(el.id);
+        }
+      }
+    }
+
+    if (highlightRef.kind === 'subtable') {
+      for (const el of template.elements) {
+        if (el.type === 'table' && el.dataSource?.fieldCode === highlightRef.fieldCode) {
+          set.add(el.id);
+        }
+      }
+    }
+
+    if (highlightRef.kind === 'subtableField') {
+      // MVP：列単位ではなく「そのサブテーブルの table 要素」を光らせる
+      for (const el of template.elements) {
+        if (el.type === 'table' && el.dataSource?.fieldCode === highlightRef.subtableCode) {
+          set.add(el.id);
+        }
+      }
+    }
+
+    return set;
+  }, [template, highlightRef]);
+
+  const slotLabelMap = useMemo(() => {
+    const structureType = template?.structureType ?? 'line_items_v1';
+    const adapter = getAdapter(structureType);
+    const map: Record<string, string> = {};
+    for (const region of adapter.regions) {
+      if (region.kind !== 'slots') continue;
+      for (const slot of region.slots) {
+        map[slot.id] = slot.label;
+      }
+    }
+    return map;
+  }, [template?.structureType]);
+
+  const describeElementForList = (el: any) => {
+    if (el.type === 'table') {
+      const ds = el.dataSource;
+      return ds?.fieldCode ? `サブテーブル: ${ds.fieldCode}` : 'サブテーブル: (未設定)';
+    }
+    if (el.type === 'label') return el.text ?? '';
+    const ds = el.dataSource;
+    if (!ds) return '';
+    if (ds.type === 'static') return ds.value ?? '';
+    if (ds.type === 'kintone') return `{{${ds.fieldCode}}}`;
+    if (ds.type === 'kintoneSubtable') return `{{${ds.fieldCode}}}`;
+    return '';
+  };
+
+  const typeLabelForList = (type: string) => {
+    if (type === 'text') return 'テキスト';
+    if (type === 'label') return 'ラベル';
+    if (type === 'image') return '画像';
+    if (type === 'table') return 'テーブル';
+    return '要素';
+  };
+
+  const SLOT_ORDER = [
+    'doc_title',
+    'to_name',
+    'issue_date',
+    'doc_no',
+    'logo',
+    'remarks',
+    'subtotal',
+    'tax',
+    'total',
+  ] as const;
+
+  const slotRank = (slotId?: string) => {
+    if (!slotId) return 9999;
+    const idx = SLOT_ORDER.indexOf(slotId as any);
+    return idx >= 0 ? idx : 9998;
+  };
+
+  const regionOf = (el: any) => (el.region ?? 'body') as 'header' | 'body' | 'footer';
+
+  const sortedByRegion = (elements: any[], region: 'header' | 'body' | 'footer') => {
+    const list = elements.filter((e) => regionOf(e) === region);
+    return list.sort((a, b) => {
+      const aHasSlot = !!a.slotId;
+      const bHasSlot = !!b.slotId;
+      if (aHasSlot !== bHasSlot) return aHasSlot ? -1 : 1;
+
+      const ar = slotRank(a.slotId);
+      const br = slotRank(b.slotId);
+      if (ar !== br) return ar - br;
+
+      const ay = typeof a.y === 'number' ? a.y : 0;
+      const by = typeof b.y === 'number' ? b.y : 0;
+      if (ay !== by) return by - ay;
+
+      const ax = typeof a.x === 'number' ? a.x : 0;
+      const bx = typeof b.x === 'number' ? b.x : 0;
+      return ax - bx;
+    });
+  };
+
+  const toggleControls = () => {
+    setControlsOpen((prev) => {
+      const next = !prev;
+      localStorage.setItem(LS_KEY, String(next));
+      return next;
+    });
+  };
 
   const persistTemplateName = () => {
     if (!template) return '';
@@ -223,7 +442,17 @@ const TemplateEditorPage = () => {
     }
     return undefined;
   }, [saveStatus]);
-
+console.log('[TEMPLATE DEBUG] id=', template?.id);
+console.log(
+  '[TEMPLATE DEBUG] elements ids=',
+  template?.elements.map(e =>
+    `${e.id}:${e.type}:${(e as any).slotId ?? ''}:${(e as any).region ?? ''}`
+  )
+);
+console.log('[TEMPLATE DEBUG] has title?', template?.elements.some(e => e.id === 'title'));
+console.log('[TEMPLATE DEBUG] has doc_title slot?', template?.elements.some(e => (e as any).slotId === 'doc_title'));
+console.log('[TEMPLATE DEBUG] mapping.header.doc_title=', (template?.mapping as any)?.header?.doc_title);
+// ★★★ ここまで ★★★
   if (!template) {
     return (
       <div className="card">
@@ -234,9 +463,17 @@ const TemplateEditorPage = () => {
   }
 
   return (
-    <section>
+    <section style={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden' }}>
       <div className="card" style={{ marginBottom: '1.5rem' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            padding: '0.75rem 0.75rem 0.5rem',
+            gap: '0.75rem',
+          }}
+        >
           <div>
             <input
               type="text"
@@ -259,108 +496,217 @@ const TemplateEditorPage = () => {
             />
             <p style={{ margin: 0, color: '#475467' }}>要素数: {template.elements.length}</p>
           </div>
-          <div className="button-row">
-            <button className="ghost" onClick={handleAddLabel}>
-              + ラベル
-            </button>
-            <button className="ghost" onClick={handleAddText}>
-              + テキスト
-            </button>
-            <button className="ghost" onClick={handleAddTable}>
-              + テーブル
-            </button>
-            <button className="ghost" onClick={handleAddImage}>
-              + 画像
-            </button>
-            <button
-              className="secondary"
-              onClick={() => { void previewPdf(template); }}
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.35rem' }}>
+            <div className="button-row">
+              <button
+                className="secondary"
+                onClick={() => { void previewPdf(template); }}
+              >
+                PDFプレビュー
+              </button>
+              <button className="ghost" onClick={() => { void handleSave(); }} disabled={saveStatus === 'saving'}>
+                {saveStatus === 'saving' ? '保存中...' : '保存'}
+              </button>
+              <button className="ghost" onClick={() => navigate('/')}>一覧</button>
+              <button className="ghost" onClick={toggleControls}>
+                設定 {controlsOpen ? '▲' : '▼'}
+              </button>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: 6 }}>
+              {saveStatus === 'success' && <span className="status-pill success">保存しました</span>}
+              {saveStatus === 'error' && <span className="status-pill error">{saveError}</span>}
+            </div>
+          </div>
+        </div>
+        {controlsOpen && (
+          <div
+            style={{
+              padding: '0.5rem 0.75rem 0.75rem',
+              borderTop: '1px solid #e4e7ec',
+              background: '#fff',
+            }}
+          >
+            <div className="button-row" style={{ marginBottom: '0.6rem' }}>
+              <button className="ghost" onClick={handleAddLabel} disabled={!template.advancedLayoutEditing}>
+                + ラベル
+              </button>
+              <button className="ghost" onClick={handleAddText} disabled={!template.advancedLayoutEditing}>
+                + テキスト
+              </button>
+              <button className="ghost" disabled title="明細テーブルはフィールド割当で編集します">
+                + テーブル
+              </button>
+              <button className="ghost" onClick={handleAddImage} disabled={!template.advancedLayoutEditing}>
+                + 画像
+              </button>
+            </div>
+            <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.6rem' }}>
+              <button className={activeTab === 'layout' ? 'secondary' : 'ghost'} onClick={() => setActiveTab('layout')}>
+                レイアウト
+              </button>
+              <button className={activeTab === 'mapping' ? 'secondary' : 'ghost'} onClick={() => setActiveTab('mapping')}>
+                フィールド割当
+              </button>
+            </div>
+            <div
+              style={{
+                display: 'flex',
+                gap: '1.25rem',
+                flexWrap: 'wrap',
+                fontSize: '0.9rem',
+              }}
             >
-              PDFプレビュー
-            </button>
-
-
-            <button className="ghost" onClick={() => { void handleSave(); }}  disabled={saveStatus === 'saving'}>
-              {saveStatus === 'saving' ? '保存中...' : '保存'}
-            </button>
-            <button className="ghost" onClick={() => navigate('/')}>一覧</button>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                <input type="checkbox" checked={gridVisible} onChange={(event) => setGridVisible(event.target.checked)} />
+                グリッド表示
+              </label>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                <input type="checkbox" checked={snapEnabled} onChange={(event) => setSnapEnabled(event.target.checked)} />
+                グリッドにスナップ
+              </label>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                <input type="checkbox" checked={guideVisible} onChange={(event) => setGuideVisible(event.target.checked)} />
+                ガイドライン表示
+              </label>
+              <label>
+                <input type="checkbox" checked={!!template.advancedLayoutEditing} onChange={(event) =>{
+                  const enabled = event.target.checked; 
+                  setAdvancedLayoutEditing(enabled); 
+                  updateTemplate({...template,advancedLayoutEditing: enabled});
+                  }}
+                />
+                上級者モード（レイアウトXY編集・自己責任）
+              </label>
+            </div>
           </div>
-          <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.75rem' }}>
-            <button className={activeTab === 'layout' ? 'secondary' : 'ghost'} onClick={() => setActiveTab('layout')}>
-              レイアウト
-            </button>
-            <button className={activeTab === 'mapping' ? 'secondary' : 'ghost'} onClick={() => setActiveTab('mapping')}>
-              フィールド割当
-            </button>
-          </div>
-
-        </div>
-        <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.75rem' }}>
-          <button className={activeTab === 'layout' ? 'secondary' : 'ghost'} onClick={() => setActiveTab('layout')}>
-            レイアウト
-          </button>
-          <button className={activeTab === 'mapping' ? 'secondary' : 'ghost'} onClick={() => setActiveTab('mapping')}>
-            フィールド割当
-          </button>
-        </div>
-        <div style={{ marginTop: '0.5rem', minHeight: 28, display: 'flex', alignItems: 'center' }}>
-          {saveStatus === 'success' && <span className="status-pill success">保存しました</span>}
-          {saveStatus === 'error' && <span className="status-pill error">{saveError}</span>}
+        )}
+      </div>
+      <div className="editor-layout" style={{ flex: 1, minHeight: 0 }}>
+        <div className="canvas-wrapper" style={{ minHeight: 0, maxHeight: '100%', height: '100%', overflow: 'auto' }}>
+          <TemplateCanvas
+            template={template}
+            selectedElementId={selectedElementId}
+            onSelect={(element) => setSelectedElementId(element?.id ?? null)}
+            onUpdateElement={(elementId, updates) => updateElement(template.id, elementId, updates)}
+            showGrid={gridVisible}
+            snapEnabled={snapEnabled}
+            showGuides={guideVisible}
+            highlightedElementIds={highlightedElementIds}
+            slotLabels={slotLabelMap}
+          />
         </div>
         <div
+          className="editor-panel"
           style={{
-            display: 'flex',
-            gap: '1.25rem',
-            flexWrap: 'wrap',
-            marginTop: '0.75rem',
-            fontSize: '0.9rem',
+            position: 'sticky',
+            top: 24,
+            alignSelf: 'flex-start',
+            maxHeight: '100%',
+            height: '100%',
+            minHeight: 0,
+            overflow: 'hidden',
           }}
         >
-          <label style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-            <input type="checkbox" checked={gridVisible} onChange={(event) => setGridVisible(event.target.checked)} />
-            グリッド表示
-          </label>
-          <label style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-            <input type="checkbox" checked={snapEnabled} onChange={(event) => setSnapEnabled(event.target.checked)} />
-            グリッドにスナップ
-          </label>
-          <label style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-            <input type="checkbox" checked={guideVisible} onChange={(event) => setGuideVisible(event.target.checked)} />
-            ガイドライン表示
-          </label>
-          <label>
-            <input type="checkbox" checked={!!template.advancedLayoutEditing} onChange={(event) =>{
-              const enabled = event.target.checked; 
-              setAdvancedLayoutEditing(enabled); 
-              updateTemplate({...template,advancedLayoutEditing: enabled});
+          <div style={{ maxHeight: '100%', height: '100%', minHeight: 0, overflowY: 'auto' }}>
+            {/* 右ペイン切替ボタン（ここに移動） */}
+            <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
+              <button
+                className={activeTab === 'layout' ? 'secondary' : 'ghost'}
+                onClick={() => setActiveTab('layout')}
+                type="button"
+              >
+                要素
+              </button>
+              <button
+                className={activeTab === 'mapping' ? 'secondary' : 'ghost'}
+                onClick={() => setActiveTab('mapping')}
+                type="button"
+              >
+                割当
+              </button>
+            </div>
+            <div
+              style={{
+                marginBottom: 12,
+                border: '1px solid #e4e7ec',
+                borderRadius: 12,
+                padding: 10,
+                maxHeight: 240,
+                overflowY: 'auto',
               }}
-            />
-            上級者モード（レイアウトXY編集・自己責任）
-          </label>
+            >
+              <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 8, color: '#101828' }}>
+                要素一覧（クリックで選択）
+              </div>
+
+              {(['header', 'body', 'footer'] as const).map((region) => {
+                const items = sortedByRegion(template.elements ?? [], region);
+                if (items.length === 0) return null;
+
+                const regionLabel = region === 'header' ? 'Header' : region === 'body' ? 'Body' : 'Footer';
+                return (
+                  <div key={region} style={{ marginBottom: 10 }}>
+                    <div style={{ fontSize: 12, color: '#475467', marginBottom: 6, fontWeight: 600 }}>
+                      {regionLabel}
+                    </div>
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                      {items.map((el: any) => {
+                        const isSelected = selectedElementId === el.id;
+                        const typeLabel = typeLabelForList(el.type);
+                        const title = el.slotId && slotLabelMap[el.slotId]
+                          ? slotLabelMap[el.slotId]
+                          : el.type === 'label' && el.text
+                          ? el.text
+                          : typeLabel;
+                        const subtitle = typeLabel;
+                        const desc = describeElementForList(el);
+
+                        return (
+                          <button
+                            key={el.id}
+                            type="button"
+                            onClick={() => setSelectedElementId(el.id)}
+                            className={isSelected ? 'secondary' : 'ghost'}
+                            style={{
+                              textAlign: 'left',
+                              padding: '8px 10px',
+                              borderRadius: 10,
+                              border: '1px solid #e4e7ec',
+                              background: isSelected ? '#f0f9ff' : '#fff',
+                            }}
+                          >
+                            <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
+                              <div style={{ fontWeight: 700, fontSize: 12, color: '#101828' }}>
+                                {title}
+                              </div>
+                              <div style={{ fontSize: 11, color: '#667085' }}>{subtitle}</div>
+                            </div>
+                            {desc && <div style={{ fontSize: 12, color: '#475467', marginTop: 4 }}>{desc}</div>}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {activeTab === 'layout' ? (
+              <ElementInspector templateId={template.id} element={selectedElement} />
+            ) : (
+              <MappingPage
+                template={template}
+                updateTemplate={updateTemplate}
+                onFocusFieldRef={(ref) => {
+                  setHighlightRef(ref);
+                }}
+                onClearFocus={() => setHighlightRef(null)}
+              />
+            )}
+          </div>
         </div>
       </div>
-
-      {activeTab === 'layout' ? (
-        <div className="editor-layout">
-          <div className="canvas-wrapper">
-            <TemplateCanvas
-              template={template}
-              selectedElementId={selectedElementId}
-              onSelect={(element) => setSelectedElementId(element?.id ?? null)}
-              onUpdateElement={(elementId, updates) => updateElement(template.id, elementId, updates)}
-              showGrid={gridVisible}
-              snapEnabled={snapEnabled}
-              showGuides={guideVisible}
-            />
-          </div>
-          <div className="editor-panel">
-            <ElementInspector templateId={template.id} element={selectedElement} />
-          </div>
-        </div>
-      ) : (
-      <MappingPage template={template} updateTemplate={updateTemplate} />
-      )}
-
 
       {toast && (
         <div className="toast-container">

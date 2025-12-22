@@ -4746,10 +4746,10 @@ var require_pako = __commonJS({
   }
 });
 
-// .wrangler/tmp/bundle-qMiaH1/middleware-loader.entry.ts
+// .wrangler/tmp/bundle-nQ4KG1/middleware-loader.entry.ts
 init_modules_watch_stub();
 
-// .wrangler/tmp/bundle-qMiaH1/middleware-insertion-facade.js
+// .wrangler/tmp/bundle-nQ4KG1/middleware-insertion-facade.js
 init_modules_watch_stub();
 
 // src/index.ts
@@ -53453,15 +53453,20 @@ fontkit.registerFormat(TrueTypeCollection);
 fontkit.registerFormat(DFont);
 var fontkit_es_default = fontkit;
 
+// ../shared/template.ts
+init_modules_watch_stub();
+var CANVAS_HEIGHT = 842;
+
 // src/pdf/renderTemplate.ts
-async function preloadImages(pdfDoc, template) {
+var isHttpUrl = /* @__PURE__ */ __name((value) => /^https?:\/\//i.test(value), "isHttpUrl");
+async function preloadImages(pdfDoc, template, data2) {
   const map = /* @__PURE__ */ new Map();
   const imageElements = template.elements.filter(
     (e) => e.type === "image"
   );
   const urls = Array.from(
     new Set(
-      imageElements.map((e) => e.imageUrl).filter((u) => !!u)
+      imageElements.map((e) => resolveDataSource(e.dataSource, data2)).filter((u) => !!u && isHttpUrl(u))
     )
   );
   for (const url of urls) {
@@ -53496,12 +53501,16 @@ function getPageSize(template) {
   return template.orientation === "landscape" ? dims.landscape : dims.portrait;
 }
 __name(getPageSize, "getPageSize");
-var UI_CANVAS_HEIGHT = 800;
-function toPdfY(uiY, height, pageHeight) {
-  const scale2 = pageHeight / UI_CANVAS_HEIGHT;
-  return uiY * scale2;
+function toPdfYFromBottom(uiBottomY, pageHeight) {
+  const scale2 = pageHeight / CANVAS_HEIGHT;
+  return uiBottomY * scale2;
 }
-__name(toPdfY, "toPdfY");
+__name(toPdfYFromBottom, "toPdfYFromBottom");
+var clampPdfY = /* @__PURE__ */ __name((pdfY, maxY) => {
+  if (Number.isNaN(pdfY)) return 0;
+  const cappedMax = Number.isNaN(maxY) ? 0 : maxY;
+  return Math.min(Math.max(pdfY, 0), cappedMax);
+}, "clampPdfY");
 function resolveDataSource(source, data2) {
   if (!source) return "";
   if (source.type === "static") {
@@ -53530,7 +53539,7 @@ async function renderTemplateToPdf(template, data2, fonts) {
   const pdfDoc = await PDFDocument_default.create();
   pdfDoc.registerFontkit(fontkit_es_default);
   const [pageWidth, pageHeight] = getPageSize(template);
-  const imageMap = await preloadImages(pdfDoc, template);
+  const imageMap = await preloadImages(pdfDoc, template, data2);
   let page = pdfDoc.addPage([pageWidth, pageHeight]);
   const jpFont = await pdfDoc.embedFont(fonts.jp, { subset: false });
   const latinFont = await pdfDoc.embedFont(fonts.latin, { subset: false });
@@ -53601,6 +53610,13 @@ async function renderTemplateToPdf(template, data2, fonts) {
   const tableElements = template.elements.filter(
     (e) => e.type === "table"
   );
+  if (tableElements.length > 1) {
+    console.warn(
+      "Multiple table elements found; rendering only one.",
+      tableElements.map((el) => el.id)
+    );
+  }
+  const tableElementToRender = tableElements.find((el) => el.id === "items") ?? tableElements[0];
   drawHeaderElements(
     page,
     [...repeatingHeaderElements, ...firstPageOnlyHeaderElements],
@@ -53610,13 +53626,13 @@ async function renderTemplateToPdf(template, data2, fonts) {
     latinFont,
     imageMap
   );
-  for (const tableElement of tableElements) {
+  if (tableElementToRender) {
     page = drawTable(
       pdfDoc,
       page,
       pageWidth,
       pageHeight,
-      tableElement,
+      tableElementToRender,
       jpFont,
       latinFont,
       data2,
@@ -53669,7 +53685,8 @@ function drawLabel(page, element, jpFont, pageHeight) {
   const fontSize = element.fontSize ?? 12;
   const textHeight = fontSize;
   const text = element.text ?? "";
-  const pdfY = toPdfY(element.y, textHeight, pageHeight);
+  let pdfY = toPdfYFromBottom(element.y, pageHeight);
+  pdfY = clampPdfY(pdfY, pageHeight - textHeight - 2);
   console.log("DRAW LABEL", {
     id: element.id,
     text,
@@ -53690,7 +53707,8 @@ function drawText(page, element, jpFont, latinFont, pageHeight, data2) {
   const textHeight = fontSize;
   const resolved = resolveDataSource(element.dataSource, data2);
   const text = resolved || element.text || "";
-  const pdfY = toPdfY(element.y, textHeight, pageHeight);
+  let pdfY = toPdfYFromBottom(element.y, pageHeight);
+  pdfY = clampPdfY(pdfY, pageHeight - textHeight - 2);
   const fontToUse = pickFontForText(text, jpFont, latinFont);
   console.log("DRAW TEXT", {
     id: element.id,
@@ -53728,6 +53746,7 @@ function drawHeaderElements(page, headerElements, pageHeight, data2, jpFont, lat
           page,
           element,
           pageHeight,
+          data2,
           imageMap
         );
         break;
@@ -53759,7 +53778,13 @@ function drawFooterElements(page, footerElements, pageHeight, data2, jpFont, lat
         );
         break;
       case "image":
-        drawImagePlaceholder(page, element, pageHeight);
+        drawImageElement(
+          page,
+          element,
+          pageHeight,
+          data2,
+          imageMap
+        );
         break;
       case "table":
         break;
@@ -53810,13 +53835,35 @@ function drawTable(pdfDoc, page, pageWidth, pageHeight, element, jpFont, latinFo
     }
   }, "drawTableHeaderRow");
   let currentPage = page;
-  let headerY = toPdfY(element.y, headerHeight, pageHeight);
+  const minHeaderY = bottomMargin + headerHeight + rowHeight;
+  const getHeaderY = /* @__PURE__ */ __name(() => clampPdfY(toPdfYFromBottom(element.y, pageHeight), pageHeight - headerHeight), "getHeaderY");
+  let headerY = getHeaderY();
   let rowIndexOnPage = 0;
+  if (headerY < minHeaderY) {
+    currentPage = pdfDoc.addPage([pageWidth, pageHeight]);
+    drawHeaderElements(
+      currentPage,
+      headerElements,
+      pageHeight,
+      data2,
+      jpFont,
+      latinFont,
+      imageMap
+    );
+    headerY = getHeaderY();
+    if (headerY < minHeaderY) {
+      console.warn("Table header Y is too low for minimum layout.", {
+        id: element.id,
+        headerY,
+        minHeaderY
+      });
+    }
+  }
   drawTableHeaderRow(currentPage, headerY);
   for (let i = 0; i < rows.length; i++) {
     const row = rows[i];
-    let rowTopY = headerY - headerHeight - rowIndexOnPage * rowHeight;
-    if (rowTopY < bottomMargin) {
+    let rowYBottom = headerY - headerHeight - rowIndexOnPage * rowHeight;
+    if (rowYBottom < bottomMargin) {
       currentPage = pdfDoc.addPage([pageWidth, pageHeight]);
       drawHeaderElements(
         currentPage,
@@ -53827,10 +53874,17 @@ function drawTable(pdfDoc, page, pageWidth, pageHeight, element, jpFont, latinFo
         latinFont,
         imageMap
       );
-      headerY = toPdfY(element.y, headerHeight, pageHeight);
+      headerY = getHeaderY();
       rowIndexOnPage = 0;
+      if (headerY < minHeaderY) {
+        console.warn("Table header Y is too low for minimum layout.", {
+          id: element.id,
+          headerY,
+          minHeaderY
+        });
+      }
       drawTableHeaderRow(currentPage, headerY);
-      rowTopY = headerY - headerHeight - rowIndexOnPage * rowHeight;
+      rowYBottom = headerY - headerHeight - rowIndexOnPage * rowHeight;
     }
     let currentX = originX;
     for (const col of element.columns) {
@@ -53838,7 +53892,7 @@ function drawTable(pdfDoc, page, pageWidth, pageHeight, element, jpFont, latinFo
       if (element.showGrid) {
         currentPage.drawRectangle({
           x: currentX,
-          y: rowTopY,
+          y: rowYBottom,
           width: colWidth,
           height: rowHeight,
           borderColor: rgb(0.85, 0.85, 0.85),
@@ -53850,7 +53904,7 @@ function drawTable(pdfDoc, page, pageWidth, pageHeight, element, jpFont, latinFo
       const fontForCell = pickFontForText(cellText, jpFont, latinFont);
       currentPage.drawText(cellText, {
         x: currentX + 4,
-        y: rowTopY + rowHeight / 2 - fontSize / 2,
+        y: rowYBottom + rowHeight / 2 - fontSize / 2,
         size: fontSize,
         font: fontForCell,
         color: rgb(0, 0, 0)
@@ -53862,19 +53916,21 @@ function drawTable(pdfDoc, page, pageWidth, pageHeight, element, jpFont, latinFo
   return currentPage;
 }
 __name(drawTable, "drawTable");
-function drawImageElement(page, element, pageHeight, imageMap) {
-  if (!element.imageUrl) {
+function drawImageElement(page, element, pageHeight, data2, imageMap) {
+  const url = resolveDataSource(element.dataSource, data2);
+  if (!url || !isHttpUrl(url)) {
     drawImagePlaceholder(page, element, pageHeight);
     return;
   }
-  const embedded = imageMap.get(element.imageUrl);
+  const embedded = imageMap.get(url);
   if (!embedded) {
     drawImagePlaceholder(page, element, pageHeight);
     return;
   }
   const width = element.width ?? embedded.width;
   const height = element.height ?? embedded.height;
-  const pdfY = toPdfY(element.y, height, pageHeight);
+  let pdfY = toPdfYFromBottom(element.y, pageHeight);
+  pdfY = clampPdfY(pdfY, pageHeight - height);
   const { width: imgW, height: imgH } = embedded.size();
   const fitMode = element.fitMode ?? "fit";
   let drawWidth = width;
@@ -53895,7 +53951,8 @@ __name(drawImageElement, "drawImageElement");
 function drawImagePlaceholder(page, element, pageHeight) {
   const width = element.width ?? 120;
   const height = element.height ?? 80;
-  const pdfY = toPdfY(element.y, height, pageHeight);
+  let pdfY = toPdfYFromBottom(element.y, pageHeight);
+  pdfY = clampPdfY(pdfY, pageHeight - height);
   page.drawRectangle({
     x: element.x,
     y: pdfY,
@@ -54107,7 +54164,7 @@ var jsonError = /* @__PURE__ */ __name(async (request, env2, _ctx, middlewareCtx
 }, "jsonError");
 var middleware_miniflare3_json_error_default = jsonError;
 
-// .wrangler/tmp/bundle-qMiaH1/middleware-insertion-facade.js
+// .wrangler/tmp/bundle-nQ4KG1/middleware-insertion-facade.js
 var __INTERNAL_WRANGLER_MIDDLEWARE__ = [
   middleware_ensure_req_body_drained_default,
   middleware_miniflare3_json_error_default
@@ -54140,7 +54197,7 @@ function __facade_invoke__(request, env2, ctx, dispatch, finalMiddleware) {
 }
 __name(__facade_invoke__, "__facade_invoke__");
 
-// .wrangler/tmp/bundle-qMiaH1/middleware-loader.entry.ts
+// .wrangler/tmp/bundle-nQ4KG1/middleware-loader.entry.ts
 var __Facade_ScheduledController__ = class ___Facade_ScheduledController__ {
   constructor(scheduledTime, cron, noRetry) {
     this.scheduledTime = scheduledTime;

@@ -44,18 +44,29 @@ export function deepClone<T>(v: T): T {
 /**
  * widthPct 合計を 100 に正規化（丸め誤差は最後に寄せる）
  */
-export function normalizeWidthPct(columns: Array<{ widthPct: number }>): Array<{ widthPct: number }> {
-  if (columns.length === 0) return columns;
+/**
+ * widthPct 合計を 100 に正規化（丸め誤差は最後に寄せる）
+ * ※型を落とさないためジェネリクスで返す
+ */
+export function normalizeWidthPct<T extends { widthPct: number }>(columns: readonly T[]): T[] {
+  if (columns.length === 0) return [...columns];
 
-  const sum = columns.reduce((acc, c) => acc + (Number.isFinite(c.widthPct) ? c.widthPct : 0), 0);
+  // T を保ったまま clone
+  const next: T[] = columns.map((c) => ({ ...c }));
+
+  const sum = next.reduce((acc, c) => acc + (Number.isFinite(c.widthPct) ? c.widthPct : 0), 0);
+
   if (sum <= 0) {
-    const base = Math.floor(100 / columns.length);
-    const rem = 100 - base * columns.length;
-    return columns.map((c, i) => ({ ...c, widthPct: i === columns.length - 1 ? base + rem : base }));
+    const base = Math.floor(100 / next.length);
+    const rem = 100 - base * next.length;
+    return next.map((c, i) => ({
+      ...c,
+      widthPct: i === next.length - 1 ? base + rem : base,
+    }));
   }
 
   // まずスケール
-  const scaled = columns.map((c) => ({
+  const scaled: T[] = next.map((c) => ({
     ...c,
     widthPct: Math.max(1, Math.round((c.widthPct / sum) * 100)),
   }));
@@ -67,6 +78,7 @@ export function normalizeWidthPct(columns: Array<{ widthPct: number }>): Array<{
 
   return scaled;
 }
+
 
 /**
  * mapping への安全なパス更新（MVP：anyで扱う）
@@ -82,3 +94,61 @@ export function setPath(obj: any, path: string[], value: any): any {
   cur[path[path.length - 1]] = value;
   return next;
 }
+
+/**
+ * 指定indexの widthPct はユーザー入力を優先して固定し、
+ * それ以外の列に差分を配って合計100にする
+ */
+export function normalizeWidthPctKeepIndex<T extends { widthPct: number }>(
+  columns: readonly T[],
+  keepIndex: number,
+): T[] {
+  if (columns.length === 0) return [...columns];
+
+  // T を保ったまま clone
+  const next: T[] = columns.map((c) => ({ ...c }));
+
+  if (keepIndex < 0 || keepIndex >= next.length) {
+    return normalizeWidthPct(next);
+  }
+
+  // keepIndex の列はユーザー入力を優先
+  next[keepIndex].widthPct = Math.max(
+    1,
+    Math.round(Number(next[keepIndex].widthPct) || 1),
+  );
+
+  const otherIdx = next.map((_, i) => i).filter((i) => i !== keepIndex);
+
+  if (otherIdx.length === 0) {
+    next[keepIndex].widthPct = 100;
+    return next;
+  }
+
+  const rest = 100 - next[keepIndex].widthPct;
+
+  // 他列の合計
+  const sumOther =
+    otherIdx.reduce((acc, i) => acc + (Number(next[i].widthPct) || 0), 0) ||
+    otherIdx.length;
+
+  let allocated = 0;
+  otherIdx.forEach((i) => {
+    const base = Number(next[i].widthPct) || 1;
+    const v = Math.max(1, Math.round((base / sumOther) * rest));
+    next[i].widthPct = v;
+    allocated += v;
+  });
+
+  // 丸め誤差は最後の列へ
+  const diff =
+    100 -
+    (next[keepIndex].widthPct +
+      otherIdx.reduce((acc, i) => acc + next[i].widthPct, 0));
+
+  const last = otherIdx[otherIdx.length - 1];
+  next[last].widthPct = Math.max(1, next[last].widthPct + diff);
+
+  return next;
+}
+

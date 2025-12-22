@@ -59,6 +59,7 @@ const FieldPicker: React.FC<Props> = ({
     <div style={{ display: 'grid', gap: 6 }}>
       <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
         <select
+          className="mapping-control mapping-select"
           value={selectedKind}
           onChange={(e) => {
             const k = e.target.value;
@@ -77,6 +78,7 @@ const FieldPicker: React.FC<Props> = ({
 
         {(selectedKind === 'recordField' || selectedKind === 'subtableField') && (
           <input
+            className="mapping-control mapping-select"
             value={q}
             onChange={(e) => setQ(e.target.value)}
             placeholder="検索（部分一致）"
@@ -87,6 +89,7 @@ const FieldPicker: React.FC<Props> = ({
 
       {selectedKind === 'recordField' && (
         <select
+          className="mapping-control mapping-select"
           value={value?.kind === 'recordField' ? value.fieldCode : ''}
           onChange={(e) => {
             const code = e.target.value;
@@ -105,6 +108,7 @@ const FieldPicker: React.FC<Props> = ({
 
       {selectedKind === 'subtableField' && (
         <select
+          className="mapping-control mapping-select"
           value={value?.kind === 'subtableField' ? value.fieldCode : ''}
           onChange={(e) => {
             const code = e.target.value;
@@ -123,6 +127,7 @@ const FieldPicker: React.FC<Props> = ({
 
       {selectedKind === 'staticText' && (
         <input
+          className="mapping-control mapping-select"
           value={value?.kind === 'staticText' ? value.text : ''}
           onChange={(e) => onChange({ kind: 'staticText', text: e.target.value })}
           placeholder={placeholderStaticText}
@@ -131,6 +136,7 @@ const FieldPicker: React.FC<Props> = ({
 
       {selectedKind === 'imageUrl' && (
         <input
+          className="mapping-control mapping-select"
           value={value?.kind === 'imageUrl' ? value.url : ''}
           onChange={(e) => onChange({ kind: 'imageUrl', url: e.target.value })}
           placeholder="https://..."

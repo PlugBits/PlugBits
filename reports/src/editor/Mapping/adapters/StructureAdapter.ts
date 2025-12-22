@@ -1,4 +1,5 @@
 // src/editor/Mapping/adapters/StructureAdapter.ts
+import type { TemplateDefinition } from '@shared/template';
 
 export type SlotKind = "text" | "date" | "number" | "currency" | "image" | "multiline";
 export type AllowedSource = "recordField" | "staticText" | "imageUrl";
@@ -50,4 +51,5 @@ export type StructureAdapter = {
 
   // 構造ごとの必須チェック等（MVPは軽くてOK）
   validate(mapping: unknown): ValidationResult;
+  applyMappingToTemplate: (template: TemplateDefinition, mapping: unknown) => TemplateDefinition;
 };

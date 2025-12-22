@@ -117,9 +117,9 @@ button:disabled {
 
 .editor-layout {
   display: grid;
-  grid-template-columns: 2fr 1fr;
-  gap: 1.5rem;
-  align-items: flex-start;
+  grid-template-columns: minmax(0, 1fr) minmax(520px, 45vw);
+  gap: 16px;
+  align-items: start;
 }
 
 .editor-panel {
@@ -128,6 +128,10 @@ button:disabled {
   padding: 1.25rem;
   border: 1px solid #e4e7ec;
   box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.02);
+  position: sticky;
+  top: 16px;
+  max-height: calc(100vh - 32px);
+  overflow: auto;
 }
 
 .canvas-wrapper {
@@ -136,6 +140,8 @@ button:disabled {
   padding: 1.25rem;
   border: 1px solid #e4e7ec;
   box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.02);
+  display: flex;
+  justify-content: center;
 }
 
 .template-canvas {
@@ -164,6 +170,23 @@ button:disabled {
 .canvas-element.selected {
   border-color: #155eef;
   box-shadow: 0 0 0 2px rgba(21, 94, 239, 0.3);
+}
+
+.canvas-element.highlighted {
+  outline: 2px solid rgba(59, 130, 246, 0.9); /* 青 */
+  box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.18);
+}
+
+.canvas-element.highlighted::after{
+  content: "MAPPING";
+  position: absolute;
+  top: -10px;
+  right: 8px;
+  font-size: 10px;
+  background: rgba(59,130,246,0.95);
+  color: white;
+  padding: 2px 6px;
+  border-radius: 999px;
 }
 
 .canvas-element .resize-handle {
@@ -329,4 +352,166 @@ button:disabled {
   color: #fff;
   font-size: 1rem;
   cursor: pointer;
+}
+/* ===== Mapping UI ===== */
+
+.mapping-header{
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  background: #fff;
+  border: 1px solid #e4e7ec;
+  border-radius: 0.9rem;
+  padding: 12px 14px;
+  margin-bottom: 12px;
+}
+
+.mapping-badge{
+  font-size: 0.8rem;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid #e4e7ec;
+  color: #475467;
+}
+
+.mapping-status{
+  font-size: 0.85rem;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid #e4e7ec;
+}
+.mapping-status.ok{ color:#067647; border-color:#abefc6; background:#ecfdf3; }
+.mapping-status.ng{ color:#b42318; border-color:#fda29b; background:#fffbfa; }
+
+.mapping-card{
+  border: 1px solid #e4e7ec;
+  border-radius: 0.9rem;
+  background: #fff;
+  padding: 10px 12px;
+  margin-bottom: 12px;
+}
+
+.mapping-card-title{
+  font-weight: 700;
+  margin-bottom: 8px;
+  color: #101828;
+}
+
+.mapping-list{
+  display: grid;
+  gap: 6px;
+}
+
+.mapping-row{
+  border: 1px solid #eef2f6;
+  border-radius: 0.75rem;
+  overflow: hidden;
+}
+
+.mapping-row-summary{
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  background: #fff;
+  cursor: pointer;
+  border: 0;
+  text-align: left;
+}
+
+.mapping-row-summary:hover{
+  background: #f9fafb;
+}
+
+.mapping-row-left{
+  min-width: 140px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.mapping-row-label{
+  font-weight: 600;
+  color: #101828;
+}
+
+.mapping-required{
+  color: #d92d20;
+}
+
+.mapping-row-right{
+  flex: 1;
+  text-align: right;
+  color: #475467;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mapping-row-right.empty{
+  color: #98a2b3;
+  font-style: italic;
+}
+
+.mapping-row-detail{
+  border: 1px solid #d0d5dd !important; /* ←今より濃く */
+  background: #ffffff;
+  box-shadow: 0 1px 2px rgba(16, 24, 40, 0.06);
+}
+
+.mapping-table-summary{
+  border: 1px dashed #d0d5dd;
+  border-radius: 0.75rem;
+  padding: 10px 12px;
+  color: #475467;
+  background: #fff;
+}
+
+/* === Mapping UI controls === */
+.mapping-control {
+  width: 100%;
+  height: 38px;
+  padding: 0 12px;
+
+  background: #ffffff;            /* 入力欄は白 */
+  border: 1px solid #cbd5e1;      /* カード枠より濃く */
+  border-radius: 10px;
+
+  color: #0f172a;
+  font-size: 14px;
+  outline: none;
+  transition: border-color 120ms ease, box-shadow 120ms ease;
+}
+
+.mapping-control:hover {
+  border-color: #94a3b8;
+}
+
+.mapping-control:focus {
+  border-color: #3b82f6; /* 青 */
+  box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.18); /* フォーカスリング */
+}
+
+.mapping-control::placeholder {
+  color: #94a3b8;
+}
+
+.mapping-select {
+  appearance: none;
+  background-image:
+    linear-gradient(45deg, transparent 50%, #64748b 50%),
+    linear-gradient(135deg, #64748b 50%, transparent 50%);
+  background-position:
+    calc(100% - 18px) 50%,
+    calc(100% - 12px) 50%;
+  background-size: 6px 6px, 6px 6px;
+  background-repeat: no-repeat;
+  padding-right: 34px;
+}
+
+/* “解除/削除”みたいな小ボタンが入力欄より目立たないように */
+.mapping-row-detail .ghost {
+  height: 34px;
+  border-radius: 10px;
 }

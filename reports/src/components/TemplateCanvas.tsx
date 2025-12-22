@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { CSSProperties, MouseEvent as ReactMouseEvent } from 'react';
 import type { TemplateDefinition, TemplateElement, DataSource } from '@shared/template';
 import { CANVAS_WIDTH, CANVAS_HEIGHT, REGION_BOUNDS, getRegionOf, clampYToRegion } from '../utils/regionBounds';
@@ -12,6 +12,9 @@ type CanvasProps = {
   snapEnabled?: boolean;
   showGrid?: boolean;
   showGuides?: boolean;
+  highlightedElementIds?: Set<string>;
+  slotLabels?: Record<string, string>;
+
 };
 
 type DragState = {
@@ -113,11 +116,15 @@ const TemplateCanvas = ({
   snapEnabled = true,
   showGrid = true,
   showGuides = true,
+  highlightedElementIds,
+  slotLabels,
 }: CanvasProps) => {
   const isAdvanced = !!template.advancedLayoutEditing;
 
+  const canvasRef = useRef<HTMLDivElement | null>(null);
   const [dragState, setDragState] = useState<DragState | null>(null);
   const [resizeState, setResizeState] = useState<ResizeState | null>(null);
+  const [hint, setHint] = useState<string | null>(null);
   const selectedElement = selectedElementId
     ? template.elements.find((el) => el.id === selectedElementId)
     : null;
@@ -186,20 +193,57 @@ const TemplateCanvas = ({
   const handleElementMouseDown = (event: ReactMouseEvent<HTMLDivElement>, element: TemplateElement) => {
     if (event.button !== 0) return;
     event.stopPropagation();
-    onSelect(element);
+
+    const rect = canvasRef.current?.getBoundingClientRect();
+    const point = rect
+      ? {
+          x: event.clientX - rect.left,
+          y: CANVAS_HEIGHT - (event.clientY - rect.top),
+        }
+      : null;
+
+    const hitList = point
+      ? template.elements.filter((el) => {
+          const width = getElementWidthValue(el);
+          const height = getElementHeightValue(el);
+          return (
+            point.x >= el.x &&
+            point.x <= el.x + width &&
+            point.y >= el.y &&
+            point.y <= el.y + height
+          );
+        })
+      : [element];
+
+    if (hitList.length === 0) {
+      onSelect(null);
+      return;
+    }
+
+    const currentIdx = hitList.findIndex((el) => el.id === selectedElementId);
+    const nextIdx = currentIdx >= 0
+      ? (currentIdx - 1 + hitList.length) % hitList.length
+      : hitList.length - 1;
+    const nextElement = hitList[nextIdx] ?? element;
+
+    onSelect(nextElement);
 
     // 通常モードはレイアウト編集しない
     if (!isAdvanced) return;
 
     // 明細テーブルは Mapping で管理するので、キャンバス上は固定
-    if (element.type === 'table') return;
+    if (nextElement.type === 'table') {
+      setHint('テーブルは固定です（フィールド割当で設定してください）');
+      window.setTimeout(() => setHint(null), 1500);
+      return;
+    }
 
     setDragState({
-      id: element.id,
+      id: nextElement.id,
       originX: event.clientX,
       originY: event.clientY,
-      startX: element.x,
-      startY: element.y,
+      startX: nextElement.x,
+      startY: nextElement.y,
     });
   };
 
@@ -250,15 +294,30 @@ const TemplateCanvas = ({
     : null;
 
   return (
-    <div className="template-canvas" style={canvasStyle} onMouseDown={handleCanvasMouseDown}>
+    <div className="template-canvas" style={canvasStyle} onMouseDown={handleCanvasMouseDown} ref={canvasRef}>
       {template.elements.map((element) => (
         <div
           key={element.id}
-          className={`canvas-element${selectedElementId === element.id ? ' selected' : ''}`}
-          style={getElementStyle(element)}
+          className={[
+            'canvas-element',
+            selectedElementId === element.id ? 'selected' : '',
+            highlightedElementIds?.has(element.id) ? 'highlighted' : '',
+          ].filter(Boolean).join(' ')}
+          style={{
+            ...getElementStyle(element),
+            zIndex: selectedElementId === element.id ? 50 : highlightedElementIds?.has(element.id) ? 40 : undefined,
+          }}
           onMouseDown={(event) => handleElementMouseDown(event, element)}
         >
-          <strong style={{ display: 'block', fontSize: '0.7rem', color: '#475467' }}>{element.type}</strong>
+          <strong
+            style={{
+              display: 'block',
+              fontSize: '0.7rem',
+              color: slotLabels?.[(element as any).slotId] ? '#344054' : '#475467',
+            }}
+          >
+            {slotLabels?.[(element as any).slotId] ?? element.type}
+          </strong>
           <span style={{ fontSize: '0.85rem' }}>{describeDataSource(element)}</span>
           {isAdvanced && element.type !== 'table' && (
             <div className="resize-handle" onMouseDown={(event) => handleResizeMouseDown(event, element)} />
@@ -267,6 +326,23 @@ const TemplateCanvas = ({
         </div>
       ))}
       {guideElements}
+      {hint && (
+        <div
+          style={{
+            position: 'absolute',
+            left: 16,
+            bottom: 16,
+            padding: '8px 10px',
+            borderRadius: 10,
+            background: 'rgba(16,24,40,0.85)',
+            color: '#fff',
+            fontSize: 12,
+            zIndex: 1000,
+          }}
+        >
+          {hint}
+        </div>
+      )}
       <div className="canvas-meta">
         <span className="canvas-pill">{snapEnabled ? 'SNAP ON' : 'SNAP OFF'}</span>
         {showGrid && <span className="canvas-pill">GRID</span>}
