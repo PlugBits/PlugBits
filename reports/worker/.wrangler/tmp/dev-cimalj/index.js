@@ -4746,14 +4746,19 @@ var require_pako = __commonJS({
   }
 });
 
-// .wrangler/tmp/bundle-nQ4KG1/middleware-loader.entry.ts
+// .wrangler/tmp/bundle-uNvNvt/middleware-loader.entry.ts
 init_modules_watch_stub();
 
-// .wrangler/tmp/bundle-nQ4KG1/middleware-insertion-facade.js
+// .wrangler/tmp/bundle-uNvNvt/middleware-insertion-facade.js
 init_modules_watch_stub();
 
 // src/index.ts
 init_modules_watch_stub();
+
+// ../shared/template.ts
+init_modules_watch_stub();
+var CANVAS_HEIGHT = 842;
+var TEMPLATE_SCHEMA_VERSION = 1;
 
 // src/pdf/renderTemplate.ts
 init_modules_watch_stub();
@@ -53453,38 +53458,257 @@ fontkit.registerFormat(TrueTypeCollection);
 fontkit.registerFormat(DFont);
 var fontkit_es_default = fontkit;
 
-// ../shared/template.ts
-init_modules_watch_stub();
-var CANVAS_HEIGHT = 842;
-
 // src/pdf/renderTemplate.ts
 var isHttpUrl = /* @__PURE__ */ __name((value) => /^https?:\/\//i.test(value), "isHttpUrl");
-async function preloadImages(pdfDoc, template, data2) {
+var MAX_TEXT_LENGTH = 200;
+var truncateText = /* @__PURE__ */ __name((text, maxLength = MAX_TEXT_LENGTH) => {
+  if (text.length <= maxLength) return text;
+  return text.slice(0, maxLength);
+}, "truncateText");
+var safeStringifyValue = /* @__PURE__ */ __name((value, warn, context2) => {
+  try {
+    return JSON.stringify(value);
+  } catch (error2) {
+    const message = error2 instanceof Error ? error2.message : String(error2);
+    warn?.("data", "value stringify failed", { ...context2, error: message });
+    return "";
+  }
+}, "safeStringifyValue");
+var stringifyValue = /* @__PURE__ */ __name((value, warn, context2) => {
+  if (value === null || value === void 0) return "";
+  if (value instanceof Date) return value.toISOString();
+  const type = typeof value;
+  if (type === "string" || type === "number" || type === "boolean") {
+    return String(value);
+  }
+  if (Array.isArray(value)) {
+    const parts = value.map((item, index) => stringifyValue(item, warn, { ...context2, index })).filter((part) => part !== "");
+    return parts.join(", ");
+  }
+  if (type === "object") {
+    return safeStringifyValue(value, warn, context2);
+  }
+  warn?.("data", "unsupported value type", { ...context2, type });
+  return "";
+}, "stringifyValue");
+var numericLikePattern = /^[0-9.,+\-() ¥$]*$/;
+var isNumericLike = /* @__PURE__ */ __name((text) => numericLikePattern.test(text), "isNumericLike");
+var wrapTextToLines = /* @__PURE__ */ __name((text, font, fontSize, maxWidth) => {
+  if (text === "") return [""];
+  if (maxWidth <= 0) return [""];
+  const paragraphs = text.split("\n");
+  const lines = [];
+  for (const paragraph of paragraphs) {
+    if (paragraph === "") {
+      lines.push("");
+      continue;
+    }
+    let line = "";
+    for (const char of paragraph) {
+      const candidate = `${line}${char}`;
+      if (font.widthOfTextAtSize(candidate, fontSize) <= maxWidth || line === "") {
+        line = candidate;
+        continue;
+      }
+      lines.push(line);
+      line = char;
+    }
+    if (line !== "") {
+      lines.push(line);
+    }
+  }
+  return lines.length > 0 ? lines : [""];
+}, "wrapTextToLines");
+var ellipsisTextToWidth = /* @__PURE__ */ __name((text, font, fontSize, maxWidth) => {
+  if (!text) return "";
+  if (maxWidth <= 0) return "";
+  const ellipsis = "...";
+  if (font.widthOfTextAtSize(text, fontSize) <= maxWidth) {
+    return text;
+  }
+  if (font.widthOfTextAtSize(ellipsis, fontSize) > maxWidth) {
+    return "";
+  }
+  let low = 0;
+  let high = text.length;
+  while (low < high) {
+    const mid = Math.ceil((low + high) / 2);
+    const candidate = `${text.slice(0, mid)}${ellipsis}`;
+    if (font.widthOfTextAtSize(candidate, fontSize) <= maxWidth) {
+      low = mid;
+    } else {
+      high = mid - 1;
+    }
+  }
+  return `${text.slice(0, low)}${ellipsis}`;
+}, "ellipsisTextToWidth");
+var drawMultilineText = /* @__PURE__ */ __name((page, lines, x, yStart, font, fontSize, color, maxLines, lineHeight = fontSize * 1.2) => {
+  const limit = Math.min(lines.length, Math.max(0, maxLines));
+  for (let idx = 0; idx < limit; idx += 1) {
+    page.drawText(lines[idx], {
+      x,
+      y: yStart - idx * lineHeight,
+      size: fontSize,
+      font,
+      color
+    });
+  }
+}, "drawMultilineText");
+var CELL_PADDING_X = 4;
+var MIN_FONT_SIZE2 = 6;
+var calcShrinkFontSize = /* @__PURE__ */ __name((text, font, baseSize, maxWidth, minFontSize = MIN_FONT_SIZE2) => {
+  if (!text) return baseSize;
+  const baseWidth = font.widthOfTextAtSize(text, baseSize);
+  if (baseWidth <= maxWidth) return baseSize;
+  const scale2 = maxWidth / baseWidth;
+  const shrunk = Math.floor(baseSize * scale2);
+  return Math.max(minFontSize, Math.min(baseSize, shrunk));
+}, "calcShrinkFontSize");
+var drawCellText = /* @__PURE__ */ __name((page, text, font, baseFontSize, cellX, cellY, cellW, cellH, align, minFontSize = MIN_FONT_SIZE2) => {
+  const availableW = Math.max(0, cellW - CELL_PADDING_X * 2);
+  const fontSize = calcShrinkFontSize(
+    text,
+    font,
+    baseFontSize,
+    availableW,
+    minFontSize
+  );
+  const textW = font.widthOfTextAtSize(text, fontSize);
+  const x = align === "right" ? cellX + cellW - CELL_PADDING_X - textW : align === "center" ? cellX + (cellW - textW) / 2 : cellX + CELL_PADDING_X;
+  const y = cellY + cellH / 2 - fontSize / 2;
+  page.drawText(text, { x, y, size: fontSize, font, color: rgb(0, 0, 0) });
+}, "drawCellText");
+var drawAlignedText = /* @__PURE__ */ __name((page, text, font, fontSize, cellX, cellY, cellW, cellH, align) => {
+  const textW = font.widthOfTextAtSize(text, fontSize);
+  const x = align === "right" ? cellX + cellW - CELL_PADDING_X - textW : align === "center" ? cellX + (cellW - textW) / 2 : cellX + CELL_PADDING_X;
+  const y = cellY + cellH / 2 - fontSize / 2;
+  page.drawText(text, { x, y, size: fontSize, font, color: rgb(0, 0, 0) });
+}, "drawAlignedText");
+var isItemNameColumn = /* @__PURE__ */ __name((col) => col.id === "item_name" || col.fieldCode === "ItemName", "isItemNameColumn");
+var normalizeColumnSpec = /* @__PURE__ */ __name((col) => {
+  const itemName = isItemNameColumn(col);
+  return {
+    align: col.align,
+    overflow: col.overflow ?? (itemName ? "wrap" : "shrink"),
+    minFontSize: col.minFontSize ?? MIN_FONT_SIZE2,
+    maxLines: col.maxLines,
+    formatter: col.formatter,
+    isItemName: itemName
+  };
+}, "normalizeColumnSpec");
+var resolveColumnAlign = /* @__PURE__ */ __name((spec, text) => {
+  if (spec.align) return spec.align;
+  if (spec.overflow === "wrap") return "left";
+  return isNumericLike(text) ? "right" : "left";
+}, "resolveColumnAlign");
+var formatCellValue = /* @__PURE__ */ __name((rawVal, spec, warn, context2) => {
+  const formatterType = spec.formatter?.type ?? "text";
+  if (formatterType === "number" || formatterType === "currency") {
+    if (rawVal === null || rawVal === void 0) return "";
+    if (typeof rawVal === "number") {
+      if (!Number.isSafeInteger(rawVal)) {
+        warn("number", "unsafe-number", { ...context2, value: rawVal });
+        return String(rawVal);
+      }
+      const locale = spec.formatter?.locale ?? "ja-JP";
+      return new Intl.NumberFormat(locale).format(rawVal);
+    }
+    if (typeof rawVal === "string") {
+      return rawVal;
+    }
+    return stringifyValue(rawVal, warn, context2);
+  }
+  if (formatterType === "date") {
+    if (rawVal === null || rawVal === void 0) return "";
+    if (rawVal instanceof Date) return rawVal.toISOString();
+    if (typeof rawVal === "string") return rawVal;
+    return stringifyValue(rawVal, warn, context2);
+  }
+  return stringifyValue(rawVal, warn, context2);
+}, "formatCellValue");
+var parseAmountToBigInt = /* @__PURE__ */ __name((value) => {
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim();
+  if (!/^[0-9,]+$/.test(trimmed)) return null;
+  const digits = trimmed.replace(/,/g, "");
+  if (!digits) return null;
+  try {
+    return BigInt(digits);
+  } catch {
+    return null;
+  }
+}, "parseAmountToBigInt");
+var formatBigIntWithCommas = /* @__PURE__ */ __name((value) => {
+  const s = value.toString();
+  const chars3 = s.split("");
+  let out = "";
+  let count = 0;
+  for (let i = chars3.length - 1; i >= 0; i -= 1) {
+    out = chars3[i] + out;
+    count += 1;
+    if (count % 3 === 0 && i !== 0) {
+      out = `,${out}`;
+    }
+  }
+  return out;
+}, "formatBigIntWithCommas");
+var fetchWithTimeout = /* @__PURE__ */ __name(async (url, timeoutMs, warn) => {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, { signal: controller.signal });
+  } catch (error2) {
+    const message = error2 instanceof Error ? error2.message : String(error2);
+    const reason = error2 instanceof Error && error2.name === "AbortError" ? "timeout" : "error";
+    warn("image", "image fetch failed", { url, reason, error: message });
+    return null;
+  } finally {
+    clearTimeout(timeout);
+  }
+}, "fetchWithTimeout");
+var embedImageBuffer = /* @__PURE__ */ __name(async (pdfDoc, buf, url, contentType, warn) => {
+  const lower = url.toLowerCase();
+  const preferJpg = contentType.includes("jpeg") || contentType.includes("jpg") || lower.endsWith(".jpg") || lower.endsWith(".jpeg");
+  const preferPng = contentType.includes("png") || lower.endsWith(".png");
+  const order = preferJpg && !preferPng ? ["jpg", "png"] : ["png", "jpg"];
+  for (const kind of order) {
+    try {
+      if (kind === "jpg") return await pdfDoc.embedJpg(buf);
+      return await pdfDoc.embedPng(buf);
+    } catch {
+    }
+  }
+  warn("image", "image embed failed", { url });
+  return null;
+}, "embedImageBuffer");
+async function preloadImages(pdfDoc, template, data2, warn) {
   const map = /* @__PURE__ */ new Map();
   const imageElements = template.elements.filter(
     (e) => e.type === "image"
   );
   const urls = Array.from(
     new Set(
-      imageElements.map((e) => resolveDataSource(e.dataSource, data2)).filter((u) => !!u && isHttpUrl(u))
+      imageElements.map((e) => resolveDataSource(e.dataSource, data2, warn, { elementId: e.id })).filter((u) => !!u && isHttpUrl(u))
     )
   );
   for (const url of urls) {
-    const res = await fetch(url);
+    const res = await fetchWithTimeout(url, 5e3, warn);
+    if (!res) {
+      continue;
+    }
     if (!res.ok) {
-      console.warn("Failed to fetch image:", url, res.status);
+      warn("image", "image fetch failed", { url, status: res.status });
+      continue;
+    }
+    const contentType = res.headers.get("content-type")?.toLowerCase() ?? "";
+    if (!contentType.startsWith("image/")) {
+      warn("image", "image content-type not image", { url, contentType });
       continue;
     }
     const buf = new Uint8Array(await res.arrayBuffer());
-    const lower = url.toLowerCase();
-    let embedded;
-    if (lower.endsWith(".jpg") || lower.endsWith(".jpeg")) {
-      embedded = await pdfDoc.embedJpg(buf);
-    } else {
-      embedded = await pdfDoc.embedPng(buf);
-    }
+    const embedded = await embedImageBuffer(pdfDoc, buf, url, contentType, warn);
+    if (!embedded) continue;
     map.set(url, embedded);
-    console.log("Embedded image", url, "bytes=", buf.length);
   }
   return map;
 }
@@ -53511,48 +53735,76 @@ var clampPdfY = /* @__PURE__ */ __name((pdfY, maxY) => {
   const cappedMax = Number.isNaN(maxY) ? 0 : maxY;
   return Math.min(Math.max(pdfY, 0), cappedMax);
 }, "clampPdfY");
-function resolveDataSource(source, data2) {
+function resolveDataSource(source, data2, warn, context2) {
   if (!source) return "";
   if (source.type === "static") {
     return source.value ?? "";
+  }
+  if (source.type === "kintoneSubtable") {
+    return "";
   }
   if (!data2) return "";
   if ("fieldCode" in source && source.fieldCode) {
     const value = data2[source.fieldCode];
     if (value === null || value === void 0) return "";
     if (typeof value === "number") {
-      return new Intl.NumberFormat("ja-JP").format(value);
+      if (Number.isSafeInteger(value)) {
+        return new Intl.NumberFormat("ja-JP").format(value);
+      }
+      const contextInfo = { fieldCode: source.fieldCode, value };
+      warn?.("number", "unsafe-number", contextInfo);
+      return String(value);
     }
     if (value instanceof Date) {
       return value.toISOString();
     }
-    if (Array.isArray(value)) {
-      return value.map((item) => typeof item === "object" ? JSON.stringify(item) : String(item)).join(", ");
+    if (typeof value === "string" || typeof value === "boolean") {
+      return truncateText(String(value));
     }
-    return String(value);
+    if (Array.isArray(value)) {
+      const parts = value.map((item, index) => {
+        if (item === null || item === void 0) return "";
+        if (typeof item === "number") return new Intl.NumberFormat("ja-JP").format(item);
+        if (item instanceof Date) return item.toISOString();
+        if (typeof item === "string" || typeof item === "boolean") return String(item);
+        return safeStringifyValue(item, warn, { ...context2, fieldCode: source.fieldCode, index });
+      }).filter((part) => part !== "");
+      return truncateText(parts.join(", "));
+    }
+    return truncateText(
+      safeStringifyValue(value, warn, { ...context2, fieldCode: source.fieldCode })
+    );
   }
+  warn?.("data", "dataSource fieldCode missing", context2);
   return "";
 }
 __name(resolveDataSource, "resolveDataSource");
-async function renderTemplateToPdf(template, data2, fonts) {
-  console.log("==== renderTemplateToPdf START ====");
+async function renderTemplateToPdf(template, data2, fonts, options) {
+  const warnings = /* @__PURE__ */ new Set();
+  const debugEnabled = options?.debug === true;
+  const warn = /* @__PURE__ */ __name((category, message, context2) => {
+    if (category === "debug" && !debugEnabled) return;
+    let entry = `[${category}] ${message}`;
+    if (context2) {
+      try {
+        entry = `${entry} ${JSON.stringify(context2)}`;
+      } catch {
+        entry = `${entry} [context_unserializable]`;
+      }
+    }
+    warnings.add(entry);
+  }, "warn");
   const pdfDoc = await PDFDocument_default.create();
   pdfDoc.registerFontkit(fontkit_es_default);
   const [pageWidth, pageHeight] = getPageSize(template);
-  const imageMap = await preloadImages(pdfDoc, template, data2);
+  const imageMap = await preloadImages(pdfDoc, template, data2, warn);
   let page = pdfDoc.addPage([pageWidth, pageHeight]);
   const jpFont = await pdfDoc.embedFont(fonts.jp, { subset: false });
   const latinFont = await pdfDoc.embedFont(fonts.latin, { subset: false });
-  console.log(
-    "TEMPLATE ELEMENTS:",
-    template.elements.map((e) => ({
-      id: e.id,
-      type: e.type,
-      text: e.text,
-      x: e.x,
-      y: e.y
-    }))
-  );
+  warn("debug", "template elements", {
+    count: template.elements.length,
+    ids: template.elements.map((e) => e.id)
+  });
   const nonTableElements = template.elements.filter(
     (e) => e.type !== "table"
   );
@@ -53611,10 +53863,9 @@ async function renderTemplateToPdf(template, data2, fonts) {
     (e) => e.type === "table"
   );
   if (tableElements.length > 1) {
-    console.warn(
-      "Multiple table elements found; rendering only one.",
-      tableElements.map((el) => el.id)
-    );
+    warn("layout", "multiple table elements found", {
+      ids: tableElements.map((el) => el.id)
+    });
   }
   const tableElementToRender = tableElements.find((el) => el.id === "items") ?? tableElements[0];
   drawHeaderElements(
@@ -53624,7 +53875,8 @@ async function renderTemplateToPdf(template, data2, fonts) {
     data2,
     jpFont,
     latinFont,
-    imageMap
+    imageMap,
+    warn
   );
   if (tableElementToRender) {
     page = drawTable(
@@ -53638,7 +53890,8 @@ async function renderTemplateToPdf(template, data2, fonts) {
       data2,
       repeatingHeaderElements,
       footerReserveHeight,
-      imageMap
+      imageMap,
+      warn
     );
   }
   const pages = pdfDoc.getPages();
@@ -53654,7 +53907,8 @@ async function renderTemplateToPdf(template, data2, fonts) {
       data2,
       jpFont,
       latinFont,
-      imageMap
+      imageMap,
+      warn
     );
     const footerText = `${i + 1} / ${totalPages}`;
     const textWidth = latinFont.widthOfTextAtSize(
@@ -53672,60 +53926,61 @@ async function renderTemplateToPdf(template, data2, fonts) {
     });
   }
   const bytes = await pdfDoc.save();
-  console.log("==== renderTemplateToPdf END ====");
-  return bytes;
+  const warningList = Array.from(warnings);
+  if (warningList.length > 0) {
+    console.warn("renderTemplateToPdf warnings", warningList);
+  }
+  return { bytes, warnings: warningList };
 }
 __name(renderTemplateToPdf, "renderTemplateToPdf");
 function pickFontForText(text, jpFont, latinFont) {
-  const numericLike = /^[0-9.,+\-() ¥$]*$/.test(text);
-  return numericLike ? latinFont : jpFont;
+  return /^[\x00-\x7F]*$/.test(text) ? latinFont : jpFont;
 }
 __name(pickFontForText, "pickFontForText");
 function drawLabel(page, element, jpFont, pageHeight) {
   const fontSize = element.fontSize ?? 12;
-  const textHeight = fontSize;
   const text = element.text ?? "";
-  let pdfY = toPdfYFromBottom(element.y, pageHeight);
-  pdfY = clampPdfY(pdfY, pageHeight - textHeight - 2);
-  console.log("DRAW LABEL", {
-    id: element.id,
-    text,
-    uiY: element.y,
-    pdfY
-  });
-  page.drawText(text, {
-    x: element.x,
-    y: pdfY,
-    size: fontSize,
-    font: jpFont,
-    color: rgb(0, 0, 0)
-  });
+  const maxWidth = 180;
+  const maxLines = 99;
+  let yStart = toPdfYFromBottom(element.y, pageHeight);
+  yStart = clampPdfY(yStart, pageHeight - fontSize - 2);
+  const lines = wrapTextToLines(text, jpFont, fontSize, maxWidth);
+  drawMultilineText(
+    page,
+    lines,
+    element.x,
+    yStart,
+    jpFont,
+    fontSize,
+    rgb(0, 0, 0),
+    maxLines
+  );
 }
 __name(drawLabel, "drawLabel");
-function drawText(page, element, jpFont, latinFont, pageHeight, data2) {
+function drawText(page, element, jpFont, latinFont, pageHeight, data2, warn) {
   const fontSize = element.fontSize ?? 12;
-  const textHeight = fontSize;
-  const resolved = resolveDataSource(element.dataSource, data2);
+  const lineHeight = fontSize * 1.2;
+  const maxWidth = element.width ?? 200;
+  const resolved = resolveDataSource(element.dataSource, data2, warn, { elementId: element.id });
   const text = resolved || element.text || "";
-  let pdfY = toPdfYFromBottom(element.y, pageHeight);
-  pdfY = clampPdfY(pdfY, pageHeight - textHeight - 2);
+  const maxLines = element.height ? Math.floor(element.height / lineHeight) : 99999;
+  let yStart = toPdfYFromBottom(element.y, pageHeight);
+  yStart = clampPdfY(yStart, pageHeight - fontSize - 2);
   const fontToUse = pickFontForText(text, jpFont, latinFont);
-  console.log("DRAW TEXT", {
-    id: element.id,
-    text,
-    uiY: element.y,
-    pdfY
-  });
-  page.drawText(text, {
-    x: element.x,
-    y: pdfY,
-    size: fontSize,
-    font: fontToUse,
-    color: rgb(0, 0, 0)
-  });
+  const lines = wrapTextToLines(text, fontToUse, fontSize, maxWidth);
+  drawMultilineText(
+    page,
+    lines,
+    element.x,
+    yStart,
+    fontToUse,
+    fontSize,
+    rgb(0, 0, 0),
+    maxLines
+  );
 }
 __name(drawText, "drawText");
-function drawHeaderElements(page, headerElements, pageHeight, data2, jpFont, latinFont, imageMap) {
+function drawHeaderElements(page, headerElements, pageHeight, data2, jpFont, latinFont, imageMap, warn) {
   for (const element of headerElements) {
     switch (element.type) {
       case "label":
@@ -53738,7 +53993,8 @@ function drawHeaderElements(page, headerElements, pageHeight, data2, jpFont, lat
           jpFont,
           latinFont,
           pageHeight,
-          data2
+          data2,
+          warn
         );
         break;
       case "image":
@@ -53747,21 +54003,19 @@ function drawHeaderElements(page, headerElements, pageHeight, data2, jpFont, lat
           element,
           pageHeight,
           data2,
-          imageMap
+          imageMap,
+          warn
         );
         break;
       case "table":
         break;
       default:
-        console.warn(
-          "Unknown header element type:",
-          element.type
-        );
+        warn("layout", "unknown header element type", { type: element.type });
     }
   }
 }
 __name(drawHeaderElements, "drawHeaderElements");
-function drawFooterElements(page, footerElements, pageHeight, data2, jpFont, latinFont, imageMap) {
+function drawFooterElements(page, footerElements, pageHeight, data2, jpFont, latinFont, imageMap, warn) {
   for (const element of footerElements) {
     switch (element.type) {
       case "label":
@@ -53774,7 +54028,8 @@ function drawFooterElements(page, footerElements, pageHeight, data2, jpFont, lat
           jpFont,
           latinFont,
           pageHeight,
-          data2
+          data2,
+          warn
         );
         break;
       case "image":
@@ -53783,28 +54038,42 @@ function drawFooterElements(page, footerElements, pageHeight, data2, jpFont, lat
           element,
           pageHeight,
           data2,
-          imageMap
+          imageMap,
+          warn
         );
         break;
       case "table":
         break;
       default:
-        console.warn(
-          "Unknown footer element type:",
-          element.type
-        );
+        warn("layout", "unknown footer element type", { type: element.type });
     }
   }
 }
 __name(drawFooterElements, "drawFooterElements");
-function drawTable(pdfDoc, page, pageWidth, pageHeight, element, jpFont, latinFont, data2, headerElements, footerReserveHeight, imageMap) {
+function drawTable(pdfDoc, page, pageWidth, pageHeight, element, jpFont, latinFont, data2, headerElements, footerReserveHeight, imageMap, warn) {
   const rowHeight = element.rowHeight ?? 18;
   const headerHeight = element.headerHeight ?? rowHeight;
-  const fontSize = 10;
+  const baseFontSize = 10;
+  const lineGap = 2;
+  const lineHeight = baseFontSize + lineGap;
+  const paddingY = 4;
+  const paddingLeft = CELL_PADDING_X;
+  const paddingRight = CELL_PADDING_X;
   const originX = element.x;
   const bottomMargin = footerReserveHeight + 40;
-  const rows = data2 && element.dataSource && element.dataSource.type === "kintoneSubtable" ? data2[element.dataSource.fieldCode] : void 0;
-  console.log("DRAW TABLE (multi-page + header)", {
+  if (!element.columns || element.columns.length === 0) {
+    warn("data", "table columns empty", { id: element.id });
+    return page;
+  }
+  const rawRows = data2 && element.dataSource && element.dataSource.type === "kintoneSubtable" ? data2[element.dataSource.fieldCode] : void 0;
+  const rows = Array.isArray(rawRows) ? rawRows : [];
+  if (rawRows !== void 0 && !Array.isArray(rawRows)) {
+    warn("data", "table rows is not array", {
+      id: element.id,
+      fieldCode: element.dataSource?.fieldCode
+    });
+  }
+  warn("debug", "draw table", {
     id: element.id,
     uiY: element.y,
     rows: rows?.length ?? 0
@@ -53812,6 +54081,33 @@ function drawTable(pdfDoc, page, pageWidth, pageHeight, element, jpFont, latinFo
   if (!rows || rows.length === 0) {
     return page;
   }
+  const summarySpec = element.summary?.mode === "lastPageOnly" || element.summary?.mode === "everyPageSubtotal+lastTotal" ? element.summary : void 0;
+  const summaryRows = summarySpec?.rows ?? [];
+  const summaryStates = summaryRows.map((row, index) => ({
+    row,
+    index,
+    sumGrand: 0n,
+    sumPage: 0n
+  }));
+  const summaryStyle = summarySpec?.style;
+  const columnsById = new Map(element.columns.map((col) => [col.id, col]));
+  const labelColumn = element.columns.find((col) => isItemNameColumn(col)) ?? element.columns[0];
+  const summaryRowHeight = Math.max(rowHeight, lineHeight + paddingY * 2);
+  const tableWidth = element.columns.reduce((sum2, col) => sum2 + col.width, 0);
+  const summaryMode = summarySpec?.mode;
+  const resolveSummaryKind = /* @__PURE__ */ __name((row) => row.kind ?? "both", "resolveSummaryKind");
+  const shouldDrawSummaryKind = /* @__PURE__ */ __name((row, kind) => {
+    const resolved = resolveSummaryKind(row);
+    return resolved === "both" || resolved === kind;
+  }, "shouldDrawSummaryKind");
+  const resolveSummaryLabel = /* @__PURE__ */ __name((row, kind) => {
+    if (row.label) return row.label;
+    if (row.op !== "sum") return "";
+    if (kind === "subtotal") {
+      return row.labelSubtotal ?? "\u5C0F\u8A08";
+    }
+    return row.labelTotal ?? "\u5408\u8A08";
+  }, "resolveSummaryLabel");
   const drawTableHeaderRow = /* @__PURE__ */ __name((targetPage, headerY2) => {
     let currentX = originX;
     for (const col of element.columns) {
@@ -53826,8 +54122,8 @@ function drawTable(pdfDoc, page, pageWidth, pageHeight, element, jpFont, latinFo
       });
       targetPage.drawText(col.title, {
         x: currentX + 4,
-        y: headerY2 + headerHeight / 2 - fontSize / 2,
-        size: fontSize,
+        y: headerY2 + headerHeight / 2 - baseFontSize / 2,
+        size: baseFontSize,
         font: jpFont,
         color: rgb(0, 0, 0)
       });
@@ -53838,7 +54134,7 @@ function drawTable(pdfDoc, page, pageWidth, pageHeight, element, jpFont, latinFo
   const minHeaderY = bottomMargin + headerHeight + rowHeight;
   const getHeaderY = /* @__PURE__ */ __name(() => clampPdfY(toPdfYFromBottom(element.y, pageHeight), pageHeight - headerHeight), "getHeaderY");
   let headerY = getHeaderY();
-  let rowIndexOnPage = 0;
+  let cursorY = headerY - headerHeight;
   if (headerY < minHeaderY) {
     currentPage = pdfDoc.addPage([pageWidth, pageHeight]);
     drawHeaderElements(
@@ -53848,11 +54144,13 @@ function drawTable(pdfDoc, page, pageWidth, pageHeight, element, jpFont, latinFo
       data2,
       jpFont,
       latinFont,
-      imageMap
+      imageMap,
+      warn
     );
     headerY = getHeaderY();
+    cursorY = headerY - headerHeight;
     if (headerY < minHeaderY) {
-      console.warn("Table header Y is too low for minimum layout.", {
+      warn("layout", "table header Y is too low for minimum layout", {
         id: element.id,
         headerY,
         minHeaderY
@@ -53860,10 +54158,310 @@ function drawTable(pdfDoc, page, pageWidth, pageHeight, element, jpFont, latinFo
     }
   }
   drawTableHeaderRow(currentPage, headerY);
+  const drawSummaryRow = /* @__PURE__ */ __name((state, kind) => {
+    const row = state.row;
+    const isSumRow = row.op === "sum";
+    const valueColumnId = isSumRow ? row.columnId : row.valueColumnId ?? row.columnId;
+    const valueColumn = columnsById.get(valueColumnId);
+    if (!valueColumn) {
+      warn("data", "summary column not found", {
+        tableId: element.id,
+        columnId: valueColumnId
+      });
+    }
+    const rowYBottom = cursorY - summaryRowHeight;
+    const sumValue = kind === "subtotal" ? state.sumPage : state.sumGrand;
+    const sumText = isSumRow ? formatBigIntWithCommas(sumValue) : row.value ?? "";
+    const labelText = resolveSummaryLabel(row, kind);
+    let currentX = originX;
+    if (isSumRow) {
+      warn("debug", kind === "subtotal" ? "subtotal drawn" : "total drawn", {
+        tableId: element.id,
+        amount: sumValue.toString()
+      });
+    }
+    if (!isSumRow && row.value === void 0) {
+      warn("data", "summary static value missing", {
+        tableId: element.id,
+        rowIndex: state.index
+      });
+    }
+    if (summaryStyle) {
+      const fillGray = kind === "total" ? summaryStyle.totalFillGray ?? 0.92 : summaryStyle.subtotalFillGray ?? 0.96;
+      currentPage.drawRectangle({
+        x: originX,
+        y: rowYBottom,
+        width: tableWidth,
+        height: summaryRowHeight,
+        color: rgb(fillGray, fillGray, fillGray)
+      });
+    }
+    for (const col of element.columns) {
+      const colWidth = col.width;
+      const spec = normalizeColumnSpec(col);
+      const cellText = col.id === labelColumn.id ? labelText : col.id === valueColumnId ? sumText : "";
+      const fontForCell = pickFontForText(cellText, jpFont, latinFont);
+      if (element.showGrid) {
+        const borderGray = summaryStyle?.borderColorGray ?? 0.85;
+        currentPage.drawRectangle({
+          x: currentX,
+          y: rowYBottom,
+          width: colWidth,
+          height: summaryRowHeight,
+          borderColor: rgb(borderGray, borderGray, borderGray),
+          borderWidth: 0.5
+        });
+      }
+      if (cellText) {
+        const align = col.id === labelColumn.id ? "left" : col.id === valueColumnId ? "right" : resolveColumnAlign(spec, cellText);
+        const maxCellWidth = Math.max(0, colWidth - (paddingLeft + paddingRight));
+        if (col.id === labelColumn.id) {
+          const clipped = ellipsisTextToWidth(cellText, fontForCell, baseFontSize, maxCellWidth);
+          drawAlignedText(
+            currentPage,
+            clipped,
+            fontForCell,
+            baseFontSize,
+            currentX,
+            rowYBottom,
+            colWidth,
+            summaryRowHeight,
+            align
+          );
+        } else if (spec.overflow === "shrink") {
+          drawCellText(
+            currentPage,
+            cellText,
+            fontForCell,
+            baseFontSize,
+            currentX,
+            rowYBottom,
+            colWidth,
+            summaryRowHeight,
+            align,
+            spec.minFontSize
+          );
+        } else if (spec.overflow === "ellipsis") {
+          const clipped = ellipsisTextToWidth(cellText, fontForCell, baseFontSize, maxCellWidth);
+          drawAlignedText(
+            currentPage,
+            clipped,
+            fontForCell,
+            baseFontSize,
+            currentX,
+            rowYBottom,
+            colWidth,
+            summaryRowHeight,
+            align
+          );
+        } else if (spec.overflow === "wrap") {
+          const lines = wrapTextToLines(cellText, fontForCell, baseFontSize, maxCellWidth);
+          const maxLinesByHeight = Math.floor((summaryRowHeight - paddingY * 2) / lineHeight);
+          const yStart = rowYBottom + summaryRowHeight - paddingY - lineHeight;
+          for (let idx = 0; idx < Math.min(lines.length, maxLinesByHeight); idx += 1) {
+            const line = lines[idx];
+            const lineWidth = fontForCell.widthOfTextAtSize(line, baseFontSize);
+            const x = align === "right" ? currentX + colWidth - paddingRight - lineWidth : align === "center" ? currentX + (colWidth - lineWidth) / 2 : currentX + paddingLeft;
+            currentPage.drawText(line, {
+              x,
+              y: yStart - idx * lineHeight,
+              size: baseFontSize,
+              font: fontForCell,
+              color: rgb(0, 0, 0)
+            });
+          }
+        } else {
+          drawAlignedText(
+            currentPage,
+            cellText,
+            fontForCell,
+            baseFontSize,
+            currentX,
+            rowYBottom,
+            colWidth,
+            summaryRowHeight,
+            align
+          );
+        }
+      }
+      currentX += colWidth;
+    }
+    if (summaryStyle && kind === "total") {
+      const borderGray = summaryStyle.borderColorGray ?? 0.85;
+      const thickness = summaryStyle.totalTopBorderWidth ?? 1.5;
+      currentPage.drawLine({
+        start: { x: originX, y: rowYBottom + summaryRowHeight },
+        end: { x: originX + tableWidth, y: rowYBottom + summaryRowHeight },
+        thickness,
+        color: rgb(borderGray, borderGray, borderGray)
+      });
+    }
+    cursorY = rowYBottom;
+  }, "drawSummaryRow");
+  const getSummaryRows = /* @__PURE__ */ __name((kind) => summaryStates.filter((state) => shouldDrawSummaryKind(state.row, kind)), "getSummaryRows");
+  const ensureSummarySpace = /* @__PURE__ */ __name((rowCount, allowPageBreak) => {
+    if (rowCount <= 0) return true;
+    const neededHeight = summaryRowHeight * rowCount;
+    if (cursorY - neededHeight >= bottomMargin) return true;
+    if (!allowPageBreak) return false;
+    currentPage = pdfDoc.addPage([pageWidth, pageHeight]);
+    drawHeaderElements(
+      currentPage,
+      headerElements,
+      pageHeight,
+      data2,
+      jpFont,
+      latinFont,
+      imageMap,
+      warn
+    );
+    headerY = getHeaderY();
+    cursorY = headerY - headerHeight;
+    if (headerY < minHeaderY) {
+      warn("layout", "table header Y is too low for minimum layout", {
+        id: element.id,
+        headerY,
+        minHeaderY
+      });
+    }
+    drawTableHeaderRow(currentPage, headerY);
+    return cursorY - neededHeight >= bottomMargin;
+  }, "ensureSummarySpace");
+  const drawSummaryLines = /* @__PURE__ */ __name((kind, allowPageBreak) => {
+    if (!summarySpec || summaryStates.length === 0 || !labelColumn) return false;
+    const rowsToDraw = getSummaryRows(kind);
+    if (rowsToDraw.length === 0) return false;
+    const hasSpace = ensureSummarySpace(rowsToDraw.length, allowPageBreak);
+    if (!hasSpace && !allowPageBreak) {
+      return false;
+    }
+    if (!hasSpace && allowPageBreak) {
+      warn("layout", "summary rows do not fit", { tableId: element.id });
+    }
+    for (const state of rowsToDraw) {
+      drawSummaryRow(state, kind);
+    }
+    return true;
+  }, "drawSummaryLines");
+  const subtotalRowCount = summaryMode === "everyPageSubtotal+lastTotal" ? getSummaryRows("subtotal").length : 0;
+  const totalRowCount = summarySpec ? getSummaryRows("total").length : 0;
+  const trailerRowCount = summaryMode === "everyPageSubtotal+lastTotal" ? subtotalRowCount + totalRowCount : 0;
+  const missingFieldCodes = /* @__PURE__ */ new Set();
+  let invalidRowWarnCount = 0;
+  let pageRowCount = 0;
+  const emitSubtotalIfNeeded = /* @__PURE__ */ __name(() => {
+    if (summaryMode !== "everyPageSubtotal+lastTotal") return;
+    if (summaryStates.length === 0 || pageRowCount === 0 || subtotalRowCount === 0) return;
+    warn("debug", "summary rows", {
+      tableId: element.id,
+      count: summaryStates.length,
+      ops: summaryStates.map((state) => state.row.op)
+    });
+    const ok = drawSummaryLines("subtotal", false);
+    if (!ok) {
+      warn("layout", "subtotal row does not fit (should not happen)", {
+        tableId: element.id
+      });
+    }
+    for (const state of summaryStates) {
+      state.sumPage = 0n;
+    }
+  }, "emitSubtotalIfNeeded");
   for (let i = 0; i < rows.length; i++) {
     const row = rows[i];
-    let rowYBottom = headerY - headerHeight - rowIndexOnPage * rowHeight;
+    if (!row || typeof row !== "object" || Array.isArray(row)) {
+      if (invalidRowWarnCount < 3) {
+        warn("data", "table row is not object", { id: element.id, rowIndex: i });
+        invalidRowWarnCount += 1;
+      }
+      continue;
+    }
+    if (i === 0) {
+      warn("debug", "table row sample", {
+        tableId: element.id,
+        rowKeys: Object.keys(row)
+      });
+      warn("debug", "table columns", {
+        tableId: element.id,
+        columns: element.columns.map((c) => ({
+          id: c.id,
+          fieldCode: c.fieldCode,
+          title: c.title
+        }))
+      });
+    }
+    const cells = element.columns.map((col) => {
+      const colWidth = col.width;
+      const maxCellWidth = Math.max(0, colWidth - (paddingLeft + paddingRight));
+      const spec = normalizeColumnSpec(col);
+      const rawVal = col.fieldCode ? row[col.fieldCode] : "";
+      const cellTextRaw = formatCellValue(rawVal, spec, warn, {
+        tableId: element.id,
+        columnId: col.id,
+        fieldCode: col.fieldCode
+      });
+      const fontForCell = pickFontForText(cellTextRaw, jpFont, latinFont);
+      if (!col.fieldCode) {
+        const key2 = col.id ?? "(unknown)";
+        if (!missingFieldCodes.has(key2)) {
+          warn("data", "table column fieldCode missing", { id: element.id, columnId: key2 });
+          missingFieldCodes.add(key2);
+        }
+      }
+      const lines = spec.overflow === "wrap" ? wrapTextToLines(cellTextRaw, fontForCell, baseFontSize, maxCellWidth) : [cellTextRaw];
+      const maxLinesForDraw = spec.maxLines ?? lines.length;
+      const linesToDraw = lines.slice(0, maxLinesForDraw);
+      const lineCountForHeight = spec.overflow === "wrap" ? linesToDraw.length : 1;
+      return {
+        colWidth,
+        maxCellWidth,
+        cellTextRaw,
+        fontForCell,
+        spec,
+        linesToDraw,
+        lineCountForHeight
+      };
+    });
+    const maxLines = Math.max(1, ...cells.map((cell) => cell.lineCountForHeight));
+    const effectiveRowHeight = Math.max(
+      rowHeight,
+      lineHeight * maxLines + paddingY * 2
+    );
+    const hasMoreRows = i < rows.length - 1;
+    const remainingAfterRow = cursorY - effectiveRowHeight;
+    if (summaryMode === "everyPageSubtotal+lastTotal" && pageRowCount > 0 && subtotalRowCount > 0) {
+      const needsSubtotalSpace = hasMoreRows && remainingAfterRow - subtotalRowCount * summaryRowHeight < bottomMargin;
+      const needsTrailerSpace = !hasMoreRows && trailerRowCount > 0 && remainingAfterRow - trailerRowCount * summaryRowHeight < bottomMargin;
+      if (needsSubtotalSpace || needsTrailerSpace) {
+        emitSubtotalIfNeeded();
+        pageRowCount = 0;
+        currentPage = pdfDoc.addPage([pageWidth, pageHeight]);
+        drawHeaderElements(
+          currentPage,
+          headerElements,
+          pageHeight,
+          data2,
+          jpFont,
+          latinFont,
+          imageMap,
+          warn
+        );
+        headerY = getHeaderY();
+        cursorY = headerY - headerHeight;
+        if (headerY < minHeaderY) {
+          warn("layout", "table header Y is too low for minimum layout", {
+            id: element.id,
+            headerY,
+            minHeaderY
+          });
+        }
+        drawTableHeaderRow(currentPage, headerY);
+      }
+    }
+    let rowYBottom = cursorY - effectiveRowHeight;
     if (rowYBottom < bottomMargin) {
+      emitSubtotalIfNeeded();
+      pageRowCount = 0;
       currentPage = pdfDoc.addPage([pageWidth, pageHeight]);
       drawHeaderElements(
         currentPage,
@@ -53872,52 +54470,185 @@ function drawTable(pdfDoc, page, pageWidth, pageHeight, element, jpFont, latinFo
         data2,
         jpFont,
         latinFont,
-        imageMap
+        imageMap,
+        warn
       );
       headerY = getHeaderY();
-      rowIndexOnPage = 0;
+      cursorY = headerY - headerHeight;
       if (headerY < minHeaderY) {
-        console.warn("Table header Y is too low for minimum layout.", {
+        warn("layout", "table header Y is too low for minimum layout", {
           id: element.id,
           headerY,
           minHeaderY
         });
       }
       drawTableHeaderRow(currentPage, headerY);
-      rowYBottom = headerY - headerHeight - rowIndexOnPage * rowHeight;
+      rowYBottom = cursorY - effectiveRowHeight;
     }
     let currentX = originX;
-    for (const col of element.columns) {
-      const colWidth = col.width;
+    for (const cell of cells) {
+      const {
+        colWidth,
+        maxCellWidth,
+        cellTextRaw,
+        fontForCell,
+        spec,
+        linesToDraw
+      } = cell;
       if (element.showGrid) {
         currentPage.drawRectangle({
           x: currentX,
           y: rowYBottom,
           width: colWidth,
-          height: rowHeight,
+          height: effectiveRowHeight,
           borderColor: rgb(0.85, 0.85, 0.85),
           borderWidth: 0.5
         });
       }
-      const rawVal = row[col.fieldCode];
-      const cellText = rawVal != null ? String(rawVal) : "";
-      const fontForCell = pickFontForText(cellText, jpFont, latinFont);
-      currentPage.drawText(cellText, {
-        x: currentX + 4,
-        y: rowYBottom + rowHeight / 2 - fontSize / 2,
-        size: fontSize,
-        font: fontForCell,
-        color: rgb(0, 0, 0)
-      });
+      const cellText = cellTextRaw.replace(/\n/g, "");
+      const align = resolveColumnAlign(spec, cellText);
+      if (spec.overflow === "wrap" && maxCellWidth > 0) {
+        const maxLinesByHeight = Math.floor((effectiveRowHeight - paddingY * 2) / lineHeight);
+        const lines = linesToDraw.slice(0, Math.max(0, maxLinesByHeight));
+        const yStart = rowYBottom + effectiveRowHeight - paddingY - lineHeight;
+        for (let idx = 0; idx < lines.length; idx += 1) {
+          const line = lines[idx];
+          const lineWidth = fontForCell.widthOfTextAtSize(line, baseFontSize);
+          const x = align === "right" ? currentX + colWidth - paddingRight - lineWidth : align === "center" ? currentX + (colWidth - lineWidth) / 2 : currentX + paddingLeft;
+          currentPage.drawText(line, {
+            x,
+            y: yStart - idx * lineHeight,
+            size: baseFontSize,
+            font: fontForCell,
+            color: rgb(0, 0, 0)
+          });
+        }
+      } else if (spec.overflow === "ellipsis") {
+        const clipped = ellipsisTextToWidth(cellText, fontForCell, baseFontSize, maxCellWidth);
+        drawAlignedText(
+          currentPage,
+          clipped,
+          fontForCell,
+          baseFontSize,
+          currentX,
+          rowYBottom,
+          colWidth,
+          effectiveRowHeight,
+          align
+        );
+      } else if (spec.overflow === "clip") {
+        drawAlignedText(
+          currentPage,
+          cellText,
+          fontForCell,
+          baseFontSize,
+          currentX,
+          rowYBottom,
+          colWidth,
+          effectiveRowHeight,
+          align
+        );
+      } else {
+        drawCellText(
+          currentPage,
+          cellText,
+          fontForCell,
+          baseFontSize,
+          currentX,
+          rowYBottom,
+          colWidth,
+          effectiveRowHeight,
+          align,
+          spec.minFontSize
+        );
+      }
       currentX += colWidth;
     }
-    rowIndexOnPage += 1;
+    if (summaryStates.length > 0) {
+      for (const state of summaryStates) {
+        if (state.row.op !== "sum") continue;
+        const rawVal = row[state.row.fieldCode];
+        const parsed = parseAmountToBigInt(rawVal);
+        if (parsed === null) {
+          warn("data", "summary amount parse failed", {
+            tableId: element.id,
+            fieldCode: state.row.fieldCode,
+            rowIndex: i,
+            value: rawVal
+          });
+          continue;
+        }
+        state.sumGrand += parsed;
+        state.sumPage += parsed;
+      }
+    }
+    cursorY = rowYBottom;
+    pageRowCount += 1;
+  }
+  if (summaryStates.length > 0 && labelColumn) {
+    warn("debug", "summary rows", {
+      tableId: element.id,
+      count: summaryStates.length,
+      ops: summaryStates.map((state) => state.row.op)
+    });
+    if (summaryMode === "everyPageSubtotal+lastTotal") {
+      const subtotalRows = getSummaryRows("subtotal");
+      const totalRows = getSummaryRows("total");
+      const totalCount = subtotalRows.length + totalRows.length;
+      if (totalCount > 0) {
+        const hasSpace = ensureSummarySpace(totalCount, true);
+        if (!hasSpace) {
+          warn("layout", "summary rows do not fit", { tableId: element.id });
+        }
+        for (const state of subtotalRows) {
+          warn("debug", "summary row", {
+            tableId: element.id,
+            rowIndex: state.index,
+            op: state.row.op,
+            label: state.row.label ?? null,
+            columnId: state.row.columnId
+          });
+          drawSummaryRow(state, "subtotal");
+        }
+        for (const state of totalRows) {
+          warn("debug", "summary row", {
+            tableId: element.id,
+            rowIndex: state.index,
+            op: state.row.op,
+            label: state.row.label ?? null,
+            columnId: state.row.columnId
+          });
+          drawSummaryRow(state, "total");
+        }
+        for (const state of summaryStates) {
+          state.sumPage = 0n;
+        }
+      }
+    } else if (summaryMode === "lastPageOnly") {
+      const rowsToDraw = summaryStates;
+      if (rowsToDraw.length > 0) {
+        const hasSpace = ensureSummarySpace(rowsToDraw.length, true);
+        if (!hasSpace) {
+          warn("layout", "summary rows do not fit", { tableId: element.id });
+        }
+        for (const state of rowsToDraw) {
+          warn("debug", "summary row", {
+            tableId: element.id,
+            rowIndex: state.index,
+            op: state.row.op,
+            label: state.row.label ?? null,
+            columnId: state.row.columnId
+          });
+          drawSummaryRow(state, "total");
+        }
+      }
+    }
   }
   return currentPage;
 }
 __name(drawTable, "drawTable");
-function drawImageElement(page, element, pageHeight, data2, imageMap) {
-  const url = resolveDataSource(element.dataSource, data2);
+function drawImageElement(page, element, pageHeight, data2, imageMap, warn) {
+  const url = resolveDataSource(element.dataSource, data2, warn, { elementId: element.id });
   if (!url || !isHttpUrl(url)) {
     drawImagePlaceholder(page, element, pageHeight);
     return;
@@ -53997,33 +54728,258 @@ async function getFonts(env2) {
 }
 __name(getFonts, "getFonts");
 
+// src/fixtures/templateData.ts
+init_modules_watch_stub();
+var makeLongText = /* @__PURE__ */ __name((length) => "X".repeat(length), "makeLongText");
+var makeItems = /* @__PURE__ */ __name((count, itemName, overrides) => Array.from({ length: count }, (_2, index) => ({
+  ItemName: `${itemName} ${index + 1}`,
+  Qty: index + 1,
+  UnitPrice: overrides?.unitPrice ?? "1234567890",
+  Amount: overrides?.amount ?? "9876543210"
+})), "makeItems");
+var LONG_TEXT = makeLongText(200);
+var fixtures = {
+  longtext: {
+    CustomerName: makeLongText(200),
+    EstimateDate: "2025-01-15",
+    Remarks: makeLongText(240),
+    TotalAmount: "1234567890",
+    Items: makeItems(10, LONG_TEXT)
+  },
+  bigNumber: {
+    CustomerName: "Big Number Co.",
+    EstimateDate: "2025-01-15",
+    TotalAmount: "1234567890123456",
+    Items: makeItems(3, "BigNumberItem", {
+      unitPrice: "1234567890123456",
+      amount: "9876543210987654"
+    })
+  },
+  badImage: {
+    CustomerName: "Bad Image Co.",
+    EstimateDate: "2025-01-15",
+    LogoUrl404: "https://example.com/404.png",
+    LogoUrlText: "https://example.com/",
+    LogoUrlNonHttp: "file://not-allowed",
+    Items: makeItems(2, "BadImageItem")
+  },
+  emptyRows: {
+    CustomerName: "Empty Rows Co.",
+    EstimateDate: "2025-01-15",
+    Items: []
+  },
+  emptyRowsUndefined: {
+    CustomerName: "Empty Rows Undefined Co.",
+    EstimateDate: "2025-01-15"
+  },
+  summaryBasic: {
+    CustomerName: "Summary Basic Co.",
+    EstimateDate: "2025-01-15",
+    Items: [
+      { ItemName: "Item A", Qty: 1, UnitPrice: "1000", Amount: "1000" },
+      { ItemName: "Item B", Qty: 2, UnitPrice: "2000", Amount: "2000" },
+      { ItemName: "Item C", Qty: 3, UnitPrice: "3000", Amount: "3000" }
+    ]
+  },
+  summaryPaging: {
+    CustomerName: "Summary Paging Co.",
+    EstimateDate: "2025-01-15",
+    Items: makeItems(60, LONG_TEXT, { unitPrice: "1000", amount: "1000" })
+  },
+  summaryPagingTight: {
+    CustomerName: "Summary Paging Tight Co.",
+    EstimateDate: "2025-01-15",
+    Items: makeItems(40, LONG_TEXT, { unitPrice: "1000", amount: "1000" })
+  }
+};
+var getFixtureData = /* @__PURE__ */ __name((name5) => fixtures[name5], "getFixtureData");
+
+// src/template/migrate.ts
+init_modules_watch_stub();
+var PAGE_SIZES = ["A4"];
+var ORIENTATIONS = ["portrait", "landscape"];
+var isItemNameColumn2 = /* @__PURE__ */ __name((col) => col.id === "item_name" || col.fieldCode === "ItemName", "isItemNameColumn");
+var migrateTemplate = /* @__PURE__ */ __name((template) => {
+  const schemaVersion = template.schemaVersion ?? 0;
+  if (schemaVersion >= TEMPLATE_SCHEMA_VERSION) {
+    return template;
+  }
+  const elements = Array.isArray(template.elements) ? template.elements : [];
+  const migratedElements = elements.map((element) => {
+    if (element.type !== "table") return element;
+    const table9 = element;
+    const columns = Array.isArray(table9.columns) ? table9.columns : [];
+    const nextColumns = columns.map((col) => {
+      if (col.overflow) return col;
+      return {
+        ...col,
+        overflow: isItemNameColumn2(col) ? "wrap" : "shrink"
+      };
+    });
+    return {
+      ...table9,
+      columns: nextColumns
+    };
+  });
+  return {
+    ...template,
+    schemaVersion: TEMPLATE_SCHEMA_VERSION,
+    elements: migratedElements
+  };
+}, "migrateTemplate");
+var validateTemplate = /* @__PURE__ */ __name((template) => {
+  const issues = [];
+  if (!PAGE_SIZES.includes(template.pageSize)) {
+    issues.push({
+      level: "error",
+      code: "page_size_invalid",
+      message: `pageSize '${String(template.pageSize)}' is not supported`,
+      path: "pageSize"
+    });
+  }
+  if (!ORIENTATIONS.includes(template.orientation)) {
+    issues.push({
+      level: "error",
+      code: "orientation_invalid",
+      message: `orientation '${String(template.orientation)}' is not supported`,
+      path: "orientation"
+    });
+  }
+  if (!Array.isArray(template.elements)) {
+    issues.push({
+      level: "error",
+      code: "elements_missing",
+      message: "elements must be an array",
+      path: "elements"
+    });
+    return { ok: false, issues };
+  }
+  if (template.elements.length === 0) {
+    issues.push({
+      level: "error",
+      code: "elements_empty",
+      message: "elements must not be empty",
+      path: "elements"
+    });
+  }
+  const seenIds = /* @__PURE__ */ new Set();
+  for (const element of template.elements) {
+    if (!element.id || typeof element.id !== "string") {
+      issues.push({
+        level: "error",
+        code: "element_id_invalid",
+        message: "element id must be a non-empty string",
+        path: "elements.id"
+      });
+      continue;
+    }
+    if (seenIds.has(element.id)) {
+      issues.push({
+        level: "error",
+        code: "element_id_duplicate",
+        message: `element id '${element.id}' is duplicated`,
+        path: `elements.${element.id}`
+      });
+    }
+    seenIds.add(element.id);
+    if (element.type === "table") {
+      const table9 = element;
+      if (!Array.isArray(table9.columns) || table9.columns.length === 0) {
+        issues.push({
+          level: "error",
+          code: "table_columns_empty",
+          message: `table '${element.id}' must have columns`,
+          path: `elements.${element.id}.columns`
+        });
+        continue;
+      }
+      for (const col of table9.columns) {
+        if (!(typeof col.width === "number") || col.width <= 0) {
+          issues.push({
+            level: "error",
+            code: "column_width_invalid",
+            message: `column '${col.id}' width must be positive`,
+            path: `elements.${element.id}.columns.${col.id}.width`
+          });
+        }
+      }
+      const columnIds = new Set(table9.columns.map((col) => col.id));
+      if (table9.summary?.rows) {
+        table9.summary.rows.forEach((row, index) => {
+          if (!columnIds.has(row.columnId)) {
+            issues.push({
+              level: "warn",
+              code: "summary_column_missing",
+              message: `summary row columnId '${row.columnId}' not found`,
+              path: `elements.${element.id}.summary.rows.${index}.columnId`
+            });
+          }
+          if (row.op === "static" && row.valueColumnId && !columnIds.has(row.valueColumnId)) {
+            issues.push({
+              level: "warn",
+              code: "summary_value_column_missing",
+              message: `summary row valueColumnId '${row.valueColumnId}' not found`,
+              path: `elements.${element.id}.summary.rows.${index}.valueColumnId`
+            });
+          }
+        });
+      }
+    }
+  }
+  const ok = !issues.some((issue) => issue.level === "error");
+  return { ok, issues };
+}, "validateTemplate");
+
 // src/index.ts
 var CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "Content-Type, x-api-key",
-  "Access-Control-Allow-Methods": "GET,POST,OPTIONS"
+  "Access-Control-Allow-Methods": "GET,POST,PUT,OPTIONS"
 };
+var truncateHeaderValue = /* @__PURE__ */ __name((value, maxLength = 200) => value.length > maxLength ? value.slice(0, maxLength) : value, "truncateHeaderValue");
 async function loadFonts(env2) {
   return getFonts(env2);
 }
 __name(loadFonts, "loadFonts");
+var TEMPLATE_IDS = /* @__PURE__ */ new Set(["list_v1", "card_v1", "multiTable_v1"]);
 async function getTemplateById(id, env2) {
-  const candidates = [
-    id,
-    `template:${id}`,
-    `tpl_${id}`,
-    `template_${id}`
-  ];
-  for (const key2 of candidates) {
-    const value = await env2.TEMPLATE_KV.get(key2);
-    if (value) {
-      console.log("Loaded template from KV key:", key2);
-      return JSON.parse(value);
-    }
+  const key2 = `tpl:${id}`;
+  const value = await env2.TEMPLATE_KV.get(key2);
+  if (value) {
+    console.log("Loaded template from KV key:", key2);
+    return JSON.parse(value);
   }
   throw new Error(`Unknown templateId: ${id}`);
 }
 __name(getTemplateById, "getTemplateById");
+var buildTemplateHeaders = /* @__PURE__ */ __name((migrated, didMigrate, warnCount) => {
+  const headers = {
+    "Content-Type": "application/json",
+    "X-Template-Schema-Version": String(
+      migrated.schemaVersion ?? TEMPLATE_SCHEMA_VERSION
+    ),
+    "X-Warn-Count": String(warnCount)
+  };
+  if (didMigrate) headers["X-Template-Migrated"] = "1";
+  return headers;
+}, "buildTemplateHeaders");
+var normalizeTemplatePayload = /* @__PURE__ */ __name((input) => {
+  if (!input || typeof input !== "object") {
+    return {
+      ok: false,
+      message: "Invalid template payload. Expected TemplateDefinition or { template: TemplateDefinition }"
+    };
+  }
+  const obj = input;
+  const candidate = typeof obj.template === "object" && obj.template !== null ? obj.template : obj;
+  if (!("pageSize" in candidate) || !("elements" in candidate)) {
+    return {
+      ok: false,
+      message: "Invalid template payload. Expected TemplateDefinition or { template: TemplateDefinition }"
+    };
+  }
+  return { ok: true, template: candidate };
+}, "normalizeTemplatePayload");
 var src_default = {
   async fetch(request, env2) {
     try {
@@ -54040,7 +54996,101 @@ var src_default = {
           headers: CORS_HEADERS
         });
       }
-      if (url.pathname === "/render" && request.method === "POST") {
+      const templateMatch = url.pathname.match(/^\/templates\/([^/]+)$/);
+      if (templateMatch) {
+        const templateId = templateMatch[1];
+        if (!TEMPLATE_IDS.has(templateId)) {
+          return new Response("Unknown templateId", {
+            status: 400,
+            headers: CORS_HEADERS
+          });
+        }
+        if (request.method === "GET") {
+          try {
+            const rawTemplate = await getTemplateById(templateId, env2);
+            const schemaVersionBefore = rawTemplate.schemaVersion ?? 0;
+            const migratedTemplate = migrateTemplate(rawTemplate);
+            const didMigrate = schemaVersionBefore < TEMPLATE_SCHEMA_VERSION;
+            const { ok, issues } = validateTemplate(migratedTemplate);
+            const warnCount = issues.filter((issue) => issue.level === "warn").length;
+            const headers = {
+              ...CORS_HEADERS,
+              ...buildTemplateHeaders(migratedTemplate, didMigrate, warnCount)
+            };
+            if (!ok) {
+              return new Response(JSON.stringify({ ok: false, issues }), {
+                status: 400,
+                headers
+              });
+            }
+            return new Response(JSON.stringify(migratedTemplate), {
+              status: 200,
+              headers
+            });
+          } catch {
+            return new Response("Template not found", {
+              status: 404,
+              headers: CORS_HEADERS
+            });
+          }
+        }
+        if (request.method === "PUT") {
+          if (env2.ADMIN_API_KEY) {
+            const apiKey = request.headers.get("x-api-key");
+            if (apiKey !== env2.ADMIN_API_KEY) {
+              return new Response("Unauthorized", {
+                status: 401,
+                headers: CORS_HEADERS
+              });
+            }
+          }
+          let templateBody;
+          try {
+            const rawPayload = await request.json();
+            const normalized = normalizeTemplatePayload(rawPayload);
+            if (!normalized.ok) {
+              return new Response(normalized.message, {
+                status: 400,
+                headers: CORS_HEADERS
+              });
+            }
+            templateBody = normalized.template;
+          } catch {
+            return new Response("Invalid JSON body", {
+              status: 400,
+              headers: CORS_HEADERS
+            });
+          }
+          const schemaVersionBefore = templateBody.schemaVersion ?? 0;
+          const migratedTemplate = migrateTemplate(templateBody);
+          const didMigrate = schemaVersionBefore < TEMPLATE_SCHEMA_VERSION;
+          const { ok, issues } = validateTemplate(migratedTemplate);
+          const warnCount = issues.filter((issue) => issue.level === "warn").length;
+          const headers = {
+            ...CORS_HEADERS,
+            ...buildTemplateHeaders(migratedTemplate, didMigrate, warnCount)
+          };
+          if (!ok) {
+            return new Response(JSON.stringify({ ok: false, issues }), {
+              status: 400,
+              headers
+            });
+          }
+          await env2.TEMPLATE_KV.put(
+            `tpl:${templateId}`,
+            JSON.stringify(migratedTemplate)
+          );
+          return new Response(JSON.stringify(migratedTemplate), {
+            status: 200,
+            headers
+          });
+        }
+        return new Response("Method Not Allowed", {
+          status: 405,
+          headers: CORS_HEADERS
+        });
+      }
+      if ((url.pathname === "/render" || url.pathname === "/render-preview") && request.method === "POST") {
         let body;
         try {
           body = await request.json();
@@ -54050,10 +55100,33 @@ var src_default = {
             headers: CORS_HEADERS
           });
         }
+        const debug2 = url.searchParams.get("debug") === "1";
         let template;
         if (body.template) {
           template = body.template;
         } else if (body.templateId) {
+          if (!TEMPLATE_IDS.has(body.templateId)) {
+            return new Response("Unknown templateId", {
+              status: 400,
+              headers: CORS_HEADERS
+            });
+          }
+          if (body.templateId !== "list_v1") {
+            return new Response(
+              JSON.stringify({
+                ok: false,
+                code: "UNSUPPORTED_TEMPLATE",
+                message: `templateId ${body.templateId} is not supported yet`
+              }),
+              {
+                status: 400,
+                headers: {
+                  ...CORS_HEADERS,
+                  "Content-Type": "application/json"
+                }
+              }
+            );
+          }
           try {
             template = await getTemplateById(body.templateId, env2);
           } catch (err) {
@@ -54072,6 +55145,63 @@ var src_default = {
             }
           );
         }
+        const fixtureName = url.searchParams.get("fixture");
+        console.log("fixture=", fixtureName);
+        const fixtureData = fixtureName ? getFixtureData(fixtureName) : void 0;
+        if (fixtureName && !fixtureData) {
+          return new Response(`Unknown fixture: ${fixtureName}`, {
+            status: 400,
+            headers: CORS_HEADERS
+          });
+        }
+        const schemaVersionBefore = template.schemaVersion ?? 0;
+        const migratedTemplate = migrateTemplate(template);
+        const didMigrate = schemaVersionBefore < TEMPLATE_SCHEMA_VERSION;
+        const { ok, issues } = validateTemplate(migratedTemplate);
+        const issueWarnings = issues.map((issue) => {
+          const category = issue.level === "error" ? "layout" : "data";
+          const pathSuffix = issue.path ? ` (${issue.path})` : "";
+          return `[${category}] template ${issue.code}: ${issue.message}${pathSuffix}`;
+        });
+        const schemaHeaderValue = String(
+          migratedTemplate.schemaVersion ?? TEMPLATE_SCHEMA_VERSION
+        );
+        if (!ok) {
+          const headers = {
+            ...CORS_HEADERS,
+            "Content-Type": "application/json",
+            "X-Template-Schema-Version": schemaHeaderValue,
+            "X-Warn-Count": String(issueWarnings.length)
+          };
+          if (didMigrate) headers["X-Template-Migrated"] = "1";
+          if (debug2 && issueWarnings.length > 0) {
+            headers["X-Debug-Warn-Sample"] = truncateHeaderValue(issueWarnings[0]);
+          }
+          return new Response(
+            JSON.stringify({ ok: false, issues }),
+            {
+              status: 400,
+              headers
+            }
+          );
+        }
+        const rowHeightParam = url.searchParams.get("rowHeight");
+        const rowHeightOverride = rowHeightParam ? Number(rowHeightParam) : void 0;
+        const hasRowHeightOverride = typeof rowHeightOverride === "number" && Number.isFinite(rowHeightOverride) && rowHeightOverride > 0;
+        const templateForRender = hasRowHeightOverride ? {
+          ...migratedTemplate,
+          elements: migratedTemplate.elements.map(
+            (el) => el.type === "table" && el.id === "items" ? { ...el, rowHeight: rowHeightOverride } : el
+          )
+        } : migratedTemplate;
+        const dataForRender = fixtureData ?? body.data;
+        const rowsCount = (() => {
+          if (dataForRender && typeof dataForRender === "object") {
+            const maybeItems = dataForRender.Items;
+            if (Array.isArray(maybeItems)) return maybeItems.length;
+          }
+          return "(unknown)";
+        })();
         let fonts;
         try {
           fonts = await loadFonts(env2);
@@ -54089,18 +55219,30 @@ var src_default = {
           });
         }
         try {
-          const rawPdfBytes = await renderTemplateToPdf(
-            template,
-            body.data,
-            fonts
+          const { bytes: rawPdfBytes, warnings } = await renderTemplateToPdf(
+            templateForRender,
+            dataForRender,
+            fonts,
+            { debug: debug2 }
           );
           const pdfBytes = new Uint8Array(rawPdfBytes);
+          const combinedWarnings = [...issueWarnings, ...warnings];
+          const warnCount = combinedWarnings.length;
+          const headers = {
+            ...CORS_HEADERS,
+            "Content-Type": "application/pdf",
+            "X-Debug-Fixture": fixtureName ?? "(none)",
+            "X-Debug-Rows": String(rowsCount),
+            "X-Warn-Count": String(warnCount),
+            "X-Template-Schema-Version": schemaHeaderValue
+          };
+          if (didMigrate) headers["X-Template-Migrated"] = "1";
+          if (debug2 && warnCount > 0) {
+            headers["X-Debug-Warn-Sample"] = truncateHeaderValue(combinedWarnings[0]);
+          }
           return new Response(pdfBytes, {
             status: 200,
-            headers: {
-              ...CORS_HEADERS,
-              "Content-Type": "application/pdf"
-            }
+            headers
           });
         } catch (err) {
           console.error("Failed to render template:", err);
@@ -54164,7 +55306,7 @@ var jsonError = /* @__PURE__ */ __name(async (request, env2, _ctx, middlewareCtx
 }, "jsonError");
 var middleware_miniflare3_json_error_default = jsonError;
 
-// .wrangler/tmp/bundle-nQ4KG1/middleware-insertion-facade.js
+// .wrangler/tmp/bundle-uNvNvt/middleware-insertion-facade.js
 var __INTERNAL_WRANGLER_MIDDLEWARE__ = [
   middleware_ensure_req_body_drained_default,
   middleware_miniflare3_json_error_default
@@ -54197,7 +55339,7 @@ function __facade_invoke__(request, env2, ctx, dispatch, finalMiddleware) {
 }
 __name(__facade_invoke__, "__facade_invoke__");
 
-// .wrangler/tmp/bundle-nQ4KG1/middleware-loader.entry.ts
+// .wrangler/tmp/bundle-uNvNvt/middleware-loader.entry.ts
 var __Facade_ScheduledController__ = class ___Facade_ScheduledController__ {
   constructor(scheduledTime, cron, noRetry) {
     this.scheduledTime = scheduledTime;

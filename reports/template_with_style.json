@@ -1,0 +1,38 @@
+{
+  "pageSize": "A4",
+  "orientation": "portrait",
+  "elements": [
+    {
+      "id": "items",
+      "type": "table",
+      "x": 60,
+      "y": 520,
+      "showGrid": true,
+      "dataSource": { "type": "kintoneSubtable", "fieldCode": "Items" },
+      "columns": [
+        { "id": "c1", "title": "品名", "fieldCode": "ItemName", "width": 240 },
+        { "id": "c2", "title": "数量", "fieldCode": "Qty", "width": 60 },
+        { "id": "c3", "title": "単価", "fieldCode": "UnitPrice", "width": 110 },
+        { "id": "c4", "title": "金額", "fieldCode": "Amount", "width": 110 }
+      ],
+      "summary": {
+        "mode": "everyPageSubtotal+lastTotal",
+        "rows": [
+          {
+            "op": "sum",
+            "fieldCode": "Amount",
+            "columnId": "c4",
+            "labelSubtotal": "小計",
+            "labelTotal": "合計"
+          }
+        ],
+        "style": {
+          "subtotalFillGray": 0.96,
+          "totalFillGray": 0.92,
+          "totalTopBorderWidth": 1.5,
+          "borderColorGray": 0.85
+        }
+      }
+    }
+  ]
+}

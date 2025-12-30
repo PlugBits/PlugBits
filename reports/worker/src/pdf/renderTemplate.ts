@@ -7,6 +7,7 @@ import {
   type TextElement,
   type LabelElement,
   type TableElement,
+  type SummaryRow,
   type ImageElement,
   type TemplateDataRecord,
   type DataSource,
@@ -15,12 +16,380 @@ import {
 import type { PDFImage } from 'pdf-lib'; // 先頭の import に追加
 
 const isHttpUrl = (value: string) => /^https?:\/\//i.test(value);
+type WarnCategory = 'debug' | 'data' | 'layout' | 'image' | 'number';
+type WarnFn = (
+  category: WarnCategory,
+  message: string,
+  context?: Record<string, unknown>,
+) => void;
+const MAX_TEXT_LENGTH = 200;
+
+const truncateText = (text: string, maxLength = MAX_TEXT_LENGTH) => {
+  if (text.length <= maxLength) return text;
+  return text.slice(0, maxLength);
+};
+
+const safeStringifyValue = (
+  value: unknown,
+  warn?: WarnFn,
+  context?: Record<string, unknown>,
+) => {
+  try {
+    return JSON.stringify(value);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    warn?.('data', 'value stringify failed', { ...context, error: message });
+    return '';
+  }
+};
+
+const stringifyValue = (
+  value: unknown,
+  warn?: WarnFn,
+  context?: Record<string, unknown>,
+): string => {
+  if (value === null || value === undefined) return '';
+  if (value instanceof Date) return value.toISOString();
+
+  const type = typeof value;
+  if (type === 'string' || type === 'number' || type === 'boolean') {
+    return String(value);
+  }
+
+  if (Array.isArray(value)) {
+    const parts = value
+      .map((item, index) => stringifyValue(item, warn, { ...context, index }))
+      .filter((part) => part !== '');
+    return parts.join(', ');
+  }
+
+  if (type === 'object') {
+    return safeStringifyValue(value, warn, context);
+  }
+
+  warn?.('data', 'unsupported value type', { ...context, type });
+  return '';
+};
+
+const numericLikePattern = /^[0-9.,+\-() ¥$]*$/;
+
+const isNumericLike = (text: string) => numericLikePattern.test(text);
+
+const wrapTextToLines = (
+  text: string,
+  font: PDFFont,
+  fontSize: number,
+  maxWidth: number,
+): string[] => {
+  if (text === '') return [''];
+  if (maxWidth <= 0) return [''];
+
+  const paragraphs = text.split('\n');
+  const lines: string[] = [];
+
+  for (const paragraph of paragraphs) {
+    if (paragraph === '') {
+      lines.push('');
+      continue;
+    }
+
+    let line = '';
+    for (const char of paragraph) {
+      const candidate = `${line}${char}`;
+      if (font.widthOfTextAtSize(candidate, fontSize) <= maxWidth || line === '') {
+        line = candidate;
+        continue;
+      }
+      lines.push(line);
+      line = char;
+    }
+    if (line !== '') {
+      lines.push(line);
+    }
+  }
+
+  return lines.length > 0 ? lines : [''];
+};
+
+const ellipsisTextToWidth = (
+  text: string,
+  font: PDFFont,
+  fontSize: number,
+  maxWidth: number,
+): string => {
+  if (!text) return '';
+  if (maxWidth <= 0) return '';
+
+  const ellipsis = '...';
+  if (font.widthOfTextAtSize(text, fontSize) <= maxWidth) {
+    return text;
+  }
+  if (font.widthOfTextAtSize(ellipsis, fontSize) > maxWidth) {
+    return '';
+  }
+
+  let low = 0;
+  let high = text.length;
+  while (low < high) {
+    const mid = Math.ceil((low + high) / 2);
+    const candidate = `${text.slice(0, mid)}${ellipsis}`;
+    if (font.widthOfTextAtSize(candidate, fontSize) <= maxWidth) {
+      low = mid;
+    } else {
+      high = mid - 1;
+    }
+  }
+
+  return `${text.slice(0, low)}${ellipsis}`;
+};
+
+const drawMultilineText = (
+  page: PDFPage,
+  lines: string[],
+  x: number,
+  yStart: number,
+  font: PDFFont,
+  fontSize: number,
+  color: ReturnType<typeof rgb>,
+  maxLines: number,
+  lineHeight = fontSize * 1.2,
+) => {
+  const limit = Math.min(lines.length, Math.max(0, maxLines));
+  for (let idx = 0; idx < limit; idx += 1) {
+    page.drawText(lines[idx], {
+      x,
+      y: yStart - idx * lineHeight,
+      size: fontSize,
+      font,
+      color,
+    });
+  }
+};
+
+const CELL_PADDING_X = 4;
+const MIN_FONT_SIZE = 6;
+
+const calcShrinkFontSize = (
+  text: string,
+  font: PDFFont,
+  baseSize: number,
+  maxWidth: number,
+  minFontSize = MIN_FONT_SIZE,
+): number => {
+  if (!text) return baseSize;
+
+  const baseWidth = font.widthOfTextAtSize(text, baseSize);
+  if (baseWidth <= maxWidth) return baseSize;
+
+  const scale = maxWidth / baseWidth;
+  const shrunk = Math.floor(baseSize * scale);
+
+  return Math.max(minFontSize, Math.min(baseSize, shrunk));
+};
+
+const drawCellText = (
+  page: PDFPage,
+  text: string,
+  font: PDFFont,
+  baseFontSize: number,
+  cellX: number,
+  cellY: number,
+  cellW: number,
+  cellH: number,
+  align: 'left' | 'center' | 'right',
+  minFontSize = MIN_FONT_SIZE,
+) => {
+  const availableW = Math.max(0, cellW - CELL_PADDING_X * 2);
+  const fontSize = calcShrinkFontSize(
+    text,
+    font,
+    baseFontSize,
+    availableW,
+    minFontSize,
+  );
+  const textW = font.widthOfTextAtSize(text, fontSize);
+
+  const x =
+    align === 'right'
+      ? cellX + cellW - CELL_PADDING_X - textW
+      : align === 'center'
+      ? cellX + (cellW - textW) / 2
+      : cellX + CELL_PADDING_X;
+
+  const y = cellY + cellH / 2 - fontSize / 2;
+
+  page.drawText(text, { x, y, size: fontSize, font, color: rgb(0, 0, 0) });
+};
+
+const drawAlignedText = (
+  page: PDFPage,
+  text: string,
+  font: PDFFont,
+  fontSize: number,
+  cellX: number,
+  cellY: number,
+  cellW: number,
+  cellH: number,
+  align: 'left' | 'center' | 'right',
+) => {
+  const textW = font.widthOfTextAtSize(text, fontSize);
+  const x =
+    align === 'right'
+      ? cellX + cellW - CELL_PADDING_X - textW
+      : align === 'center'
+      ? cellX + (cellW - textW) / 2
+      : cellX + CELL_PADDING_X;
+  const y = cellY + cellH / 2 - fontSize / 2;
+
+  page.drawText(text, { x, y, size: fontSize, font, color: rgb(0, 0, 0) });
+};
+
+type NormalizedColumnSpec = {
+  align?: 'left' | 'center' | 'right';
+  overflow: 'wrap' | 'shrink' | 'ellipsis' | 'clip';
+  minFontSize: number;
+  maxLines?: number;
+  formatter?: TableElement['columns'][number]['formatter'];
+  isItemName: boolean;
+};
+
+const isItemNameColumn = (col: TableElement['columns'][number]) =>
+  col.id === 'item_name' || col.fieldCode === 'ItemName';
+
+const normalizeColumnSpec = (col: TableElement['columns'][number]): NormalizedColumnSpec => {
+  const itemName = isItemNameColumn(col);
+  return {
+    align: col.align,
+    overflow: col.overflow ?? (itemName ? 'wrap' : 'shrink'),
+    minFontSize: col.minFontSize ?? MIN_FONT_SIZE,
+    maxLines: col.maxLines,
+    formatter: col.formatter,
+    isItemName: itemName,
+  };
+};
+
+const resolveColumnAlign = (spec: NormalizedColumnSpec, text: string) => {
+  if (spec.align) return spec.align;
+  if (spec.overflow === 'wrap') return 'left';
+  return isNumericLike(text) ? 'right' : 'left';
+};
+
+const formatCellValue = (
+  rawVal: unknown,
+  spec: NormalizedColumnSpec,
+  warn: WarnFn,
+  context: Record<string, unknown>,
+): string => {
+  const formatterType = spec.formatter?.type ?? 'text';
+
+  if (formatterType === 'number' || formatterType === 'currency') {
+    if (rawVal === null || rawVal === undefined) return '';
+    if (typeof rawVal === 'number') {
+      if (!Number.isSafeInteger(rawVal)) {
+        warn('number', 'unsafe-number', { ...context, value: rawVal });
+        return String(rawVal);
+      }
+      const locale = spec.formatter?.locale ?? 'ja-JP';
+      return new Intl.NumberFormat(locale).format(rawVal);
+    }
+    if (typeof rawVal === 'string') {
+      return rawVal;
+    }
+    return stringifyValue(rawVal, warn, context);
+  }
+
+  if (formatterType === 'date') {
+    if (rawVal === null || rawVal === undefined) return '';
+    if (rawVal instanceof Date) return rawVal.toISOString();
+    if (typeof rawVal === 'string') return rawVal;
+    return stringifyValue(rawVal, warn, context);
+  }
+
+  return stringifyValue(rawVal, warn, context);
+};
+
+const parseAmountToBigInt = (value: unknown): bigint | null => {
+  if (typeof value !== 'string') return null;
+  const trimmed = value.trim();
+  if (!/^[0-9,]+$/.test(trimmed)) return null;
+  const digits = trimmed.replace(/,/g, '');
+  if (!digits) return null;
+  try {
+    return BigInt(digits);
+  } catch {
+    return null;
+  }
+};
+
+const formatBigIntWithCommas = (value: bigint): string => {
+  const s = value.toString();
+  const chars = s.split('');
+  let out = '';
+  let count = 0;
+  for (let i = chars.length - 1; i >= 0; i -= 1) {
+    out = chars[i] + out;
+    count += 1;
+    if (count % 3 === 0 && i !== 0) {
+      out = `,${out}`;
+    }
+  }
+  return out;
+};
+
+const fetchWithTimeout = async (
+  url: string,
+  timeoutMs: number,
+  warn: WarnFn,
+): Promise<Response | null> => {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, { signal: controller.signal });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    const reason = error instanceof Error && error.name === 'AbortError' ? 'timeout' : 'error';
+    warn('image', 'image fetch failed', { url, reason, error: message });
+    return null;
+  } finally {
+    clearTimeout(timeout);
+  }
+};
+
+const embedImageBuffer = async (
+  pdfDoc: PDFDocument,
+  buf: Uint8Array,
+  url: string,
+  contentType: string,
+  warn: WarnFn,
+): Promise<PDFImage | null> => {
+  const lower = url.toLowerCase();
+  const preferJpg =
+    contentType.includes('jpeg') ||
+    contentType.includes('jpg') ||
+    lower.endsWith('.jpg') ||
+    lower.endsWith('.jpeg');
+  const preferPng = contentType.includes('png') || lower.endsWith('.png');
+  const order: Array<'jpg' | 'png'> = preferJpg && !preferPng ? ['jpg', 'png'] : ['png', 'jpg'];
+
+  for (const kind of order) {
+    try {
+      if (kind === 'jpg') return await pdfDoc.embedJpg(buf);
+      return await pdfDoc.embedPng(buf);
+    } catch {
+      // try the other format
+    }
+  }
+
+  warn('image', 'image embed failed', { url });
+  return null;
+};
 
 // 画像を事前に埋め込んでキャッシュ
 async function preloadImages(
   pdfDoc: PDFDocument,
   template: TemplateDefinition,
   data: TemplateDataRecord | undefined,
+  warn: WarnFn,
 ): Promise<Map<string, PDFImage>> {
   const map = new Map<string, PDFImage>();
 
@@ -31,27 +400,29 @@ async function preloadImages(
   const urls = Array.from(
     new Set(
       imageElements
-        .map((e) => resolveDataSource(e.dataSource, data))
+        .map((e) => resolveDataSource(e.dataSource, data, warn, { elementId: e.id }))
         .filter((u): u is string => !!u && isHttpUrl(u)),
     ),
   );
 
   for (const url of urls) {
-    const res = await fetch(url);
+    const res = await fetchWithTimeout(url, 5000, warn);
+    if (!res) {
+      continue;
+    }
     if (!res.ok) {
-      console.warn('Failed to fetch image:', url, res.status);
+      warn('image', 'image fetch failed', { url, status: res.status });
+      continue;
+    }
+    const contentType = res.headers.get('content-type')?.toLowerCase() ?? '';
+    if (!contentType.startsWith('image/')) {
+      warn('image', 'image content-type not image', { url, contentType });
       continue;
     }
     const buf = new Uint8Array(await res.arrayBuffer());
-    const lower = url.toLowerCase();
-    let embedded: PDFImage;
-    if (lower.endsWith('.jpg') || lower.endsWith('.jpeg')) {
-      embedded = await pdfDoc.embedJpg(buf);
-    } else {
-      embedded = await pdfDoc.embedPng(buf);
-    }
+    const embedded = await embedImageBuffer(pdfDoc, buf, url, contentType, warn);
+    if (!embedded) continue;
     map.set(url, embedded);
-    console.log('Embedded image', url, 'bytes=', buf.length);
   }
 
   return map;
@@ -101,6 +472,8 @@ const clampPdfY = (pdfY: number, maxY: number) => {
 function resolveDataSource(
   source: DataSource | undefined,
   data: TemplateDataRecord | undefined,
+  warn?: WarnFn,
+  context?: Record<string, unknown>,
 ): string {
   if (!source) return '';
 
@@ -109,31 +482,48 @@ function resolveDataSource(
     return source.value ?? '';
   }
 
+  if (source.type === 'kintoneSubtable') {
+    return '';
+  }
+
   if (!data) return '';
 
   // kintone / kintoneSubtable 系
   if ('fieldCode' in source && source.fieldCode) {
     const value = data[source.fieldCode];
-
     if (value === null || value === undefined) return '';
-
     if (typeof value === 'number') {
-      return new Intl.NumberFormat('ja-JP').format(value);
+      if (Number.isSafeInteger(value)) {
+        return new Intl.NumberFormat('ja-JP').format(value);
+      }
+      const contextInfo = { fieldCode: source.fieldCode, value };
+      warn?.('number', 'unsafe-number', contextInfo);
+      return String(value);
     }
-
     if (value instanceof Date) {
       return value.toISOString();
     }
-
-    if (Array.isArray(value)) {
-      return value
-        .map((item) => (typeof item === 'object' ? JSON.stringify(item) : String(item)))
-        .join(', ');
+    if (typeof value === 'string' || typeof value === 'boolean') {
+      return truncateText(String(value));
     }
-
-    return String(value);
+    if (Array.isArray(value)) {
+      const parts = value
+        .map((item, index) => {
+          if (item === null || item === undefined) return '';
+          if (typeof item === 'number') return new Intl.NumberFormat('ja-JP').format(item);
+          if (item instanceof Date) return item.toISOString();
+          if (typeof item === 'string' || typeof item === 'boolean') return String(item);
+          return safeStringifyValue(item, warn, { ...context, fieldCode: source.fieldCode, index });
+        })
+        .filter((part) => part !== '');
+      return truncateText(parts.join(', '));
+    }
+    return truncateText(
+      safeStringifyValue(value, warn, { ...context, fieldCode: source.fieldCode }),
+    );
   }
 
+  warn?.('data', 'dataSource fieldCode missing', context);
   return '';
 }
 
@@ -144,14 +534,28 @@ export async function renderTemplateToPdf(
   template: TemplateDefinition,
   data: TemplateDataRecord | undefined,
   fonts: { jp: Uint8Array; latin: Uint8Array },
-): Promise<Uint8Array> {
-  console.log('==== renderTemplateToPdf START ====');
+  options?: { debug?: boolean },
+): Promise<{ bytes: Uint8Array; warnings: string[] }> {
+  const warnings = new Set<string>();
+  const debugEnabled = options?.debug === true;
+  const warn: WarnFn = (category, message, context) => {
+    if (category === 'debug' && !debugEnabled) return;
+    let entry = `[${category}] ${message}`;
+    if (context) {
+      try {
+        entry = `${entry} ${JSON.stringify(context)}`;
+      } catch {
+        entry = `${entry} [context_unserializable]`;
+      }
+    }
+    warnings.add(entry);
+  };
 
   const pdfDoc = await PDFDocument.create();
   pdfDoc.registerFontkit(fontkit);
 
   const [pageWidth, pageHeight] = getPageSize(template);
-  const imageMap = await preloadImages(pdfDoc, template, data);
+  const imageMap = await preloadImages(pdfDoc, template, data, warn);
 
   // ★ let にして、テーブル描画の途中で別ページに差し替えられるようにする
   let page = pdfDoc.addPage([pageWidth, pageHeight]);
@@ -160,16 +564,10 @@ export async function renderTemplateToPdf(
   const jpFont = await pdfDoc.embedFont(fonts.jp, { subset: false });
   const latinFont = await pdfDoc.embedFont(fonts.latin, { subset: false });
 
-  console.log(
-    'TEMPLATE ELEMENTS:',
-    template.elements.map((e) => ({
-      id: e.id,
-      type: e.type,
-      text: (e as any).text,
-      x: e.x,
-      y: e.y,
-    })),
-  );
+  warn('debug', 'template elements', {
+    count: template.elements.length,
+    ids: template.elements.map((e) => e.id),
+  });
 
   // ▼▼ 要素を分解：ヘッダー（毎ページ／1ページのみ）とフッター、テーブル ▼▼
   const nonTableElements = template.elements.filter(
@@ -263,10 +661,9 @@ export async function renderTemplateToPdf(
     (e): e is TableElement => e.type === 'table',
   );
   if (tableElements.length > 1) {
-    console.warn(
-      'Multiple table elements found; rendering only one.',
-      tableElements.map((el) => el.id),
-    );
+    warn('layout', 'multiple table elements found', {
+      ids: tableElements.map((el) => el.id),
+    });
   }
   const tableElementToRender =
     tableElements.find((el) => el.id === 'items') ?? tableElements[0];
@@ -280,6 +677,7 @@ export async function renderTemplateToPdf(
     jpFont,
     latinFont,
     imageMap,
+    warn,
   );
 
   // テーブル（複数ある場合は順番に描画）
@@ -297,6 +695,7 @@ export async function renderTemplateToPdf(
       repeatingHeaderElements,
       footerReserveHeight,
       imageMap,
+      warn,
     );
   }
 
@@ -322,6 +721,7 @@ export async function renderTemplateToPdf(
       jpFont,
       latinFont,
       imageMap,
+      warn,
     );
 
     // --- ページ番号 (1 / N) を中央下に描画 ---
@@ -344,18 +744,24 @@ export async function renderTemplateToPdf(
 
 
   const bytes = await pdfDoc.save();
-  console.log('==== renderTemplateToPdf END ====');
-  return bytes;
+  const warningList = Array.from(warnings);
+  if (warningList.length > 0) {
+    console.warn('renderTemplateToPdf warnings', warningList);
+  }
+  return { bytes, warnings: warningList };
 }
 
+// Manual test ideas:
+// - rows undefined or not array, expect render to continue
+// - image URL 404 or non-image content-type, expect placeholder
+// - fixture=longtext to verify table cell wrap within fixed rowHeight
+// - rowHeight=40 query to verify fixed row height spacing changes
 
 
 function pickFontForText(text: string, jpFont: PDFFont, latinFont: PDFFont): PDFFont {
-  // 数字・カンマ・ドット・通貨記号・スペースあたりは Latin に振る
-  const numericLike = /^[0-9.,+\-() ¥$]*$/.test(text);
-  return numericLike ? latinFont : jpFont;
+  // ASCIIのみは Latin、それ以外は日本語フォント
+  return /^[\x00-\x7F]*$/.test(text) ? latinFont : jpFont;
 }
-
 
 // ============================
 // Label
@@ -368,26 +774,24 @@ function drawLabel(
   pageHeight: number,
 ) {
   const fontSize = element.fontSize ?? 12;
-  const textHeight = fontSize;
   const text = element.text ?? '';
+  const maxWidth = 180;
+  const maxLines = 99;
 
-  let pdfY = toPdfYFromBottom(element.y, pageHeight);
-  pdfY = clampPdfY(pdfY, pageHeight - textHeight - 2);
+  let yStart = toPdfYFromBottom(element.y, pageHeight);
+  yStart = clampPdfY(yStart, pageHeight - fontSize - 2);
 
-  console.log('DRAW LABEL', {
-    id: element.id,
-    text,
-    uiY: element.y,
-    pdfY,
-  });
-
-  page.drawText(text, {
-    x: element.x,
-    y: pdfY,
-    size: fontSize,
-    font: jpFont,
-    color: rgb(0, 0, 0),
-  });
+  const lines = wrapTextToLines(text, jpFont, fontSize, maxWidth);
+  drawMultilineText(
+    page,
+    lines,
+    element.x,
+    yStart,
+    jpFont,
+    fontSize,
+    rgb(0, 0, 0),
+    maxLines,
+  );
 }
 
 // ============================
@@ -401,31 +805,31 @@ function drawText(
   latinFont: PDFFont,
   pageHeight: number,
   data: TemplateDataRecord | undefined,
+  warn: WarnFn,
 ) {
   const fontSize = element.fontSize ?? 12;
-  const textHeight = fontSize;
+  const lineHeight = fontSize * 1.2;
+  const maxWidth = element.width ?? 200;
 
-  const resolved = resolveDataSource(element.dataSource, data);
+  const resolved = resolveDataSource(element.dataSource, data, warn, { elementId: element.id });
   const text = resolved || element.text || '';
+  const maxLines = element.height ? Math.floor(element.height / lineHeight) : 99999;
 
-  let pdfY = toPdfYFromBottom(element.y, pageHeight);
-  pdfY = clampPdfY(pdfY, pageHeight - textHeight - 2);
+  let yStart = toPdfYFromBottom(element.y, pageHeight);
+  yStart = clampPdfY(yStart, pageHeight - fontSize - 2);
   const fontToUse = pickFontForText(text, jpFont, latinFont);
 
-  console.log('DRAW TEXT', {
-    id: element.id,
-    text,
-    uiY: element.y,
-    pdfY,
-  });
-
-  page.drawText(text, {
-    x: element.x,
-    y: pdfY,
-    size: fontSize,
-    font: fontToUse,
-    color: rgb(0, 0, 0),
-  });
+  const lines = wrapTextToLines(text, fontToUse, fontSize, maxWidth);
+  drawMultilineText(
+    page,
+    lines,
+    element.x,
+    yStart,
+    fontToUse,
+    fontSize,
+    rgb(0, 0, 0),
+    maxLines,
+  );
 }
 
 // ============================
@@ -440,6 +844,7 @@ function drawHeaderElements(
   jpFont: PDFFont,
   latinFont: PDFFont,
   imageMap: Map<string, PDFImage>,
+  warn: WarnFn,
 ) {
   for (const element of headerElements) {
     switch (element.type) {
@@ -455,6 +860,7 @@ function drawHeaderElements(
           latinFont,
           pageHeight,
           data,
+          warn,
         );
         break;
 
@@ -465,6 +871,7 @@ function drawHeaderElements(
           pageHeight,
           data,
           imageMap,
+          warn,
         );
         break;
 
@@ -474,10 +881,7 @@ function drawHeaderElements(
         break;
 
       default:
-        console.warn(
-          'Unknown header element type:',
-          (element as TemplateElement).type,
-        );
+        warn('layout', 'unknown header element type', { type: (element as TemplateElement).type });
     }
   }
 }
@@ -494,6 +898,7 @@ function drawFooterElements(
   jpFont: PDFFont,
   latinFont: PDFFont,
   imageMap: Map<string, PDFImage>,
+  warn: WarnFn,
 ) {
   for (const element of footerElements) {
     switch (element.type) {
@@ -509,6 +914,7 @@ function drawFooterElements(
           latinFont,
           pageHeight,
           data,
+          warn,
         );
         break;
 
@@ -519,6 +925,7 @@ function drawFooterElements(
           pageHeight,
           data,
           imageMap,
+          warn,
         );
         break;
 
@@ -527,10 +934,7 @@ function drawFooterElements(
         break;
 
       default:
-        console.warn(
-          'Unknown footer element type:',
-          (element as TemplateElement).type,
-        );
+        warn('layout', 'unknown footer element type', { type: (element as TemplateElement).type });
     }
   }
 }
@@ -550,24 +954,42 @@ function drawTable(
   data: TemplateDataRecord | undefined,
   headerElements: TemplateElement[],
   footerReserveHeight: number,
-  imageMap: Map<string, PDFImage>, 
+  imageMap: Map<string, PDFImage>,
+  warn: WarnFn,
 ): PDFPage {
   const rowHeight = element.rowHeight ?? 18;
   const headerHeight = element.headerHeight ?? rowHeight;
-  const fontSize = 10;
+  const baseFontSize = 10;
+  const lineGap = 2;
+  const lineHeight = baseFontSize + lineGap;
+  const paddingY = 4;
+  const paddingLeft = CELL_PADDING_X;
+  const paddingRight = CELL_PADDING_X;
 
   const originX = element.x;
   const bottomMargin = footerReserveHeight + 40; // 下から40ptは余白
 
   // サブテーブル行
-  const rows =
+  if (!element.columns || element.columns.length === 0) {
+    warn('data', 'table columns empty', { id: element.id });
+    return page;
+  }
+
+  const rawRows =
     data &&
     element.dataSource &&
     element.dataSource.type === 'kintoneSubtable'
-      ? (data[element.dataSource.fieldCode] as any[] | undefined)
+      ? data[element.dataSource.fieldCode]
       : undefined;
+  const rows = Array.isArray(rawRows) ? rawRows : [];
+  if (rawRows !== undefined && !Array.isArray(rawRows)) {
+    warn('data', 'table rows is not array', {
+      id: element.id,
+      fieldCode: element.dataSource?.fieldCode,
+    });
+  }
 
-  console.log('DRAW TABLE (multi-page + header)', {
+  warn('debug', 'draw table', {
     id: element.id,
     uiY: element.y,
     rows: rows?.length ?? 0,
@@ -576,6 +998,39 @@ function drawTable(
   if (!rows || rows.length === 0) {
     return page;
   }
+
+  const summarySpec =
+    element.summary?.mode === 'lastPageOnly' ||
+    element.summary?.mode === 'everyPageSubtotal+lastTotal'
+      ? element.summary
+      : undefined;
+  const summaryRows = summarySpec?.rows ?? [];
+  const summaryStates = summaryRows.map((row, index) => ({
+    row,
+    index,
+    sumGrand: 0n,
+    sumPage: 0n,
+  }));
+  const summaryStyle = summarySpec?.style;
+  const columnsById = new Map(element.columns.map((col) => [col.id, col]));
+  const labelColumn =
+    element.columns.find((col) => isItemNameColumn(col)) ?? element.columns[0];
+  const summaryRowHeight = Math.max(rowHeight, lineHeight + paddingY * 2);
+  const tableWidth = element.columns.reduce((sum, col) => sum + col.width, 0);
+  const summaryMode = summarySpec?.mode;
+  const resolveSummaryKind = (row: SummaryRow) => row.kind ?? 'both';
+  const shouldDrawSummaryKind = (row: SummaryRow, kind: 'subtotal' | 'total') => {
+    const resolved = resolveSummaryKind(row);
+    return resolved === 'both' || resolved === kind;
+  };
+  const resolveSummaryLabel = (row: SummaryRow, kind: 'subtotal' | 'total') => {
+    if (row.label) return row.label;
+    if (row.op !== 'sum') return '';
+    if (kind === 'subtotal') {
+      return row.labelSubtotal ?? '小計';
+    }
+    return row.labelTotal ?? '合計';
+  };
 
   // テーブルヘッダー（列タイトル）を描画するヘルパー
   const drawTableHeaderRow = (targetPage: PDFPage, headerY: number) => {
@@ -596,8 +1051,8 @@ function drawTable(
       // 列タイトル
       targetPage.drawText(col.title, {
         x: currentX + 4,
-        y: headerY + headerHeight / 2 - fontSize / 2,
-        size: fontSize,
+        y: headerY + headerHeight / 2 - baseFontSize / 2,
+        size: baseFontSize,
         font: jpFont,
         color: rgb(0, 0, 0),
       });
@@ -611,7 +1066,7 @@ function drawTable(
   const getHeaderY = () =>
     clampPdfY(toPdfYFromBottom(element.y, pageHeight), pageHeight - headerHeight);
   let headerY = getHeaderY();
-  let rowIndexOnPage = 0;
+  let cursorY = headerY - headerHeight;
 
   if (headerY < minHeaderY) {
     currentPage = pdfDoc.addPage([pageWidth, pageHeight]);
@@ -624,11 +1079,13 @@ function drawTable(
       jpFont,
       latinFont,
       imageMap,
+      warn,
     );
 
     headerY = getHeaderY();
+    cursorY = headerY - headerHeight;
     if (headerY < minHeaderY) {
-      console.warn('Table header Y is too low for minimum layout.', {
+      warn('layout', 'table header Y is too low for minimum layout', {
         id: element.id,
         headerY,
         minHeaderY,
@@ -640,15 +1097,386 @@ function drawTable(
   // ここではテーブルヘッダー行だけ描画する
   drawTableHeaderRow(currentPage, headerY);
 
+  const drawSummaryRow = (
+    state: (typeof summaryStates)[number],
+    kind: 'subtotal' | 'total',
+  ) => {
+    const row = state.row;
+    const isSumRow = row.op === 'sum';
+    const valueColumnId = isSumRow ? row.columnId : row.valueColumnId ?? row.columnId;
+    const valueColumn = columnsById.get(valueColumnId);
+    if (!valueColumn) {
+      warn('data', 'summary column not found', {
+        tableId: element.id,
+        columnId: valueColumnId,
+      });
+    }
+
+    const rowYBottom = cursorY - summaryRowHeight;
+    const sumValue = kind === 'subtotal' ? state.sumPage : state.sumGrand;
+    const sumText = isSumRow ? formatBigIntWithCommas(sumValue) : row.value ?? '';
+    const labelText = resolveSummaryLabel(row, kind);
+    let currentX = originX;
+
+    if (isSumRow) {
+      warn('debug', kind === 'subtotal' ? 'subtotal drawn' : 'total drawn', {
+        tableId: element.id,
+        amount: sumValue.toString(),
+      });
+    }
+    if (!isSumRow && row.value === undefined) {
+      warn('data', 'summary static value missing', {
+        tableId: element.id,
+        rowIndex: state.index,
+      });
+    }
+
+    if (summaryStyle) {
+      const fillGray =
+        kind === 'total'
+          ? summaryStyle.totalFillGray ?? 0.92
+          : summaryStyle.subtotalFillGray ?? 0.96;
+      currentPage.drawRectangle({
+        x: originX,
+        y: rowYBottom,
+        width: tableWidth,
+        height: summaryRowHeight,
+        color: rgb(fillGray, fillGray, fillGray),
+      });
+    }
+
+    for (const col of element.columns) {
+      const colWidth = col.width;
+      const spec = normalizeColumnSpec(col);
+      const cellText =
+        col.id === labelColumn.id
+          ? labelText
+          : col.id === valueColumnId
+          ? sumText
+          : '';
+      const fontForCell = pickFontForText(cellText, jpFont, latinFont);
+
+      if (element.showGrid) {
+        const borderGray = summaryStyle?.borderColorGray ?? 0.85;
+        currentPage.drawRectangle({
+          x: currentX,
+          y: rowYBottom,
+          width: colWidth,
+          height: summaryRowHeight,
+          borderColor: rgb(borderGray, borderGray, borderGray),
+          borderWidth: 0.5,
+        });
+      }
+
+      if (cellText) {
+          const align =
+            col.id === labelColumn.id
+              ? 'left'
+              : col.id === valueColumnId
+              ? 'right'
+              : resolveColumnAlign(spec, cellText);
+        const maxCellWidth = Math.max(0, colWidth - (paddingLeft + paddingRight));
+        if (col.id === labelColumn.id) {
+          const clipped = ellipsisTextToWidth(cellText, fontForCell, baseFontSize, maxCellWidth);
+          drawAlignedText(
+            currentPage,
+            clipped,
+            fontForCell,
+            baseFontSize,
+            currentX,
+            rowYBottom,
+            colWidth,
+            summaryRowHeight,
+            align,
+          );
+        } else if (spec.overflow === 'shrink') {
+          drawCellText(
+            currentPage,
+            cellText,
+            fontForCell,
+            baseFontSize,
+            currentX,
+            rowYBottom,
+            colWidth,
+            summaryRowHeight,
+            align,
+            spec.minFontSize,
+          );
+        } else if (spec.overflow === 'ellipsis') {
+          const clipped = ellipsisTextToWidth(cellText, fontForCell, baseFontSize, maxCellWidth);
+          drawAlignedText(
+            currentPage,
+            clipped,
+            fontForCell,
+            baseFontSize,
+            currentX,
+            rowYBottom,
+            colWidth,
+            summaryRowHeight,
+            align,
+          );
+        } else if (spec.overflow === 'wrap') {
+          const lines = wrapTextToLines(cellText, fontForCell, baseFontSize, maxCellWidth);
+          const maxLinesByHeight = Math.floor((summaryRowHeight - paddingY * 2) / lineHeight);
+          const yStart = rowYBottom + summaryRowHeight - paddingY - lineHeight;
+          for (let idx = 0; idx < Math.min(lines.length, maxLinesByHeight); idx += 1) {
+            const line = lines[idx];
+            const lineWidth = fontForCell.widthOfTextAtSize(line, baseFontSize);
+            const x =
+              align === 'right'
+                ? currentX + colWidth - paddingRight - lineWidth
+                : align === 'center'
+                ? currentX + (colWidth - lineWidth) / 2
+                : currentX + paddingLeft;
+            currentPage.drawText(line, {
+              x,
+              y: yStart - idx * lineHeight,
+              size: baseFontSize,
+              font: fontForCell,
+              color: rgb(0, 0, 0),
+            });
+          }
+        } else {
+          drawAlignedText(
+            currentPage,
+            cellText,
+            fontForCell,
+            baseFontSize,
+            currentX,
+            rowYBottom,
+            colWidth,
+            summaryRowHeight,
+            align,
+          );
+        }
+      }
+
+      currentX += colWidth;
+    }
+
+    if (summaryStyle && kind === 'total') {
+      const borderGray = summaryStyle.borderColorGray ?? 0.85;
+      const thickness = summaryStyle.totalTopBorderWidth ?? 1.5;
+      currentPage.drawLine({
+        start: { x: originX, y: rowYBottom + summaryRowHeight },
+        end: { x: originX + tableWidth, y: rowYBottom + summaryRowHeight },
+        thickness,
+        color: rgb(borderGray, borderGray, borderGray),
+      });
+    }
+
+    cursorY = rowYBottom;
+  };
+
+  const getSummaryRows = (kind: 'subtotal' | 'total') =>
+    summaryStates.filter((state) => shouldDrawSummaryKind(state.row, kind));
+
+  const ensureSummarySpace = (rowCount: number, allowPageBreak: boolean) => {
+    if (rowCount <= 0) return true;
+    const neededHeight = summaryRowHeight * rowCount;
+    if (cursorY - neededHeight >= bottomMargin) return true;
+    if (!allowPageBreak) return false;
+
+    currentPage = pdfDoc.addPage([pageWidth, pageHeight]);
+    drawHeaderElements(
+      currentPage,
+      headerElements,
+      pageHeight,
+      data,
+      jpFont,
+      latinFont,
+      imageMap,
+      warn,
+    );
+
+    headerY = getHeaderY();
+    cursorY = headerY - headerHeight;
+    if (headerY < minHeaderY) {
+      warn('layout', 'table header Y is too low for minimum layout', {
+        id: element.id,
+        headerY,
+        minHeaderY,
+      });
+    }
+    drawTableHeaderRow(currentPage, headerY);
+    return cursorY - neededHeight >= bottomMargin;
+  };
+
+  const drawSummaryLines = (kind: 'subtotal' | 'total', allowPageBreak: boolean) => {
+    if (!summarySpec || summaryStates.length === 0 || !labelColumn) return false;
+    const rowsToDraw = getSummaryRows(kind);
+    if (rowsToDraw.length === 0) return false;
+
+    const hasSpace = ensureSummarySpace(rowsToDraw.length, allowPageBreak);
+    if (!hasSpace && !allowPageBreak) {
+      return false;
+    }
+    if (!hasSpace && allowPageBreak) {
+      warn('layout', 'summary rows do not fit', { tableId: element.id });
+    }
+
+    for (const state of rowsToDraw) {
+      drawSummaryRow(state, kind);
+    }
+    return true;
+  };
+
+  const subtotalRowCount =
+    summaryMode === 'everyPageSubtotal+lastTotal'
+      ? getSummaryRows('subtotal').length
+      : 0;
+  const totalRowCount = summarySpec ? getSummaryRows('total').length : 0;
+  const trailerRowCount =
+    summaryMode === 'everyPageSubtotal+lastTotal'
+      ? subtotalRowCount + totalRowCount
+      : 0;
+
+  const missingFieldCodes = new Set<string>();
+  let invalidRowWarnCount = 0;
+  let pageRowCount = 0;
+
+  const emitSubtotalIfNeeded = () => {
+    if (summaryMode !== 'everyPageSubtotal+lastTotal') return;
+    if (summaryStates.length === 0 || pageRowCount === 0 || subtotalRowCount === 0) return;
+    warn('debug', 'summary rows', {
+      tableId: element.id,
+      count: summaryStates.length,
+      ops: summaryStates.map((state) => state.row.op),
+    });
+    const ok = drawSummaryLines('subtotal', false);
+    if (!ok) {
+      warn('layout', 'subtotal row does not fit (should not happen)', {
+        tableId: element.id,
+      });
+    }
+    for (const state of summaryStates) {
+      state.sumPage = 0n;
+    }
+  };
+
   for (let i = 0; i < rows.length; i++) {
     const row = rows[i];
+    if (!row || typeof row !== 'object' || Array.isArray(row)) {
+      if (invalidRowWarnCount < 3) {
+        warn('data', 'table row is not object', { id: element.id, rowIndex: i });
+        invalidRowWarnCount += 1;
+      }
+      continue;
+    }
 
-    // このページでの行の下端
-    let rowYBottom =
-      headerY - headerHeight - rowIndexOnPage * rowHeight;
+    if (i === 0) {
+      warn('debug', 'table row sample', {
+        tableId: element.id,
+        rowKeys: Object.keys(row as any),
+      });
+      warn('debug', 'table columns', {
+        tableId: element.id,
+        columns: element.columns.map((c) => ({
+          id: c.id,
+          fieldCode: c.fieldCode,
+          title: c.title,
+        })),
+      });
+    }
+
+
+    const cells = element.columns.map((col) => {
+      const colWidth = col.width;
+      const maxCellWidth = Math.max(0, colWidth - (paddingLeft + paddingRight));
+      const spec = normalizeColumnSpec(col);
+      const rawVal = col.fieldCode ? (row as any)[col.fieldCode] : '';
+      const cellTextRaw = formatCellValue(rawVal, spec, warn, {
+        tableId: element.id,
+        columnId: col.id,
+        fieldCode: col.fieldCode,
+      });
+      const fontForCell = pickFontForText(cellTextRaw, jpFont, latinFont);
+
+      if (!col.fieldCode) {
+        const key = col.id ?? '(unknown)';
+        if (!missingFieldCodes.has(key)) {
+          warn('data', 'table column fieldCode missing', { id: element.id, columnId: key });
+          missingFieldCodes.add(key);
+        }
+      }
+
+      const lines =
+        spec.overflow === 'wrap'
+          ? wrapTextToLines(cellTextRaw, fontForCell, baseFontSize, maxCellWidth)
+          : [cellTextRaw];
+      const maxLinesForDraw = spec.maxLines ?? lines.length;
+      const linesToDraw = lines.slice(0, maxLinesForDraw);
+      const lineCountForHeight = spec.overflow === 'wrap' ? linesToDraw.length : 1;
+
+      return {
+        colWidth,
+        maxCellWidth,
+        cellTextRaw,
+        fontForCell,
+        spec,
+        linesToDraw,
+        lineCountForHeight,
+      };
+    });
+
+    const maxLines = Math.max(1, ...cells.map((cell) => cell.lineCountForHeight));
+    const effectiveRowHeight = Math.max(
+      rowHeight,
+      lineHeight * maxLines + paddingY * 2,
+    );
+
+    const hasMoreRows = i < rows.length - 1;
+    const remainingAfterRow = cursorY - effectiveRowHeight;
+
+    if (
+      summaryMode === 'everyPageSubtotal+lastTotal' &&
+      pageRowCount > 0 &&
+      subtotalRowCount > 0
+    ) {
+      const needsSubtotalSpace =
+        hasMoreRows &&
+        remainingAfterRow - subtotalRowCount * summaryRowHeight < bottomMargin;
+      const needsTrailerSpace =
+        !hasMoreRows &&
+        trailerRowCount > 0 &&
+        remainingAfterRow - trailerRowCount * summaryRowHeight < bottomMargin;
+
+      if (needsSubtotalSpace || needsTrailerSpace) {
+        emitSubtotalIfNeeded();
+        pageRowCount = 0;
+
+        currentPage = pdfDoc.addPage([pageWidth, pageHeight]);
+        drawHeaderElements(
+          currentPage,
+          headerElements,
+          pageHeight,
+          data,
+          jpFont,
+          latinFont,
+          imageMap,
+          warn,
+        );
+
+        headerY = getHeaderY();
+        cursorY = headerY - headerHeight;
+        if (headerY < minHeaderY) {
+          warn('layout', 'table header Y is too low for minimum layout', {
+            id: element.id,
+            headerY,
+            minHeaderY,
+          });
+        }
+        drawTableHeaderRow(currentPage, headerY);
+      }
+    }
+
+    let rowYBottom = cursorY - effectiveRowHeight;
 
     // 下余白を割りそうなら改ページ
     if (rowYBottom < bottomMargin) {
+      emitSubtotalIfNeeded();
+      pageRowCount = 0;
+
       // 新しいページを追加
       currentPage = pdfDoc.addPage([pageWidth, pageHeight]);
 
@@ -661,14 +1489,15 @@ function drawTable(
         jpFont,
         latinFont,
         imageMap,
+        warn,
       );
 
       // テーブルヘッダーの位置を再計算して描画
       headerY = getHeaderY();
-      rowIndexOnPage = 0;
+      cursorY = headerY - headerHeight;
 
       if (headerY < minHeaderY) {
-        console.warn('Table header Y is too low for minimum layout.', {
+        warn('layout', 'table header Y is too low for minimum layout', {
           id: element.id,
           headerY,
           minHeaderY,
@@ -677,43 +1506,181 @@ function drawTable(
 
       drawTableHeaderRow(currentPage, headerY);
 
-      // このページでの最初の行位置を再計算
-      rowYBottom =
-        headerY - headerHeight - rowIndexOnPage * rowHeight;
+      rowYBottom = cursorY - effectiveRowHeight;
     }
 
     let currentX = originX;
 
-    for (const col of element.columns) {
-      const colWidth = col.width;
+    for (const cell of cells) {
+      const {
+        colWidth,
+        maxCellWidth,
+        cellTextRaw,
+        fontForCell,
+        spec,
+        linesToDraw,
+      } = cell;
 
       if (element.showGrid) {
         currentPage.drawRectangle({
           x: currentX,
           y: rowYBottom,
           width: colWidth,
-          height: rowHeight,
+          height: effectiveRowHeight,
           borderColor: rgb(0.85, 0.85, 0.85),
           borderWidth: 0.5,
         });
       }
 
-      const rawVal = row[col.fieldCode];
-      const cellText = rawVal != null ? String(rawVal) : '';
-      const fontForCell = pickFontForText(cellText, jpFont, latinFont);
+      const cellText = cellTextRaw.replace(/\n/g, '');
+      const align = resolveColumnAlign(spec, cellText);
 
-      currentPage.drawText(cellText, {
-        x: currentX + 4,
-        y: rowYBottom + rowHeight / 2 - fontSize / 2,
-        size: fontSize,
-        font: fontForCell,
-        color: rgb(0, 0, 0),
-      });
+      if (spec.overflow === 'wrap' && maxCellWidth > 0) {
+        const maxLinesByHeight = Math.floor((effectiveRowHeight - paddingY * 2) / lineHeight);
+        const lines = linesToDraw.slice(0, Math.max(0, maxLinesByHeight));
+        const yStart = rowYBottom + effectiveRowHeight - paddingY - lineHeight;
+        for (let idx = 0; idx < lines.length; idx += 1) {
+          const line = lines[idx];
+          const lineWidth = fontForCell.widthOfTextAtSize(line, baseFontSize);
+          const x =
+            align === 'right'
+              ? currentX + colWidth - paddingRight - lineWidth
+              : align === 'center'
+              ? currentX + (colWidth - lineWidth) / 2
+              : currentX + paddingLeft;
+          currentPage.drawText(line, {
+            x,
+            y: yStart - idx * lineHeight,
+            size: baseFontSize,
+            font: fontForCell,
+            color: rgb(0, 0, 0),
+          });
+        }
+      } else if (spec.overflow === 'ellipsis') {
+        const clipped = ellipsisTextToWidth(cellText, fontForCell, baseFontSize, maxCellWidth);
+        drawAlignedText(
+          currentPage,
+          clipped,
+          fontForCell,
+          baseFontSize,
+          currentX,
+          rowYBottom,
+          colWidth,
+          effectiveRowHeight,
+          align,
+        );
+      } else if (spec.overflow === 'clip') {
+        drawAlignedText(
+          currentPage,
+          cellText,
+          fontForCell,
+          baseFontSize,
+          currentX,
+          rowYBottom,
+          colWidth,
+          effectiveRowHeight,
+          align,
+        );
+      } else {
+        drawCellText(
+          currentPage,
+          cellText,
+          fontForCell,
+          baseFontSize,
+          currentX,
+          rowYBottom,
+          colWidth,
+          effectiveRowHeight,
+          align,
+          spec.minFontSize,
+        );
+      }
 
       currentX += colWidth;
     }
 
-    rowIndexOnPage += 1;
+    if (summaryStates.length > 0) {
+      for (const state of summaryStates) {
+        if (state.row.op !== 'sum') continue;
+        const rawVal = (row as any)[state.row.fieldCode];
+        const parsed = parseAmountToBigInt(rawVal);
+        if (parsed === null) {
+          warn('data', 'summary amount parse failed', {
+            tableId: element.id,
+            fieldCode: state.row.fieldCode,
+            rowIndex: i,
+            value: rawVal,
+          });
+          continue;
+        }
+        state.sumGrand += parsed;
+        state.sumPage += parsed;
+      }
+    }
+
+    cursorY = rowYBottom;
+    pageRowCount += 1;
+  }
+
+  if (summaryStates.length > 0 && labelColumn) {
+    warn('debug', 'summary rows', {
+      tableId: element.id,
+      count: summaryStates.length,
+      ops: summaryStates.map((state) => state.row.op),
+    });
+    if (summaryMode === 'everyPageSubtotal+lastTotal') {
+      const subtotalRows = getSummaryRows('subtotal');
+      const totalRows = getSummaryRows('total');
+      const totalCount = subtotalRows.length + totalRows.length;
+
+      if (totalCount > 0) {
+        const hasSpace = ensureSummarySpace(totalCount, true);
+        if (!hasSpace) {
+          warn('layout', 'summary rows do not fit', { tableId: element.id });
+        }
+        for (const state of subtotalRows) {
+          warn('debug', 'summary row', {
+            tableId: element.id,
+            rowIndex: state.index,
+            op: state.row.op,
+            label: state.row.label ?? null,
+            columnId: state.row.columnId,
+          });
+          drawSummaryRow(state, 'subtotal');
+        }
+        for (const state of totalRows) {
+          warn('debug', 'summary row', {
+            tableId: element.id,
+            rowIndex: state.index,
+            op: state.row.op,
+            label: state.row.label ?? null,
+            columnId: state.row.columnId,
+          });
+          drawSummaryRow(state, 'total');
+        }
+        for (const state of summaryStates) {
+          state.sumPage = 0n;
+        }
+      }
+    } else if (summaryMode === 'lastPageOnly') {
+      const rowsToDraw = summaryStates;
+      if (rowsToDraw.length > 0) {
+        const hasSpace = ensureSummarySpace(rowsToDraw.length, true);
+        if (!hasSpace) {
+          warn('layout', 'summary rows do not fit', { tableId: element.id });
+        }
+        for (const state of rowsToDraw) {
+          warn('debug', 'summary row', {
+            tableId: element.id,
+            rowIndex: state.index,
+            op: state.row.op,
+            label: state.row.label ?? null,
+            columnId: state.row.columnId,
+          });
+          drawSummaryRow(state, 'total');
+        }
+      }
+    }
   }
 
   return currentPage;
@@ -725,8 +1692,9 @@ function drawImageElement(
   pageHeight: number,
   data: TemplateDataRecord | undefined,
   imageMap: Map<string, PDFImage>,
+  warn: WarnFn,
 ) {
-  const url = resolveDataSource(element.dataSource, data);
+  const url = resolveDataSource(element.dataSource, data, warn, { elementId: element.id });
   if (!url || !isHttpUrl(url)) {
     drawImagePlaceholder(page, element, pageHeight);
     return;

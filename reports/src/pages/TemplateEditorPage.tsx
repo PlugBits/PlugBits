@@ -452,6 +452,11 @@ console.log(
 console.log('[TEMPLATE DEBUG] has title?', template?.elements.some(e => e.id === 'title'));
 console.log('[TEMPLATE DEBUG] has doc_title slot?', template?.elements.some(e => (e as any).slotId === 'doc_title'));
 console.log('[TEMPLATE DEBUG] mapping.header.doc_title=', (template?.mapping as any)?.header?.doc_title);
+console.log(
+  '[TEMPLATE JSON]',
+  JSON.stringify(template, null, 2)
+);
+
 // ★★★ ここまで ★★★
   if (!template) {
     return (

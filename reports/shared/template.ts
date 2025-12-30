@@ -63,7 +63,44 @@ export interface TableColumn {
   fieldCode: string;
   width: number;
   align?: 'left' | 'center' | 'right';
+  overflow?: 'wrap' | 'shrink' | 'ellipsis' | 'clip';
+  minFontSize?: number;
+  maxLines?: number;
+  formatter?: {
+    type: 'number' | 'currency' | 'date' | 'text';
+    locale?: string;
+  };
 }
+
+export type SummaryRow =
+  | {
+      op: 'sum';
+      label?: string;
+      fieldCode: string;
+      columnId: string;
+      kind?: 'subtotal' | 'total' | 'both';
+      labelSubtotal?: string;
+      labelTotal?: string;
+    }
+  | {
+      op: 'static';
+      label?: string;
+      value?: string;
+      columnId: string;
+      valueColumnId?: string;
+      kind?: 'subtotal' | 'total' | 'both';
+    };
+
+export type TableSummary = {
+  mode: 'lastPageOnly' | 'everyPageSubtotal+lastTotal';
+  rows: SummaryRow[];
+  style?: {
+    subtotalFillGray?: number;
+    totalFillGray?: number;
+    totalTopBorderWidth?: number;
+    borderColorGray?: number;
+  };
+};
 
 // サブテーブル用テーブル
 export interface TableElement extends BaseElement {
@@ -72,6 +109,7 @@ export interface TableElement extends BaseElement {
   headerHeight?: number;
   dataSource: Extract<DataSource, { type: 'kintoneSubtable' }>;
   columns: TableColumn[];
+  summary?: TableSummary;
   showGrid?: boolean;
 }
 
@@ -94,11 +132,14 @@ export type TemplateElement =
 
 export type TemplateDataRecord = Record<string, unknown>;
 
+export const TEMPLATE_SCHEMA_VERSION = 1;
+
 export interface TemplateDefinition<
   TData extends TemplateDataRecord = TemplateDataRecord,
 > {
   id: string;
   name: string;
+  schemaVersion?: number;
   pageSize: PageSize;
   orientation: Orientation;
   elements: TemplateElement[];
