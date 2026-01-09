@@ -10,3 +10,13 @@ LATIN_FONT_URL = "https://github.com/PlugBits/PlugBits/raw/refs/heads/main/repor
 binding = "TEMPLATE_KV"
 id = "d624574989f54971a833e53bcd1ef268"
 preview_id = "d624574989f54971a833e53bcd1ef268"
+
+[[kv_namespaces]]
+binding = "USER_TEMPLATES_KV"
+id = "9728047520804d4486176feac5b08d9b"
+preview_id = "9728047520804d4486176feac5b08d9b"
+
+[[kv_namespaces]]
+binding = "SESSIONS_KV"
+id = "3b05d3d272654fd29b488466eead6069"
+preview_id = "3b05d3d272654fd29b488466eead6069"

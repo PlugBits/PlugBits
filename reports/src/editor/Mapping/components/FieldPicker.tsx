@@ -1,5 +1,6 @@
 // src/editor/Mapping/components/FieldPicker.tsx
 import React, { useMemo, useState } from 'react';
+import KintoneFieldSelect from '../../../components/KintoneFieldSelect';
 
 export type FieldRef =
   | { kind: 'recordField'; fieldCode: string }
@@ -8,7 +9,7 @@ export type FieldRef =
   | { kind: 'staticText'; text: string }
   | { kind: 'imageUrl'; url: string };
 
-type Option = { code: string; label: string };
+type Option = { code: string; label: string; type?: string };
 
 type Props = {
   mode: 'record' | 'subtableField';
@@ -22,6 +23,8 @@ type Props = {
   allowStaticText?: boolean;
   allowImageUrl?: boolean;
   placeholderStaticText?: string;
+  recordAllowTypes?: string[];
+  subtableAllowTypes?: string[];
 };
 
 const FieldPicker: React.FC<Props> = ({
@@ -34,6 +37,8 @@ const FieldPicker: React.FC<Props> = ({
   allowStaticText,
   allowImageUrl,
   placeholderStaticText = '固定テキスト',
+  recordAllowTypes,
+  subtableAllowTypes,
 }) => {
   const [q, setQ] = useState('');
 
@@ -43,6 +48,7 @@ const FieldPicker: React.FC<Props> = ({
     if (!qq) return base;
     return base.filter((o) => `${o.label} ${o.code}`.toLowerCase().includes(qq));
   }, [mode, recordOptions, subtableFieldOptions, q]);
+
 
   // source type selection (record/subtableField/static/image)
   const currentKind = value?.kind ?? '';
@@ -88,41 +94,29 @@ const FieldPicker: React.FC<Props> = ({
       </div>
 
       {selectedKind === 'recordField' && (
-        <select
-          className="mapping-control mapping-select"
+        <KintoneFieldSelect
           value={value?.kind === 'recordField' ? value.fieldCode : ''}
-          onChange={(e) => {
-            const code = e.target.value;
+          onChange={(code) => {
             if (!code) onChange(undefined);
             else onChange({ kind: 'recordField', fieldCode: code });
           }}
-        >
-          <option value="">（選択してください）</option>
-          {options.map((o) => (
-            <option key={o.code} value={o.code}>
-              {o.label} ({o.code})
-            </option>
-          ))}
-        </select>
+          fields={options}
+          allowTypes={recordAllowTypes}
+          placeholder="（選択してください）"
+        />
       )}
 
       {selectedKind === 'subtableField' && (
-        <select
-          className="mapping-control mapping-select"
+        <KintoneFieldSelect
           value={value?.kind === 'subtableField' ? value.fieldCode : ''}
-          onChange={(e) => {
-            const code = e.target.value;
+          onChange={(code) => {
             if (!code || !subtableCode) onChange(undefined);
             else onChange({ kind: 'subtableField', subtableCode, fieldCode: code });
           }}
-        >
-          <option value="">（選択してください）</option>
-          {options.map((o) => (
-            <option key={o.code} value={o.code}>
-              {o.label} ({o.code})
-            </option>
-          ))}
-        </select>
+          fields={options}
+          allowTypes={subtableAllowTypes}
+          placeholder="（選択してください）"
+        />
       )}
 
       {selectedKind === 'staticText' && (

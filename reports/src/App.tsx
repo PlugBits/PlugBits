@@ -1,11 +1,11 @@
-import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
+import { HashRouter, Navigate, Route, Routes } from 'react-router-dom';
 import TemplateEditorPage from './pages/TemplateEditorPage.tsx';
 import TemplateListPage from './pages/TemplateListPage.tsx';
 import TemplatePreviewPage from './pages/TemplatePreviewPage.tsx';
 
 const App = () => {
   return (
-    <BrowserRouter>
+    <HashRouter>
       <div className="app-shell">
         <header className="app-header">
           <div>
@@ -21,13 +21,16 @@ const App = () => {
         <main className="app-main">
           <Routes>
             <Route path="/" element={<TemplateListPage />} />
+            <Route path="/templates" element={<TemplateListPage />} />
+            <Route path="/picker" element={<TemplateListPage />} />
+            <Route path="/templates/:templateId/edit" element={<TemplateEditorPage />} />
             <Route path="/templates/:templateId" element={<TemplateEditorPage />} />
             <Route path="/templates/:templateId/preview" element={<TemplatePreviewPage />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </main>
       </div>
-    </BrowserRouter>
+    </HashRouter>
   );
 };
 

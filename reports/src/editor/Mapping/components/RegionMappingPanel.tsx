@@ -1,13 +1,15 @@
 // src/editor/Mapping/components/RegionMappingPanel.tsx
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import type { TemplateDefinition } from '@shared/template';
 import type { RegionDef } from '../adapters/StructureAdapter';
 import FieldPicker, { type FieldRef } from './FieldPicker';
 import ColumnEditor, { type Column } from './ColumnEditor';
-import { extractSchemaFromSampleData, setPath, deepClone } from '../mappingUtils';
+import KintoneFieldSelect from '../../../components/KintoneFieldSelect';
+import { extractSchemaFromSampleData, setPath, deepClone, type SchemaFromSample } from '../mappingUtils';
 
 type Props = {
   template: TemplateDefinition;
+  schemaOverride?: SchemaFromSample | null;
   region: RegionDef;
   mapping: any;
   onChangeMapping: (nextMapping: any) => void;
@@ -15,19 +17,67 @@ type Props = {
   onClearFocus: () => void;
 };
 
+const TEXT_ALLOW_TYPES = [
+  'SINGLE_LINE_TEXT',
+  'MULTI_LINE_TEXT',
+  'RICH_TEXT',
+  'LINK',
+  'DROP_DOWN',
+  'RADIO_BUTTON',
+  'CHECK_BOX',
+  'MULTI_SELECT',
+  'USER_SELECT',
+  'ORGANIZATION_SELECT',
+  'GROUP_SELECT',
+];
+
+const DATE_ALLOW_TYPES = ['DATE', 'DATETIME', 'TIME'];
+const NUMBER_ALLOW_TYPES = ['NUMBER', 'CALC'];
+const RECORD_ALLOW_TYPES = [
+  ...TEXT_ALLOW_TYPES,
+  ...NUMBER_ALLOW_TYPES,
+  ...DATE_ALLOW_TYPES,
+];
+
+const SUBTABLE_ALLOW_TYPES = [...RECORD_ALLOW_TYPES];
+
+const getRecordAllowTypesForSlot = (kind?: string) => {
+  if (kind === 'date') return DATE_ALLOW_TYPES;
+  if (kind === 'number' || kind === 'currency') return NUMBER_ALLOW_TYPES;
+  if (kind === 'image') return [];
+  return RECORD_ALLOW_TYPES;
+};
+
 const RegionMappingPanel: React.FC<Props> = ({
-  template, 
-  region, 
-  mapping, 
-  onChangeMapping, 
+  template,
+  schemaOverride,
+  region,
+  mapping,
+  onChangeMapping,
   onFocusFieldRef,
   onClearFocus,
 
   }) => {
-  const schema = useMemo(() => extractSchemaFromSampleData(template.sampleData), [template.sampleData]);
+  const schema = useMemo(
+    () => schemaOverride ?? extractSchemaFromSampleData(template.sampleData),
+    [schemaOverride, template.sampleData],
+  );
+  const isListV1 = (template.structureType ?? 'list_v1') === 'list_v1';
   const [openSlotId, setOpenSlotId] = useState<string | null>(null);
-  const [openTableRow, setOpenTableRow] = useState<'source' | 'columns' | null>(null);
+  const [openTableRow, setOpenTableRow] = useState<'source' | 'columns' | 'summary' | null>(null);
 
+  const tableMapping = region.kind === 'table' ? mapping?.[region.id] ?? {} : {};
+  const listSummaryModeRaw = tableMapping.summaryMode;
+
+  useEffect(() => {
+    if (!isListV1 || region.kind !== 'table') return;
+    if (listSummaryModeRaw && listSummaryModeRaw !== 'none') return;
+
+    const next = deepClone(mapping ?? {});
+    next[region.id] = next[region.id] ?? {};
+    next[region.id].summaryMode = 'lastPageOnly';
+    onChangeMapping(next);
+  }, [isListV1, listSummaryModeRaw, mapping, onChangeMapping, region.id, region.kind]);
 
   if (region.kind === 'slots') {
     return (
@@ -94,6 +144,7 @@ const RegionMappingPanel: React.FC<Props> = ({
                       <FieldPicker
                         mode="record"
                         recordOptions={schema.recordFields}
+                        recordAllowTypes={getRecordAllowTypesForSlot(slot.kind)}
                         value={slotValue}
                         onChange={(v) => {
                           const next = setPath(mapping, [region.id, slot.id], v);
@@ -126,6 +177,37 @@ const RegionMappingPanel: React.FC<Props> = ({
 
   const columnsRaw = (mapping?.[region.id]?.columns ?? []) as Column[];
   const columns = Array.isArray(columnsRaw) ? columnsRaw : [];
+  const summaryConfig = tableMapping.summary ?? {};
+  const summaryMode =
+    summaryConfig.mode ?? tableMapping.summaryMode ?? 'none';
+  const listSummaryMode =
+    listSummaryModeRaw === 'everyPageSubtotal+lastTotal'
+      ? 'everyPageSubtotal+lastTotal'
+      : 'lastPageOnly';
+  const summaryTarget =
+    summaryConfig.target?.kind === 'subtableField'
+      ? summaryConfig.target
+      : undefined;
+  const summaryTargetCode = summaryTarget?.fieldCode ?? '';
+  const summaryFooterEnabled = summaryConfig.footerEnabled ?? false;
+  const canConfigureSummaryTarget = summaryMode !== 'none' && !!currentSubtableCode;
+
+  const updateSummary = (patch: Record<string, unknown>) => {
+    const next = deepClone(mapping ?? {});
+    next[region.id] = next[region.id] ?? {};
+    const current = next[region.id].summary ?? {};
+    const merged = { ...current, ...patch };
+    next[region.id].summary = merged;
+    next[region.id].summaryMode = merged.mode ?? next[region.id].summaryMode;
+    onChangeMapping(next);
+  };
+
+  const updateListSummaryMode = (mode: 'lastPageOnly' | 'everyPageSubtotal+lastTotal') => {
+    const next = deepClone(mapping ?? {});
+    next[region.id] = next[region.id] ?? {};
+    next[region.id].summaryMode = mode;
+    onChangeMapping(next);
+  };
 
     return (
     <div className="mapping-card">
@@ -164,30 +246,22 @@ const RegionMappingPanel: React.FC<Props> = ({
 
               {isOpen && (
                 <div className="mapping-row-detail">
-                  <select
-                    className="mapping-control mapping-select"
+                  <KintoneFieldSelect
                     value={currentSubtableCode}
-                    onChange={(e) => {
-                      const nextCode = e.target.value;
-
+                    onChange={(nextCode) => {
                       const next = deepClone(mapping ?? {});
                       next[region.id] = next[region.id] ?? {};
                       next[region.id].source = nextCode ? { kind: 'subtable', fieldCode: nextCode } : undefined;
 
                       onChangeMapping(next);
 
-                      // ✅ ハイライト：選択された subtable を光らせる
                       if (nextCode) onFocusFieldRef({ kind: 'subtable', fieldCode: nextCode } as any);
                       else onClearFocus();
                     }}
-                  >
-                    <option value="">（選択してください）</option>
-                    {subtableOptions.map((st) => (
-                      <option key={st.code} value={st.code}>
-                        {st.label} ({st.code})
-                      </option>
-                    ))}
-                  </select>
+                    fields={subtableOptions}
+                    allowTypes={['SUBTABLE']}
+                    placeholder="（選択してください）"
+                  />
                 </div>
               )}
             </div>
@@ -219,6 +293,7 @@ const RegionMappingPanel: React.FC<Props> = ({
                   <ColumnEditor
                     subtableCode={currentSubtableCode}
                     subtableFieldOptions={subtableFieldOptions}
+                    allowSubtableTypes={SUBTABLE_ALLOW_TYPES}
                     minCols={region.minCols}
                     maxCols={region.maxCols}
                     baseColumns={region.baseColumns.map((b) => ({
@@ -239,6 +314,134 @@ const RegionMappingPanel: React.FC<Props> = ({
                     onFocusFieldRef={onFocusFieldRef}
                     onClearFocus={onClearFocus}
                   />
+                </div>
+              )}
+            </div>
+          );
+        })()}
+
+        {/* Row 3: 合計設定 */}
+        {(() => {
+          const isOpen = openTableRow === 'summary';
+          const summaryLabel =
+            listSummaryMode === 'everyPageSubtotal+lastTotal'
+              ? '各ページ小計 + 最終合計'
+              : '合計のみ（最終ページ）';
+
+          if (isListV1) {
+            return (
+              <div className={`mapping-row ${isOpen ? 'open' : ''}`}>
+                <button
+                  type="button"
+                  className="mapping-row-summary"
+                  onClick={() => setOpenTableRow(isOpen ? null : 'summary')}
+                >
+                  <div className="mapping-row-left">
+                    <span className="mapping-row-label">合計設定</span>
+                  </div>
+
+                  <div className="mapping-row-right filled">
+                    {summaryLabel}
+                  </div>
+                </button>
+
+                {isOpen && (
+                  <div className="mapping-row-detail" style={{ display: 'grid', gap: 10 }}>
+                    <label style={{ display: 'grid', gap: 6 }}>
+                      <span className="mapping-help">小計/合計の出し方</span>
+                      <select
+                        className="mapping-control mapping-select"
+                        value={listSummaryMode}
+                        onChange={(e) => {
+                          const mode = e.target.value as typeof listSummaryMode;
+                          updateListSummaryMode(mode);
+                        }}
+                      >
+                        <option value="lastPageOnly">合計のみ（最終ページ）</option>
+                        <option value="everyPageSubtotal+lastTotal">各ページ小計 + 最終合計</option>
+                      </select>
+                    </label>
+                  </div>
+                )}
+              </div>
+            );
+          }
+
+          const isEmpty = summaryMode === 'none';
+
+          return (
+            <div className={`mapping-row ${isOpen ? 'open' : ''}`}>
+              <button
+                type="button"
+                className="mapping-row-summary"
+                onClick={() => setOpenTableRow(isOpen ? null : 'summary')}
+              >
+                <div className="mapping-row-left">
+                  <span className="mapping-row-label">合計設定</span>
+                </div>
+
+                <div className={`mapping-row-right ${isEmpty ? 'empty' : 'filled'}`}>
+                  {isEmpty ? '未設定' : summaryMode}
+                </div>
+              </button>
+
+              {isOpen && (
+                <div className="mapping-row-detail" style={{ display: 'grid', gap: 10 }}>
+                  <label style={{ display: 'grid', gap: 6 }}>
+                    <span className="mapping-help">表示モード</span>
+                    <select
+                      className="mapping-control mapping-select"
+                      value={summaryMode}
+                      onChange={(e) => {
+                        const mode = e.target.value as typeof summaryMode;
+                        updateSummary({
+                          mode,
+                          target: mode === 'none' ? undefined : summaryConfig.target,
+                        });
+                      }}
+                    >
+                      <option value="none">表示しない</option>
+                      <option value="lastPageOnly">最終ページのみ</option>
+                      <option value="everyPageSubtotal+lastTotal">毎ページ小計 + 最終合計</option>
+                    </select>
+                  </label>
+
+                  <label style={{ display: 'grid', gap: 6 }}>
+                    <span className="mapping-help">合計対象列</span>
+                    <KintoneFieldSelect
+                      value={summaryTargetCode}
+                      onChange={(code) => {
+                        if (!code || !currentSubtableCode) {
+                          updateSummary({ target: undefined });
+                          return;
+                        }
+                        updateSummary({
+                          target: {
+                            kind: 'subtableField',
+                            subtableCode: currentSubtableCode,
+                            fieldCode: code,
+                          },
+                        });
+                      }}
+                      fields={subtableFieldOptions}
+                      allowTypes={SUBTABLE_ALLOW_TYPES}
+                      placeholder={
+                        currentSubtableCode
+                          ? '（選択してください）'
+                          : 'サブテーブルを先に選択してください'
+                      }
+                      disabled={!canConfigureSummaryTarget}
+                    />
+                  </label>
+
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <input
+                      type="checkbox"
+                      checked={summaryFooterEnabled}
+                      onChange={(e) => updateSummary({ footerEnabled: e.target.checked })}
+                    />
+                    フッターにも合計を表示する
+                  </label>
                 </div>
               )}
             </div>

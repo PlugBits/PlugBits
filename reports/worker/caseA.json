@@ -1,0 +1,20 @@
+{
+  "templateId": "list_v1",
+  "data": {
+    "CustomerName": "テスト株式会社",
+    "EstimateDate": "2025-01-15",
+    "Remarks": "CASE A 検証用（整数のみ）",
+    "Items": [
+      { "ItemName": "商品A", "Qty": "1", "UnitPrice": "10000", "Amount": "10000" },
+      { "ItemName": "商品B", "Qty": "2", "UnitPrice": "8000",  "Amount": "16000" },
+      { "ItemName": "商品C", "Qty": "3", "UnitPrice": "5000",  "Amount": "15000" },
+      { "ItemName": "商品D", "Qty": "4", "UnitPrice": "2000",  "Amount": "8000" },
+      { "ItemName": "商品E", "Qty": "5", "UnitPrice": "3000",  "Amount": "15000" },
+      { "ItemName": "商品F", "Qty": "6", "UnitPrice": "4000",  "Amount": "24000" },
+      { "ItemName": "商品G", "Qty": "7", "UnitPrice": "1000",  "Amount": "7000" },
+      { "ItemName": "商品H", "Qty": "8", "UnitPrice": "2000",  "Amount": "16000" },
+      { "ItemName": "商品I", "Qty": "9", "UnitPrice": "3000",  "Amount": "27000" },
+      { "ItemName": "商品J", "Qty": "10","UnitPrice": "4000",  "Amount": "40000" }
+    ]
+  }
+}

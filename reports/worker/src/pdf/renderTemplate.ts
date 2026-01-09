@@ -308,32 +308,125 @@ const formatCellValue = (
   return stringifyValue(rawVal, warn, context);
 };
 
-const parseAmountToBigInt = (value: unknown): bigint | null => {
-  if (typeof value !== 'string') return null;
-  const trimmed = value.trim();
-  if (!/^[0-9,]+$/.test(trimmed)) return null;
-  const digits = trimmed.replace(/,/g, '');
-  if (!digits) return null;
+const pow10BigInt = (exp: number): bigint => {
+  if (exp <= 0) return 1n;
+  return 10n ** BigInt(exp);
+};
+
+const formatIntStringWithCommas = (digits: string): string =>
+  digits.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+
+const formatBigIntWithCommas = (value: bigint): string =>
+  formatIntStringWithCommas(value.toString());
+
+const formatScaledBigInt = (value: bigint, scale: number): string => {
+  const negative = value < 0n;
+  const absValue = negative ? -value : value;
+  let digits = absValue.toString();
+
+  if (scale <= 0) {
+    return `${negative ? '-' : ''}${formatIntStringWithCommas(digits)}`;
+  }
+
+  if (digits.length <= scale) {
+    digits = digits.padStart(scale + 1, '0');
+  }
+
+  const intPart = digits.slice(0, -scale) || '0';
+  const fracPart = digits.slice(-scale);
+  return `${negative ? '-' : ''}${formatIntStringWithCommas(intPart)}.${fracPart}`;
+};
+
+const parseDecimalToScaledBigInt = (
+  value: unknown,
+  warn?: WarnFn,
+  context?: Record<string, unknown>,
+): { value: bigint; scale: number } | null => {
+  if (value === null || value === undefined) return null;
+  if (typeof value === 'bigint') return { value, scale: 0 };
+
+  let raw = '';
+  if (typeof value === 'number') {
+    if (!Number.isFinite(value)) {
+      warn?.('data', 'summary amount parse failed', { ...context, value });
+      return null;
+    }
+    raw = String(value);
+  } else if (typeof value === 'string') {
+    raw = value;
+  } else {
+    warn?.('data', 'summary amount parse failed', { ...context, value });
+    return null;
+  }
+
+  const original = raw.trim();
+  if (original === '') return null;
+
+  if (/[eE]/.test(original)) {
+    warn?.('data', 'summary amount parse failed', { ...context, value: original });
+    return null;
+  }
+
+  let negative = false;
+  let text = original;
+  if (text.startsWith('(') && text.endsWith(')')) {
+    negative = true;
+    text = text.slice(1, -1).trim();
+  }
+
+  text = text.replace(/[¥$]/g, '').replace(/,/g, '').replace(/\s+/g, '');
+  if (text.startsWith('+') || text.startsWith('-')) {
+    if (text.startsWith('-')) negative = true;
+    text = text.slice(1);
+  }
+
+  if (text === '') {
+    warn?.('data', 'summary amount parse failed', { ...context, value: original });
+    return null;
+  }
+
+  const match = text.match(/^(\d*)(?:\.(\d*))?$/);
+  if (!match) {
+    warn?.('data', 'summary amount parse failed', { ...context, value: original });
+    return null;
+  }
+
+  const intPart = match[1] ?? '';
+  const fracPart = match[2] ?? '';
+  const scale = fracPart.length;
+  const joined = `${intPart}${fracPart}`;
+  if (joined === '') {
+    warn?.('data', 'summary amount parse failed', { ...context, value: original });
+    return null;
+  }
+
   try {
-    return BigInt(digits);
+    let bigintValue = BigInt(joined);
+    if (negative) bigintValue = -bigintValue;
+    return { value: bigintValue, scale };
   } catch {
+    warn?.('data', 'summary amount parse failed', { ...context, value: original });
     return null;
   }
 };
 
-const formatBigIntWithCommas = (value: bigint): string => {
-  const s = value.toString();
-  const chars = s.split('');
-  let out = '';
-  let count = 0;
-  for (let i = chars.length - 1; i >= 0; i -= 1) {
-    out = chars[i] + out;
-    count += 1;
-    if (count % 3 === 0 && i !== 0) {
-      out = `,${out}`;
-    }
+const addScaledValue = (
+  currentValue: bigint,
+  currentScale: number,
+  addition: { value: bigint; scale: number },
+): { value: bigint; scale: number } => {
+  let value = currentValue;
+  let scale = currentScale;
+  let addValue = addition.value;
+
+  if (addition.scale > scale) {
+    value *= pow10BigInt(addition.scale - scale);
+    scale = addition.scale;
+  } else if (addition.scale < scale) {
+    addValue *= pow10BigInt(scale - addition.scale);
   }
-  return out;
+
+  return { value: value + addValue, scale };
 };
 
 const fetchWithTimeout = async (
@@ -555,7 +648,8 @@ export async function renderTemplateToPdf(
   pdfDoc.registerFontkit(fontkit);
 
   const [pageWidth, pageHeight] = getPageSize(template);
-  const imageMap = await preloadImages(pdfDoc, template, data, warn);
+  const renderData = data ? structuredClone(data) : undefined;
+  const imageMap = await preloadImages(pdfDoc, template, renderData, warn);
 
   // ★ let にして、テーブル描画の途中で別ページに差し替えられるようにする
   let page = pdfDoc.addPage([pageWidth, pageHeight]);
@@ -673,7 +767,7 @@ export async function renderTemplateToPdf(
     page,
     [...repeatingHeaderElements, ...firstPageOnlyHeaderElements],
     pageHeight,
-    data,
+    renderData,
     jpFont,
     latinFont,
     imageMap,
@@ -691,7 +785,7 @@ export async function renderTemplateToPdf(
       tableElementToRender,
       jpFont,
       latinFont,
-      data,
+      renderData,
       repeatingHeaderElements,
       footerReserveHeight,
       imageMap,
@@ -717,7 +811,7 @@ export async function renderTemplateToPdf(
       p,
       footerElementsForThisPage,
       pageHeight,
-      data,
+      renderData,
       jpFont,
       latinFont,
       imageMap,
@@ -1008,13 +1102,24 @@ function drawTable(
   const summaryStates = summaryRows.map((row, index) => ({
     row,
     index,
-    sumGrand: 0n,
-    sumPage: 0n,
+    sumGrandValue: 0n,
+    sumGrandScale: 0,
+    sumPageValue: 0n,
+    sumPageScale: 0,
   }));
   const summaryStyle = summarySpec?.style;
   const columnsById = new Map(element.columns.map((col) => [col.id, col]));
   const labelColumn =
     element.columns.find((col) => isItemNameColumn(col)) ?? element.columns[0];
+  const amountColumn = element.columns.find((col) => col.fieldCode === 'Amount');
+  const amountFieldCode = amountColumn?.fieldCode;
+  const sumStateForTotal =
+    summaryStates.find(
+      (state) => state.row.op === 'sum' && state.row.fieldCode === 'Amount',
+    ) ?? summaryStates.find((state) => state.row.op === 'sum');
+  const needsFallbackTotal = !sumStateForTotal && !!amountFieldCode;
+  let fallbackGrandTotalValue = 0n;
+  let fallbackGrandTotalScale = 0;
   const summaryRowHeight = Math.max(rowHeight, lineHeight + paddingY * 2);
   const tableWidth = element.columns.reduce((sum, col) => sum + col.width, 0);
   const summaryMode = summarySpec?.mode;
@@ -1113,15 +1218,18 @@ function drawTable(
     }
 
     const rowYBottom = cursorY - summaryRowHeight;
-    const sumValue = kind === 'subtotal' ? state.sumPage : state.sumGrand;
-    const sumText = isSumRow ? formatBigIntWithCommas(sumValue) : row.value ?? '';
+    const sumValue =
+      kind === 'subtotal'
+        ? { value: state.sumPageValue, scale: state.sumPageScale }
+        : { value: state.sumGrandValue, scale: state.sumGrandScale };
+    const sumText = isSumRow ? formatScaledBigInt(sumValue.value, sumValue.scale) : row.value ?? '';
     const labelText = resolveSummaryLabel(row, kind);
     let currentX = originX;
 
     if (isSumRow) {
       warn('debug', kind === 'subtotal' ? 'subtotal drawn' : 'total drawn', {
         tableId: element.id,
-        amount: sumValue.toString(),
+        amount: formatScaledBigInt(sumValue.value, sumValue.scale),
       });
     }
     if (!isSumRow && row.value === undefined) {
@@ -1350,7 +1458,8 @@ function drawTable(
       });
     }
     for (const state of summaryStates) {
-      state.sumPage = 0n;
+      state.sumPageValue = 0n;
+      state.sumPageScale = 0;
     }
   };
 
@@ -1603,23 +1712,72 @@ function drawTable(
       for (const state of summaryStates) {
         if (state.row.op !== 'sum') continue;
         const rawVal = (row as any)[state.row.fieldCode];
-        const parsed = parseAmountToBigInt(rawVal);
-        if (parsed === null) {
-          warn('data', 'summary amount parse failed', {
-            tableId: element.id,
-            fieldCode: state.row.fieldCode,
-            rowIndex: i,
-            value: rawVal,
-          });
+        const parsed = parseDecimalToScaledBigInt(rawVal, warn, {
+          tableId: element.id,
+          fieldCode: state.row.fieldCode,
+          rowIndex: i,
+        });
+        if (!parsed) {
           continue;
         }
-        state.sumGrand += parsed;
-        state.sumPage += parsed;
+        const grandNext = addScaledValue(
+          state.sumGrandValue,
+          state.sumGrandScale,
+          parsed,
+        );
+        state.sumGrandValue = grandNext.value;
+        state.sumGrandScale = grandNext.scale;
+        const pageNext = addScaledValue(
+          state.sumPageValue,
+          state.sumPageScale,
+          parsed,
+        );
+        state.sumPageValue = pageNext.value;
+        state.sumPageScale = pageNext.scale;
+      }
+    }
+    if (needsFallbackTotal && amountFieldCode) {
+      const rawVal = (row as any)[amountFieldCode];
+      const parsed = parseDecimalToScaledBigInt(rawVal, warn, {
+        tableId: element.id,
+        fieldCode: amountFieldCode,
+        rowIndex: i,
+      });
+      if (parsed) {
+        const next = addScaledValue(
+          fallbackGrandTotalValue,
+          fallbackGrandTotalScale,
+          parsed,
+        );
+        fallbackGrandTotalValue = next.value;
+        fallbackGrandTotalScale = next.scale;
       }
     }
 
     cursorY = rowYBottom;
     pageRowCount += 1;
+  }
+
+  if (data && rows.length > 0) {
+    const computedTotal =
+      sumStateForTotal
+        ? { value: sumStateForTotal.sumGrandValue, scale: sumStateForTotal.sumGrandScale }
+        : needsFallbackTotal
+        ? { value: fallbackGrandTotalValue, scale: fallbackGrandTotalScale }
+        : null;
+    if (computedTotal !== null) {
+      const formattedTotal = formatScaledBigInt(computedTotal.value, computedTotal.scale);
+      const record = data as Record<string, unknown>;
+      if (!('TotalAmount' in record)) {
+        record.TotalAmount = formattedTotal;
+      }
+      const computed =
+        record.__computed && typeof record.__computed === 'object'
+          ? { ...(record.__computed as Record<string, unknown>) }
+          : {};
+      computed.grandTotal = formattedTotal;
+      record.__computed = computed;
+    }
   }
 
   if (summaryStates.length > 0 && labelColumn) {
@@ -1659,7 +1817,8 @@ function drawTable(
           drawSummaryRow(state, 'total');
         }
         for (const state of summaryStates) {
-          state.sumPage = 0n;
+          state.sumPageValue = 0n;
+          state.sumPageScale = 0;
         }
       }
     } else if (summaryMode === 'lastPageOnly') {

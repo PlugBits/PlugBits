@@ -3,7 +3,7 @@
 export type PageSize = 'A4';
 export type Orientation = 'portrait' | 'landscape';
 //構造テンプレ種別（将来増やす） ---
-export type StructureType = 'line_items_v1';
+export type StructureType = 'list_v1';
 //フッターの繰り返しモード ---
 export type FooterRepeatMode = 'all' | 'last';
 //mapping は MVP では unknown（Adapter側で解釈/検証） ---
@@ -139,10 +139,29 @@ export interface TemplateDefinition<
 > {
   id: string;
   name: string;
+  // baseTemplateId identifies the catalog/base template (e.g. "list_v1").
+  // TemplateDefinition.id is the user-specific template id (e.g. "tpl_*").
+  baseTemplateId?: string;
   schemaVersion?: number;
   pageSize: PageSize;
   orientation: Orientation;
   elements: TemplateElement[];
+  slotSchema?: {
+    header: Array<{
+      slotId: string;
+      label: string;
+      kind: 'text' | 'date' | 'number' | 'image';
+      required?: boolean;
+      defaultAlign?: 'left' | 'center' | 'right';
+    }>;
+    footer: Array<{
+      slotId: string;
+      label: string;
+      kind: 'text' | 'date' | 'number' | 'image';
+      required?: boolean;
+      defaultAlign?: 'left' | 'center' | 'right';
+    }>;
+  };
   structureType?: StructureType;
   mapping?: TemplateMapping;
   footerRepeatMode?: FooterRepeatMode;
@@ -150,6 +169,21 @@ export interface TemplateDefinition<
   footerReserveHeight?: number;
   advancedLayoutEditing?: boolean;
 }
+
+export type TemplateStatus = 'active' | 'archived' | 'deleted';
+
+export type TemplateMeta = {
+  templateId: string;
+  baseTemplateId: string;
+  name: string;
+  createdAt: string;
+  updatedAt: string;
+  status: TemplateStatus;
+  archivedAt?: string;
+  deletedAt?: string;
+  pinned?: boolean;
+  lastOpenedAt?: string;
+};
 
 // ---- サンプル ----
 
@@ -168,7 +202,7 @@ export const SAMPLE_TEMPLATE: TemplateDefinition = {
   name: '標準見積書',
   pageSize: 'A4',
   orientation: 'portrait',
-  structureType: 'line_items_v1',
+  structureType: 'list_v1',
   footerRepeatMode: 'last',
   footerReserveHeight: 150,
   elements: [

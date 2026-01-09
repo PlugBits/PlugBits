@@ -3,6 +3,8 @@ import React, { useEffect, useMemo } from 'react';
 import type { TemplateDefinition } from '@shared/template';
 import { getAdapter } from './adapters/getAdapter';
 import RegionMappingPanel from './components/RegionMappingPanel';
+import { buildSchemaFromFlatFields, type SchemaFromSample } from './mappingUtils';
+import { useKintoneFields } from '../../hooks/useKintoneFields';
 
 
 type Props = {
@@ -13,8 +15,26 @@ type Props = {
 };
 
 const MappingPage: React.FC<Props> = ({ template, updateTemplate, onFocusFieldRef, onClearFocus }) => {
-  const structureType = template.structureType ?? 'line_items_v1';
+  const structureType = template.structureType ?? 'list_v1';
   const adapter = useMemo(() => getAdapter(structureType), [structureType]);
+  const { fields: kintoneFields, loading, error } = useKintoneFields();
+
+  useEffect(() => {
+    if (!import.meta.env.DEV) return;
+    if (!loading && !error) return;
+    console.debug('[mapping] kintone fields', {
+      loading,
+      error,
+      count: kintoneFields?.length ?? 0,
+    });
+  }, [loading, error, kintoneFields]);
+
+  const kintoneSchema: SchemaFromSample | null = useMemo(() => {
+    if (!kintoneFields || kintoneFields.length === 0) return null;
+    const schema = buildSchemaFromFlatFields(kintoneFields);
+    const hasFields = schema.recordFields.length > 0 || schema.subtables.length > 0;
+    return hasFields ? schema : null;
+  }, [kintoneFields]);
 
   // mapping が無ければ default 注入（後方互換）
   useEffect(() => {
@@ -77,6 +97,7 @@ const MappingPage: React.FC<Props> = ({ template, updateTemplate, onFocusFieldRe
         <RegionMappingPanel
           key={region.id}
           template={template}
+          schemaOverride={kintoneSchema}
           region={region}
           mapping={mapping}
           onChangeMapping={onChangeMapping}

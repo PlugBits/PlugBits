@@ -1,7 +1,5 @@
 import type { TemplateDataRecord, TemplateDefinition } from '@shared/template';
-const WORKER_BASE_URL =
-  (import.meta.env.VITE_WORKER_BASE_URL as string) ||
-  "https://plugbits-reports.b-otkyaaa.workers.dev";
+import { getTenantContext } from '../store/tenantStore';
 
 const API_KEY = import.meta.env.VITE_WORKER_API_KEY as string | undefined;
 
@@ -9,6 +7,10 @@ function buildHeaders() {
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
   };
+  const tenantContext = getTenantContext();
+  if (tenantContext?.editorToken) {
+    headers.Authorization = `Bearer ${tenantContext.editorToken}`;
+  }
   if (API_KEY) {
     headers["x-api-key"] = API_KEY;
   }
@@ -19,7 +21,12 @@ export async function requestPreviewPdf(
   template: TemplateDefinition,
   data?: TemplateDataRecord,
 ): Promise<Blob> {
-  const res = await fetch(`${WORKER_BASE_URL}/render-preview`, {
+  const tenantContext = getTenantContext();
+  if (!tenantContext?.workerBaseUrl) {
+    throw new Error('Missing tenant context. Launch from plugin.');
+  }
+
+  const res = await fetch(`${tenantContext.workerBaseUrl.replace(/\/$/, '')}/render-preview`, {
     method: "POST",
     headers: buildHeaders(),
     body: JSON.stringify({

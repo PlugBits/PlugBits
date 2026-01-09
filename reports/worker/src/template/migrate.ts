@@ -23,7 +23,10 @@ const isItemNameColumn = (col: TableColumn) =>
 
 export const migrateTemplate = (template: TemplateDefinition): TemplateDefinition => {
   const schemaVersion = template.schemaVersion ?? 0;
-  if (schemaVersion >= TEMPLATE_SCHEMA_VERSION) {
+  const nextStructureType =
+    template.structureType === 'line_items_v1' ? 'list_v1' : template.structureType;
+  const needsStructureUpdate = nextStructureType !== template.structureType;
+  if (schemaVersion >= TEMPLATE_SCHEMA_VERSION && !needsStructureUpdate) {
     return template;
   }
 
@@ -46,10 +49,19 @@ export const migrateTemplate = (template: TemplateDefinition): TemplateDefinitio
     };
   });
 
+  const mapping =
+    template.mapping &&
+    typeof template.mapping === 'object' &&
+    (template.mapping as any).structureType === 'line_items_v1'
+      ? { ...(template.mapping as Record<string, unknown>), structureType: 'list_v1' }
+      : template.mapping;
+
   return {
     ...template,
     schemaVersion: TEMPLATE_SCHEMA_VERSION,
+    structureType: nextStructureType,
     elements: migratedElements,
+    mapping,
   };
 };
 

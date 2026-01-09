@@ -1,11 +1,8 @@
 import { useMemo, useEffect, useState } from 'react';
 import type { ChangeEvent } from 'react';
 import type {
-  DataSource,
   ImageElement,
   LabelElement,
-  TableElement,
-  TableColumn,
   TemplateElement,
   TextElement,
 } from '@shared/template';
@@ -74,7 +71,7 @@ const ElementInspector = ({ templateId, element }: ElementInspectorProps) => {
 
   const slotLabelMap = useMemo(() => {
     if (!template) return {};
-    const structureType = template.structureType ?? 'line_items_v1';
+    const structureType = template.structureType ?? 'list_v1';
     const adapter = getAdapter(structureType);
     const map: Record<string, string> = {};
     for (const region of adapter.regions) {
@@ -84,6 +81,33 @@ const ElementInspector = ({ templateId, element }: ElementInspectorProps) => {
       }
     }
     return map;
+  }, [template?.structureType, template?.id]);
+
+  const slotDefs = useMemo(() => {
+    if (!template) return [];
+    const structureType = template.structureType ?? 'list_v1';
+    const adapter = getAdapter(structureType);
+    const defs: Array<{
+      slotId: string;
+      label: string;
+      kind: string;
+      region: 'header' | 'footer';
+      required?: boolean;
+    }> = [];
+    for (const region of adapter.regions) {
+      if (region.kind !== 'slots') continue;
+      const regionId = region.id as 'header' | 'footer';
+      for (const slot of region.slots) {
+        defs.push({
+          slotId: slot.id,
+          label: slot.label,
+          kind: slot.kind,
+          region: regionId,
+          required: slot.required,
+        });
+      }
+    }
+    return defs;
   }, [template?.structureType, template?.id]);
 
   const typeLabel = useMemo(() => {
@@ -107,7 +131,9 @@ const ElementInspector = ({ templateId, element }: ElementInspectorProps) => {
   }
 
   const isTable = element.type === 'table';
-  const isSlotElement = !!(element as any).slotId;
+  const currentSlotId = (element as any).slotId as string | undefined;
+  const currentSlotDef = slotDefs.find((slot) => slot.slotId === currentSlotId);
+  const isSlotElement = !!currentSlotId;
 
   // レイアウト編集可否（tableは常に固定）
   const canEditLayoutForElement = isAdvanced && !isTable;
@@ -137,149 +163,23 @@ const ElementInspector = ({ templateId, element }: ElementInspectorProps) => {
     updateElement(templateId, element.id, { fontSize: next } as Partial<TemplateElement>);
   };
 
-  const ensureDataSource = (ds: any): DataSource => {
-    if (ds) return ds as DataSource;
-    return { type: 'static', value: '' };
-  };
-
   const renderTextControls = (textElement: TextElement) => (
     <>
       <label>
         フォントサイズ
         <input type="number" value={textElement.fontSize ?? 12} onChange={handleFontSizeChange} />
-        
       </label>
-      {renderDataSourceControls(ensureDataSource(textElement.dataSource), (next) =>
-        updateElement(templateId, element.id, { dataSource: next } as Partial<TemplateElement>),
-      )}
+      <p style={{ margin: '0.25rem 0 0', color: '#667085', fontSize: '0.8rem' }}>
+        データソースの設定は「フィールド割当」タブで行ってください。
+      </p>
     </>
   );
 
-  const renderTableControls = (tableElement: TableElement) => (
-    <>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
-        <label>
-          行の高さ
-          <input
-            type="number"
-            value={tableElement.rowHeight ?? 18}
-            onChange={(event) => {
-              const value = Number(event.target.value);
-              updateElement(templateId, element.id, {
-                rowHeight: Number.isNaN(value) ? 18 : value,
-              });
-            }}
-          />
-        </label>
-        <label>
-          ヘッダー高さ
-          <input
-            type="number"
-            value={tableElement.headerHeight ?? 24}
-            onChange={(event) => {
-              const value = Number(event.target.value);
-              updateElement(templateId, element.id, {
-                headerHeight: Number.isNaN(value) ? 24 : value,
-              });
-            }}
-          />
-        </label>
-      </div>
-      <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-        <input
-          type="checkbox"
-          checked={tableElement.showGrid ?? true}
-          onChange={(event) => updateElement(templateId, element.id, { showGrid: event.target.checked })}
-        />
-        グリッド線を表示
-      </label>
-
-      <label>
-        サブテーブルフィールド
-        <input
-          type="text"
-          value={tableElement.dataSource.fieldCode}
-          onChange={(event) =>
-            updateElement(templateId, element.id, {
-              dataSource: { ...tableElement.dataSource, fieldCode: event.target.value },
-            } as Partial<TemplateElement>)
-          }
-        />
-      </label>
-
-      <div style={{ marginTop: '0.5rem' }}>
-        <p style={{ margin: '0 0 0.5rem', fontWeight: 600 }}>列設定</p>
-        {tableElement.columns.map((column, index) => (
-          <div key={column.id} style={{ border: '1px solid #e4e7ec', padding: '0.5rem', borderRadius: '0.6rem', marginBottom: '0.5rem' }}>
-            <label>
-              列名
-              <input
-                type="text"
-                value={column.title}
-                onChange={(event) => updateTableColumn(tableElement, index, { title: event.target.value }, templateId, element)}
-              />
-            </label>
-            <label>
-              フィールドコード
-              <input
-                type="text"
-                value={column.fieldCode}
-                onChange={(event) => updateTableColumn(tableElement, index, { fieldCode: event.target.value }, templateId, element)}
-              />
-            </label>
-            <label>
-              幅
-              <input
-                type="number"
-                value={column.width}
-                onChange={(event) => updateTableColumn(tableElement, index, { width: Number(event.target.value) || column.width }, templateId, element)}
-              />
-            </label>
-            <label>
-              文字揃え
-              <select
-                value={column.align ?? 'left'}
-                onChange={(event) => updateTableColumn(tableElement, index, { align: event.target.value as TableColumn['align'] }, templateId, element)}
-              >
-                <option value="left">左</option>
-                <option value="center">中央</option>
-                <option value="right">右</option>
-              </select>
-            </label>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '0.5rem' }}>
-              <button
-                type="button"
-                className="ghost"
-                onClick={() => addTableColumn(tableElement, index, templateId, element)}
-              >
-                列を追加
-              </button>
-              {tableElement.columns.length > 1 && (
-                <button
-                  type="button"
-                  className="ghost"
-                  style={{ color: '#b42318', borderColor: '#fda29b' }}
-                  onClick={() => removeTableColumn(tableElement, index, templateId, element)}
-                >
-                  削除
-                </button>
-              )}
-            </div>
-          </div>
-        ))}
-      </div>
-    </>
+  const renderImageControls = (_imageElement: ImageElement) => (
+    <p style={{ margin: '0.25rem 0 0', color: '#667085', fontSize: '0.8rem' }}>
+      データソースの設定は「フィールド割当」タブで行ってください。
+    </p>
   );
-
-  const renderImageControls = (imageElement: ImageElement) =>
-    renderDataSourceControls(
-      imageElement.dataSource,
-      (next) =>
-        updateElement(templateId, element.id, {
-          dataSource: next,
-        } as Partial<TemplateElement>),
-      ['static'],
-    );
 
   return (
     <div className="inspector-fields">
@@ -301,6 +201,81 @@ const ElementInspector = ({ templateId, element }: ElementInspectorProps) => {
         </span>
       </div>
       <p style={{ margin: '2px 0 0', color: '#475467', fontSize: '0.8rem' }}>{coordinatesLabel}</p>
+
+      {element.type !== 'table' && slotDefs.length > 0 && (
+        <label>
+          スロット
+          <select
+            value={currentSlotId ?? ''}
+            onChange={(event) => {
+              const nextSlotId = event.target.value;
+              if (!nextSlotId) {
+                if (currentSlotDef?.required) return;
+                updateElement(templateId, element.id, { slotId: undefined } as Partial<TemplateElement>);
+                return;
+              }
+
+              const slotDef = slotDefs.find((slot) => slot.slotId === nextSlotId);
+              const nextRegion = slotDef?.region ?? (element.region as any) ?? 'header';
+              const nextY = clampYToRegion(element.y, nextRegion);
+              const isImageSlot = slotDef?.kind === 'image';
+
+              if (isImageSlot) {
+                const nextDataSource =
+                  element.type === 'image'
+                    ? element.dataSource
+                    : { type: 'static', value: '' };
+                updateElement(templateId, element.id, {
+                  slotId: nextSlotId,
+                  region: nextRegion,
+                  y: nextY,
+                  type: 'image',
+                  width: element.width ?? 120,
+                  height: element.height ?? 60,
+                  dataSource: nextDataSource,
+                } as Partial<TemplateElement>);
+                return;
+              }
+
+              const nextDataSource =
+                element.type === 'text'
+                  ? element.dataSource
+                  : { type: 'static', value: element.type === 'label' ? element.text ?? '' : '' };
+
+              updateElement(templateId, element.id, {
+                slotId: nextSlotId,
+                region: nextRegion,
+                y: nextY,
+                type: 'text',
+                fontSize: (element as any).fontSize ?? 12,
+                dataSource: nextDataSource,
+              } as Partial<TemplateElement>);
+            }}
+          >
+            <option value="" disabled={!!currentSlotDef?.required}>
+              （スロットなし）
+            </option>
+            <optgroup label="ヘッダー">
+              {slotDefs
+                .filter((slot) => slot.region === 'header')
+                .map((slot) => (
+                  <option key={slot.slotId} value={slot.slotId}>
+                    {slot.label}
+                  </option>
+                ))}
+            </optgroup>
+            <optgroup label="フッター">
+              {slotDefs
+                .filter((slot) => slot.region === 'footer')
+                .map((slot) => (
+                  <option key={slot.slotId} value={slot.slotId}>
+                    {slot.label}
+                  </option>
+                ))}
+            </optgroup>
+          </select>
+        </label>
+      )}
       <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 4 }}>
         <button
           type="button"
@@ -433,44 +408,6 @@ const ElementInspector = ({ templateId, element }: ElementInspectorProps) => {
   );
 };
 
-const updateTableColumn = (
-  tableElement: TableElement,
-  index: number,
-  updates: Partial<TableColumn>,
-  templateId: string,
-  element: TemplateElement,
-) => {
-  const nextColumns = tableElement.columns.map((column, idx) => (idx === index ? { ...column, ...updates } : column));
-  useTemplateStore.getState().updateElement(templateId, element.id, { columns: nextColumns } as Partial<TemplateElement>);
-};
-
-const addTableColumn = (
-  tableElement: TableElement,
-  index: number,
-  templateId: string,
-  element: TemplateElement,
-) => {
-  const newColumn: TableColumn = {
-    id: `col_${Date.now()}`,
-    title: '新しい列',
-    fieldCode: 'FieldCode',
-    width: 120,
-  };
-  const nextColumns = [...tableElement.columns];
-  nextColumns.splice(index + 1, 0, newColumn);
-  useTemplateStore.getState().updateElement(templateId, element.id, { columns: nextColumns } as Partial<TemplateElement>);
-};
-
-const removeTableColumn = (
-  tableElement: TableElement,
-  index: number,
-  templateId: string,
-  element: TemplateElement,
-) => {
-  const nextColumns = tableElement.columns.filter((_, idx) => idx !== index);
-  useTemplateStore.getState().updateElement(templateId, element.id, { columns: nextColumns } as Partial<TemplateElement>);
-};
-
 const renderLabelControls = (
   labelDraft: string,
   setLabelDraft: (value: string) => void,
@@ -506,61 +443,5 @@ const renderLabelControls = (
     </label>
   </>
 );
-
-const renderDataSourceControls = (
-  dataSource: DataSource,
-  onChange: (next: DataSource) => void,
-  allowedTypes: DataSource['type'][] = ['static', 'kintone', 'kintoneSubtable'],
-) => {
-  const typeOptions = allowedTypes;
-  const handleTypeChange = (nextType: DataSource['type']) => {
-    if (nextType === dataSource.type) return;
-    if (nextType === 'static') {
-      onChange({ type: 'static', value: '' });
-      return;
-    }
-    onChange({ type: nextType, fieldCode: '' });
-  };
-
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-      <label>
-        データソース種別
-        <select
-          value={dataSource.type}
-          onChange={(event) => handleTypeChange(event.target.value as DataSource['type'])}
-          disabled={typeOptions.length === 1}
-        >
-          {typeOptions.map((type) => (
-            <option key={type} value={type}>
-              {type === 'static' ? '固定文字' : type === 'kintone' ? 'kintone フィールド' : 'kintone サブテーブル'}
-            </option>
-          ))}
-        </select>
-      </label>
-      {dataSource.type === 'static' ? (
-        <label>
-          固定テキスト
-          <input
-            type="text"
-            value={dataSource.value}
-            onChange={(event) => onChange({ type: 'static', value: event.target.value })}
-          />
-        </label>
-      ) : (
-        <label>
-          フィールドコード
-          <input
-            type="text"
-            value={dataSource.fieldCode}
-            onChange={(event) =>
-              onChange({ type: dataSource.type, fieldCode: event.target.value })
-            }
-          />
-        </label>
-      )}
-    </div>
-  );
-};
 
 export default ElementInspector;

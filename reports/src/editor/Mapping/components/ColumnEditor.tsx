@@ -24,6 +24,7 @@ type BaseColumnDef = {
 type Props = {
   subtableCode: string;
   subtableFieldOptions: Option[];
+  allowSubtableTypes?: string[];
   minCols: number;
   maxCols: number;
   baseColumns: BaseColumnDef[];
@@ -36,6 +37,7 @@ type Props = {
 const ColumnEditor: React.FC<Props> = ({
   subtableCode,
   subtableFieldOptions,
+  allowSubtableTypes,
   minCols,
   maxCols,
   baseColumns,
@@ -158,6 +160,7 @@ const ColumnEditor: React.FC<Props> = ({
                 mode="subtableField"
                 subtableCode={subtableCode}
                 subtableFieldOptions={subtableFieldOptions}
+                subtableAllowTypes={allowSubtableTypes}
                 value={col.value}
                 onChange={(v: FieldRef | undefined) => {
                   updateColumn(idx, { value: v });

@@ -9,6 +9,7 @@
     return {
       apiBaseUrl: raw.apiBaseUrl ?? "",
       apiKey: raw.apiKey ?? "",
+      kintoneApiToken: raw.kintoneApiToken ?? "",
       templateId: raw.templateId ?? "",
       attachmentFieldCode: raw.attachmentFieldCode ?? ""
     };
@@ -82,6 +83,8 @@
   };
 
   var callRenderApi = async (config, recordId, templateData) => {
+    const appId = window.kintone?.app?.getId?.();
+    const appIdValue = appId ? String(appId) : "";
     const response = await fetch(`${config.apiBaseUrl.replace(/\/$/, "")}/render`, {
       method: "POST",
       headers: {
@@ -93,14 +96,23 @@
         data: templateData,
         kintone: {
           baseUrl: location.origin,
-          appId: window.kintone?.app?.getId?.(),
+          appId: appIdValue,
           recordId,
-          apiToken: config.apiKey
+          apiToken: config.kintoneApiToken,
+          kintoneApiToken: config.kintoneApiToken
         }
       })
     });
     if (!response.ok) {
       const text = await response.text();
+      if (text.includes("Unknown user templateId")) {
+        console.info("[PlugBits] render context", {
+          workerBaseUrl: config.apiBaseUrl,
+          kintoneBaseUrl: location.origin,
+          appId: appIdValue,
+          templateId: config.templateId
+        });
+      }
       throw new Error(`PDF生成に失敗しました: ${text}`);
     }
     return response.blob();

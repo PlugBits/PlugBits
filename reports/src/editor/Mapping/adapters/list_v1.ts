@@ -1,4 +1,4 @@
-// src/editor/Mapping/adapters/line_items_v1.ts
+// src/editor/Mapping/adapters/list_v1.ts
 import type { StructureAdapter, ValidationResult } from "./StructureAdapter";
 import type { TemplateDefinition, TemplateElement, TableElement, TableColumn as PdfTableColumn } from "@shared/template";
 import { clampYToRegion } from "../../../utils/regionBounds";
@@ -7,7 +7,7 @@ const ok = (): ValidationResult => ({ ok: true, errors: [] });
 const ng = (errors: ValidationResult["errors"]): ValidationResult => ({ ok: false, errors });
 
 /**
- * line_items_v1 用の mapping の形（MVP）
+ * list_v1 用の mapping の形（MVP）
  * - header: slotId -> FieldRef
  * - table: source(subtable) + columns[]
  * - footer: slotId -> FieldRef
@@ -31,17 +31,33 @@ type TableColumn = {
   format?: "text" | "number" | "currency" | "date";
 };
 
-export type LineItemsV1Mapping = {
+type SummaryTarget = {
+  kind: "subtableField";
+  subtableCode: string;
+  fieldCode: string;
+};
+
+type TableSummaryConfig = {
+  mode?: "none" | "lastPageOnly" | "everyPageSubtotal+lastTotal";
+  target?: SummaryTarget;
+  footerEnabled?: boolean;
+};
+
+export type ListV1Mapping = {
   header: Record<string, FieldRef | undefined>;
   table: {
     source?: { kind: "subtable"; fieldCode: string };
     columns: TableColumn[];
+    summaryMode?: "none" | "lastPageOnly" | "everyPageSubtotal+lastTotal";
+    summary?: TableSummaryConfig;
   };
   footer: Record<string, FieldRef | undefined>;
 };
 
-export const lineItemsV1Adapter: StructureAdapter = {
-  structureType: "line_items_v1",
+let warnedMissingAmountColumn = false;
+
+export const listV1Adapter: StructureAdapter = {
+  structureType: "list_v1",
 
   regions: [
     {
@@ -77,6 +93,7 @@ export const lineItemsV1Adapter: StructureAdapter = {
       label: "Footer",
       slots: [
         { id: "remarks", label: "備考", kind: "multiline", allowedSources: ["recordField", "staticText"] },
+        { id: "total_label", label: "合計ラベル", kind: "text", allowedSources: ["recordField", "staticText"] },
         { id: "subtotal", label: "小計", kind: "currency", allowedSources: ["recordField"] },
         { id: "tax", label: "税", kind: "currency", allowedSources: ["recordField"] },
         { id: "total", label: "合計", kind: "currency", allowedSources: ["recordField"] },
@@ -85,7 +102,7 @@ export const lineItemsV1Adapter: StructureAdapter = {
     
   ],
 
-  createDefaultMapping(): LineItemsV1Mapping {
+  createDefaultMapping(): ListV1Mapping {
     return {
       header: {
         doc_title: { kind: "staticText", text: "御見積書" },
@@ -93,13 +110,14 @@ export const lineItemsV1Adapter: StructureAdapter = {
       },
       table: {
         columns: [],
+        summaryMode: "lastPageOnly",
       },
       footer: {},
     };
   },
 
   validate(mapping: unknown): ValidationResult {
-    const m = mapping as Partial<LineItemsV1Mapping> | undefined;
+    const m = mapping as Partial<ListV1Mapping> | undefined;
     if (!m) return ng([{ path: "mapping", message: "mapping がありません" }]);
 
     const errors: ValidationResult["errors"] = [];
@@ -129,10 +147,10 @@ export const lineItemsV1Adapter: StructureAdapter = {
   },
 
   applyMappingToTemplate(template: TemplateDefinition, mapping: unknown): TemplateDefinition {
-    const m = mapping as Partial<LineItemsV1Mapping> | undefined;
+    const m = mapping as Partial<ListV1Mapping> | undefined;
     const next: TemplateDefinition = structuredClone(template);
 
-    next.structureType = "line_items_v1";
+    next.structureType = "list_v1";
     next.mapping = mapping;
 
     const applyFieldRefToElement = (element: TemplateElement, ref: FieldRef | undefined): TemplateElement => {
@@ -211,6 +229,14 @@ export const lineItemsV1Adapter: StructureAdapter = {
       if (e.type !== "label") return true;
       const text = (e as any).text ?? "";
       return text !== "御中";
+    });
+    // footerの固定「合計」ラベルを除去（slot化対応）
+    slotSyncedElements = slotSyncedElements.filter((e) => {
+      if (e.region !== "footer") return true;
+      if (e.type !== "label") return true;
+      if ((e as any).slotId) return true;
+      const text = (e as any).text ?? "";
+      return text !== "合計";
     });
     // date_label スロット化のため、headerの固定「見積日」ラベルを除去（重複防止）
     slotSyncedElements = slotSyncedElements.filter((e) => {
@@ -365,6 +391,13 @@ export const lineItemsV1Adapter: StructureAdapter = {
       footerRef["remarks"],
     );
     ensureSlotElement(
+      "total_label",
+      "footer",
+      "text",
+      { x: 300, y: yFooter(70), fontSize: 10, width: 80, height: 20 },
+      footerRef["total_label"],
+    );
+    ensureSlotElement(
       "total",
       "footer",
       "text",
@@ -414,6 +447,63 @@ export const lineItemsV1Adapter: StructureAdapter = {
       };
     });
 
+    const summaryConfig = m?.table?.summary;
+    const rawSummaryMode = m?.table?.summaryMode ?? summaryConfig?.mode ?? "lastPageOnly";
+    const summaryMode =
+      rawSummaryMode === "everyPageSubtotal+lastTotal" ||
+      rawSummaryMode === "lastPageOnly" ||
+      rawSummaryMode === "none"
+        ? rawSummaryMode
+        : "lastPageOnly";
+
+    const amountColumnById = cols.find(
+      (c) => c.id === "amount" && c.value?.kind === "subtableField" && c.value.fieldCode,
+    );
+    const amountColumnByField = cols.find(
+      (c) => c.value?.kind === "subtableField" && c.value.fieldCode === "Amount",
+    );
+    const amountColumn = amountColumnById ?? amountColumnByField;
+    const summaryFieldCode =
+      amountColumn?.value?.kind === "subtableField" ? amountColumn.value.fieldCode : undefined;
+    const summaryColumnId = amountColumn?.id;
+
+    if (summaryMode !== "none" && (!summaryFieldCode || !summaryColumnId)) {
+      if (!warnedMissingAmountColumn) {
+        console.warn("[list_v1] summary amount column not found", {
+          summaryFieldCode,
+          summaryColumnId,
+        });
+        warnedMissingAmountColumn = true;
+      }
+    }
+
+    const summary =
+      summaryMode !== "none" && summaryFieldCode && summaryColumnId
+        ? {
+            mode:
+              summaryMode === "everyPageSubtotal+lastTotal"
+                ? "everyPageSubtotal+lastTotal"
+                : "lastPageOnly",
+            rows: [
+              {
+                op: "sum",
+                fieldCode: summaryFieldCode,
+                columnId: summaryColumnId,
+                kind: summaryMode === "everyPageSubtotal+lastTotal" ? "both" : "total",
+                label: "合計",
+                labelSubtotal: "小計",
+                labelTotal: "合計",
+              },
+            ],
+            style: {
+              subtotalFillGray: 0.96,
+              totalFillGray: 0.92,
+              totalTopBorderWidth: 1.5,
+              borderColorGray: 0.85,
+            },
+          }
+        : undefined;
+
     const tableEl: TableElement = {
       id: TABLE_ID,
       type: "table",
@@ -426,6 +516,7 @@ export const lineItemsV1Adapter: StructureAdapter = {
       showGrid: typeof existing?.showGrid === "boolean" ? existing.showGrid : true,
       dataSource: { type: "kintoneSubtable", fieldCode: sourceFieldCode },
       columns: nextColumns,
+      summary,
     };
 
     let nextElements: TemplateElement[];
@@ -436,7 +527,7 @@ export const lineItemsV1Adapter: StructureAdapter = {
       nextElements = [...slotSyncedElements, tableEl as unknown as TemplateElement];
     }
 
-    // ✅ line_items_v1 では table は items の1つだけに正規化する
+    // ✅ list_v1 では table は items の1つだけに正規化する
     nextElements = nextElements.filter((e) => {
       if (e.type !== "table") return true;
       return e.id === TABLE_ID; // items 以外の table は削除

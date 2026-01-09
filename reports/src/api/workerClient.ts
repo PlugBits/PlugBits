@@ -1,10 +1,10 @@
-const BASE_URL = ((import.meta.env.VITE_REPORTS_API_BASE_URL ?? import.meta.env.VITE_WORKER_BASE_URL ?? '') as string).replace(/\/$/, '');
+const BASE_URL = (import.meta.env.VITE_WORKER_BASE_URL as string | undefined)?.replace(/\/$/, '') ?? '';
 const API_KEY = import.meta.env.VITE_WORKER_API_KEY;
 
 
 const buildUrl = (path: string) => {
   if (!BASE_URL) {
-    throw new Error('Missing VITE_REPORTS_API_BASE_URL (or VITE_WORKER_BASE_URL)');
+    throw new Error('Missing VITE_WORKER_BASE_URL');
   }
 
   const normalized = path.startsWith('/') ? path : `/${path}`;
@@ -35,4 +35,3 @@ export async function pingWorker() {
   const text = await res.text();
   return { ok: true, text };
 }
-

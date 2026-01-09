@@ -1,9 +1,10 @@
 // src/editor/Mapping/adapters/getAdapter.ts
 import type { StructureAdapter } from "./StructureAdapter";
-import { lineItemsV1Adapter } from "./line_items_v1";
+import { listV1Adapter } from "./list_v1";
 
 const ADAPTERS: Record<string, StructureAdapter> = {
-  [lineItemsV1Adapter.structureType]: lineItemsV1Adapter,
+  [listV1Adapter.structureType]: listV1Adapter,
+  line_items_v1: listV1Adapter,
 };
 
 export function getAdapter(structureType: string): StructureAdapter {

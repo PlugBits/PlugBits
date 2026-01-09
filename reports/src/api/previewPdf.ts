@@ -1,14 +1,20 @@
 import type { TemplateDefinition } from '@shared/template';
-
-const API_BASE_URL = (import.meta.env.VITE_REPORTS_API_BASE_URL as string | undefined)
-  ?? 'http://127.0.0.1:8787';
+import { getTenantContext } from '../store/tenantStore';
 
 export async function previewPdf(template: TemplateDefinition) {
-  const res = await fetch(`${API_BASE_URL}/render`, {
+  const tenantContext = getTenantContext();
+  if (!tenantContext?.workerBaseUrl) {
+    throw new Error('Missing tenant context. Launch from plugin.');
+  }
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+  };
+  if (tenantContext.editorToken) {
+    headers.Authorization = `Bearer ${tenantContext.editorToken}`;
+  }
+  const res = await fetch(`${tenantContext.workerBaseUrl.replace(/\/$/, '')}/render`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
+    headers,
     body: JSON.stringify({ template, data: template.sampleData }),
   });
 

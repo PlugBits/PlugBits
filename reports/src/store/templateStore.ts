@@ -1,16 +1,13 @@
 // src/store/templateStore.ts
 
 import { create } from 'zustand';
-import type {
-  TemplateDefinition,
-  TemplateElement,
-  TemplateDataRecord,
-} from '@shared/template';
-import { SAMPLE_DATA, SAMPLE_TEMPLATE } from '@shared/template';
+import type { TemplateDefinition, TemplateElement } from '@shared/template';
+import { SAMPLE_TEMPLATE } from '@shared/template';
 import {
+  createUserTemplateFromBase,
   createTemplateRemote,
-  deleteTemplateRemote,
-  fetchTemplates,
+  fetchTemplateById,
+  softDeleteTemplate,
 } from '../services/templateService';
 
 export type TemplateMap = Record<string, TemplateDefinition>;
@@ -21,18 +18,17 @@ export type TemplateStore = {
   loading: boolean;
   hasLoaded: boolean;
   error: string | null;
+  fetchSeq: number;
 
   setActiveTemplate: (templateId: string | null) => void;
   clearError: () => void;
-
-  initialize: () => Promise<void>;
-  refreshTemplates: () => Promise<void>;
+  loadTemplate: (templateId: string) => Promise<void>;
 
   createTemplate: (name?: string) => Promise<TemplateDefinition>;
   updateTemplate: (template: TemplateDefinition) => void;
-  saveTemplate: (templateId: string) => Promise<void>;
+  saveTemplate: (templateId: string, opts?: { nameOverride?: string }) => Promise<void>;
   deleteTemplate: (templateId: string) => Promise<void>;
-
+  
   addElement: (templateId: string, element: TemplateElement) => void;
   updateElement: (
     templateId: string,
@@ -46,38 +42,6 @@ export type TemplateStore = {
 // ---- 共通ユーティリティ ----
 
 const cloneTemplate = <T>(template: T): T => structuredClone(template);
-const cloneData = <T>(value: T): T => structuredClone(value);
-
-const generateTemplateId = () =>
-  typeof crypto !== 'undefined' && 'randomUUID' in crypto
-    ? `tpl_${crypto.randomUUID()}`
-    : `tpl_${Date.now()}`;
-
-// SAMPLE_TEMPLATE から下書きをつくる
-const createDraftTemplate = (name: string): TemplateDefinition => {
-  const draft = cloneTemplate(SAMPLE_TEMPLATE);
-  const newId = generateTemplateId();
-
-  draft.id = newId;
-  draft.name = name;
-
-  draft.elements = draft.elements.map((element): TemplateElement => ({
-    ...element,
-    id: `${element.id}_${newId.slice(0, 4)}`,
-  }));
-
-  draft.sampleData = cloneData(
-    (SAMPLE_TEMPLATE.sampleData as TemplateDataRecord | undefined) ?? SAMPLE_DATA,
-  );
-
-  return draft;
-};
-
-const templatesToMap = (templates: TemplateDefinition[]): TemplateMap =>
-  templates.reduce<TemplateMap>((acc, template) => {
-    acc[template.id] = template;
-    return acc;
-  }, {} as TemplateMap);
 
 // ---- Zustand store ----
 
@@ -87,36 +51,44 @@ export const useTemplateStore = create<TemplateStore>((set, get) => ({
   loading: false,
   hasLoaded: false,
   error: null,
+  fetchSeq: 0,
 
   setActiveTemplate: (templateId) => set({ activeTemplateId: templateId }),
 
   clearError: () => set({ error: null }),
 
-  initialize: async () => {
-    if (get().loading || get().hasLoaded) return;
-    await get().refreshTemplates();
-  },
+  loadTemplate: async (templateId) => {
+    if (!templateId) return;
 
-  refreshTemplates: async () => {
-    set({ loading: true, error: null });
+    const existing = get().templates[templateId];
+    if (existing) {
+      set({ activeTemplateId: templateId, hasLoaded: true });
+      return;
+    }
+
+    const seq = get().fetchSeq + 1;
+    set({ loading: true, error: null, fetchSeq: seq });
 
     try {
-      const templates = await fetchTemplates();
-      const map = templatesToMap(templates.length > 0 ? templates : [SAMPLE_TEMPLATE]);
+      const template = await fetchTemplateById(templateId);
 
-      const currentActiveId = get().activeTemplateId;
-      const activeTemplateId =
-        currentActiveId && map[currentActiveId]
-          ? currentActiveId
-          : templates[0]?.id ?? SAMPLE_TEMPLATE.id;
+      if (get().fetchSeq !== seq) {
+        console.warn('[templateStore.loadTemplate] stale fetch skipped', { seq });
+        return;
+      }
 
-      set({
-        templates: map,
-        activeTemplateId,
+      set((state) => ({
+        templates: {
+          ...state.templates,
+          [template.id]: template,
+        },
+        activeTemplateId: template.id,
         loading: false,
         hasLoaded: true,
-      });
+      }));
     } catch (error) {
+      if (get().fetchSeq !== seq) return;
+
       set({
         loading: false,
         error: error instanceof Error ? error.message : 'テンプレートの取得に失敗しました',
@@ -124,12 +96,13 @@ export const useTemplateStore = create<TemplateStore>((set, get) => ({
     }
   },
 
+
   createTemplate: async (name) => {
     const templateName = name || '新しいテンプレート';
-    const draft = createDraftTemplate(templateName);
 
     try {
-      const created = await createTemplateRemote(draft);
+      // baseTemplateId ("list_v1") selects the catalog template; the created template.id is user-specific ("tpl_*").
+      const created = await createUserTemplateFromBase('list_v1', templateName);
 
       set((state) => ({
         templates: {
@@ -158,18 +131,25 @@ export const useTemplateStore = create<TemplateStore>((set, get) => ({
   },
 
   // ★いまは createTemplateRemote を "保存" にも流用
-  saveTemplate: async (templateId) => {
+  saveTemplate: async (templateId, opts) => {
     const template = get().templates[templateId];
     if (!template) return;
 
     try {
-      const saved = await createTemplateRemote(template);
-      set((state) => ({
-        templates: {
-          ...state.templates,
-          [templateId]: saved,
-        },
-      }));
+      const normalizedName = opts?.nameOverride?.trim();
+      const toSave = normalizedName ? { ...template, name: normalizedName } : template;
+      const saved = await createTemplateRemote(toSave);
+      set((state) => {
+        const current = state.templates[templateId];
+        if (!current) return state;
+        if (current.baseTemplateId || !saved.baseTemplateId) return state;
+        return {
+          templates: {
+            ...state.templates,
+            [templateId]: { ...current, baseTemplateId: saved.baseTemplateId },
+          },
+        };
+      });
     } catch (error) {
       set({
         error: error instanceof Error ? error.message : 'テンプレートの保存に失敗しました',
@@ -180,7 +160,7 @@ export const useTemplateStore = create<TemplateStore>((set, get) => ({
 
   deleteTemplate: async (templateId) => {
     try {
-      await deleteTemplateRemote(templateId);
+      await softDeleteTemplate(templateId);
 
       set((state) => {
         const nextTemplates = { ...state.templates };

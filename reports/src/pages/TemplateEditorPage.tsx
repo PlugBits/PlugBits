@@ -6,8 +6,10 @@ import TemplateCanvas from '../components/TemplateCanvas';
 import ElementInspector from '../components/ElementInspector';
 import Toast from '../components/Toast';
 import { selectTemplateById, useTemplateStore } from '../store/templateStore';
+import { useTemplateListStore } from '../store/templateListStore';
 import MappingPage from '../editor/Mapping/MappingPage';
 import { getAdapter } from '../editor/Mapping/adapters/getAdapter';
+import { useEditorSession } from '../hooks/useEditorSession';
 
 const AUTOSAVE_DELAY = 4000;
 
@@ -16,9 +18,11 @@ const TemplateEditorPage = () => {
   const navigate = useNavigate();
   const template = useTemplateStore((state) => selectTemplateById(state, templateId));
   const [selectedElementId, setSelectedElementId] = useState<string | null>(null);
-  const initialize = useTemplateStore((state) => state.initialize);
-  const hasLoaded = useTemplateStore((state) => state.hasLoaded);
+  const loadTemplate = useTemplateStore((state) => state.loadTemplate);
+  const loading = useTemplateStore((state) => state.loading);
+  const error = useTemplateStore((state) => state.error);
   const saveTemplate = useTemplateStore((state) => state.saveTemplate);
+  const upsertMeta = useTemplateListStore((state) => state.upsertMeta);
   const updateElement = useTemplateStore((state) => state.updateElement);
   const updateTemplate = useTemplateStore((state) => state.updateTemplate);
   const addElementToTemplate = useTemplateStore((state) => state.addElement);
@@ -27,6 +31,10 @@ const TemplateEditorPage = () => {
   const [nameDraft, setNameDraft] = useState('');
   const [toast, setToast] = useState<{ type: 'success' | 'error' | 'info'; message: string; subMessage?: string } | null>(null);
   const previousTemplateId = useRef<string | null>(null);
+  const isEditingNameRef = useRef(false);
+  const isUserInteractingRef = useRef(false);
+  const isComposingRef = useRef(false);
+  const imeJustEndedRef = useRef(false);
   const autosaveTimer = useRef<number | null>(null);
   const pendingSave = useRef(false);
   const lastSavedSignature = useRef<string>('');
@@ -42,13 +50,17 @@ const TemplateEditorPage = () => {
   });
 
   const [highlightRef, setHighlightRef] = useState<any>(null);
+  const { authState, tenantContext, params } = useEditorSession();
+  const preservedQuery = useMemo(() => {
+    const qs = params.toString();
+    return qs ? `?${qs}` : '';
+  }, [params]);
 
 
   useEffect(() => {
-    if (!hasLoaded) {
-      void initialize();
-    }
-  }, [hasLoaded, initialize]);
+    if (!templateId || authState !== 'authorized') return;
+    void loadTemplate(templateId);
+  }, [templateId, loadTemplate, authState]);
 
   useEffect(() => {
     if (!template) return;
@@ -66,7 +78,7 @@ const TemplateEditorPage = () => {
     }
 
     setSelectedElementId(template.elements[0]?.id ?? null);
-  }, [template?.id, template?.mapping, template?.structureType]);
+  }, [template?.id]);
 
 
   const templateSignature = useMemo(() => {
@@ -82,6 +94,8 @@ const TemplateEditorPage = () => {
     });
   }, [template]);
 
+  const isDirty = !!templateSignature && templateSignature !== lastSavedSignature.current;
+
 
   useEffect(() => {
     if (!templateSignature || templateSignature === lastSavedSignature.current) {
@@ -95,6 +109,14 @@ const TemplateEditorPage = () => {
     autosaveTimer.current = window.setTimeout(() => {
       if (pendingSave.current) return;
       pendingSave.current = true;
+      if (isEditingNameRef.current) {
+        pendingSave.current = false;
+        return;
+      }
+      if (isUserInteractingRef.current) {
+        pendingSave.current = false;
+        return;
+      }
       handleSave(true)
         .catch((error) => console.error('Autosave failed', error))
         .finally(() => {
@@ -111,10 +133,23 @@ const TemplateEditorPage = () => {
   }, [templateSignature]);
 
   useEffect(() => {
-  
-    if (!template) return;
+    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+      if (!isDirty) return;
+      event.preventDefault();
+      event.returnValue = '';
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [isDirty]);
 
-    const structureType = template.structureType ?? 'line_items_v1';
+  useEffect(() => {
+    if (!template) return;
+    const isUserTemplate = template.id.startsWith('tpl_') && !!template.baseTemplateId;
+    if (isUserTemplate) return;
+
+    const structureType = template.structureType ?? 'list_v1';
     const adapter = getAdapter(structureType);
     const mapping = template.mapping ?? adapter.createDefaultMapping();
 
@@ -194,7 +229,7 @@ const TemplateEditorPage = () => {
     if (beforeSig !== afterSig) {
       updateTemplate(synced);
     }
-  }, [template?.id, template?.mapping, template?.structureType, updateTemplate]);
+  }, [template?.id, template?.mapping, template?.structureType, template?.baseTemplateId, updateTemplate]);
 
 
   const selectedElement = useMemo<TemplateElement | null>(() => {
@@ -245,7 +280,7 @@ const TemplateEditorPage = () => {
   }, [template, highlightRef]);
 
   const slotLabelMap = useMemo(() => {
-    const structureType = template?.structureType ?? 'line_items_v1';
+    const structureType = template?.structureType ?? 'list_v1';
     const adapter = getAdapter(structureType);
     const map: Record<string, string> = {};
     for (const region of adapter.regions) {
@@ -411,7 +446,12 @@ const TemplateEditorPage = () => {
     try {
       const normalizedName = persistTemplateName();
       updateTemplate({ ...template, name: normalizedName });
-      await saveTemplate(template.id);
+      await saveTemplate(template.id, { nameOverride: normalizedName });
+      upsertMeta({
+        templateId: template.id,
+        name: normalizedName,
+        updatedAt: new Date().toISOString(),
+      });
       lastSavedSignature.current = JSON.stringify({
         name: normalizedName,
         elements: template.elements,
@@ -442,33 +482,61 @@ const TemplateEditorPage = () => {
     }
     return undefined;
   }, [saveStatus]);
-console.log('[TEMPLATE DEBUG] id=', template?.id);
-console.log(
-  '[TEMPLATE DEBUG] elements ids=',
-  template?.elements.map(e =>
-    `${e.id}:${e.type}:${(e as any).slotId ?? ''}:${(e as any).region ?? ''}`
-  )
-);
-console.log('[TEMPLATE DEBUG] has title?', template?.elements.some(e => e.id === 'title'));
-console.log('[TEMPLATE DEBUG] has doc_title slot?', template?.elements.some(e => (e as any).slotId === 'doc_title'));
-console.log('[TEMPLATE DEBUG] mapping.header.doc_title=', (template?.mapping as any)?.header?.doc_title);
-console.log(
-  '[TEMPLATE JSON]',
-  JSON.stringify(template, null, 2)
-);
+  if (authState === 'checking') {
+    return (
+      <div className="card">
+        <p style={{ margin: 0, color: '#475467' }}>Loading...</p>
+      </div>
+    );
+  }
 
-// ★★★ ここまで ★★★
+  if (authState === 'unauthorized') {
+    return (
+      <div className="card">
+        <p style={{ margin: 0, color: '#475467' }}>
+          プラグインから起動してください（短命トークンが必要です）。
+        </p>
+      </div>
+    );
+  }
+
   if (!template) {
     return (
       <div className="card">
-        <p>テンプレートが見つかりませんでした。</p>
-        <button className="secondary" onClick={() => navigate('/')}>一覧へ戻る</button>
+        <p>
+          {loading
+            ? 'テンプレートを読み込み中...'
+            : error
+            ? error
+            : 'テンプレートが見つかりませんでした。'}
+        </p>
+        <button className="secondary" onClick={() => navigate(`/${preservedQuery}`)}>一覧へ戻る</button>
       </div>
     );
   }
 
   return (
-    <section style={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden' }}>
+    <section
+      style={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden' }}
+      onPointerDownCapture={() => {
+        isUserInteractingRef.current = true;
+      }}
+      onKeyDownCapture={(event) => {
+        const nativeEvent = event.nativeEvent as KeyboardEvent;
+        if (nativeEvent?.isComposing) return;
+        isUserInteractingRef.current = true;
+      }}
+      onPointerUpCapture={() => {
+        window.setTimeout(() => {
+          isUserInteractingRef.current = false;
+        }, 100);
+      }}
+      onBlurCapture={() => {
+        window.setTimeout(() => {
+          isUserInteractingRef.current = false;
+        }, 100);
+      }}
+    >
       <div className="card" style={{ marginBottom: '1.5rem' }}>
         <div
           style={{
@@ -484,8 +552,29 @@ console.log(
               type="text"
               value={nameDraft}
               onChange={(event) => setNameDraft(event.target.value)}
-              onBlur={persistTemplateName}
+              onCompositionStart={() => {
+                isComposingRef.current = true;
+              }}
+              onCompositionEnd={() => {
+                isComposingRef.current = false;
+                imeJustEndedRef.current = true;
+                window.setTimeout(() => {
+                  imeJustEndedRef.current = false;
+                }, 0);
+              }}
+              onFocus={() => {
+                isEditingNameRef.current = true;
+              }}
+              onBlur={() => {
+                isEditingNameRef.current = false;
+                persistTemplateName();
+              }}
               onKeyDown={(event) => {
+                const nativeEvent = event.nativeEvent as any;
+                if (nativeEvent?.isComposing) return;
+                if (isComposingRef.current) return;
+                if (imeJustEndedRef.current) return;
+                if (nativeEvent?.keyCode === 229) return;
                 if (event.key === 'Enter') {
                   event.currentTarget.blur();
                 }
@@ -500,6 +589,9 @@ console.log(
               }}
             />
             <p style={{ margin: 0, color: '#475467' }}>要素数: {template.elements.length}</p>
+            <p style={{ margin: 0, color: '#98a2b3', fontSize: '0.85rem' }}>
+              保存先: {tenantContext?.workerBaseUrl ?? '未設定'}
+            </p>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.35rem' }}>
             <div className="button-row">
@@ -512,7 +604,17 @@ console.log(
               <button className="ghost" onClick={() => { void handleSave(); }} disabled={saveStatus === 'saving'}>
                 {saveStatus === 'saving' ? '保存中...' : '保存'}
               </button>
-              <button className="ghost" onClick={() => navigate('/')}>一覧</button>
+              <button
+                className="ghost"
+                onClick={() => {
+                  if (isDirty && !window.confirm('未保存の変更があります。一覧へ戻りますか？')) {
+                    return;
+                  }
+                  navigate(`/${preservedQuery}`);
+                }}
+              >
+                一覧
+              </button>
               <button className="ghost" onClick={toggleControls}>
                 設定 {controlsOpen ? '▲' : '▼'}
               </button>

@@ -1,13 +1,107 @@
 // src/editor/Mapping/mappingUtils.ts
 import type { TemplateDataRecord } from '@shared/template';
 
-export type RecordFieldOption = { code: string; label: string };
-export type SubtableOption = { code: string; label: string; fields: RecordFieldOption[] };
+export type RecordFieldOption = { code: string; label: string; type?: string };
+export type SubtableOption = {
+  code: string;
+  label: string;
+  fields: RecordFieldOption[];
+  type?: string;
+};
 
 export type SchemaFromSample = {
   recordFields: RecordFieldOption[];
   subtables: SubtableOption[];
 };
+
+export type KintoneFormField = {
+  code?: string;
+  label?: string;
+  type?: string;
+  fields?: Record<string, KintoneFormField>;
+};
+
+export type FlatKintoneField = {
+  code?: string;
+  label?: string;
+  type?: string;
+  isSubtable?: boolean;
+  subtableCode?: string;
+};
+
+export function buildSchemaFromKintoneProperties(
+  properties?: Record<string, KintoneFormField>,
+): SchemaFromSample {
+  if (!properties || typeof properties !== 'object') {
+    return { recordFields: [], subtables: [] };
+  }
+
+  const recordFields: RecordFieldOption[] = [];
+  const subtables: SubtableOption[] = [];
+
+  for (const prop of Object.values(properties)) {
+    const code = prop.code ?? '';
+    if (!code) continue;
+    const label = prop.label ?? code;
+    if (prop.type === 'SUBTABLE' && prop.fields) {
+      const fields = Object.values(prop.fields)
+        .map((f) => {
+          const subCode = f.code ?? '';
+          if (!subCode) return null;
+          return { code: subCode, label: f.label ?? subCode, type: f.type };
+        })
+        .filter((f): f is RecordFieldOption => !!f);
+      subtables.push({ code, label, fields, type: prop.type });
+      continue;
+    }
+    recordFields.push({ code, label, type: prop.type });
+  }
+
+  return { recordFields, subtables };
+}
+
+export function buildSchemaFromFlatFields(
+  fields?: FlatKintoneField[] | null,
+): SchemaFromSample {
+  if (!fields || fields.length === 0) {
+    return { recordFields: [], subtables: [] };
+  }
+
+  const recordFields: RecordFieldOption[] = [];
+  const subtables = new Map<string, SubtableOption>();
+
+  fields.forEach((field) => {
+    const code = field.code ?? '';
+    if (!code) return;
+    const label = field.label ?? code;
+    const type = field.type;
+
+    if (type === 'SUBTABLE') {
+      if (!subtables.has(code)) {
+        subtables.set(code, { code, label, fields: [], type });
+      }
+      return;
+    }
+
+    if (field.isSubtable) {
+      const parentCode = field.subtableCode ?? '';
+      if (!parentCode) return;
+      const parent =
+        subtables.get(parentCode) ??
+        (() => {
+          const created = { code: parentCode, label: parentCode, fields: [] as RecordFieldOption[] };
+          subtables.set(parentCode, created);
+          return created;
+        })();
+      parent.fields.push({ code, label, type });
+      return;
+    }
+
+    recordFields.push({ code, label, type });
+  });
+
+  return { recordFields, subtables: Array.from(subtables.values()) };
+}
 
 /**
  * SAMPLE_DATA から候補を作る（暫定）
@@ -151,4 +245,3 @@ export function normalizeWidthPctKeepIndex<T extends { widthPct: number }>(
 
   return next;
 }
-

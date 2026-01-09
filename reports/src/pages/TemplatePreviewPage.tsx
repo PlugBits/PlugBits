@@ -3,13 +3,15 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { SAMPLE_DATA, type TemplateDataRecord } from '@shared/template';
 import { requestPreviewPdf } from '../services/renderService.ts';
 import { selectTemplateById, useTemplateStore } from '../store/templateStore.ts';
+import { useEditorSession } from '../hooks/useEditorSession';
 
 const TemplatePreviewPage = () => {
   const { templateId } = useParams();
   const navigate = useNavigate();
   const template = useTemplateStore((state) => selectTemplateById(state, templateId));
-  const initialize = useTemplateStore((state) => state.initialize);
-  const hasLoaded = useTemplateStore((state) => state.hasLoaded);
+  const loadTemplate = useTemplateStore((state) => state.loadTemplate);
+  const loading = useTemplateStore((state) => state.loading);
+  const error = useTemplateStore((state) => state.error);
   const saveTemplate = useTemplateStore((state) => state.saveTemplate);
   const updateTemplateState = useTemplateStore((state) => state.updateTemplate);
   const [status, setStatus] = useState<'idle' | 'saving' | 'rendering' | 'success' | 'error'>('idle');
@@ -21,14 +23,18 @@ const TemplatePreviewPage = () => {
   const [sampleDataError, setSampleDataError] = useState<string | null>(null);
   const [sampleDataInfo, setSampleDataInfo] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const [sampleDataSaving, setSampleDataSaving] = useState(false);
+  const { authState, params } = useEditorSession();
+  const preservedQuery = useMemo(() => {
+    const qs = params.toString();
+    return qs ? `?${qs}` : '';
+  }, [params]);
 
   const templateSampleData = useMemo<TemplateDataRecord>(() => template?.sampleData ?? SAMPLE_DATA, [template]);
 
   useEffect(() => {
-    if (!hasLoaded) {
-      void initialize();
-    }
-  }, [hasLoaded, initialize]);
+    if (!templateId || authState !== 'authorized') return;
+    void loadTemplate(templateId);
+  }, [templateId, loadTemplate, authState]);
 
   useEffect(() => {
     setInitialPreviewDone(false);
@@ -158,16 +164,40 @@ const TemplatePreviewPage = () => {
   };
 
   useEffect(() => {
-    if (template && hasLoaded && !initialPreviewDone) {
+    if (template && !initialPreviewDone) {
       handlePreview();
       setInitialPreviewDone(true);
     }
-  }, [templateId, template, hasLoaded, initialPreviewDone]);
+  }, [templateId, template, initialPreviewDone]);
+
+  if (authState === 'checking') {
+    return (
+      <div className="card">
+        <p style={{ margin: 0, color: '#475467' }}>Loading...</p>
+      </div>
+    );
+  }
+
+  if (authState === 'unauthorized') {
+    return (
+      <div className="card">
+        <p style={{ margin: 0, color: '#475467' }}>
+          プラグインから起動してください（短命トークンが必要です）。
+        </p>
+      </div>
+    );
+  }
 
   if (!template) {
     return (
       <div className="card">
-        <p>テンプレートが見つかりませんでした。</p>
+        <p>
+          {loading
+            ? 'テンプレートを読み込み中...'
+            : error
+            ? error
+            : 'テンプレートが見つかりませんでした。'}
+        </p>
         <button className="secondary" onClick={() => navigate('/')}>一覧へ戻る</button>
       </div>
     );
@@ -184,7 +214,7 @@ const TemplatePreviewPage = () => {
           <button className="secondary" onClick={handlePreview} disabled={status === 'saving' || status === 'rendering'}>
             再生成
           </button>
-          <button className="ghost" onClick={() => navigate(`/templates/${template.id}`)}>
+          <button className="ghost" onClick={() => navigate(`/templates/${template.id}${preservedQuery}`)}>
             エディタに戻る
           </button>
         </div>
