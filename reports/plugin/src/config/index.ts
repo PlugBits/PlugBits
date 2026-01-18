@@ -1,6 +1,6 @@
 const PLUGIN_ID =
   (typeof kintone !== 'undefined' ? (kintone as any).$PLUGIN_ID : '') || '';
-const UI_BASE_URL = 'https://b8bb990a.plugbits.pages.dev';
+const UI_BASE_URL = 'https://plugbits.pages.dev';
 
 export type PluginConfig = {
   apiBaseUrl: string;
@@ -113,6 +113,20 @@ const renderForm = () => {
         <span id="apiBaseUrlAlertText">API ベースURLが無効です。</span>
         <button id="fixApiBaseUrl" class="kb-btn" type="button">Fix API URL</button>
       </div>
+    </div>
+
+    <label class="kb-label">UI URL</label>
+    <div class="kb-row" style="margin-top:4px; gap:8px; align-items:center; flex-wrap:wrap;">
+      <span
+        id="uiBaseUrlDisplay"
+        style="display:inline-flex; align-items:center; padding:2px 10px; border-radius:999px; border:1px solid #e4e7ec; background:#f2f4f7; color:#667085; font-size:12px;"
+      >UI URL: -</span>
+    </div>
+    <div
+      id="uiBaseUrlAlert"
+      style="display:none; margin-top:6px; padding:8px 10px; border-radius:6px; background:#fef3f2; border:1px solid #fecdca; color:#b42318;"
+    >
+      保存済みのUI URLがプレビュー版でした。設定画面は本番URLで開きます（保存時に修正されます）。
     </div>
 
     <label class="kb-label" for="apiKey">Worker API キー</label>
@@ -259,6 +273,8 @@ const renderForm = () => {
   const apiBaseUrlCheckedAt = document.getElementById('apiBaseUrlCheckedAt');
   const apiBaseUrlAlert = document.getElementById('apiBaseUrlAlert');
   const apiBaseUrlAlertText = document.getElementById('apiBaseUrlAlertText');
+  const uiBaseUrlDisplay = document.getElementById('uiBaseUrlDisplay');
+  const uiBaseUrlAlert = document.getElementById('uiBaseUrlAlert');
   const fixApiBaseUrlButton = document.getElementById('fixApiBaseUrl') as HTMLButtonElement | null;
   const selectedTemplateBadge = document.getElementById('selectedTemplateBadge');
   const selectedTemplateUpdatedAt = document.getElementById('selectedTemplateUpdatedAt');
@@ -367,6 +383,17 @@ const renderForm = () => {
     }
   };
 
+  const isPreviewUiBaseUrl = (value: string) => {
+    try {
+      const url = new URL(value);
+      const host = url.host.toLowerCase();
+      if (!host.endsWith('.plugbits.pages.dev')) return false;
+      return host !== 'plugbits.pages.dev';
+    } catch {
+      return false;
+    }
+  };
+
   const isValidHttpUrl = (value: string) => {
     try {
       const url = new URL(value);
@@ -424,6 +451,14 @@ const renderForm = () => {
     apiBaseUrlStatus.style.color = '#667085';
     apiBaseUrlStatus.style.borderColor = '#e4e7ec';
   };
+
+  const hasPreviewUiBaseUrl = isPreviewUiBaseUrl(legacy.uiBaseUrl);
+  if (uiBaseUrlDisplay) {
+    uiBaseUrlDisplay.textContent = `UI URL: ${UI_BASE_URL}（固定）`;
+  }
+  if (uiBaseUrlAlert && hasPreviewUiBaseUrl) {
+    uiBaseUrlAlert.style.display = 'block';
+  }
 
   const showApiAlert = (message: string, showFix: boolean) => {
     if (!apiBaseUrlAlert) return;
@@ -880,7 +915,11 @@ const renderForm = () => {
       return;
     }
 
-    const merged = { ...rawConfig, ...payload };
+    const merged: Record<string, any> = { ...rawConfig, ...payload };
+    if (hasPreviewUiBaseUrl) {
+      merged.uiBaseUrl = UI_BASE_URL;
+      merged.ui_base_url = UI_BASE_URL;
+    }
     (kintone as any).plugin?.app?.setConfig(merged);
   });
 
