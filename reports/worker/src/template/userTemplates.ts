@@ -5,7 +5,9 @@ import type {
   ImageElement,
   TemplateMeta,
   TemplateStatus,
+  type PageSize,
 } from "../../../shared/template.js";
+import { canonicalizeAppId, canonicalizeKintoneBaseUrl } from "../utils/canonicalize.ts";
 
 export type SlotFieldRef =
   | { kind: "staticText"; text?: string }
@@ -31,6 +33,7 @@ export type UserTemplateOverrides = {
 
 export type UserTemplatePayload = {
   baseTemplateId: string;
+  pageSize?: PageSize;
   mapping?: unknown;
   overrides?: UserTemplateOverrides;
   meta?: Partial<TemplateMeta>;
@@ -193,8 +196,10 @@ export const applySlotDataOverrides = (
 };
 
 export const buildTenantKey = (baseUrl: string, appId: string): string => {
-  const url = new URL(baseUrl);
-  return `${url.host}__${appId}`;
+  const normalizedBaseUrl = canonicalizeKintoneBaseUrl(baseUrl);
+  const normalizedAppId = canonicalizeAppId(appId);
+  const url = new URL(normalizedBaseUrl);
+  return `${url.host}__${normalizedAppId}`;
 };
 
 export const buildUserTemplateKey = (tenantKey: string, templateId: string): string =>

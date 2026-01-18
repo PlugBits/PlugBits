@@ -79,19 +79,34 @@ const MappingPage: React.FC<Props> = ({ template, updateTemplate, onFocusFieldRe
           </div>
         </div>
 
-        {!validation.ok && (
-          <div style={{ marginTop: 10 }}>
-            <ul style={{ margin: 0, paddingLeft: 18 }}>
-              {validation.errors.map((e, idx) => (
-                <li key={idx}>
-                  <code>{e.path}</code>：{e.message}
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
-      </div>
+      {!validation.ok && (
+        <div style={{ marginTop: 10 }}>
+          <ul style={{ margin: 0, paddingLeft: 18 }}>
+            {validation.errors.map((e, idx) => (
+              <li key={idx}>
+                <code>{e.path}</code>：{e.message}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </div>
 
+      {error && (
+        <div
+          style={{
+            marginTop: 12,
+            padding: '10px 12px',
+            borderRadius: 10,
+            border: '1px solid #fecaca',
+            background: '#fef2f2',
+            color: '#b42318',
+            fontSize: '0.9rem',
+          }}
+        >
+          {error}
+        </div>
+      )}
 
       {adapter.regions.map((region) => (
         <RegionMappingPanel

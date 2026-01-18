@@ -13,7 +13,7 @@ export type EditorAuthState = 'checking' | 'authorized' | 'unauthorized';
 export const useEditorSession = () => {
   const location = useLocation();
   const params = useMemo(
-    () => getQueryParams(location.search),
+    () => getQueryParams(location.search, location.hash),
     [location.search, location.hash],
   );
   const sessionToken = useMemo(() => getSessionTokenFromParams(params), [params]);

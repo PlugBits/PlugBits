@@ -1,4 +1,4 @@
-import type { TemplateDefinition, TemplateElement, TextElement, ImageElement } from '@shared/template';
+import type { TemplateDefinition, TemplateElement, TextElement, ImageElement, PageSize } from '@shared/template';
 import { getAdapter } from '../editor/Mapping/adapters/getAdapter';
 
 export type SlotFieldRef =
@@ -25,6 +25,7 @@ export type UserTemplateOverrides = {
 
 export type UserTemplatePayload = {
   baseTemplateId: string;
+  pageSize?: PageSize;
   mapping?: unknown;
   overrides?: UserTemplateOverrides;
   meta?: { name?: string; updatedAt?: string };

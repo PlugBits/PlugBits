@@ -3,6 +3,7 @@ import type {
   TemplateDefinition,
   TemplateDataRecord,
   TemplateMeta,
+  TableElement,
 } from "../../shared/template.js";
 import { TEMPLATE_SCHEMA_VERSION } from "../../shared/template.js";
 
@@ -30,6 +31,7 @@ import {
   upsertTenantApiToken,
   verifyEditorToken,
 } from "./auth/tenantAuth.ts";
+import { canonicalizeAppId, canonicalizeKintoneBaseUrl } from "./utils/canonicalize.ts";
 
 
 // Wrangler の env 定義（あってもなくても動くよう optional にする）
@@ -202,8 +204,18 @@ const getTenantContext = (
   }
 
   try {
-    const tenantKey = buildTenantKey(baseUrl, appId);
-    return { baseUrl, appId, tenantKey };
+    const normalizedBaseUrl = canonicalizeKintoneBaseUrl(baseUrl);
+    const normalizedAppId = canonicalizeAppId(appId);
+    if (!normalizedAppId) {
+      return {
+        error: new Response("Missing kintoneBaseUrl or appId", {
+          status: 400,
+          headers: CORS_HEADERS,
+        }),
+      };
+    }
+    const tenantKey = buildTenantKey(normalizedBaseUrl, normalizedAppId);
+    return { baseUrl: normalizedBaseUrl, appId: normalizedAppId, tenantKey };
   } catch {
     return {
       error: new Response("Invalid kintoneBaseUrl", {
@@ -278,6 +290,92 @@ const getUserTemplateById = async (
   }
 };
 
+const ensureUserTemplateActive = async (
+  env: Env,
+  tenantKey: string,
+  templateId: string,
+): Promise<void> => {
+  const found = await findTemplateMeta(env.USER_TEMPLATES_KV, tenantKey, templateId);
+  if (!found) {
+    throw new Error("Template not found");
+  }
+  if (found.status !== "active") {
+    throw new Error(`Template is not active (${found.status})`);
+  }
+};
+
+const getTableSummarySnapshot = (template?: TemplateDefinition | null) => {
+  const table = template?.elements?.find((el) => el.type === "table") as
+    | TableElement
+    | undefined;
+  if (!table?.summary) return null;
+  return {
+    mode: table.summary.mode,
+    rows: table.summary.rows?.map((row) => ({
+      op: row.op,
+      kind: row.kind ?? null,
+      columnId: row.columnId,
+      fieldCode: "fieldCode" in row ? row.fieldCode : undefined,
+    })),
+  };
+};
+
+const applyListV1SummaryFromMapping = (
+  template: TemplateDefinition,
+): TemplateDefinition => {
+  const structure = template.structureType ?? "list_v1";
+  if (structure !== "list_v1") return template;
+  const mapping = template.mapping as any;
+  const rawSummaryMode = mapping?.table?.summaryMode ?? mapping?.table?.summary?.mode;
+  if (!rawSummaryMode || rawSummaryMode === "none") return template;
+  const summaryMode =
+    rawSummaryMode === "everyPageSubtotal+lastTotal"
+      ? "everyPageSubtotal+lastTotal"
+      : "lastPageOnly";
+
+  const tableIndex = template.elements.findIndex(
+    (el) => el.type === "table" && el.id === "items",
+  );
+  if (tableIndex < 0) return template;
+  const table = template.elements[tableIndex] as TableElement;
+  if (!table.columns || table.columns.length === 0) return template;
+  if (table.summary?.mode === summaryMode) return template;
+
+  const amountColumnById = table.columns.find(
+    (col) => col.id === "amount" && col.fieldCode,
+  );
+  const amountColumnByField = table.columns.find(
+    (col) => col.fieldCode === "Amount",
+  );
+  const amountColumn = amountColumnById ?? amountColumnByField;
+  if (!amountColumn?.fieldCode) return template;
+
+  const nextSummary = {
+    mode: summaryMode,
+    rows: [
+      {
+        op: "sum" as const,
+        fieldCode: amountColumn.fieldCode,
+        columnId: amountColumn.id,
+        kind: summaryMode === "everyPageSubtotal+lastTotal" ? ("both" as const) : ("total" as const),
+        label: "合計",
+        labelSubtotal: "小計",
+        labelTotal: "合計",
+      },
+    ],
+    style: {
+      subtotalFillGray: 0.96,
+      totalFillGray: 0.92,
+      totalTopBorderWidth: 1.5,
+      borderColorGray: 0.85,
+    },
+  };
+
+  const nextElements = [...template.elements];
+  nextElements[tableIndex] = { ...table, summary: nextSummary };
+  return { ...template, elements: nextElements };
+};
+
 const resolveUserTemplate = async (
   templateId: string,
   env: Env,
@@ -290,6 +388,7 @@ const resolveUserTemplate = async (
   }
 
   const tenantKey = buildTenantKey(baseUrl, appId);
+  await ensureUserTemplateActive(env, tenantKey, templateId);
   const userTemplate = await getUserTemplateById(templateId, env, tenantKey);
   if (!userTemplate) {
     throw new Error(`Unknown user templateId: ${templateId}`);
@@ -435,9 +534,26 @@ export default {
           });
         }
 
-        const kintoneBaseUrl = payload?.kintoneBaseUrl ?? "";
-        const appId = payload?.appId ?? "";
-        if (!kintoneBaseUrl || !appId) {
+        const rawBaseUrl = payload?.kintoneBaseUrl ?? "";
+        const rawAppId = payload?.appId ?? "";
+        if (!rawBaseUrl || !rawAppId) {
+          return new Response("Missing kintoneBaseUrl or appId", {
+            status: 400,
+            headers: CORS_HEADERS,
+          });
+        }
+        let kintoneBaseUrl: string;
+        let appId: string;
+        try {
+          kintoneBaseUrl = canonicalizeKintoneBaseUrl(rawBaseUrl);
+          appId = canonicalizeAppId(rawAppId);
+        } catch {
+          return new Response("Invalid kintoneBaseUrl", {
+            status: 400,
+            headers: CORS_HEADERS,
+          });
+        }
+        if (!appId) {
           return new Response("Missing kintoneBaseUrl or appId", {
             status: 400,
             headers: CORS_HEADERS,
@@ -452,7 +568,7 @@ export default {
         const key = `editor_session:${sessionToken}`;
         const value = JSON.stringify({
           kintoneBaseUrl,
-          appId: String(appId),
+          appId,
           expiresAt,
           kintoneApiToken: payload.kintoneApiToken,
         });
@@ -524,9 +640,19 @@ export default {
         if ("error" in loaded) return loaded.error;
 
         const session = loaded.session;
-        let tenantId: string;
+        let canonicalBaseUrl = "";
+        let canonicalAppId = "";
+        let tenantId = "";
         try {
-          tenantId = buildTenantKey(session.kintoneBaseUrl, session.appId);
+          canonicalBaseUrl = canonicalizeKintoneBaseUrl(session.kintoneBaseUrl);
+          canonicalAppId = canonicalizeAppId(session.appId);
+          if (!canonicalAppId) {
+            return new Response("Missing kintoneBaseUrl or appId", {
+              status: 400,
+              headers: CORS_HEADERS,
+            });
+          }
+          tenantId = buildTenantKey(canonicalBaseUrl, canonicalAppId);
         } catch {
           return new Response("Invalid kintoneBaseUrl", {
             status: 400,
@@ -538,8 +664,8 @@ export default {
         if (!record) {
           try {
             record = await registerTenant(env.USER_TEMPLATES_KV, {
-              kintoneBaseUrl: session.kintoneBaseUrl,
-              appId: session.appId,
+              kintoneBaseUrl: canonicalBaseUrl,
+              appId: canonicalAppId,
               kintoneApiToken: session.kintoneApiToken,
             });
           } catch {
@@ -997,14 +1123,52 @@ export default {
 
       const userTemplateMatch = url.pathname.match(/^\/user-templates\/([^/]+)$/);
       if (userTemplateMatch) {
-        const auth = await requireEditorToken(request, env);
-        if ("error" in auth) return auth.error;
-
         const templateId = userTemplateMatch[1];
-        const key = buildUserTemplateKey(auth.tenantId, templateId);
 
         if (request.method === "GET") {
-          const templateBody = await getUserTemplateById(templateId, env, auth.tenantId);
+          const authHeader = request.headers.get("Authorization") ?? "";
+          const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : "";
+          if (token) {
+            const auth = await requireEditorToken(request, env);
+            if ("error" in auth) return auth.error;
+            if (url.searchParams.get("requireActive") === "1") {
+              try {
+                await ensureUserTemplateActive(env, auth.tenantId, templateId);
+              } catch {
+                return new Response("Template not found", {
+                  status: 404,
+                  headers: CORS_HEADERS,
+                });
+              }
+            }
+            const templateBody = await getUserTemplateById(templateId, env, auth.tenantId);
+            if (!templateBody) {
+              return new Response("Template not found", {
+                status: 404,
+                headers: CORS_HEADERS,
+              });
+            }
+            return new Response(JSON.stringify({ ...templateBody, id: templateId }), {
+              status: 200,
+              headers: {
+                ...CORS_HEADERS,
+                "Content-Type": "application/json",
+                "Cache-Control": "no-store",
+              },
+            });
+          }
+
+          const tenant = getTenantContext(url);
+          if ("error" in tenant) return tenant.error;
+          try {
+            await ensureUserTemplateActive(env, tenant.tenantKey, templateId);
+          } catch {
+            return new Response("Template not found", {
+              status: 404,
+              headers: CORS_HEADERS,
+            });
+          }
+          const templateBody = await getUserTemplateById(templateId, env, tenant.tenantKey);
           if (!templateBody) {
             return new Response("Template not found", {
               status: 404,
@@ -1020,6 +1184,10 @@ export default {
             },
           });
         }
+
+        const auth = await requireEditorToken(request, env);
+        if ("error" in auth) return auth.error;
+        const key = buildUserTemplateKey(auth.tenantId, templateId);
 
         if (request.method === "PUT") {
           let rawPayload: unknown;
@@ -1070,9 +1238,11 @@ export default {
                 : { ...baseTemplate, mapping: payload?.mapping };
             const layoutApplied = applySlotLayoutOverrides(mapped, payload?.overrides?.layout);
             const dataApplied = applySlotDataOverrides(layoutApplied, payload?.overrides?.slots);
+            const pageSize = payload?.pageSize ?? dataApplied.pageSize;
 
             templateBody = {
               ...dataApplied,
+              pageSize,
             };
           }
 
@@ -1087,6 +1257,22 @@ export default {
             name: nextName,
             baseTemplateId,
           };
+
+          const payloadSummaryMode =
+            payload?.mapping &&
+            typeof payload.mapping === "object" &&
+            (payload.mapping as any)?.table?.summaryMode;
+          const payloadSummaryConfig =
+            payload?.mapping &&
+            typeof payload.mapping === "object" &&
+            (payload.mapping as any)?.table?.summary;
+          const tableSummary = getTableSummarySnapshot(nextTemplate);
+          console.info("[user-templates] summary snapshot", {
+            templateId,
+            payloadSummaryMode: payloadSummaryMode ?? null,
+            payloadSummaryConfig: payloadSummaryConfig ?? null,
+            tableSummary,
+          });
 
           await env.USER_TEMPLATES_KV.put(key, JSON.stringify(nextTemplate));
           await upsertActiveTemplateMeta(env, auth.tenantId, templateId, baseTemplateId, nextName);
@@ -1108,6 +1294,19 @@ export default {
             return new Response("Template not found", {
               status: 404,
               headers: CORS_HEADERS,
+            });
+          }
+
+          if (url.searchParams.get("permanent") === "1") {
+            await deleteTemplateMeta(env.USER_TEMPLATES_KV, auth.tenantId, found.status, templateId);
+            await env.USER_TEMPLATES_KV.delete(buildUserTemplateKey(auth.tenantId, templateId));
+            return new Response(JSON.stringify({ ok: true }), {
+              status: 200,
+              headers: {
+                ...CORS_HEADERS,
+                "Content-Type": "application/json",
+                "Cache-Control": "no-store",
+              },
             });
           }
 
@@ -1162,6 +1361,7 @@ export default {
       if (templateMatch) {
         const templateId = templateMatch[1];
         const isUserTemplate = templateId.startsWith("tpl_");
+        const requireActive = url.searchParams.get("requireActive") === "1";
         if (!isUserTemplate && !TEMPLATE_IDS.has(templateId)) {
           return new Response("Unknown templateId", {
             status: 400,
@@ -1180,11 +1380,27 @@ export default {
                     if (!verified) {
                       return { error: new Response("Unauthorized", { status: 401, headers: CORS_HEADERS }) };
                     }
+                    if (requireActive) {
+                      try {
+                        await ensureUserTemplateActive(env, verified.tenantId, templateId);
+                      } catch (error) {
+                        const message = error instanceof Error ? error.message : "Template not found";
+                        return { error: new Response(message, { status: 404, headers: CORS_HEADERS }) };
+                      }
+                    }
                     return getUserTemplateById(templateId, env, verified.tenantId);
                   }
 
                   const tenant = getTenantContext(url);
                   if ("error" in tenant) return tenant;
+                  if (requireActive) {
+                    try {
+                      await ensureUserTemplateActive(env, tenant.tenantKey, templateId);
+                    } catch (error) {
+                      const message = error instanceof Error ? error.message : "Template not found";
+                      return { error: new Response(message, { status: 404, headers: CORS_HEADERS }) };
+                    }
+                  }
                   return getUserTemplateById(templateId, env, tenant.tenantKey);
                 })()
               : getBaseTemplateById(templateId, env);
@@ -1418,7 +1634,7 @@ export default {
           Number.isFinite(rowHeightOverride) &&
           rowHeightOverride > 0;
 
-        const templateForRender = hasRowHeightOverride
+        let templateForRender = hasRowHeightOverride
           ? {
               ...migratedTemplate,
               elements: migratedTemplate.elements.map((el) =>
@@ -1428,6 +1644,17 @@ export default {
               ),
             }
           : migratedTemplate;
+        templateForRender = applyListV1SummaryFromMapping(templateForRender);
+        const mappingSummaryMode =
+          templateForRender.mapping &&
+          typeof templateForRender.mapping === "object" &&
+          ((templateForRender.mapping as any)?.table?.summaryMode ??
+            (templateForRender.mapping as any)?.table?.summary?.mode);
+        console.info("[render] summary snapshot", {
+          templateId: templateForRender.id ?? body.templateId ?? "",
+          mappingSummaryMode: mappingSummaryMode ?? null,
+          tableSummary: getTableSummarySnapshot(templateForRender),
+        });
         let dataForRender = (fixtureData ?? body.data) as unknown;
         const dataWarnings: string[] = [];
 

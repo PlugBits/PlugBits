@@ -45,7 +45,11 @@ export const useKintoneFields = () => {
         });
         if (!res.ok) {
           const text = await res.text();
-          throw new Error(text || 'Failed to fetch kintone fields');
+          const tokenStatuses = new Set([400, 401, 403, 502]);
+          const message = tokenStatuses.has(res.status)
+            ? 'kintone APIトークンが未設定、または権限不足のためフィールド一覧を取得できませんでした。'
+            : text || 'Failed to fetch kintone fields';
+          throw new Error(message);
         }
         const data = (await res.json()) as { fields?: KintoneFieldItem[] };
         setFields(Array.isArray(data.fields) ? data.fields : []);

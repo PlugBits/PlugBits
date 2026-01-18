@@ -15,7 +15,7 @@ export type TemplateIssue = {
   path?: string;
 };
 
-const PAGE_SIZES: PageSize[] = ['A4'];
+const PAGE_SIZES: PageSize[] = ['A4', 'Letter'];
 const ORIENTATIONS: Orientation[] = ['portrait', 'landscape'];
 
 const isItemNameColumn = (col: TableColumn) =>
@@ -26,7 +26,8 @@ export const migrateTemplate = (template: TemplateDefinition): TemplateDefinitio
   const nextStructureType =
     template.structureType === 'line_items_v1' ? 'list_v1' : template.structureType;
   const needsStructureUpdate = nextStructureType !== template.structureType;
-  if (schemaVersion >= TEMPLATE_SCHEMA_VERSION && !needsStructureUpdate) {
+  const needsPageSizeUpdate = !template.pageSize;
+  if (schemaVersion >= TEMPLATE_SCHEMA_VERSION && !needsStructureUpdate && !needsPageSizeUpdate) {
     return template;
   }
 
@@ -60,6 +61,7 @@ export const migrateTemplate = (template: TemplateDefinition): TemplateDefinitio
     ...template,
     schemaVersion: TEMPLATE_SCHEMA_VERSION,
     structureType: nextStructureType,
+    pageSize: template.pageSize ?? 'A4',
     elements: migratedElements,
     mapping,
   };

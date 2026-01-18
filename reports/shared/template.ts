@@ -1,6 +1,6 @@
 // shared/template.ts
 
-export type PageSize = 'A4';
+export type PageSize = 'A4' | 'Letter';
 export type Orientation = 'portrait' | 'landscape';
 //構造テンプレ種別（将来増やす） ---
 export type StructureType = 'list_v1';

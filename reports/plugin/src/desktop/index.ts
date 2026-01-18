@@ -36,10 +36,10 @@ const getConfig = (): PluginConfig | null => {
 const createButton = (label: string) => {
   const button = document.createElement('button');
   button.textContent = label;
-  button.className = 'kintoneplugin-button-normal plugbits-print-button';
+  button.className = 'kintoneplugin-button-normal plugbits-print-button plugbits-pdf-btn';
   button.style.marginLeft = '8px';
   button.dataset.defaultLabel = label;
-  button.dataset.loadingLabel = 'PDF生成中...';
+  button.dataset.loadingLabel = '出力中...';
   return button;
 };
 
@@ -98,6 +98,31 @@ const injectStyles = () => {
       background: #fee2e2;
       color: #991b1b;
       border: 1px solid #fecaca;
+    }
+    .plugbits-pdf-btn {
+      background: #2563eb;
+      color: #fff;
+      border: 1px solid #1d4ed8;
+      border-radius: 6px;
+      padding: 6px 12px;
+      font-weight: 600;
+      cursor: pointer;
+      box-shadow: 0 1px 2px rgba(16, 24, 40, 0.08);
+      transition: background 0.2s ease, transform 0.1s ease, box-shadow 0.2s ease;
+    }
+    .plugbits-pdf-btn:hover:not(:disabled) {
+      background: #1d4ed8;
+    }
+    .plugbits-pdf-btn:active:not(:disabled) {
+      background: #1e40af;
+      transform: translateY(1px);
+      box-shadow: 0 0 0 rgba(16, 24, 40, 0.08);
+    }
+    .plugbits-pdf-btn:disabled {
+      background: #9ca3af;
+      border-color: #9ca3af;
+      cursor: not-allowed;
+      opacity: 0.9;
     }
   `;
   document.head.appendChild(style);
@@ -359,38 +384,94 @@ const callRenderApi = async (
   });
 
   if (!response.ok) {
-    // ★ body は一度だけ読む
-    let message = '';
+    let text = '';
     try {
-      const text = await response.text();
-      try {
-        const payload = JSON.parse(text) as { error?: string };
-        message = payload.error ?? text;
-      } catch {
-        message = text || 'Unknown error';
-      }
+      text = await response.text();
     } catch {
-      message = 'Unknown error (failed to read response body)';
+      text = '';
     }
+    let message = '';
+    const textLower = text.toLowerCase();
+    const isTemplateInactive =
+      response.status >= 400 &&
+      response.status < 500 &&
+      (textLower.includes('not active') || textLower.includes('not found'));
 
-    if (message.includes('Unknown user templateId')) {
+    if (isTemplateInactive) {
+      message = 'テンプレが削除/無効です。プラグイン設定で再選択してください';
+    } else if (text.includes('Unknown user templateId')) {
       console.info('[PlugBits] render context', {
         workerBaseUrl: baseUrl,
         kintoneBaseUrl: location.origin,
         appId: appIdValue,
+        recordId,
         templateId: config.templateId,
       });
-      message = `${message}\nこのテンプレは現在のWorker環境に存在しません。プラグイン設定のWorkerベースURLと、エディタの保存先が一致しているか確認してください。`;
+      message = 'テンプレが見つかりません（保存先のWorker/テナントが違う可能性）';
+    } else if (response.status === 400) {
+      const detail = text || '不明なエラー';
+      message = `テンプレ設定が不正です（templateId / 必須フィールド / tenant情報）。詳細: ${detail}`;
+    } else if (response.status === 401 || response.status === 403) {
+      message = '認証に失敗しました（APIキー/トークン設定を確認）。';
+    } else if (response.status === 404) {
+      message = 'テンプレが見つかりません（templateId が存在しない可能性）。';
+    } else if (response.status === 500) {
+      message = 'サーバー側でPDF生成に失敗しました。少し時間をおいて再試行してください。';
+    } else {
+      message = text || `PDF生成に失敗しました（${response.status}）`;
     }
 
-    throw new Error(`PDF生成に失敗しました: ${message}`);
+    throw new Error(message);
   }
 
   return response.blob();
 };
 
+const checkTemplateAvailability = async (config: PluginConfig): Promise<boolean> => {
+  const baseUrl = (config.workerBaseUrl || config.apiBaseUrl || '').replace(/\/$/, '');
+  const templateId = config.templateId;
+  if (!baseUrl) {
+    alert('設定エラー: Worker ベースURLが未設定です');
+    return false;
+  }
+  if (!templateId) {
+    alert('テンプレートが未選択です');
+    return false;
+  }
+  const appId = (window as any).kintone?.app?.getId?.();
+  if (!appId) {
+    alert('アプリIDが取得できません');
+    return false;
+  }
+  const params = new URLSearchParams({
+    kintoneBaseUrl: location.origin,
+    appId: String(appId),
+  });
+  if (templateId.startsWith('tpl_')) {
+    params.set('requireActive', '1');
+  }
+  const url = `${baseUrl}/templates/${encodeURIComponent(templateId)}?${params.toString()}`;
+
+  try {
+    const res = await fetch(url, { cache: 'no-store' });
+    if (res.ok) return true;
+    const text = await res.text().catch(() => '');
+    if (res.status === 404 || res.status === 410 || text.includes('not active') || text.includes('not found')) {
+      alert('テンプレが無効です。プラグイン設定画面でテンプレを選び直してください。');
+      return false;
+    }
+    alert(text || 'テンプレ確認に失敗しました。プラグイン設定で再選択してください');
+    return false;
+  } catch {
+    alert('テンプレ確認に失敗しました。プラグイン設定で再選択してください');
+    return false;
+  }
+};
+
 const addButton = (config: PluginConfig) => {
-  const toolbar = document.querySelector('.gaia-argoui-app-toolbar') || document.body;
+  const headerMenuSpace =
+    (window as any).kintone?.app?.record?.getHeaderMenuSpaceElement?.() || null;
+  const toolbar = headerMenuSpace || document.querySelector('.gaia-argoui-app-toolbar') || document.body;
   if (!toolbar) return;
 
   if (document.getElementById('plugbits-print-button')) return;
@@ -409,6 +490,9 @@ const addButton = (config: PluginConfig) => {
       notify('レコードIDが取得できません');
       return;
     }
+
+    const templateOk = await checkTemplateAvailability(config);
+    if (!templateOk) return;
 
     const templateData = buildTemplateDataFromKintoneRecord(record);
     const normalized = normalizeItemsFromConfig(record, config, templateData);

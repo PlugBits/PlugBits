@@ -1,4 +1,5 @@
 import { buildTenantKey } from "../template/userTemplates.ts";
+import { canonicalizeAppId, canonicalizeKintoneBaseUrl } from "../utils/canonicalize.ts";
 
 export type TenantRecord = {
   tenantId: string;
@@ -66,10 +67,7 @@ const parseJsonPayload = <T>(base64Payload: string): T | null => {
   }
 };
 
-export const normalizeKintoneBaseUrl = (value: string): string => {
-  const url = new URL(value);
-  return url.origin;
-};
+export const normalizeKintoneBaseUrl = (value: string): string => canonicalizeKintoneBaseUrl(value);
 
 export const getTenantRecord = async (
   kv: KVNamespace,
@@ -93,7 +91,8 @@ export const registerTenant = async (
   },
 ): Promise<TenantRecord> => {
   const normalizedBaseUrl = normalizeKintoneBaseUrl(payload.kintoneBaseUrl);
-  const tenantId = buildTenantKey(normalizedBaseUrl, payload.appId);
+  const normalizedAppId = canonicalizeAppId(payload.appId);
+  const tenantId = buildTenantKey(normalizedBaseUrl, normalizedAppId);
   const existing = await getTenantRecord(kv, tenantId);
 
   if (existing) {
@@ -117,7 +116,7 @@ export const registerTenant = async (
     tenantId,
     tenantSecret,
     kintoneBaseUrl: normalizedBaseUrl,
-    appId: String(payload.appId),
+    appId: normalizedAppId,
     kintoneApiToken: payload.kintoneApiToken,
     createdAt: now,
   };

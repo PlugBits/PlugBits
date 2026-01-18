@@ -18,3 +18,8 @@ curl -i -X PUT "$BASE/templates/list_v1" \
 ```sh
 curl -i "$BASE/templates/list_v1"
 ```
+
+## Plugin Config Recovery Note
+
+- Reason: UI URL (Pages/localhost) must never be stored as the Worker API URL; settings now ignore saved `uiBaseUrl` and always open the fixed UI URL.
+- Quick test: open plugin settings with `apiBaseUrl` set to a Pages URL, confirm an error banner blocks save and picker/edit until a Workers URL is set.

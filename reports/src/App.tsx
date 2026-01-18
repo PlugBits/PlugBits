@@ -1,4 +1,5 @@
 import { HashRouter, Navigate, Route, Routes } from 'react-router-dom';
+import AppHeader from './components/AppHeader';
 import TemplateEditorPage from './pages/TemplateEditorPage.tsx';
 import TemplateListPage from './pages/TemplateListPage.tsx';
 import TemplatePreviewPage from './pages/TemplatePreviewPage.tsx';
@@ -7,17 +8,7 @@ const App = () => {
   return (
     <HashRouter>
       <div className="app-shell">
-        <header className="app-header">
-          <div>
-            <p className="app-title">PlugBits 帳票デザイナー</p>
-            <span className="app-subtitle">テンプレート管理と PDF プレビュー</span>
-          </div>
-          <nav className="app-nav">
-            <a href="https://plugbits.com" target="_blank" rel="noreferrer">
-              ドキュメント
-            </a>
-          </nav>
-        </header>
+        <AppHeader />
         <main className="app-main">
           <Routes>
             <Route path="/" element={<TemplateListPage />} />

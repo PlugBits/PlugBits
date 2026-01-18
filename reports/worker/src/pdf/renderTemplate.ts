@@ -533,6 +533,10 @@ const PAGE_DIMENSIONS: Record<
     portrait: [595.28, 841.89],
     landscape: [841.89, 595.28],
   },
+  Letter: {
+    portrait: [612, 792],
+    landscape: [792, 612],
+  },
 };
 
 /**

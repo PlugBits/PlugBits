@@ -1,7 +1,7 @@
 import { previewPdf } from '../api/previewPdf';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import type { TemplateElement, TextElement, TableElement, LabelElement, ImageElement } from '@shared/template';
+import type { TemplateElement, TextElement, TableElement, LabelElement, ImageElement, PageSize } from '@shared/template';
 import TemplateCanvas from '../components/TemplateCanvas';
 import ElementInspector from '../components/ElementInspector';
 import Toast from '../components/Toast';
@@ -55,7 +55,7 @@ const TemplateEditorPage = () => {
     const qs = params.toString();
     return qs ? `?${qs}` : '';
   }, [params]);
-
+  const headerTemplateId = template?.id ?? templateId ?? '';
 
   useEffect(() => {
     if (!templateId || authState !== 'authorized') return;
@@ -91,6 +91,7 @@ const TemplateEditorPage = () => {
       footerRepeatMode: template.footerRepeatMode ?? null,
       footerReserveHeight: template.footerReserveHeight ?? null,
       advancedLayoutEditing: !!template.advancedLayoutEditing,
+      pageSize: template.pageSize ?? 'A4',
     });
   }, [template]);
 
@@ -460,6 +461,7 @@ const TemplateEditorPage = () => {
         footerRepeatMode: template.footerRepeatMode ?? null,
         footerReserveHeight: template.footerReserveHeight ?? null,
         advancedLayoutEditing: !!template.advancedLayoutEditing,
+        pageSize: template.pageSize ?? 'A4',
       });
       setSaveStatus('success');
       setToast({
@@ -482,38 +484,6 @@ const TemplateEditorPage = () => {
     }
     return undefined;
   }, [saveStatus]);
-  if (authState === 'checking') {
-    return (
-      <div className="card">
-        <p style={{ margin: 0, color: '#475467' }}>Loading...</p>
-      </div>
-    );
-  }
-
-  if (authState === 'unauthorized') {
-    return (
-      <div className="card">
-        <p style={{ margin: 0, color: '#475467' }}>
-          プラグインから起動してください（短命トークンが必要です）。
-        </p>
-      </div>
-    );
-  }
-
-  if (!template) {
-    return (
-      <div className="card">
-        <p>
-          {loading
-            ? 'テンプレートを読み込み中...'
-            : error
-            ? error
-            : 'テンプレートが見つかりませんでした。'}
-        </p>
-        <button className="secondary" onClick={() => navigate(`/${preservedQuery}`)}>一覧へ戻る</button>
-      </div>
-    );
-  }
 
   return (
     <section
@@ -537,7 +507,36 @@ const TemplateEditorPage = () => {
         }, 100);
       }}
     >
-      <div className="card" style={{ marginBottom: '1.5rem' }}>
+      {authState === 'checking' && (
+        <div className="card" style={{ marginBottom: '1rem' }}>
+          <p style={{ margin: 0, color: '#475467' }}>Loading...</p>
+        </div>
+      )}
+
+      {authState === 'unauthorized' && (
+        <div className="card" style={{ marginBottom: '1rem' }}>
+          <p style={{ margin: 0, color: '#475467' }}>
+            プラグインから起動してください（短命トークンが必要です）。
+          </p>
+        </div>
+      )}
+
+      {authState === 'authorized' && !template && (
+        <div className="card" style={{ marginBottom: '1rem' }}>
+          <p>
+            {loading
+              ? 'テンプレートを読み込み中...'
+              : error
+              ? error
+              : 'テンプレートが見つかりませんでした。'}
+          </p>
+          <button className="secondary" onClick={() => navigate(`/${preservedQuery}`)}>一覧へ戻る</button>
+        </div>
+      )}
+
+      {authState === 'authorized' && template && (
+      <>
+        <div className="card" style={{ marginBottom: '1.5rem' }}>
         <div
           style={{
             display: 'flex',
@@ -548,6 +547,23 @@ const TemplateEditorPage = () => {
           }}
         >
           <div>
+            {headerTemplateId && (
+              <span
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  padding: '2px 10px',
+                  borderRadius: 999,
+                  border: '1px solid #e4e7ec',
+                  background: '#f2f4f7',
+                  color: '#344054',
+                  fontSize: '0.85rem',
+                  marginBottom: '0.6rem',
+                }}
+              >
+                選択中テンプレ: {headerTemplateId}
+              </span>
+            )}
             <input
               type="text"
               value={nameDraft}
@@ -684,6 +700,19 @@ const TemplateEditorPage = () => {
                 />
                 上級者モード（レイアウトXY編集・自己責任）
               </label>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                用紙サイズ
+                <select
+                  value={template.pageSize ?? 'A4'}
+                  onChange={(event) => {
+                    const next = event.target.value as PageSize;
+                    updateTemplate({ ...template, pageSize: next });
+                  }}
+                >
+                  <option value="A4">A4</option>
+                  <option value="Letter">Letter</option>
+                </select>
+              </label>
             </div>
           </div>
         )}
@@ -813,7 +842,9 @@ const TemplateEditorPage = () => {
             )}
           </div>
         </div>
-      </div>
+        </div>
+      </>
+      )}
 
       {toast && (
         <div className="toast-container">

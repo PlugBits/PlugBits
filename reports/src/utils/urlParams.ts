@@ -1,5 +1,5 @@
-export const getQueryParams = (locationSearch?: string) => {
-  const hash = window.location.hash ?? '';
+export const getQueryParams = (locationSearch?: string, locationHash?: string) => {
+  const hash = locationHash ?? window.location.hash ?? '';
   const hashIndex = hash.indexOf('?');
   if (hashIndex >= 0) {
     return new URLSearchParams(hash.slice(hashIndex + 1));

@@ -1,6 +1,6 @@
 // src/services/templateService.ts
 
-import type { TemplateDefinition, TemplateMeta, TemplateStatus } from '@shared/template';
+import type { TemplateDefinition, TemplateMeta, TemplateStatus, TableElement } from '@shared/template';
 import {
   applySlotDataOverrides,
   applySlotLayoutOverrides,
@@ -50,6 +50,22 @@ const buildHeaders = (includeContentType = true, requireEditorToken = false) => 
     throw new Error('Missing editorToken');
   }
   return headers;
+};
+
+const getSummarySnapshot = (template: TemplateDefinition) => {
+  const table = template.elements.find((el) => el.type === 'table') as TableElement | undefined;
+  const mapping = template.mapping as any;
+  return {
+    mappingSummaryMode: mapping?.table?.summaryMode ?? mapping?.table?.summary?.mode ?? null,
+    mappingSummaryConfig: mapping?.table?.summary ?? null,
+    tableSummaryMode: table?.summary?.mode ?? null,
+    tableSummaryRows: table?.summary?.rows?.map((row) => ({
+      op: row.op,
+      kind: row.kind ?? null,
+      columnId: row.columnId,
+      fieldCode: 'fieldCode' in row ? row.fieldCode : undefined,
+    })) ?? [],
+  };
 };
 
 const generateUserTemplateId = () =>
@@ -196,9 +212,14 @@ export async function createTemplateRemote(
     workerBaseUrl,
     templateId: template.id,
   });
+  console.info('[templateService] summary snapshot', {
+    templateId: template.id,
+    ...getSummarySnapshot(template),
+  });
   const baseTemplateId = template.baseTemplateId ?? 'list_v1';
   const payload: UserTemplatePayload = {
     baseTemplateId,
+    pageSize: template.pageSize,
     mapping: template.mapping ?? null,
     overrides: {
       layout: extractSlotLayoutOverrides(template),

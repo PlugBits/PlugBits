@@ -39,6 +39,9 @@ const TemplateListPage = () => {
   const { authState, tenantContext, params: pickerParams } = useEditorSession();
   const isPickerMode = pickerParams.get('mode') === 'picker' || pickerParams.has('returnOrigin');
   const returnOrigin = pickerParams.get('returnOrigin') ?? '';
+  const [selectedTemplateId, setSelectedTemplateId] = useState(
+    pickerParams.get('selectedTemplateId') ?? '',
+  );
   const preservedQuery = useMemo(() => {
     const qs = pickerParams.toString();
     return qs ? `?${qs}` : '';
@@ -102,6 +105,10 @@ const TemplateListPage = () => {
   }, [activeTab, fetchTemplateMetas, isAuthMissing]);
 
   useEffect(() => {
+    setSelectedTemplateId(pickerParams.get('selectedTemplateId') ?? '');
+  }, [pickerParams]);
+
+  useEffect(() => {
     if (isAuthMissing) return;
     void ensureCatalog();
   }, [ensureCatalog, isAuthMissing]);
@@ -162,21 +169,62 @@ const TemplateListPage = () => {
     }
   };
 
+  const resolveReturnOrigin = () => {
+    if (!returnOrigin) return '';
+    try {
+      new URL(returnOrigin);
+      return returnOrigin;
+    } catch {
+      return '';
+    }
+  };
+
+  const fallbackBack = () => {
+    const before = window.location.href;
+    window.history.back();
+    window.setTimeout(() => {
+      if (window.location.href === before) {
+        window.location.href = '/';
+      }
+    }, 200);
+  };
+
   const handlePickTemplate = (templateId: string) => {
-    if (!returnOrigin) {
-      alert('returnOrigin missing');
+    const origin = resolveReturnOrigin();
+    if (!origin) {
+      fallbackBack();
       return;
     }
-    let nextUrl = returnOrigin;
+    let nextUrl = origin;
     try {
-      const url = new URL(returnOrigin);
+      const url = new URL(origin);
       url.searchParams.set('selectedTemplateId', templateId);
       nextUrl = url.toString();
     } catch {
-      const joiner = returnOrigin.includes('?') ? '&' : '?';
-      nextUrl = `${returnOrigin}${joiner}selectedTemplateId=${encodeURIComponent(templateId)}`;
+      const joiner = origin.includes('?') ? '&' : '?';
+      nextUrl = `${origin}${joiner}selectedTemplateId=${encodeURIComponent(templateId)}`;
     }
     window.location.href = nextUrl;
+  };
+
+  const clearSelectionAndReturn = (status: 'deleted' | 'archived') => {
+    setSelectedTemplateId('');
+    const origin = resolveReturnOrigin();
+    if (!origin) {
+      fallbackBack();
+      return false;
+    }
+    try {
+      const url = new URL(origin);
+      url.searchParams.set('selectedTemplateId', '');
+      url.searchParams.set('status', status);
+      window.location.href = url.toString();
+      return true;
+    } catch {
+      const joiner = origin.includes('?') ? '&' : '?';
+      window.location.href = `${origin}${joiner}selectedTemplateId=&status=${status}`;
+      return true;
+    }
   };
 
   const toggleGroup = (baseTemplateId: string) => {
@@ -190,6 +238,9 @@ const TemplateListPage = () => {
     try {
       await archiveTemplate(templateId);
       setToast({ type: 'success', message: 'テンプレートをアーカイブしました' });
+      if (selectedTemplateId && selectedTemplateId === templateId) {
+        if (clearSelectionAndReturn('archived')) return;
+      }
     } catch (error) {
       setToast({
         type: 'error',
@@ -214,6 +265,9 @@ const TemplateListPage = () => {
     try {
       await softDeleteTemplate(templateId, activeTab);
       setToast({ type: 'success', message: 'テンプレートをゴミ箱へ移動しました' });
+      if (selectedTemplateId && selectedTemplateId === templateId) {
+        if (clearSelectionAndReturn('deleted')) return;
+      }
     } catch (error) {
       setToast({
         type: 'error',
@@ -239,6 +293,9 @@ const TemplateListPage = () => {
     try {
       await purgeTemplate(templateId);
       setToast({ type: 'success', message: 'テンプレートを完全に削除しました' });
+      if (selectedTemplateId && selectedTemplateId === templateId) {
+        if (clearSelectionAndReturn('deleted')) return;
+      }
     } catch (error) {
       setToast({
         type: 'error',
@@ -249,6 +306,24 @@ const TemplateListPage = () => {
 
   return (
     <section>
+      <div className="card" style={{ marginBottom: '1rem' }}>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center' }}>
+          <span
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              padding: '2px 10px',
+              borderRadius: 999,
+              border: '1px solid #e4e7ec',
+              background: '#f2f4f7',
+              color: '#344054',
+              fontSize: '0.85rem',
+            }}
+          >
+            選択中テンプレ: {selectedTemplateId || '未選択'}
+          </span>
+        </div>
+      </div>
       <div className="card" style={{ marginBottom: '1.5rem' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>

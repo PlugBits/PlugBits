@@ -1,88 +1,90 @@
-
 const PLUGIN_ID =
   (typeof kintone !== 'undefined' ? (kintone as any).$PLUGIN_ID : '') || '';
-
+const UI_BASE_URL = 'https://b8bb990a.plugbits.pages.dev';
 
 export type PluginConfig = {
-  workerBaseUrl: string;
-  uiBaseUrl: string;
-  workerApiKey: string;
+  apiBaseUrl: string;
+  apiKey: string;
   kintoneApiToken: string;
   templateId: string;
   attachmentFieldCode: string;
-  itemsTableFieldCode: string;
-  itemNameFieldCode: string;
-  qtyFieldCode: string;
-  unitPriceFieldCode: string;
-  amountFieldCode: string;
-  apiBaseUrl?: string;
-  apiKey?: string;
-};
-
-type TemplateCatalogItem = {
-  templateId: string;
-  displayName: string;
-  structureType: string;
-  description?: string;
-  version?: number;
-  flags?: string[];
-};
-
-type TemplateCatalogResponse = {
-  templates: TemplateCatalogItem[];
 };
 
 const buildInitialConfig = (): PluginConfig => ({
-  workerBaseUrl: '',
-  uiBaseUrl: '',
-  workerApiKey: '',
+  apiBaseUrl: '',
+  apiKey: '',
   kintoneApiToken: '',
   templateId: '',
   attachmentFieldCode: '',
-  itemsTableFieldCode: '',
-  itemNameFieldCode: '',
-  qtyFieldCode: '',
-  unitPriceFieldCode: '',
-  amountFieldCode: '',
-  apiBaseUrl: '',
-  apiKey: '',
 });
 
-const loadConfig = (): PluginConfig => {
-  if (!PLUGIN_ID) {
-    // 開発中などで kintone がまだ無い場合用（または初期値）
-    return buildInitialConfig();
-  }
-
-  const rawConfig =
-    (kintone as any).plugin?.app?.getConfig(PLUGIN_ID) || {};
-  const workerBaseUrl = rawConfig.workerBaseUrl ?? rawConfig.apiBaseUrl ?? '';
-  const workerApiKey = rawConfig.workerApiKey ?? rawConfig.apiKey ?? '';
-
+const normalizeConfig = (rawConfig: Record<string, any>) => {
+  const legacyUiBaseUrl =
+    rawConfig.uiBaseUrl ?? rawConfig.ui_base_url ?? rawConfig.uiBase ?? rawConfig.uiUrl ?? '';
   return {
-    workerBaseUrl,
-    uiBaseUrl: rawConfig.uiBaseUrl ?? '',
-    workerApiKey,
-    kintoneApiToken: rawConfig.kintoneApiToken ?? '',
-    templateId: rawConfig.templateId ?? '',
-    attachmentFieldCode: rawConfig.attachmentFieldCode ?? '',
-    itemsTableFieldCode: rawConfig.itemsTableFieldCode ?? '',
-    itemNameFieldCode: rawConfig.itemNameFieldCode ?? '',
-    qtyFieldCode: rawConfig.qtyFieldCode ?? '',
-    unitPriceFieldCode: rawConfig.unitPriceFieldCode ?? '',
-    amountFieldCode: rawConfig.amountFieldCode ?? '',
-    apiBaseUrl: workerBaseUrl,
-    apiKey: workerApiKey,
+    config: {
+      apiBaseUrl: rawConfig.apiBaseUrl ?? rawConfig.workerBaseUrl ?? '',
+      apiKey: rawConfig.apiKey ?? rawConfig.workerApiKey ?? '',
+      kintoneApiToken: rawConfig.kintoneApiToken ?? '',
+      templateId: rawConfig.templateId ?? '',
+      attachmentFieldCode: rawConfig.attachmentFieldCode ?? '',
+    },
+    legacy: {
+      workerBaseUrl: rawConfig.workerBaseUrl ?? '',
+      workerApiKey: rawConfig.workerApiKey ?? '',
+      uiBaseUrl: legacyUiBaseUrl,
+    },
+    rawConfig,
   };
 };
 
+const loadConfig = (): {
+  config: PluginConfig;
+  legacy: { workerBaseUrl: string; workerApiKey: string; uiBaseUrl: string };
+  rawConfig: Record<string, any>;
+} => {
+  if (!PLUGIN_ID) {
+    return {
+      config: buildInitialConfig(),
+      legacy: { workerBaseUrl: '', workerApiKey: '', uiBaseUrl: '' },
+      rawConfig: {},
+    };
+  }
 
+  const rawConfig = (kintone as any).plugin?.app?.getConfig(PLUGIN_ID) || {};
+  return normalizeConfig(rawConfig);
+};
 
 const renderForm = () => {
-  const container = document.getElementById('plugbits-plugin-config');
-  if (!container) return;
+  const resolveContainer = (): HTMLElement => {
+    const direct = document.getElementById('plugbits-plugin-config');
+    if (direct) return direct;
 
-  const config = loadConfig();
+    const fallbackIds = ['settings', 'root', 'app', 'content', 'plugin-config'];
+    for (const id of fallbackIds) {
+      const el = document.getElementById(id);
+      if (el) {
+        el.id = 'plugbits-plugin-config';
+        return el;
+      }
+    }
+
+    const created = document.createElement('div');
+    created.id = 'plugbits-plugin-config';
+    document.body.appendChild(created);
+    return created;
+  };
+
+  const removeLoading = () => {
+    const targets = document.querySelectorAll<HTMLElement>(
+      '#loading, .kb-loading, .spinner, .loading',
+    );
+    targets.forEach((el) => el.remove());
+  };
+
+  const container = resolveContainer();
+
+  const { config, legacy, rawConfig } = loadConfig();
 
   container.innerHTML = `
     <h1 class="kb-title">PlugBits 帳票プラグイン設定</h1>
@@ -91,11 +93,27 @@ const renderForm = () => {
       を添付するフィールドコードを入力してください。
     </p>
 
-    <label class="kb-label" for="apiBaseUrl">Worker ベースURL</label>
+    <label class="kb-label" for="apiBaseUrl">API ベースURL</label>
     <input class="kb-input" id="apiBaseUrl" type="text" placeholder="https://example.workers.dev" />
-
-    <label class="kb-label" for="uiBaseUrl">UI ベースURL</label>
-    <input class="kb-input" id="uiBaseUrl" type="text" placeholder="http://localhost:5173" />
+    <div class="kb-row" style="margin-top:4px; gap:8px; align-items:center; flex-wrap:wrap;">
+      <span
+        id="apiBaseUrlStatus"
+        style="display:inline-flex; align-items:center; padding:2px 10px; border-radius:999px; border:1px solid #e4e7ec; background:#f2f4f7; color:#667085; font-size:12px;"
+      >API URL: 未確認</span>
+      <span
+        id="apiBaseUrlCheckedAt"
+        style="display:inline-flex; align-items:center; padding:2px 10px; border-radius:999px; border:1px solid #e4e7ec; background:#f2f4f7; color:#667085; font-size:12px;"
+      >最終確認: -</span>
+    </div>
+    <div
+      id="apiBaseUrlAlert"
+      style="display:none; margin-top:6px; padding:8px 10px; border-radius:6px; background:#fef3f2; border:1px solid #fecdca; color:#b42318;"
+    >
+      <div style="display:flex; align-items:center; justify-content:space-between; gap:8px;">
+        <span id="apiBaseUrlAlertText">API ベースURLが無効です。</span>
+        <button id="fixApiBaseUrl" class="kb-btn" type="button">Fix API URL</button>
+      </div>
+    </div>
 
     <label class="kb-label" for="apiKey">Worker API キー</label>
     <input class="kb-input" id="apiKey" type="password" />
@@ -103,45 +121,48 @@ const renderForm = () => {
     <label class="kb-label" for="kintoneApiToken">kintone APIトークン</label>
     <input class="kb-input" id="kintoneApiToken" type="password" placeholder="REST API用のトークン" />
 
-    <label class="kb-label" for="templateSelect">テンプレを選択</label>
-    <select class="kb-input" id="templateSelect"></select>
-    <div class="kb-desc" id="templateCatalogStatus" style="margin-top:4px;"></div>
-    <div class="kb-desc" style="margin-top:6px;">
-      <div>説明: <span id="templateDescription">-</span></div>
-      <div>structureType: <span id="templateStructureType">-</span></div>
+    <label class="kb-label">選択中テンプレート</label>
+    <div class="kb-row" style="margin-top:4px; gap:8px; align-items:center; flex-wrap:wrap;">
+      <span
+        id="selectedTemplateBadge"
+        style="display:inline-flex; align-items:center; padding:2px 10px; border-radius:999px; border:1px solid #e4e7ec; background:#f2f4f7; color:#344054; font-size:12px;"
+      >テンプレ: 未選択</span>
+      <span
+        id="selectedTemplateUpdatedAt"
+        style="display:inline-flex; align-items:center; padding:2px 10px; border-radius:999px; border:1px solid #e4e7ec; background:#f2f4f7; color:#667085; font-size:12px;"
+      >更新: -</span>
+      <span
+        id="selectedTemplateStatus"
+        style="display:inline-flex; align-items:center; padding:2px 10px; border-radius:999px; border:1px solid #e4e7ec; background:#f2f4f7; color:#667085; font-size:12px;"
+      >状態: -</span>
+      <span
+        id="selectedTemplateState"
+        style="display:inline-flex; align-items:center; padding:2px 10px; border-radius:999px; border:1px solid #e4e7ec; background:#f2f4f7; color:#667085; font-size:12px;"
+      >未確認</span>
+      <span
+        id="selectedTemplateCheckedAt"
+        style="display:inline-flex; align-items:center; padding:2px 10px; border-radius:999px; border:1px solid #e4e7ec; background:#f2f4f7; color:#667085; font-size:12px;"
+      >最終確認: -</span>
     </div>
-
-    <label class="kb-label" for="templateIdManual">テンプレID（手入力）</label>
-    <input class="kb-input" id="templateIdManual" type="text" />
-    <div class="kb-desc" id="selectedTemplateNotice" style="margin-top:4px;"></div>
     <div class="kb-desc" id="templateIdStatus" style="margin-top:4px; color:#b42318;"></div>
     <div class="kb-row" style="margin-top:6px;">
-      <button id="openTemplatePicker" class="kb-btn" type="button">テンプレ一覧を開く</button>
-      <button id="editTemplateButton" class="kb-btn" type="button">このテンプレを編集</button>
-      <button id="openPickerEntry" class="kb-btn" type="button">テンプレを選ぶ/編集する</button>
+      <button id="openTemplatePicker" class="kb-btn" type="button">テンプレを選ぶ</button>
+      <button id="openTemplateEditor" class="kb-btn" type="button">選択中テンプレを編集</button>
     </div>
+
+    <details id="templateIdDetails" style="margin-top:8px;">
+      <summary class="kb-label">詳細設定</summary>
+      <label class="kb-label" for="templateId">テンプレートID（手入力）</label>
+      <input class="kb-input" id="templateId" type="text" placeholder="tpl_xxx または list_v1" />
+    </details>
 
     <label class="kb-label" for="attachmentFieldCode">添付ファイルフィールドコード</label>
     <input class="kb-input" id="attachmentFieldCode" type="text" placeholder="attachment" />
 
-    <label class="kb-label" for="itemsTableFieldCode">明細サブテーブル フィールドコード</label>
-    <input class="kb-input" id="itemsTableFieldCode" type="text" placeholder="Items" />
-
-    <label class="kb-label" for="itemNameFieldCode">品名フィールドコード</label>
-    <input class="kb-input" id="itemNameFieldCode" type="text" placeholder="ItemName" />
-
-    <label class="kb-label" for="qtyFieldCode">数量フィールドコード</label>
-    <input class="kb-input" id="qtyFieldCode" type="text" placeholder="Qty" />
-
-    <label class="kb-label" for="unitPriceFieldCode">単価フィールドコード</label>
-    <input class="kb-input" id="unitPriceFieldCode" type="text" placeholder="UnitPrice" />
-
-    <label class="kb-label" for="amountFieldCode">金額フィールドコード</label>
-    <input class="kb-input" id="amountFieldCode" type="text" placeholder="Amount" />
-
     <div class="kb-row kb-toolbar">
       <button id="saveButton" class="kb-btn kb-primary" type="button">保存</button>
       <button id="cancelButton" class="kb-btn" type="button">キャンセル</button>
+      <button id="resetConfigButton" class="kb-btn" type="button">設定をリセット</button>
     </div>
   `;
 
@@ -149,267 +170,315 @@ const renderForm = () => {
     const el = document.getElementById(id) as HTMLInputElement | null;
     if (el) el.value = value;
   };
-  setInputValue('apiBaseUrl', config.workerBaseUrl);
-  setInputValue('uiBaseUrl', config.uiBaseUrl || 'http://localhost:5173');
-  setInputValue('apiKey', config.workerApiKey);
+
+  setInputValue('apiBaseUrl', config.apiBaseUrl);
+  setInputValue('apiKey', config.apiKey);
   setInputValue('kintoneApiToken', config.kintoneApiToken);
-  const selectedTemplateIdFromUrl = (() => {
+  setInputValue('templateId', config.templateId);
+  setInputValue('attachmentFieldCode', config.attachmentFieldCode);
+
+  const getInputValue = (id: string) =>
+    (document.getElementById(id) as HTMLInputElement | null)?.value.trim() || '';
+
+  const normalizeBaseUrl = (value: string) => value.replace(/\/+$/, '');
+
+  const readSelectedTemplateId = (): string | null => {
     const hash = window.location.hash ?? '';
     const hashIndex = hash.indexOf('?');
     let qs = hashIndex >= 0 ? hash.slice(hashIndex + 1) : '';
     if (!qs) {
       qs = window.location.search ?? '';
     }
-    if (!qs) return '';
+    if (!qs) return null;
     const params = new URLSearchParams(qs.startsWith('?') ? qs : `?${qs}`);
+    if (!params.has('selectedTemplateId')) return null;
     return params.get('selectedTemplateId') ?? '';
-  })();
-  const initialTemplateId = selectedTemplateIdFromUrl || config.templateId;
-  setInputValue('templateIdManual', initialTemplateId);
-  setInputValue('attachmentFieldCode', config.attachmentFieldCode);
-  setInputValue('itemsTableFieldCode', config.itemsTableFieldCode);
-  setInputValue('itemNameFieldCode', config.itemNameFieldCode);
-  setInputValue('qtyFieldCode', config.qtyFieldCode);
-  setInputValue('unitPriceFieldCode', config.unitPriceFieldCode);
-  setInputValue('amountFieldCode', config.amountFieldCode);
+  };
 
-  const getInputValue = (id: string) => (document.getElementById(id) as HTMLInputElement)?.value.trim() || '';
-  const templateSelect = document.getElementById('templateSelect') as HTMLSelectElement | null;
-  const templateIdManual = document.getElementById('templateIdManual') as HTMLInputElement | null;
-  const templateDescription = document.getElementById('templateDescription') as HTMLElement | null;
-  const templateStructureType = document.getElementById('templateStructureType') as HTMLElement | null;
-  const catalogStatus = document.getElementById('templateCatalogStatus') as HTMLElement | null;
-  const selectedTemplateNotice = document.getElementById('selectedTemplateNotice') as HTMLElement | null;
-  const templateIdStatus = document.getElementById('templateIdStatus') as HTMLElement | null;
-  const openTemplatePicker = document.getElementById('openTemplatePicker') as HTMLButtonElement | null;
-  const editTemplateButton = document.getElementById('editTemplateButton') as HTMLButtonElement | null;
-  const openPickerEntry = document.getElementById('openPickerEntry') as HTMLButtonElement | null;
-  const CUSTOM_OPTION = '__custom__';
-  let catalogCache: TemplateCatalogItem[] | null = null;
-
-  const normalizeBaseUrl = (value: string) => value.replace(/\/+$/, '');
-  const getUiOrigin = (value: string) => {
-    if (!value) return '';
+  const cleanSelectedTemplateIdFromUrl = () => {
     try {
-      return new URL(normalizeBaseUrl(value)).origin;
+      const url = new URL(window.location.href);
+      if (url.searchParams.has('selectedTemplateId')) {
+        url.searchParams.delete('selectedTemplateId');
+      }
+      const hash = url.hash ?? '';
+      if (hash.includes('?')) {
+        const [path, rawQuery] = hash.split('?');
+        const hashParams = new URLSearchParams(rawQuery);
+        if (hashParams.has('selectedTemplateId')) {
+          hashParams.delete('selectedTemplateId');
+          const nextQuery = hashParams.toString();
+          url.hash = nextQuery ? `${path}?${nextQuery}` : path;
+        }
+      }
+      history.replaceState(null, '', url.toString());
     } catch {
-      return '';
+      // ignore
     }
   };
 
-  const updateSelectedTemplateNotice = (templateId: string) => {
-    if (!selectedTemplateNotice) return;
-    selectedTemplateNotice.textContent = templateId ? `選択中: ${templateId}` : '';
-  };
+  const getReturnOrigin = () => window.location.href;
 
-  const showTemplateWarning = (message: string) => {
-    if (templateIdStatus) templateIdStatus.textContent = message;
-    if (openPickerEntry) openPickerEntry.classList.add('kb-primary');
-  };
-
-  const clearTemplateWarning = () => {
-    if (templateIdStatus) templateIdStatus.textContent = '';
-    if (openPickerEntry) openPickerEntry.classList.remove('kb-primary');
-  };
-
-  const checkTemplateExists = async (templateId: string) => {
-    if (!templateId.startsWith('tpl_')) {
-      clearTemplateWarning();
-      return;
-    }
-    const workerBaseUrl = normalizeBaseUrl(getInputValue('apiBaseUrl'));
-    const kintoneBaseUrl = normalizeBaseUrl(location.origin);
-    const appId = (kintone as any)?.app?.getId?.() ?? '';
-    if (!workerBaseUrl || !appId) return;
-    const url = `${workerBaseUrl}/templates/${encodeURIComponent(templateId)}?` +
-      `kintoneBaseUrl=${encodeURIComponent(kintoneBaseUrl)}&appId=${encodeURIComponent(String(appId))}`;
-    try {
-      const res = await fetch(url, { cache: 'no-store' });
-      if (!res.ok) {
-        showTemplateWarning('テンプレが見つかりません。再選択してください。');
-        return;
-      }
-      clearTemplateWarning();
-    } catch {
-      showTemplateWarning('テンプレが見つかりません。再選択してください。');
-    }
-  };
-
-  const handleTemplateIdChanged = (templateId: string) => {
-    updateSelectedTemplateNotice(templateId);
-    void checkTemplateExists(templateId);
-  };
-
-  const setTemplateMeta = (item?: TemplateCatalogItem) => {
-    if (templateDescription) {
-      templateDescription.textContent = item?.description || '-';
-    }
-    if (templateStructureType) {
-      templateStructureType.textContent = item?.structureType || '-';
-    }
-  };
-
-  const applyTemplateSelection = (
-    selectedId: string,
-    catalog: TemplateCatalogItem[] | null,
-  ) => {
-    if (!templateSelect || !templateIdManual) return;
-    const match = catalog?.find((tpl) => tpl.templateId === selectedId);
-    if (match) {
-      templateSelect.value = match.templateId;
-      templateIdManual.value = match.templateId;
-      templateIdManual.disabled = true;
-      setTemplateMeta(match);
-      handleTemplateIdChanged(match.templateId);
-      return;
-    }
-    templateSelect.value = CUSTOM_OPTION;
-    templateIdManual.value = selectedId;
-    templateIdManual.disabled = false;
-    setTemplateMeta(undefined);
-    handleTemplateIdChanged(selectedId);
-  };
-
-  const renderCatalogOptions = (
-    catalog: TemplateCatalogItem[] | null,
-    selectedId: string,
-  ) => {
-    if (!templateSelect) return;
-    templateSelect.innerHTML = '';
-    catalogCache = catalog;
-    if (catalog && catalog.length > 0) {
-      for (const tpl of catalog) {
-        const opt = document.createElement('option');
-        opt.value = tpl.templateId;
-        opt.textContent = `${tpl.displayName} (${tpl.templateId})`;
-        templateSelect.appendChild(opt);
-      }
-    }
-    const customOpt = document.createElement('option');
-    customOpt.value = CUSTOM_OPTION;
-    customOpt.textContent = 'カスタム（手入力）';
-    templateSelect.appendChild(customOpt);
-    applyTemplateSelection(selectedId, catalog);
-  };
-
-  const loadCatalog = async (baseUrl: string, selectedId: string) => {
-    if (!templateSelect || !templateIdManual) return;
-    if (!baseUrl) {
-      renderCatalogOptions(null, selectedId);
-      if (catalogStatus) catalogStatus.textContent = 'APIベースURLが未設定のためカタログは取得できません。';
-      return;
-    }
-    const catalogUrl = `${normalizeBaseUrl(baseUrl)}/templates-catalog`;
-    try {
-      const res = await fetch(catalogUrl, { method: 'GET' });
-      if (!res.ok) {
-        throw new Error(`status ${res.status}`);
-      }
-      const data = (await res.json()) as TemplateCatalogResponse;
-      const templates = Array.isArray(data.templates) ? data.templates : [];
-      renderCatalogOptions(templates, selectedId);
-      if (catalogStatus) catalogStatus.textContent = '';
-    } catch (error) {
-      console.warn('テンプレカタログ取得に失敗しました', error);
-      renderCatalogOptions(null, selectedId);
-      if (catalogStatus) {
-        catalogStatus.textContent = 'テンプレカタログの取得に失敗しました。手入力で指定してください。';
-      }
-    }
-  };
-
-  templateSelect?.addEventListener('change', () => {
-    if (!templateSelect || !templateIdManual) return;
-    if (templateSelect.value === CUSTOM_OPTION) {
-      templateIdManual.disabled = false;
-      templateIdManual.focus();
-      setTemplateMeta(undefined);
-      updateEditButtonState();
-      return;
-    }
-    templateIdManual.value = templateSelect.value;
-    templateIdManual.disabled = true;
-    const match = catalogCache?.find((tpl) => tpl.templateId === templateSelect.value);
-    setTemplateMeta(match);
-    updateEditButtonState();
-    handleTemplateIdChanged(templateSelect.value);
-  });
-
-  templateIdManual?.addEventListener('input', () => {
-    if (!templateSelect) return;
-    if (templateSelect.value !== CUSTOM_OPTION) return;
-    setTemplateMeta(undefined);
-    updateEditButtonState();
-    handleTemplateIdChanged(templateIdManual.value);
-  });
-
-  const updateEditButtonState = () => {
-    if (!editTemplateButton) return;
-    const templateId = getInputValue('templateIdManual');
-    editTemplateButton.disabled = !templateId;
-  };
-
-  updateEditButtonState();
-  handleTemplateIdChanged(initialTemplateId);
-
-  const handleTemplatePicked = (event: MessageEvent) => {
-    if (!event?.data || event.data.type !== 'PB_TEMPLATE_PICKED') return;
-    const expectedOrigin = getUiOrigin(getInputValue('uiBaseUrl'));
-    if (!expectedOrigin || event.origin !== expectedOrigin) return;
-    const templateId = String(event.data.templateId ?? '');
-    if (!templateId) return;
-    applyTemplateSelection(templateId, catalogCache);
-    updateEditButtonState();
-  };
-
-  window.addEventListener('message', handleTemplatePicked);
-
-  openTemplatePicker?.addEventListener('click', () => {
-    const uiBaseUrl = normalizeBaseUrl(getInputValue('uiBaseUrl'));
-    if (!uiBaseUrl) {
-      alert('UIベースURLが未設定です');
-      return;
-    }
-    const ui = uiBaseUrl.replace(/\/$/, '');
-    const returnOrigin = location.href;
-    const kintoneBaseUrl = location.origin;
-    const appId = (kintone as any)?.app?.getId?.() ?? '';
-    const token = getInputValue('kintoneApiToken');
-    const workerBaseUrl = getInputValue('apiBaseUrl');
-    const params = new URLSearchParams({
+  const buildPickerUrl = (params: {
+    workerBaseUrl: string;
+    kintoneBaseUrl: string;
+    appId: string;
+    returnOrigin: string;
+    sessionToken: string;
+  }) => {
+    const query = new URLSearchParams({
       mode: 'picker',
-      returnOrigin,
-      kintoneBaseUrl,
-      appId: String(appId),
-      ...(workerBaseUrl ? { workerBaseUrl } : {}),
-      ...(token ? { kintoneApiToken: token } : {}),
+      sessionToken: params.sessionToken,
+      workerBaseUrl: params.workerBaseUrl,
+      kintoneBaseUrl: params.kintoneBaseUrl,
+      appId: String(params.appId),
+      returnOrigin: params.returnOrigin,
     });
-    const openUrl = `${ui}/#/templates?${params.toString()}`;
-    console.log('[PlugBits] open picker url', openUrl);
-    location.assign(openUrl);
-  });
+    return `${UI_BASE_URL}/#/picker?${query.toString()}`;
+  };
 
-  openPickerEntry?.addEventListener('click', async () => {
-    const editorOrigin = normalizeBaseUrl(getInputValue('uiBaseUrl'));
-    const workerBaseUrl = normalizeBaseUrl(getInputValue('apiBaseUrl'));
-    const kintoneBaseUrl = normalizeBaseUrl(location.origin);
-    const appId = (kintone as any)?.app?.getId?.() ?? '';
+  const buildEditUrl = (params: {
+    templateId: string;
+    workerBaseUrl: string;
+    kintoneBaseUrl: string;
+    appId: string;
+    returnOrigin: string;
+    sessionToken: string;
+  }) => {
+    const query = new URLSearchParams({
+      sessionToken: params.sessionToken,
+      workerBaseUrl: params.workerBaseUrl,
+      kintoneBaseUrl: params.kintoneBaseUrl,
+      appId: String(params.appId),
+      returnOrigin: params.returnOrigin,
+    });
+    return `${UI_BASE_URL}/#/templates/${encodeURIComponent(params.templateId)}/edit?${query.toString()}`;
+  };
+
+  const apiBaseUrlStatus = document.getElementById('apiBaseUrlStatus');
+  const apiBaseUrlCheckedAt = document.getElementById('apiBaseUrlCheckedAt');
+  const apiBaseUrlAlert = document.getElementById('apiBaseUrlAlert');
+  const apiBaseUrlAlertText = document.getElementById('apiBaseUrlAlertText');
+  const fixApiBaseUrlButton = document.getElementById('fixApiBaseUrl') as HTMLButtonElement | null;
+  const selectedTemplateBadge = document.getElementById('selectedTemplateBadge');
+  const selectedTemplateUpdatedAt = document.getElementById('selectedTemplateUpdatedAt');
+  const selectedTemplateStatus = document.getElementById('selectedTemplateStatus');
+  const selectedTemplateState = document.getElementById('selectedTemplateState');
+  const selectedTemplateCheckedAt = document.getElementById('selectedTemplateCheckedAt');
+  const templateIdStatus = document.getElementById('templateIdStatus');
+  const openTemplatePicker = document.getElementById('openTemplatePicker') as HTMLButtonElement | null;
+  const openTemplateEditor = document.getElementById('openTemplateEditor') as HTMLButtonElement | null;
+
+  let currentTemplateValidity: 'valid' | 'invalid' | 'unset' | 'unknown' = 'unknown';
+  let currentTemplateStatus: 'active' | 'archived' | 'deleted' | 'not_found' | 'unknown' = 'unknown';
+  let currentApiStatus: 'valid' | 'invalid' | 'unknown' | 'unset' = 'unknown';
+
+  const updateSelectedTemplateBadge = (label: string) => {
+    if (!selectedTemplateBadge) return;
+    selectedTemplateBadge.textContent = label
+      ? `テンプレ: ${label}`
+      : 'テンプレ: 未選択';
+  };
+
+  const setTemplateStateBadge = (
+    state: 'valid' | 'invalid' | 'unset' | 'unknown',
+    message?: string,
+  ) => {
+    currentTemplateValidity = state;
+    if (templateIdStatus) templateIdStatus.textContent = message ?? '';
+    if (openTemplatePicker) {
+      openTemplatePicker.classList.toggle('kb-primary', state === 'invalid');
+    }
+    if (!selectedTemplateState) return;
+    if (state === 'valid') {
+      selectedTemplateState.textContent = '有効';
+      selectedTemplateState.style.background = '#ecfdf3';
+      selectedTemplateState.style.color = '#027a48';
+      selectedTemplateState.style.borderColor = '#abefc6';
+      return;
+    }
+    if (state === 'invalid') {
+      selectedTemplateState.textContent = '無効';
+      selectedTemplateState.style.background = '#fef3f2';
+      selectedTemplateState.style.color = '#b42318';
+      selectedTemplateState.style.borderColor = '#fecdca';
+      return;
+    }
+    if (state === 'unset') {
+      selectedTemplateState.textContent = '未選択';
+      selectedTemplateState.style.background = '#f2f4f7';
+      selectedTemplateState.style.color = '#667085';
+      selectedTemplateState.style.borderColor = '#e4e7ec';
+      return;
+    }
+    selectedTemplateState.textContent = '未確認';
+    selectedTemplateState.style.background = '#f2f4f7';
+    selectedTemplateState.style.color = '#667085';
+    selectedTemplateState.style.borderColor = '#e4e7ec';
+  };
+
+  const formatUpdatedAt = (value?: string) => {
+    if (!value) return '-';
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return '-';
+    return date.toLocaleString();
+  };
+
+  const updateTemplateUpdatedAt = (value?: string) => {
+    if (!selectedTemplateUpdatedAt) return;
+    selectedTemplateUpdatedAt.textContent = `更新: ${formatUpdatedAt(value)}`;
+  };
+
+  const updateTemplateStatus = (status: typeof currentTemplateStatus) => {
+    currentTemplateStatus = status;
+    if (!selectedTemplateStatus) return;
+    const label =
+      status === 'active'
+        ? 'Active'
+        : status === 'archived'
+          ? 'Archived'
+          : status === 'deleted'
+            ? 'Trash'
+            : status === 'not_found'
+              ? 'Missing'
+              : '不明';
+    selectedTemplateStatus.textContent = `状態: ${label}`;
+  };
+
+  const updateTemplateCheckedAt = (value?: string) => {
+    if (!selectedTemplateCheckedAt) return;
+    selectedTemplateCheckedAt.textContent = `最終確認: ${value ?? '-'}`;
+  };
+
+  const isLikelyPagesUrl = (value: string) => {
+    try {
+      const url = new URL(value);
+      const host = url.host.toLowerCase();
+      if (host.endsWith('.pages.dev') || host.includes('.pages.dev')) return true;
+      if (host.endsWith('.pages.cloudflare.com') || host.includes('.pages.cloudflare.com')) return true;
+      if (host.endsWith('.github.io') || host.includes('.github.io')) return true;
+      if (host.startsWith('localhost') || host.startsWith('127.0.0.1')) {
+        const port = url.port || (url.protocol === 'https:' ? '443' : '80');
+        if (['5173', '3000', '4173'].includes(port)) return true;
+      }
+      return false;
+    } catch {
+      return false;
+    }
+  };
+
+  const isValidHttpUrl = (value: string) => {
+    try {
+      const url = new URL(value);
+      return url.protocol === 'http:' || url.protocol === 'https:';
+    } catch {
+      return false;
+    }
+  };
+
+  const isLikelyWorkersUrl = (value: string) => {
+    try {
+      const url = new URL(value);
+      const host = url.host.toLowerCase();
+      if (host.endsWith('.workers.dev') || host.includes('.workers.dev')) return true;
+      return false;
+    } catch {
+      return false;
+    }
+  };
+
+  const updateApiCheckedAt = (value?: string) => {
+    if (!apiBaseUrlCheckedAt) return;
+    apiBaseUrlCheckedAt.textContent = `最終確認: ${value ?? '-'}`;
+  };
+
+  const updateApiStatus = (
+    status: typeof currentApiStatus,
+    note?: string,
+  ) => {
+    currentApiStatus = status;
+    if (!apiBaseUrlStatus) return;
+    if (status === 'valid') {
+      apiBaseUrlStatus.textContent = 'API URL: Workers';
+      apiBaseUrlStatus.style.background = '#ecfdf3';
+      apiBaseUrlStatus.style.color = '#027a48';
+      apiBaseUrlStatus.style.borderColor = '#abefc6';
+      return;
+    }
+    if (status === 'invalid') {
+      apiBaseUrlStatus.textContent = `API URL: ${note ?? '不正'}`;
+      apiBaseUrlStatus.style.background = '#fef3f2';
+      apiBaseUrlStatus.style.color = '#b42318';
+      apiBaseUrlStatus.style.borderColor = '#fecdca';
+      return;
+    }
+    if (status === 'unset') {
+      apiBaseUrlStatus.textContent = 'API URL: 未設定';
+      apiBaseUrlStatus.style.background = '#f2f4f7';
+      apiBaseUrlStatus.style.color = '#667085';
+      apiBaseUrlStatus.style.borderColor = '#e4e7ec';
+      return;
+    }
+    apiBaseUrlStatus.textContent = `API URL: ${note ?? '未確認'}`;
+    apiBaseUrlStatus.style.background = '#f2f4f7';
+    apiBaseUrlStatus.style.color = '#667085';
+    apiBaseUrlStatus.style.borderColor = '#e4e7ec';
+  };
+
+  const showApiAlert = (message: string, showFix: boolean) => {
+    if (!apiBaseUrlAlert) return;
+    if (apiBaseUrlAlertText) apiBaseUrlAlertText.textContent = message;
+    if (fixApiBaseUrlButton) fixApiBaseUrlButton.style.display = showFix ? 'inline-flex' : 'none';
+    apiBaseUrlAlert.style.display = 'block';
+  };
+
+  const hideApiAlert = () => {
+    if (!apiBaseUrlAlert) return;
+    apiBaseUrlAlert.style.display = 'none';
+  };
+
+  const suggestedWorkerBaseUrl = [legacy.workerBaseUrl, config.apiBaseUrl]
+    .find((value) => value && isLikelyWorkersUrl(value)) || '';
+
+  const refreshApiDiagnostics = () => {
+    const value = getInputValue('apiBaseUrl');
+    if (!value) {
+      updateApiStatus('unset');
+      updateApiCheckedAt('-');
+      hideApiAlert();
+      return;
+    }
+    const now = new Date().toLocaleString();
+    updateApiCheckedAt(now);
+    if (!isValidHttpUrl(value)) {
+      updateApiStatus('invalid', 'URL不正');
+      showApiAlert('API ベースURLは https:// から始まるURLを入力してください。', false);
+      return;
+    }
+    if (isLikelyPagesUrl(value)) {
+      updateApiStatus('invalid', 'Pages/UI');
+      showApiAlert('これはUI(Pages)のURLです。APIはWorkersのURL(例: https://xxx.workers.dev)を入力してください', true);
+      return;
+    }
+    if (isLikelyWorkersUrl(value)) {
+      updateApiStatus('valid');
+      hideApiAlert();
+      return;
+    }
+    updateApiStatus('unknown', '要確認');
+    hideApiAlert();
+  };
+
+  let cachedEditorToken = '';
+  let cachedEditorTokenExpiresAt = 0;
+
+  const requestEditorSession = async (
+    workerBaseUrl: string,
+    kintoneBaseUrl: string,
+    appId: string,
+    options?: { silent?: boolean },
+  ) => {
     const kintoneApiToken = getInputValue('kintoneApiToken');
-    const returnOrigin = location.href;
-    if (!editorOrigin) {
-      alert('UIベースURLが未設定です');
-      return;
-    }
-    if (!workerBaseUrl) {
-      alert('WorkerベースURLが未設定です');
-      return;
-    }
-    if (!appId) {
-      alert('アプリIDが取得できません');
-      return;
-    }
-
-    let sessionToken = '';
     try {
       const res = await fetch(`${workerBaseUrl}/editor/session`, {
         method: 'POST',
@@ -421,118 +490,419 @@ const renderForm = () => {
         }),
       });
       if (!res.ok) {
-        alert('Editor セッションの作成に失敗しました');
-        return;
+        if (!options?.silent) {
+          alert('Editor セッションの作成に失敗しました');
+        }
+        return '';
       }
       const json = (await res.json()) as { sessionToken?: string };
-      sessionToken = json.sessionToken ?? '';
+      return json.sessionToken ?? '';
     } catch {
-      alert('Editor セッションの作成に失敗しました');
+      if (!options?.silent) {
+        alert('Editor セッションの作成に失敗しました');
+      }
+      return '';
+    }
+  };
+
+  const exchangeEditorToken = async (
+    workerBaseUrl: string,
+    sessionToken: string,
+    options?: { silent?: boolean },
+  ) => {
+    if (!sessionToken) return '';
+    try {
+      const res = await fetch(`${workerBaseUrl}/editor/session/exchange`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token: sessionToken }),
+      });
+      if (!res.ok) {
+        if (!options?.silent) {
+          alert('Editor トークンの取得に失敗しました');
+        }
+        return '';
+      }
+      const json = (await res.json()) as { editorToken?: string; expiresAt?: number };
+      cachedEditorToken = json.editorToken ?? '';
+      cachedEditorTokenExpiresAt = json.expiresAt ? Number(json.expiresAt) : 0;
+      return cachedEditorToken;
+    } catch {
+      if (!options?.silent) {
+        alert('Editor トークンの取得に失敗しました');
+      }
+      return '';
+    }
+  };
+
+  const getEditorToken = async (
+    workerBaseUrl: string,
+    kintoneBaseUrl: string,
+    appId: string,
+  ) => {
+    if (cachedEditorToken && cachedEditorTokenExpiresAt - Date.now() > 30_000) {
+      return cachedEditorToken;
+    }
+    const sessionToken = await requestEditorSession(workerBaseUrl, kintoneBaseUrl, appId, {
+      silent: true,
+    });
+    if (!sessionToken) return '';
+    return exchangeEditorToken(workerBaseUrl, sessionToken, { silent: true });
+  };
+
+  const fetchUserTemplateMeta = async (
+    workerBaseUrl: string,
+    editorToken: string,
+    templateId: string,
+  ) => {
+    const headers = { Authorization: `Bearer ${editorToken}` };
+    const statuses = ['active', 'archived', 'deleted'] as const;
+    for (const status of statuses) {
+      let cursor = '';
+      for (let page = 0; page < 5; page += 1) {
+        const params = new URLSearchParams({ status, limit: '200' });
+        if (cursor) params.set('cursor', cursor);
+        const url = `${workerBaseUrl}/user-templates?${params.toString()}`;
+        const res = await fetch(url, { headers, cache: 'no-store' });
+        if (!res.ok) break;
+        const data = (await res.json()) as { items?: Array<Record<string, any>>; nextCursor?: string };
+        const items = Array.isArray(data.items) ? data.items : [];
+        const found = items.find((item) => item?.templateId === templateId);
+        if (found) return found;
+        if (!data.nextCursor) break;
+        cursor = data.nextCursor;
+      }
+    }
+    return null;
+  };
+
+  let templateCheckSeq = 0;
+
+  const applyTemplateInfo = (info: {
+    label: string;
+    updatedAt?: string;
+    status: typeof currentTemplateStatus;
+    validity: 'valid' | 'invalid' | 'unset' | 'unknown';
+  }) => {
+    updateSelectedTemplateBadge(info.label);
+    updateTemplateUpdatedAt(info.updatedAt);
+    updateTemplateStatus(info.status);
+    updateTemplateCheckedAt(info.validity === 'unset' ? '-' : new Date().toLocaleString());
+    if (info.validity === 'invalid') {
+      setTemplateStateBadge('invalid', '選択中テンプレが存在しません。再選択してください。');
+      return;
+    }
+    setTemplateStateBadge(info.validity);
+  };
+
+  const checkTemplateExists = async (templateId: string) => {
+    const seq = (templateCheckSeq += 1);
+    const applyIfLatest = (info: Parameters<typeof applyTemplateInfo>[0]) => {
+      if (seq !== templateCheckSeq) return;
+      applyTemplateInfo(info);
+    };
+    const clearTemplateSelection = (info?: {
+      label?: string;
+      updatedAt?: string;
+      status?: typeof currentTemplateStatus;
+    }) => {
+      setInputValue('templateId', '');
+      applyIfLatest({
+        label: info?.label ?? '',
+        updatedAt: info?.updatedAt,
+        status: info?.status ?? 'not_found',
+        validity: 'invalid',
+      });
+    };
+
+    if (!templateId) {
+      applyIfLatest({ label: '', status: 'unknown', validity: 'unset' });
+      return;
+    }
+    const workerBaseUrl = normalizeBaseUrl(getInputValue('apiBaseUrl'));
+    const kintoneBaseUrl = normalizeBaseUrl(location.origin);
+    const appId = (kintone as any)?.app?.getId?.() ?? '';
+    if (!workerBaseUrl || !appId) {
+      applyIfLatest({ label: templateId, status: 'unknown', validity: 'unknown' });
+      return;
+    }
+    if (isLikelyPagesUrl(workerBaseUrl)) {
+      showApiAlert('これはUI(Pages)のURLです。APIはWorkersのURL(例: https://xxx.workers.dev)を入力してください', true);
+      applyIfLatest({ label: templateId, status: 'unknown', validity: 'unknown' });
       return;
     }
 
+    if (!templateId.startsWith('tpl_')) {
+      const url = `${workerBaseUrl}/templates/${encodeURIComponent(templateId)}`;
+      try {
+        const res = await fetch(url, { cache: 'no-store' });
+        if (res.ok) {
+          const data = (await res.json()) as { name?: string };
+          applyIfLatest({
+            label: data?.name || templateId,
+            status: 'active',
+            validity: 'valid',
+          });
+          return;
+        }
+      } catch {
+        // fallthrough to invalid
+      }
+      applyIfLatest({ label: templateId, status: 'not_found', validity: 'invalid' });
+      return;
+    }
+
+    const editorToken = await getEditorToken(workerBaseUrl, kintoneBaseUrl, String(appId));
+    if (editorToken) {
+      try {
+        const meta = await fetchUserTemplateMeta(workerBaseUrl, editorToken, templateId);
+        if (meta) {
+          const status =
+            meta.status === 'active' || meta.status === 'archived' || meta.status === 'deleted'
+              ? meta.status
+              : 'unknown';
+          if (status !== 'active') {
+            clearTemplateSelection({
+              label: meta.name || templateId,
+              updatedAt: meta.updatedAt,
+              status,
+            });
+            return;
+          }
+          applyIfLatest({
+            label: meta.name || templateId,
+            updatedAt: meta.updatedAt,
+            status,
+            validity: 'valid',
+          });
+          return;
+        }
+      } catch {
+        // fallthrough to query check
+      }
+    }
+
+    const params = new URLSearchParams({
+      kintoneBaseUrl,
+      appId: String(appId),
+      requireActive: '1',
+    });
+    const url = `${workerBaseUrl}/templates/${encodeURIComponent(templateId)}?${params.toString()}`;
+    try {
+      const res = await fetch(url, { cache: 'no-store' });
+      if (res.ok) {
+        const data = (await res.json()) as { name?: string };
+        applyIfLatest({
+          label: data?.name || templateId,
+          status: 'active',
+          validity: 'valid',
+        });
+        return;
+      }
+    } catch {
+      // fallthrough to invalid
+    }
+    clearTemplateSelection({ label: templateId, status: 'not_found' });
+  };
+
+  const handleTemplateIdChanged = (templateId: string) => {
+    void checkTemplateExists(templateId);
+  };
+
+  const selectedTemplateIdFromUrl = readSelectedTemplateId();
+  const initialTemplateId = selectedTemplateIdFromUrl !== null ? selectedTemplateIdFromUrl : config.templateId;
+  setInputValue('templateId', initialTemplateId);
+  refreshApiDiagnostics();
+  handleTemplateIdChanged(initialTemplateId);
+  if (selectedTemplateIdFromUrl !== null) {
+    cleanSelectedTemplateIdFromUrl();
+  }
+
+  const templateIdInput = document.getElementById('templateId') as HTMLInputElement | null;
+  templateIdInput?.addEventListener('input', () => {
+    handleTemplateIdChanged(templateIdInput.value.trim());
+  });
+
+  const apiBaseUrlInput = document.getElementById('apiBaseUrl') as HTMLInputElement | null;
+  apiBaseUrlInput?.addEventListener('input', () => {
+    refreshApiDiagnostics();
+    handleTemplateIdChanged(templateIdInput?.value.trim() ?? '');
+  });
+
+  fixApiBaseUrlButton?.addEventListener('click', () => {
+    const apiInput = document.getElementById('apiBaseUrl') as HTMLInputElement | null;
+    if (!apiInput) return;
+    if (suggestedWorkerBaseUrl) {
+      apiInput.value = suggestedWorkerBaseUrl;
+    }
+    apiInput.focus();
+    apiInput.select();
+    refreshApiDiagnostics();
+    handleTemplateIdChanged(templateIdInput?.value.trim() ?? '');
+  });
+
+  document.getElementById('resetConfigButton')?.addEventListener('click', () => {
+    if (!window.confirm('このプラグイン設定をリセットしますか？')) return;
+    if (!PLUGIN_ID) {
+      alert('プラグインIDが検出できませんでした');
+      return;
+    }
+    (kintone as any).plugin?.app?.setConfig({
+      apiBaseUrl: '',
+      apiKey: '',
+      kintoneApiToken: '',
+      templateId: '',
+      attachmentFieldCode: '',
+      workerBaseUrl: '',
+      workerApiKey: '',
+      ui_base_url: '',
+    });
+    alert('設定をリセットしました。画面を更新してください。');
+  });
+
+  openTemplatePicker?.addEventListener('click', async () => {
+    const workerBaseUrl = normalizeBaseUrl(getInputValue('apiBaseUrl'));
+    const kintoneBaseUrl = normalizeBaseUrl(location.origin);
+    const appId = (kintone as any)?.app?.getId?.() ?? '';
+    const returnOrigin = getReturnOrigin();
+
+    if (!workerBaseUrl) {
+      alert('Worker接続情報が未設定です');
+      return;
+    }
+    if (!/^https?:\/\//i.test(workerBaseUrl)) {
+      alert('API ベースURLは https:// から始まるURLを入力してください。');
+      return;
+    }
+    if (isLikelyPagesUrl(workerBaseUrl)) {
+      showApiAlert('これはUI(Pages)のURLです。APIはWorkersのURL(例: https://xxx.workers.dev)を入力してください', true);
+      alert('これはUI(Pages)のURLです。APIはWorkersのURL(例: https://xxx.workers.dev)を入力してください');
+      return;
+    }
+    if (!appId) {
+      alert('アプリIDが取得できません');
+      return;
+    }
+
+    const sessionToken = await requestEditorSession(workerBaseUrl, kintoneBaseUrl, String(appId));
     if (!sessionToken) {
       alert('sessionToken が取得できません');
       return;
     }
 
-    const params = new URLSearchParams({
-      mode: 'picker',
-      sessionToken,
+    const url = buildPickerUrl({
       workerBaseUrl,
       kintoneBaseUrl,
       appId: String(appId),
       returnOrigin,
+      sessionToken,
     });
-    const url = `${editorOrigin}/#/picker?${params.toString()}`;
-    console.log('[PlugBits] session issued', sessionToken);
-    console.log('[PlugBits] open picker url', url);
-    location.assign(url);
+    location.href = url;
   });
 
-  editTemplateButton?.addEventListener('click', () => {
-    if (!editTemplateButton || editTemplateButton.disabled) return;
-    const uiBaseUrl = normalizeBaseUrl(getInputValue('uiBaseUrl'));
-    if (!uiBaseUrl) {
-      alert('UI ベースURLが未設定です');
-      return;
-    }
-    const templateId = getInputValue('templateIdManual');
-    if (!templateId) {
-      alert('テンプレIDが未設定です');
-      return;
-    }
-    const kintoneBaseUrl = location.origin;
+  openTemplateEditor?.addEventListener('click', async () => {
+    const workerBaseUrl = normalizeBaseUrl(getInputValue('apiBaseUrl'));
+    const kintoneBaseUrl = normalizeBaseUrl(location.origin);
     const appId = (kintone as any)?.app?.getId?.() ?? '';
-    const token = getInputValue('kintoneApiToken');
-    const workerBaseUrl = getInputValue('apiBaseUrl');
-    const params = new URLSearchParams({
+    const templateId = getInputValue('templateId');
+    const returnOrigin = getReturnOrigin();
+
+    if (!workerBaseUrl) {
+      alert('Worker接続情報が未設定です');
+      return;
+    }
+    if (!/^https?:\/\//i.test(workerBaseUrl)) {
+      alert('API ベースURLは https:// から始まるURLを入力してください。');
+      return;
+    }
+    if (isLikelyPagesUrl(workerBaseUrl)) {
+      showApiAlert('これはUI(Pages)のURLです。APIはWorkersのURL(例: https://xxx.workers.dev)を入力してください', true);
+      alert('これはUI(Pages)のURLです。APIはWorkersのURL(例: https://xxx.workers.dev)を入力してください');
+      return;
+    }
+    if (!appId) {
+      alert('アプリIDが取得できません');
+      return;
+    }
+    if (!templateId) {
+      alert('テンプレートが未選択です');
+      return;
+    }
+    if (!getInputValue('kintoneApiToken')) {
+      alert('kintone APIトークンが未設定のため、フィールド一覧が取得できない可能性があります');
+    }
+
+    const sessionToken = await requestEditorSession(workerBaseUrl, kintoneBaseUrl, String(appId));
+    if (!sessionToken) {
+      alert('sessionToken が取得できません');
+      return;
+    }
+
+    const url = buildEditUrl({
+      templateId,
+      workerBaseUrl,
       kintoneBaseUrl,
       appId: String(appId),
-      ...(workerBaseUrl ? { workerBaseUrl } : {}),
-      ...(token ? { kintoneApiToken: token } : {}),
+      returnOrigin,
+      sessionToken,
     });
-    const editUrl =
-      `${uiBaseUrl.replace(/\/$/, '')}/#/templates/${encodeURIComponent(templateId)}/edit` +
-      `?${params.toString()}`;
-    location.assign(editUrl);
+    location.href = url;
   });
 
-  if (selectedTemplateIdFromUrl) {
-    console.log('[PlugBits] selectedTemplateId', selectedTemplateIdFromUrl);
-  }
-  loadCatalog(config.workerBaseUrl, initialTemplateId);
-
   document.getElementById('saveButton')?.addEventListener('click', () => {
-    const resolvedTemplateId =
-      templateSelect && templateSelect.value !== CUSTOM_OPTION
-        ? templateSelect.value
-        : getInputValue('templateIdManual');
-
-    const workerBaseUrl = getInputValue('apiBaseUrl');
-    const workerApiKey = getInputValue('apiKey');
     const payload: PluginConfig = {
-      workerBaseUrl,
-      uiBaseUrl: getInputValue('uiBaseUrl'),
-      workerApiKey,
+      apiBaseUrl: getInputValue('apiBaseUrl'),
+      apiKey: getInputValue('apiKey'),
       kintoneApiToken: getInputValue('kintoneApiToken'),
-      templateId: resolvedTemplateId,
+      templateId: getInputValue('templateId'),
       attachmentFieldCode: getInputValue('attachmentFieldCode'),
-      itemsTableFieldCode: getInputValue('itemsTableFieldCode'),
-      itemNameFieldCode: getInputValue('itemNameFieldCode'),
-      qtyFieldCode: getInputValue('qtyFieldCode'),
-      unitPriceFieldCode: getInputValue('unitPriceFieldCode'),
-      amountFieldCode: getInputValue('amountFieldCode'),
-      apiBaseUrl: workerBaseUrl,
-      apiKey: workerApiKey,
     };
 
-    if (
-      !payload.workerBaseUrl ||
-      !payload.uiBaseUrl ||
-      !payload.templateId ||
-      !payload.attachmentFieldCode
-    ) {
+    if (!payload.apiBaseUrl || !payload.apiKey || !payload.attachmentFieldCode) {
       alert('必須項目が未入力です');
       return;
     }
+    if (!/^https?:\/\//i.test(payload.apiBaseUrl)) {
+      alert('API ベースURLは https:// から始まるURLを入力してください。');
+      return;
+    }
+    if (isLikelyPagesUrl(payload.apiBaseUrl)) {
+      alert('これはUI(Pages)のURLです。APIはWorkersのURL(例: https://xxx.workers.dev)を入力してください');
+      return;
+    }
+    if (payload.templateId && currentTemplateValidity !== 'valid') {
+      alert('選択中テンプレが存在しません。選び直してください。');
+      return;
+    }
 
-    (kintone as any).plugin?.app?.setConfig(payload);
-    console.log('[PlugBits] config saved');
+    if (!PLUGIN_ID) {
+      alert('プラグインIDが検出できませんでした');
+      return;
+    }
 
+    const merged = { ...rawConfig, ...payload };
+    (kintone as any).plugin?.app?.setConfig(merged);
   });
 
   document.getElementById('cancelButton')?.addEventListener('click', () => {
     history.back();
   });
+
+  removeLoading();
 };
 
 const init = () => {
-  const start = () => renderForm();
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', start, { once: true });
+  if (window.kintone?.events?.on) {
+    window.kintone.events.on('app.plugin.settings.show', (event) => {
+      renderForm();
+      return event;
+    });
+  }
+
+  if (document.readyState !== 'loading') {
+    renderForm();
   } else {
-    start();
+    document.addEventListener('DOMContentLoaded', renderForm);
   }
 };
 
