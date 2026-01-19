@@ -4,6 +4,7 @@ import {
   type TemplateElement,
   type TableElement,
   type TableColumn,
+  type CardListElement,
   type PageSize,
   type Orientation,
 } from '../../../shared/template.js';
@@ -170,6 +171,36 @@ export const validateTemplate = (template: TemplateDefinition): { ok: boolean; i
               path: `elements.${element.id}.summary.rows.${index}.valueColumnId`,
             });
           }
+        });
+      }
+    } else if (element.type === 'cardList') {
+      const cardList = element as CardListElement;
+      if (
+        !cardList.dataSource ||
+        cardList.dataSource.type !== 'kintoneSubtable' ||
+        !cardList.dataSource.fieldCode
+      ) {
+        issues.push({
+          level: 'error',
+          code: 'cardlist_source_missing',
+          message: `cardList '${element.id}' must have subtable dataSource`,
+          path: `elements.${element.id}.dataSource`,
+        });
+      }
+      if (!Array.isArray(cardList.fields) || cardList.fields.length === 0) {
+        issues.push({
+          level: 'error',
+          code: 'cardlist_fields_empty',
+          message: `cardList '${element.id}' must have fields`,
+          path: `elements.${element.id}.fields`,
+        });
+      }
+      if (!Number.isFinite(cardList.cardHeight) || cardList.cardHeight <= 0) {
+        issues.push({
+          level: 'error',
+          code: 'cardlist_height_invalid',
+          message: `cardList '${element.id}' cardHeight must be positive`,
+          path: `elements.${element.id}.cardHeight`,
         });
       }
     }

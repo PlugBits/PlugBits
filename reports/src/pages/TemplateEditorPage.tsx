@@ -208,6 +208,23 @@ const TemplateEditorPage = () => {
             return { ...base, ds: dsSig, cols };
           }
 
+          if (e.type === 'cardList') {
+            const fields = ((e as any).fields ?? [])
+              .slice()
+              .sort((a: any, b: any) => (a.id ?? '').localeCompare(b.id ?? ''))
+              .map((f: any) => ({
+                id: f.id ?? '',
+                label: f.label ?? '',
+                fieldCode: f.fieldCode ?? '',
+              }));
+            return {
+              ...base,
+              ds: dsSig,
+              cardHeight: Number((e as any).cardHeight ?? 0),
+              fields,
+            };
+          }
+
           return { ...base, ds: dsSig };
         });
 
@@ -262,7 +279,10 @@ const TemplateEditorPage = () => {
 
     if (highlightRef.kind === 'subtable') {
       for (const el of template.elements) {
-        if (el.type === 'table' && el.dataSource?.fieldCode === highlightRef.fieldCode) {
+        if (
+          (el.type === 'table' || el.type === 'cardList') &&
+          el.dataSource?.fieldCode === highlightRef.fieldCode
+        ) {
           set.add(el.id);
         }
       }
@@ -271,7 +291,10 @@ const TemplateEditorPage = () => {
     if (highlightRef.kind === 'subtableField') {
       // MVP：列単位ではなく「そのサブテーブルの table 要素」を光らせる
       for (const el of template.elements) {
-        if (el.type === 'table' && el.dataSource?.fieldCode === highlightRef.subtableCode) {
+        if (
+          (el.type === 'table' || el.type === 'cardList') &&
+          el.dataSource?.fieldCode === highlightRef.subtableCode
+        ) {
           set.add(el.id);
         }
       }
@@ -298,6 +321,10 @@ const TemplateEditorPage = () => {
       const ds = el.dataSource;
       return ds?.fieldCode ? `サブテーブル: ${ds.fieldCode}` : 'サブテーブル: (未設定)';
     }
+    if (el.type === 'cardList') {
+      const ds = el.dataSource;
+      return ds?.fieldCode ? `サブテーブル: ${ds.fieldCode}` : 'サブテーブル: (未設定)';
+    }
     if (el.type === 'label') return el.text ?? '';
     const ds = el.dataSource;
     if (!ds) return '';
@@ -312,6 +339,7 @@ const TemplateEditorPage = () => {
     if (type === 'label') return 'ラベル';
     if (type === 'image') return '画像';
     if (type === 'table') return 'テーブル';
+    if (type === 'cardList') return 'カード枠';
     return '要素';
   };
 

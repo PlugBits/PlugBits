@@ -34,7 +34,7 @@ const ElementInspector = ({ templateId, element }: ElementInspectorProps) => {
     field: 'x' | 'y' | 'width' | 'height',
     raw: string,
   ) => {
-    if (isTable) return;
+    if (isTable || isCardList) return;
     const trimmed = raw.trim();
     if (trimmed === '') return;
 
@@ -116,6 +116,7 @@ const ElementInspector = ({ templateId, element }: ElementInspectorProps) => {
     if (element.type === 'label') return 'ラベル';
     if (element.type === 'image') return '画像';
     if (element.type === 'table') return 'テーブル';
+    if (element.type === 'cardList') return 'カード枠';
     return '要素';
   }, [element?.type]);
 
@@ -131,15 +132,16 @@ const ElementInspector = ({ templateId, element }: ElementInspectorProps) => {
   }
 
   const isTable = element.type === 'table';
+  const isCardList = element.type === 'cardList';
   const currentSlotId = (element as any).slotId as string | undefined;
   const currentSlotDef = slotDefs.find((slot) => slot.slotId === currentSlotId);
   const isSlotElement = !!currentSlotId;
 
   // レイアウト編集可否（tableは常に固定）
-  const canEditLayoutForElement = isAdvanced && !isTable;
+  const canEditLayoutForElement = isAdvanced && !isTable && !isCardList;
 
   // region編集可否（tableは常に固定：body）
-  const canEditRegionForElement = isAdvanced && !isTable;
+  const canEditRegionForElement = isAdvanced && !isTable && !isCardList;
 
 
   const handleNumberChange =
@@ -202,7 +204,7 @@ const ElementInspector = ({ templateId, element }: ElementInspectorProps) => {
       </div>
       <p style={{ margin: '2px 0 0', color: '#475467', fontSize: '0.8rem' }}>{coordinatesLabel}</p>
 
-      {element.type !== 'table' && slotDefs.length > 0 && (
+      {element.type !== 'table' && element.type !== 'cardList' && slotDefs.length > 0 && (
         <label>
           スロット
           <select
@@ -354,7 +356,7 @@ const ElementInspector = ({ templateId, element }: ElementInspectorProps) => {
       )}
 
 
-      {element.type !== 'table' && (
+      {element.type !== 'table' && element.type !== 'cardList' && (
         <>
           <label>
             幅
@@ -400,6 +402,20 @@ const ElementInspector = ({ templateId, element }: ElementInspectorProps) => {
           }}
         >
           明細テーブルは固定です。列・サブテーブル・幅の設定は「フィールド割当」タブで行ってください。
+        </div>
+      )}
+      {element.type === 'cardList' && (
+        <div
+          style={{
+            marginTop: '0.75rem',
+            padding: '0.75rem',
+            border: '1px solid #e4e7ec',
+            borderRadius: '0.6rem',
+            color: '#475467',
+            lineHeight: 1.5,
+          }}
+        >
+          カード枠は固定です。フィールドの割当は「フィールド割当」タブで行ってください。
         </div>
       )}
 

@@ -37,7 +37,22 @@ export type TableRegionDef = {
   baseColumns: TableBaseColumnDef[];
 };
 
-export type RegionDef = SlotsRegionDef | TableRegionDef;
+export type CardListFieldDef = {
+  id: string;
+  label: string;
+  required?: boolean;
+  kind?: SlotKind;
+};
+
+export type CardListRegionDef = {
+  kind: "cardList";
+  id: string;
+  label: string;
+  sourceRequired: boolean;
+  fields: CardListFieldDef[];
+};
+
+export type RegionDef = SlotsRegionDef | TableRegionDef | CardListRegionDef;
 
 export type ValidationError = { path: string; message: string };
 export type ValidationResult = { ok: boolean; errors: ValidationError[] };

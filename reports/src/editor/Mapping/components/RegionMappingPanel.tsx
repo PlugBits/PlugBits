@@ -65,6 +65,7 @@ const RegionMappingPanel: React.FC<Props> = ({
   const isListV1 = (template.structureType ?? 'list_v1') === 'list_v1';
   const [openSlotId, setOpenSlotId] = useState<string | null>(null);
   const [openTableRow, setOpenTableRow] = useState<'source' | 'columns' | 'summary' | null>(null);
+  const [openCardFieldId, setOpenCardFieldId] = useState<string | null>(null);
 
   const tableMapping = region.kind === 'table' ? mapping?.[region.id] ?? {} : {};
   const listSummaryModeRaw = tableMapping.summaryMode;
@@ -156,6 +157,132 @@ const RegionMappingPanel: React.FC<Props> = ({
                         placeholderStaticText={slot.kind === 'date' ? '2025-12-14' : '固定文字'}
                       />
                     </div>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  }
+
+  if (region.kind === 'cardList') {
+    const cardMapping = mapping?.[region.id] ?? {};
+    const currentSource = cardMapping?.source as { kind: 'subtable'; fieldCode: string } | undefined;
+    const currentSubtableCode = currentSource?.fieldCode ?? '';
+    const subtableOptions = schema.subtables;
+    const currentSubtable = subtableOptions.find((s) => s.code === currentSubtableCode);
+    const subtableFieldOptions = currentSubtable?.fields ?? [];
+
+    return (
+      <div className="mapping-card">
+        <div className="mapping-card-title">{region.label}</div>
+
+        <div className="mapping-list">
+          {(() => {
+            const isOpen = openTableRow === 'source';
+            const isEmpty = !currentSubtableCode;
+
+            return (
+              <div
+                className={`mapping-row ${isOpen ? 'open' : ''}`}
+                onMouseEnter={() => {
+                  if (currentSubtableCode) {
+                    onFocusFieldRef({ kind: 'subtable', fieldCode: currentSubtableCode } as any);
+                  }
+                }}
+                onMouseLeave={() => onClearFocus()}
+              >
+                <button
+                  type="button"
+                  className="mapping-row-summary"
+                  onClick={() => setOpenTableRow(isOpen ? null : 'source')}
+                >
+                  <div className="mapping-row-left">
+                    <span className="mapping-row-label">
+                      カード用サブテーブル
+                      {region.sourceRequired ? <span className="mapping-required"> *</span> : null}
+                    </span>
+                  </div>
+
+                  <div className={`mapping-row-right ${isEmpty ? 'empty' : 'filled'}`}>
+                    {isEmpty ? '未設定' : `サブテーブル: ${currentSubtableCode}`}
+                  </div>
+                </button>
+
+                {isOpen && (
+                  <div className="mapping-row-detail">
+                    <KintoneFieldSelect
+                      value={currentSubtableCode}
+                      onChange={(nextCode) => {
+                        const next = deepClone(mapping ?? {});
+                        next[region.id] = next[region.id] ?? {};
+                        next[region.id].source = nextCode ? { kind: 'subtable', fieldCode: nextCode } : undefined;
+                        onChangeMapping(next);
+
+                        if (nextCode) onFocusFieldRef({ kind: 'subtable', fieldCode: nextCode } as any);
+                        else onClearFocus();
+                      }}
+                      fields={subtableOptions}
+                      allowTypes={['SUBTABLE']}
+                      placeholder="（選択してください）"
+                    />
+                  </div>
+                )}
+              </div>
+            );
+          })()}
+
+          {region.fields.map((field) => {
+            const fieldValue: FieldRef | undefined = cardMapping?.fields?.[field.id];
+            const isOpen = openCardFieldId === field.id;
+            const isEmpty = !fieldValue;
+
+            return (
+              <div
+                key={field.id}
+                className={`mapping-row ${isOpen ? 'open' : ''}`}
+                onMouseEnter={() => {
+                  if (fieldValue?.kind === 'subtableField') {
+                    onFocusFieldRef(fieldValue as any);
+                  } else if (currentSubtableCode) {
+                    onFocusFieldRef({ kind: 'subtable', fieldCode: currentSubtableCode } as any);
+                  }
+                }}
+                onMouseLeave={() => onClearFocus()}
+              >
+                <button
+                  type="button"
+                  className="mapping-row-summary"
+                  onClick={() => setOpenCardFieldId(isOpen ? null : field.id)}
+                >
+                  <div className="mapping-row-left">
+                    <span className="mapping-row-label">
+                      {field.label}
+                      {field.required ? <span className="mapping-required"> *</span> : null}
+                    </span>
+                  </div>
+
+                  <div className={`mapping-row-right ${isEmpty ? 'empty' : 'filled'}`}>
+                    {describeFieldRef(fieldValue) || '未設定'}
+                  </div>
+                </button>
+
+                {isOpen && (
+                  <div className="mapping-row-detail">
+                    <FieldPicker
+                      mode="subtableField"
+                      subtableCode={currentSubtableCode}
+                      subtableFieldOptions={subtableFieldOptions}
+                      subtableAllowTypes={SUBTABLE_ALLOW_TYPES}
+                      value={fieldValue}
+                      onChange={(v) => {
+                        const next = setPath(mapping, [region.id, 'fields', field.id], v);
+                        onChangeMapping(next);
+                        if (v?.kind === 'subtableField') onFocusFieldRef(v as any);
+                      }}
+                    />
                   </div>
                 )}
               </div>

@@ -12,6 +12,7 @@ import { getFonts } from "./fonts/fontLoader.js";
 import { getFixtureData } from "./fixtures/templateData.js";
 import { migrateTemplate, validateTemplate } from "./template/migrate.js";
 import { applyListV1MappingToTemplate } from "./template/listV1Mapping.ts";
+import { applyCardsV1MappingToTemplate } from "./template/cardsV1Mapping.ts";
 import {
   applySlotDataOverrides,
   applySlotLayoutOverrides,
@@ -228,7 +229,7 @@ const getTenantContext = (
 
  // templateId から TemplateDefinition を引く関数
  
-const TEMPLATE_IDS = new Set(["list_v1", "card_v1", "multiTable_v1"]);
+const TEMPLATE_IDS = new Set(["list_v1", "cards_v1", "card_v1", "multiTable_v1"]);
 const SLOT_SCHEMA_LIST_V1 = {
   header: [
     { slotId: "doc_title", label: "タイトル", kind: "text" as const },
@@ -254,6 +255,15 @@ const TEMPLATE_CATALOG = [
     flags: [] as string[],
     slotSchema: SLOT_SCHEMA_LIST_V1,
   },
+  {
+    templateId: "cards_v1",
+    displayName: "Card",
+    structureType: "cards_v1",
+    description: "ヘッダ＋カード＋フッタのテンプレ",
+    version: 1,
+    flags: [] as string[],
+    slotSchema: SLOT_SCHEMA_LIST_V1,
+  },
 ];
 
 const getUserTemplateById = async (
@@ -274,6 +284,8 @@ const getUserTemplateById = async (
       const mapped =
         baseTemplate.structureType === "list_v1" || parsed.baseTemplateId === "list_v1"
           ? applyListV1MappingToTemplate(baseTemplate, parsed.mapping)
+          : baseTemplate.structureType === "cards_v1" || parsed.baseTemplateId === "cards_v1"
+          ? applyCardsV1MappingToTemplate(baseTemplate, parsed.mapping)
           : { ...baseTemplate, mapping: parsed.mapping };
       const layoutApplied = applySlotLayoutOverrides(mapped, parsed.overrides?.layout);
       const dataApplied = applySlotDataOverrides(layoutApplied, parsed.overrides?.slots);
@@ -1235,6 +1247,8 @@ export default {
             const mapped =
               baseTemplate.structureType === "list_v1" || baseTemplateId === "list_v1"
                 ? applyListV1MappingToTemplate(baseTemplate, payload?.mapping)
+                : baseTemplate.structureType === "cards_v1" || baseTemplateId === "cards_v1"
+                ? applyCardsV1MappingToTemplate(baseTemplate, payload?.mapping)
                 : { ...baseTemplate, mapping: payload?.mapping };
             const layoutApplied = applySlotLayoutOverrides(mapped, payload?.overrides?.layout);
             const dataApplied = applySlotDataOverrides(layoutApplied, payload?.overrides?.slots);
@@ -1546,7 +1560,11 @@ export default {
               headers: CORS_HEADERS,
             });
           }
-          if (!isUserTemplate && body.templateId !== "list_v1") {
+          if (
+            !isUserTemplate &&
+            body.templateId !== "list_v1" &&
+            body.templateId !== "cards_v1"
+          ) {
             return new Response(
               JSON.stringify({
                 ok: false,

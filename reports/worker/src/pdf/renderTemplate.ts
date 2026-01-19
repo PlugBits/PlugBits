@@ -7,6 +7,7 @@ import {
   type TextElement,
   type LabelElement,
   type TableElement,
+  type CardListElement,
   type SummaryRow,
   type ImageElement,
   type TemplateDataRecord,
@@ -668,17 +669,17 @@ export async function renderTemplateToPdf(
   });
 
   // ▼▼ 要素を分解：ヘッダー（毎ページ／1ページのみ）とフッター、テーブル ▼▼
-  const nonTableElements = template.elements.filter(
-    (e) => e.type !== 'table',
+  const nonBodyElements = template.elements.filter(
+    (e) => e.type !== 'table' && e.type !== 'cardList',
   );
 
   // region === 'footer' のものだけフッター扱い
-  const footerElements = nonTableElements.filter(
+  const footerElements = nonBodyElements.filter(
     (e) => e.region === 'footer',
   );
 
   // それ以外（region 未指定 or 'header' 'body'）はヘッダー候補として扱う
-  const headerCandidates = nonTableElements.filter(
+  const headerCandidates = nonBodyElements.filter(
     (e) => e.region !== 'footer',
   );
 
@@ -758,6 +759,16 @@ export async function renderTemplateToPdf(
   const tableElements = template.elements.filter(
     (e): e is TableElement => e.type === 'table',
   );
+  const cardListElements = template.elements.filter(
+    (e): e is CardListElement => e.type === 'cardList',
+  );
+  if (cardListElements.length > 1) {
+    warn('layout', 'multiple cardList elements found', {
+      ids: cardListElements.map((el) => el.id),
+    });
+  }
+  const cardListElementToRender =
+    cardListElements.find((el) => el.id === 'cards') ?? cardListElements[0];
   if (tableElements.length > 1) {
     warn('layout', 'multiple table elements found', {
       ids: tableElements.map((el) => el.id),
@@ -778,9 +789,24 @@ export async function renderTemplateToPdf(
     warn,
   );
 
-  // テーブル（複数ある場合は順番に描画）
-  // drawTable には「毎ページヘッダー」だけを渡す
-  if (tableElementToRender) {
+  // ボディ描画：cardList or table
+  if (cardListElementToRender) {
+    page = drawCardList(
+      pdfDoc,
+      page,
+      pageWidth,
+      pageHeight,
+      cardListElementToRender,
+      jpFont,
+      latinFont,
+      renderData,
+      repeatingHeaderElements,
+      footerReserveHeight,
+      imageMap,
+      warn,
+    );
+  } else if (tableElementToRender) {
+    // drawTable には「毎ページヘッダー」だけを渡す
     page = drawTable(
       pdfDoc,
       page,
@@ -977,6 +1003,9 @@ function drawHeaderElements(
       case 'table':
         // ヘッダーには含めない（テーブルは別ルートで描画）
         break;
+      case 'cardList':
+        // ヘッダーには含めない（カードは別ルートで描画）
+        break;
 
       default:
         warn('layout', 'unknown header element type', { type: (element as TemplateElement).type });
@@ -1029,6 +1058,9 @@ function drawFooterElements(
 
       case 'table':
         // フッターにはテーブルを描かない想定
+        break;
+      case 'cardList':
+        // フッターにはカードを描かない想定
         break;
 
       default:
@@ -1844,6 +1876,245 @@ function drawTable(
         }
       }
     }
+  }
+
+  return currentPage;
+}
+
+// ============================
+// Card list
+// ============================
+
+function drawCardList(
+  pdfDoc: PDFDocument,
+  page: PDFPage,
+  pageWidth: number,
+  pageHeight: number,
+  element: CardListElement,
+  jpFont: PDFFont,
+  latinFont: PDFFont,
+  data: TemplateDataRecord | undefined,
+  headerElements: TemplateElement[],
+  footerReserveHeight: number,
+  imageMap: Map<string, PDFImage>,
+  warn: WarnFn,
+): PDFPage {
+  const cardHeight = element.cardHeight ?? 90;
+  const gapY = element.gapY ?? 10;
+  const padding = element.padding ?? 10;
+  const borderWidth = element.borderWidth ?? 1;
+  const borderGray = element.borderColorGray ?? 0.7;
+  const fillGray = element.fillGray ?? 0.96;
+  const cornerRadius = element.cornerRadius ?? 0;
+
+  if (!Number.isFinite(cardHeight) || cardHeight <= 0) {
+    warn('layout', 'cardHeight is invalid', { id: element.id, cardHeight });
+    return page;
+  }
+
+  const cardWidth = element.width ?? 520;
+  const originX = element.x;
+  const bottomMargin = footerReserveHeight + 40;
+
+  const rawRows =
+    data &&
+    element.dataSource &&
+    element.dataSource.type === 'kintoneSubtable'
+      ? (data as any)[element.dataSource.fieldCode]
+      : undefined;
+  const rows = Array.isArray(rawRows) ? rawRows : [];
+  if (rawRows !== undefined && !Array.isArray(rawRows)) {
+    warn('data', 'cardList rows is not array', {
+      id: element.id,
+      fieldCode: element.dataSource?.fieldCode,
+    });
+  }
+
+  if (rows.length === 0) {
+    return page;
+  }
+
+  const startTopY = clampPdfY(toPdfYFromBottom(element.y, pageHeight), pageHeight - 5);
+  const innerWidth = Math.max(0, cardWidth - padding * 2);
+  const innerHeight = Math.max(0, cardHeight - padding * 2);
+  const leftWidth = Math.round(innerWidth * 0.62);
+  const rightWidth = Math.max(0, innerWidth - leftWidth);
+  const topHeight = Math.round(innerHeight * 0.45);
+  const midHeight = Math.round(innerHeight * 0.3);
+  const bottomHeight = Math.max(0, innerHeight - topHeight - midHeight);
+
+  const fieldsById = new Map(element.fields.map((field) => [field.id, field]));
+
+  const getFieldSpec = (fieldId: string) => {
+    const field = fieldsById.get(fieldId);
+    const isPrimary = fieldId === 'fieldA';
+    return {
+      field,
+      spec: {
+        align: field?.align,
+        overflow: isPrimary ? 'wrap' : 'ellipsis',
+        minFontSize: MIN_FONT_SIZE,
+        maxLines: isPrimary ? undefined : 1,
+        formatter: undefined,
+        isItemName: isPrimary,
+      } as NormalizedColumnSpec,
+    };
+  };
+
+  const drawFieldText = (
+    targetPage: PDFPage,
+    row: Record<string, unknown>,
+    fieldId: string,
+    box: { x: number; y: number; w: number; h: number },
+    fontSize: number,
+  ) => {
+    const { field, spec } = getFieldSpec(fieldId);
+    const fieldCode = field?.fieldCode;
+    const rawVal = fieldCode ? (row as any)[fieldCode] : '';
+    const text = formatCellValue(rawVal, spec, warn, {
+      cardId: element.id,
+      fieldId,
+      fieldCode,
+    });
+    if (!text) return;
+
+    const font = pickFontForText(text, jpFont, latinFont);
+    if (fieldId === 'fieldA') {
+      const maxWidth = Math.max(0, box.w);
+      const lineHeight = fontSize * 1.2;
+      const maxLines = Math.max(1, Math.floor(box.h / lineHeight));
+      const lines = wrapTextToLines(text, font, fontSize, maxWidth);
+      drawMultilineText(
+        targetPage,
+        lines,
+        box.x,
+        box.y + box.h - fontSize,
+        font,
+        fontSize,
+        rgb(0, 0, 0),
+        maxLines,
+        lineHeight,
+      );
+      return;
+    }
+
+    const align = resolveColumnAlign(spec, text);
+    drawCellText(
+      targetPage,
+      text,
+      font,
+      fontSize,
+      box.x,
+      box.y,
+      box.w,
+      box.h,
+      align,
+      spec.minFontSize,
+    );
+  };
+
+  let currentPage = page;
+  let cardTopY = startTopY;
+
+  const ensureCardSpace = () => {
+    if (cardTopY - cardHeight >= bottomMargin) return;
+    currentPage = pdfDoc.addPage([pageWidth, pageHeight]);
+    drawHeaderElements(
+      currentPage,
+      headerElements,
+      pageHeight,
+      data,
+      jpFont,
+      latinFont,
+      imageMap,
+      warn,
+    );
+    cardTopY = startTopY;
+  };
+
+  ensureCardSpace();
+  if (cardTopY - cardHeight < bottomMargin) {
+    warn('layout', 'cardList does not fit into page', {
+      id: element.id,
+      cardHeight,
+      bottomMargin,
+    });
+  }
+
+  for (let i = 0; i < rows.length; i++) {
+    const row = rows[i];
+    if (!row || typeof row !== 'object' || Array.isArray(row)) {
+      warn('data', 'cardList row is not object', { id: element.id, rowIndex: i });
+      continue;
+    }
+
+    ensureCardSpace();
+
+    const rectOptions: any = {
+      x: originX,
+      y: cardTopY - cardHeight,
+      width: cardWidth,
+      height: cardHeight,
+      borderColor: rgb(borderGray, borderGray, borderGray),
+      borderWidth,
+      color: rgb(fillGray, fillGray, fillGray),
+    };
+    if (cornerRadius > 0) {
+      rectOptions.borderRadius = cornerRadius;
+    }
+    currentPage.drawRectangle(rectOptions);
+
+    const innerLeft = originX + padding;
+    const innerTop = cardTopY - padding;
+
+    const topRowBottom = innerTop - topHeight;
+    const midRowBottom = topRowBottom - midHeight;
+    const bottomRowBottom = midRowBottom - bottomHeight;
+
+    drawFieldText(
+      currentPage,
+      row as Record<string, unknown>,
+      'fieldA',
+      { x: innerLeft, y: topRowBottom, w: leftWidth, h: topHeight },
+      12,
+    );
+    drawFieldText(
+      currentPage,
+      row as Record<string, unknown>,
+      'fieldB',
+      { x: innerLeft + leftWidth, y: topRowBottom, w: rightWidth, h: topHeight },
+      10,
+    );
+    drawFieldText(
+      currentPage,
+      row as Record<string, unknown>,
+      'fieldC',
+      { x: innerLeft, y: midRowBottom, w: leftWidth, h: midHeight },
+      10,
+    );
+    drawFieldText(
+      currentPage,
+      row as Record<string, unknown>,
+      'fieldD',
+      { x: innerLeft + leftWidth, y: midRowBottom, w: rightWidth, h: midHeight },
+      10,
+    );
+    drawFieldText(
+      currentPage,
+      row as Record<string, unknown>,
+      'fieldE',
+      { x: innerLeft, y: bottomRowBottom, w: leftWidth, h: bottomHeight },
+      9,
+    );
+    drawFieldText(
+      currentPage,
+      row as Record<string, unknown>,
+      'fieldF',
+      { x: innerLeft + leftWidth, y: bottomRowBottom, w: rightWidth, h: bottomHeight },
+      9,
+    );
+
+    cardTopY = cardTopY - cardHeight - gapY;
   }
 
   return currentPage;

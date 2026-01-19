@@ -3,7 +3,7 @@
 export type PageSize = 'A4' | 'Letter';
 export type Orientation = 'portrait' | 'landscape';
 //構造テンプレ種別（将来増やす） ---
-export type StructureType = 'list_v1';
+export type StructureType = 'list_v1' | 'cards_v1';
 //フッターの繰り返しモード ---
 export type FooterRepeatMode = 'all' | 'last';
 //mapping は MVP では unknown（Adapter側で解釈/検証） ---
@@ -21,7 +21,7 @@ export type DataSource =
 export interface BaseElement {
   id: string;
   slotId?: string;
-  type: 'text' | 'label' | 'table' | 'image';
+  type: 'text' | 'label' | 'table' | 'image' | 'cardList';
   x: number;
   y: number;
   width?: number;
@@ -70,6 +70,26 @@ export interface TableColumn {
     type: 'number' | 'currency' | 'date' | 'text';
     locale?: string;
   };
+}
+
+export interface CardField {
+  id: string;
+  label: string;
+  fieldCode?: string;
+  align?: 'left' | 'center' | 'right';
+}
+
+export interface CardListElement extends BaseElement {
+  type: 'cardList';
+  dataSource: Extract<DataSource, { type: 'kintoneSubtable' }>;
+  cardHeight: number;
+  gapY?: number;
+  padding?: number;
+  borderWidth?: number;
+  borderColorGray?: number;
+  fillGray?: number;
+  cornerRadius?: number;
+  fields: CardField[];
 }
 
 export type SummaryRow =
@@ -128,6 +148,7 @@ export type TemplateElement =
   | LabelElement
   | TextOrLabelElement 
   | TableElement
+  | CardListElement
   | ImageElement;
 
 export type TemplateDataRecord = Record<string, unknown>;

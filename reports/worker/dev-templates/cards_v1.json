@@ -1,0 +1,194 @@
+{
+  "id": "cards_v1",
+  "name": "Card",
+  "schemaVersion": 1,
+  "pageSize": "A4",
+  "orientation": "portrait",
+  "structureType": "cards_v1",
+  "footerReserveHeight": 140,
+  "slotSchema": {
+    "header": [
+      { "slotId": "doc_title", "label": "タイトル", "kind": "text" },
+      { "slotId": "to_name", "label": "宛先名", "kind": "text", "required": true },
+      { "slotId": "date_label", "label": "日付ラベル", "kind": "text" },
+      { "slotId": "issue_date", "label": "日付", "kind": "date", "required": true },
+      { "slotId": "doc_no", "label": "文書番号", "kind": "text" },
+      { "slotId": "logo", "label": "ロゴ", "kind": "image" }
+    ],
+    "footer": [
+      { "slotId": "remarks", "label": "備考", "kind": "text" },
+      { "slotId": "total_label", "label": "合計ラベル", "kind": "text" },
+      { "slotId": "total", "label": "合計", "kind": "number" }
+    ]
+  },
+  "elements": [
+    {
+      "id": "doc_title",
+      "slotId": "doc_title",
+      "type": "text",
+      "region": "header",
+      "x": 60,
+      "y": 780,
+      "width": 320,
+      "height": 28,
+      "fontSize": 18,
+      "fontWeight": "bold",
+      "repeatOnEveryPage": true,
+      "dataSource": { "type": "static", "value": "Card" }
+    },
+    {
+      "id": "to_name",
+      "slotId": "to_name",
+      "type": "text",
+      "region": "header",
+      "x": 60,
+      "y": 720,
+      "width": 280,
+      "height": 18,
+      "fontSize": 12,
+      "repeatOnEveryPage": true,
+      "dataSource": { "type": "kintone", "fieldCode": "CustomerName" }
+    },
+    {
+      "id": "date_label",
+      "slotId": "date_label",
+      "type": "text",
+      "region": "header",
+      "x": 350,
+      "y": 720,
+      "width": 60,
+      "height": 18,
+      "fontSize": 10,
+      "repeatOnEveryPage": true,
+      "dataSource": { "type": "static", "value": "日付" }
+    },
+    {
+      "id": "issue_date",
+      "slotId": "issue_date",
+      "type": "text",
+      "region": "header",
+      "x": 420,
+      "y": 720,
+      "width": 140,
+      "height": 18,
+      "fontSize": 10,
+      "repeatOnEveryPage": true,
+      "dataSource": { "type": "kintone", "fieldCode": "EstimateDate" }
+    },
+    {
+      "id": "doc_no",
+      "slotId": "doc_no",
+      "type": "text",
+      "region": "header",
+      "x": 300,
+      "y": 752,
+      "width": 120,
+      "height": 18,
+      "fontSize": 10,
+      "repeatOnEveryPage": true,
+      "dataSource": { "type": "static", "value": "" }
+    },
+    {
+      "id": "logo",
+      "slotId": "logo",
+      "type": "image",
+      "region": "header",
+      "x": 450,
+      "y": 752,
+      "width": 120,
+      "height": 60,
+      "repeatOnEveryPage": true,
+      "dataSource": { "type": "static", "value": "" }
+    },
+    {
+      "id": "cards",
+      "type": "cardList",
+      "region": "body",
+      "x": 60,
+      "y": 520,
+      "width": 520,
+      "cardHeight": 90,
+      "gapY": 10,
+      "padding": 10,
+      "borderWidth": 1,
+      "borderColorGray": 0.7,
+      "fillGray": 0.96,
+      "cornerRadius": 6,
+      "dataSource": { "type": "kintoneSubtable", "fieldCode": "Items" },
+      "fields": [
+        { "id": "fieldA", "label": "Field A", "fieldCode": "card_primary_left" },
+        { "id": "fieldB", "label": "Field B", "fieldCode": "card_primary_right", "align": "right" },
+        { "id": "fieldC", "label": "Field C", "fieldCode": "card_mid_left" },
+        { "id": "fieldD", "label": "Field D", "fieldCode": "card_mid_right", "align": "right" },
+        { "id": "fieldE", "label": "Field E", "fieldCode": "card_bottom_left" },
+        { "id": "fieldF", "label": "Field F", "fieldCode": "card_bottom_right", "align": "right" }
+      ]
+    },
+    {
+      "id": "remarks",
+      "slotId": "remarks",
+      "type": "text",
+      "region": "footer",
+      "x": 60,
+      "y": 110,
+      "width": 500,
+      "height": 60,
+      "fontSize": 10,
+      "footerRepeatMode": "last",
+      "dataSource": { "type": "kintone", "fieldCode": "Remarks" }
+    },
+    {
+      "id": "total_label",
+      "slotId": "total_label",
+      "type": "text",
+      "region": "footer",
+      "x": 330,
+      "y": 70,
+      "width": 80,
+      "height": 20,
+      "fontSize": 10,
+      "footerRepeatMode": "last",
+      "dataSource": { "type": "static", "value": "合計" }
+    },
+    {
+      "id": "total",
+      "slotId": "total",
+      "type": "text",
+      "region": "footer",
+      "x": 420,
+      "y": 66,
+      "width": 140,
+      "height": 20,
+      "fontSize": 14,
+      "fontWeight": "bold",
+      "footerRepeatMode": "last",
+      "dataSource": { "type": "kintone", "fieldCode": "TotalAmount" }
+    }
+  ],
+  "mapping": {
+    "header": {
+      "doc_title": { "kind": "staticText", "text": "Card" },
+      "to_name": { "kind": "recordField", "fieldCode": "CustomerName" },
+      "date_label": { "kind": "staticText", "text": "日付" },
+      "issue_date": { "kind": "recordField", "fieldCode": "EstimateDate" },
+      "doc_no": { "kind": "staticText", "text": "" },
+      "logo": { "kind": "imageUrl", "url": "" }
+    },
+    "cardList": {
+      "source": { "kind": "subtable", "fieldCode": "Items" },
+      "fields": {
+        "fieldA": { "kind": "subtableField", "subtableCode": "Items", "fieldCode": "card_primary_left" },
+        "fieldB": { "kind": "subtableField", "subtableCode": "Items", "fieldCode": "card_primary_right" },
+        "fieldC": { "kind": "subtableField", "subtableCode": "Items", "fieldCode": "card_mid_left" },
+        "fieldD": { "kind": "subtableField", "subtableCode": "Items", "fieldCode": "card_mid_right" },
+        "fieldE": { "kind": "subtableField", "subtableCode": "Items", "fieldCode": "card_bottom_left" },
+        "fieldF": { "kind": "subtableField", "subtableCode": "Items", "fieldCode": "card_bottom_right" }
+      }
+    },
+    "footer": {
+      "remarks": { "kind": "recordField", "fieldCode": "Remarks" },
+      "total_label": { "kind": "staticText", "text": "合計" },
+      "total": { "kind": "recordField", "fieldCode": "TotalAmount" }
+    }
+  }
+}

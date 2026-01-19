@@ -36,10 +36,13 @@ type ResizeState = {
 const GRID_SIZE = 5;
 
 const getTableWidth = (element: TemplateElement) => {
-  if (element.type !== 'table') {
-    return element.width ?? 140;
+  if (element.type === 'table') {
+    return element.columns.reduce((sum, column) => sum + column.width, 0);
   }
-  return element.columns.reduce((sum, column) => sum + column.width, 0);
+  if (element.type === 'cardList') {
+    return element.width ?? 520;
+  }
+  return element.width ?? 140;
 };
 
 const getElementWidthValue = (element: TemplateElement) => {
@@ -54,6 +57,9 @@ const getElementHeightValue = (element: TemplateElement) => {
     const header = element.headerHeight ?? 24;
     const rows = (element.rowHeight ?? 18) * 3;
     return header + rows;
+  }
+  if (element.type === 'cardList') {
+    return element.cardHeight ?? 90;
   }
   return element.height ?? 32;
 };
@@ -72,6 +78,8 @@ const getElementStyle = (element: TemplateElement): CSSProperties => {
     const header = element.headerHeight ?? 24;
     const rows = (element.rowHeight ?? 18) * 3;
     base.height = `${header + rows}px`;
+  } else if (element.type === 'cardList') {
+    base.height = `${element.cardHeight ?? 90}px`;
   } else if (element.height) {
     base.height = `${element.height}px`;
   }
@@ -82,6 +90,10 @@ const getElementStyle = (element: TemplateElement): CSSProperties => {
 const describeDataSource = (element: TemplateElement) => {
   // table
   if (element.type === 'table') {
+    const ds = element.dataSource;
+    return ds ? `サブテーブル: ${ds.fieldCode}` : 'サブテーブル: (未設定)';
+  }
+  if (element.type === 'cardList') {
     const ds = element.dataSource;
     return ds ? `サブテーブル: ${ds.fieldCode}` : 'サブテーブル: (未設定)';
   }
@@ -148,7 +160,7 @@ const TemplateCanvas = ({
 
       if (dragState) {
         const el = template.elements.find((e) => e.id === dragState.id);
-        if (el?.type === 'table') return;
+        if (el?.type === 'table' || el?.type === 'cardList') return;
         if (!isAdvanced) return;
 
         const deltaX = event.clientX - dragState.originX;
@@ -232,8 +244,8 @@ const TemplateCanvas = ({
     if (!isAdvanced) return;
 
     // 明細テーブルは Mapping で管理するので、キャンバス上は固定
-    if (nextElement.type === 'table') {
-      setHint('テーブルは固定です（フィールド割当で設定してください）');
+    if (nextElement.type === 'table' || nextElement.type === 'cardList') {
+      setHint('この要素は固定です（フィールド割当で設定してください）');
       window.setTimeout(() => setHint(null), 1500);
       return;
     }
@@ -255,7 +267,7 @@ const TemplateCanvas = ({
     if (!isAdvanced) return;
 
     // tableは固定（Mappingで制御）
-    if (element.type === 'table') return;
+    if (element.type === 'table' || element.type === 'cardList') return;
 
     const startWidth = element.width ?? 120;
     const startHeight = element.height ?? 32;
@@ -309,17 +321,65 @@ const TemplateCanvas = ({
           }}
           onMouseDown={(event) => handleElementMouseDown(event, element)}
         >
-          <strong
-            style={{
-              display: 'block',
-              fontSize: '0.7rem',
-              color: slotLabels?.[(element as any).slotId] ? '#344054' : '#475467',
-            }}
-          >
-            {slotLabels?.[(element as any).slotId] ?? element.type}
-          </strong>
-          <span style={{ fontSize: '0.85rem' }}>{describeDataSource(element)}</span>
-          {isAdvanced && element.type !== 'table' && (
+          {element.type === 'cardList' ? (
+            <>
+              <div
+                style={{
+                  position: 'absolute',
+                  top: 4,
+                  left: 6,
+                  fontSize: '0.65rem',
+                  fontWeight: 700,
+                  color: '#344054',
+                  background: 'rgba(255,255,255,0.8)',
+                  padding: '1px 6px',
+                  borderRadius: 999,
+                }}
+              >
+                カード枠
+              </div>
+              <div
+                style={{
+                  position: 'absolute',
+                  top: 22,
+                  left: 6,
+                  right: 6,
+                  bottom: 6,
+                  border: '1px solid #cbd5e1',
+                  borderRadius: 8,
+                  background: '#f8fafc',
+                  display: 'grid',
+                  gridTemplateColumns: '62% 38%',
+                  gridTemplateRows: '45% 30% 25%',
+                  gap: 4,
+                  padding: 6,
+                  fontSize: '0.7rem',
+                  color: '#475467',
+                }}
+              >
+                <div style={{ fontWeight: 600, color: '#101828' }}>Field A</div>
+                <div style={{ textAlign: 'right' }}>Field B</div>
+                <div>Field C</div>
+                <div style={{ textAlign: 'right' }}>Field D</div>
+                <div>Field E</div>
+                <div style={{ textAlign: 'right' }}>Field F</div>
+              </div>
+            </>
+          ) : (
+            <>
+              <strong
+                style={{
+                  display: 'block',
+                  fontSize: '0.7rem',
+                  color: slotLabels?.[(element as any).slotId] ? '#344054' : '#475467',
+                }}
+              >
+                {slotLabels?.[(element as any).slotId] ?? element.type}
+              </strong>
+              <span style={{ fontSize: '0.85rem' }}>{describeDataSource(element)}</span>
+            </>
+          )}
+          {isAdvanced && element.type !== 'table' && element.type !== 'cardList' && (
             <div className="resize-handle" onMouseDown={(event) => handleResizeMouseDown(event, element)} />
           )}
 
