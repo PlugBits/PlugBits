@@ -42,8 +42,5 @@ export const getEditorTokenFromParams = (params: URLSearchParams) =>
   params.get('token') ??
   '';
 
-export const getReportsApiBaseUrlFromParams = (params: URLSearchParams) =>
-  params.get('workerBaseUrl') ??
-  params.get('reportsApiBaseUrl') ??
-  params.get('apiBaseUrl') ??
-  '';
+export const getReportsApiBaseUrlFromParams = (_params: URLSearchParams) => WORKER_BASE_URL;
+import { WORKER_BASE_URL } from '../constants';

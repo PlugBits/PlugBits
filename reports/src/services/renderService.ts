@@ -1,8 +1,6 @@
 import type { TemplateDataRecord, TemplateDefinition } from '@shared/template';
 import { getTenantContext } from '../store/tenantStore';
 
-const API_KEY = import.meta.env.VITE_WORKER_API_KEY as string | undefined;
-
 function buildHeaders() {
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
@@ -10,9 +8,6 @@ function buildHeaders() {
   const tenantContext = getTenantContext();
   if (tenantContext?.editorToken) {
     headers.Authorization = `Bearer ${tenantContext.editorToken}`;
-  }
-  if (API_KEY) {
-    headers["x-api-key"] = API_KEY;
   }
   return headers;
 }

@@ -1,12 +1,9 @@
-const BASE_URL = (import.meta.env.VITE_WORKER_BASE_URL as string | undefined)?.replace(/\/$/, '') ?? '';
-const API_KEY = import.meta.env.VITE_WORKER_API_KEY;
+import { WORKER_BASE_URL } from '../constants';
+
+const BASE_URL = WORKER_BASE_URL.replace(/\/$/, '');
 
 
 const buildUrl = (path: string) => {
-  if (!BASE_URL) {
-    throw new Error('Missing VITE_WORKER_BASE_URL');
-  }
-
   const normalized = path.startsWith('/') ? path : `/${path}`;
   const target = `${BASE_URL}${normalized}`;
   if (import.meta.env.DEV) {
@@ -19,13 +16,8 @@ const buildUrl = (path: string) => {
 };
 
 export async function pingWorker() {
-  const headers: Record<string, string> = {};
-  if (API_KEY) {
-    headers['x-api-key'] = API_KEY;
-  }
-
   // ★ /ping ではなく / を叩く（Worker実装に合わせる）
-  const res = await fetch(buildUrl('/'), { headers });
+  const res = await fetch(buildUrl('/'));
 
   if (!res.ok) {
     throw new Error(`Worker error: ${res.status}`);

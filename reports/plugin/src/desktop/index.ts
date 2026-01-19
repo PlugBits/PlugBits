@@ -1,34 +1,19 @@
+import { WORKER_BASE_URL } from '../constants';
+import type { PluginConfig } from '../config/index.ts';
+
 const PLUGIN_ID =
   (typeof kintone !== 'undefined' ? (kintone as any).$PLUGIN_ID : '') || '';
 
-
-import type { PluginConfig } from "../config/index.ts";
-
 // ✅ 修正後
 const getConfig = (): PluginConfig | null => {
-  // TypeScript 的に型を逃がすためだけ any キャスト
   const raw =
     (kintone as any).plugin?.app?.getConfig(PLUGIN_ID) || {};
 
-  // 設定が一切保存されていないときは null 扱い
   if (!raw || Object.keys(raw).length === 0) return null;
 
-  const workerBaseUrl = raw.workerBaseUrl ?? raw.apiBaseUrl ?? '';
-  const workerApiKey = raw.workerApiKey ?? raw.apiKey ?? '';
-
   return {
-    workerBaseUrl,
-    workerApiKey,
-    kintoneApiToken: raw.kintoneApiToken ?? '',
     templateId: raw.templateId ?? '',
     attachmentFieldCode: raw.attachmentFieldCode ?? '',
-    itemsTableFieldCode: raw.itemsTableFieldCode ?? '',
-    itemNameFieldCode: raw.itemNameFieldCode ?? '',
-    qtyFieldCode: raw.qtyFieldCode ?? '',
-    unitPriceFieldCode: raw.unitPriceFieldCode ?? '',
-    amountFieldCode: raw.amountFieldCode ?? '',
-    apiBaseUrl: workerBaseUrl,
-    apiKey: workerApiKey,
   };
 };
 
@@ -192,18 +177,7 @@ const getRequestToken = () =>
 
 
 const isConfigComplete = (config: PluginConfig) =>
-  Boolean(
-    config.workerBaseUrl &&
-      config.workerApiKey &&
-      //config.kintoneApiToken &&
-      config.templateId &&
-      config.attachmentFieldCode &&
-      config.itemsTableFieldCode &&
-      config.itemNameFieldCode &&
-      config.qtyFieldCode &&
-      config.unitPriceFieldCode &&
-      config.amountFieldCode,
-  );
+  Boolean(config.templateId && config.attachmentFieldCode);
 
 const uploadFile = async (blob: Blob): Promise<string> => {
   const formData = new FormData();
@@ -311,64 +285,18 @@ function buildTemplateDataFromKintoneRecord(record: any) {
   return data;
 }
 
-const normalizeItemsFromConfig = (
-  record: any,
-  config: PluginConfig,
-  templateData: Record<string, any>,
-): { ok: boolean; data?: Record<string, any> } => {
-  const subtableField = record?.[config.itemsTableFieldCode];
-  if (!subtableField || subtableField.type !== 'SUBTABLE' || !Array.isArray(subtableField.value)) {
-    alert('明細サブテーブルの設定が正しくありません。設定画面でフィールドコードを確認してください。');
-    return {
-      ok: false,
-      data: {
-        ...templateData,
-        Items: [],
-      },
-    };
-  }
-
-  const safeValue = (value: unknown) => (value === null || value === undefined ? '' : String(value));
-
-  const items = subtableField.value.map((row: any) => {
-    const cells = row?.value ?? {};
-    return {
-      ItemName: safeValue(cells[config.itemNameFieldCode]?.value),
-      Qty: safeValue(cells[config.qtyFieldCode]?.value),
-      UnitPrice: safeValue(cells[config.unitPriceFieldCode]?.value),
-      Amount: safeValue(cells[config.amountFieldCode]?.value),
-    };
-  });
-
-  return {
-    ok: true,
-    data: {
-      ...templateData,
-      Items: items,
-    },
-  };
-};
-
 const callRenderApi = async (
   config: PluginConfig,
   recordId: string,
   templateData: any,
 ): Promise<Blob> => {
-  const baseUrl = config.workerBaseUrl || config.apiBaseUrl || '';
-  const apiKey = config.workerApiKey || config.apiKey || '';
-  if (!baseUrl) {
-    throw new Error('設定エラー: Worker ベースURLが未設定です');
-  }
-  if (!apiKey) {
-    throw new Error('設定エラー: Worker APIキーが未設定です');
-  }
+  const baseUrl = WORKER_BASE_URL;
   const appId = (window as any).kintone?.app?.getId?.();
   const appIdValue = appId ? String(appId) : '';
   const response = await fetch(`${baseUrl.replace(/\/$/, '')}/render`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'x-api-key': apiKey,
     },
     body: JSON.stringify({
       templateId: config.templateId,
@@ -377,8 +305,6 @@ const callRenderApi = async (
         baseUrl: location.origin,
         appId: appIdValue,
         recordId,
-        apiToken: config.kintoneApiToken,
-        kintoneApiToken: config.kintoneApiToken,
       },
     }),
   });
@@ -412,7 +338,7 @@ const callRenderApi = async (
       const detail = text || '不明なエラー';
       message = `テンプレ設定が不正です（templateId / 必須フィールド / tenant情報）。詳細: ${detail}`;
     } else if (response.status === 401 || response.status === 403) {
-      message = '認証に失敗しました（APIキー/トークン設定を確認）。';
+      message = '認証に失敗しました。';
     } else if (response.status === 404) {
       message = 'テンプレが見つかりません（templateId が存在しない可能性）。';
     } else if (response.status === 500) {
@@ -428,12 +354,8 @@ const callRenderApi = async (
 };
 
 const checkTemplateAvailability = async (config: PluginConfig): Promise<boolean> => {
-  const baseUrl = (config.workerBaseUrl || config.apiBaseUrl || '').replace(/\/$/, '');
+  const baseUrl = WORKER_BASE_URL.replace(/\/$/, '');
   const templateId = config.templateId;
-  if (!baseUrl) {
-    alert('設定エラー: Worker ベースURLが未設定です');
-    return false;
-  }
   if (!templateId) {
     alert('テンプレートが未選択です');
     return false;
@@ -495,16 +417,11 @@ const addButton = (config: PluginConfig) => {
     if (!templateOk) return;
 
     const templateData = buildTemplateDataFromKintoneRecord(record);
-    const normalized = normalizeItemsFromConfig(record, config, templateData);
-    if (!normalized.ok || !normalized.data) {
-      setButtonLoading(button, false);
-      return;
-    }
-    console.log('PlugBits templateData:', normalized.data);
+    console.log('PlugBits templateData:', templateData);
     setButtonLoading(button, true);
 
     try {
-      const pdfBlob = await callRenderApi(config, recordId, normalized.data);
+      const pdfBlob = await callRenderApi(config, recordId, templateData);
 
       // ① PDF表示
       const url = URL.createObjectURL(pdfBlob);
