@@ -14,7 +14,7 @@ type FieldRef =
 
 type CardListMapping = {
   source?: { kind: "subtable"; fieldCode: string };
-  fields?: Record<string, FieldRef | undefined>;
+  fields?: Record<string, FieldRef | null | undefined>;
 };
 
 export type CardsV1Mapping = {
@@ -196,8 +196,14 @@ export const cardsV1Adapter: StructureAdapter = {
       const fields = m?.cardList?.fields ?? {};
 
       const nextFields = cardList.fields.map((field) => {
-        const ref = fields[field.id];
+        const ref = fields[field.id] as FieldRef | null | undefined;
+        if (ref === null) {
+          return field.fieldCode ? { ...field, fieldCode: undefined } : field;
+        }
         if (ref?.kind === "subtableField") {
+          if (!ref.fieldCode) {
+            return field.fieldCode ? { ...field, fieldCode: undefined } : field;
+          }
           if (field.fieldCode === ref.fieldCode) return field;
           return { ...field, fieldCode: ref.fieldCode };
         }

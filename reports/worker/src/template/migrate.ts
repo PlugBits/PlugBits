@@ -24,11 +24,24 @@ const isItemNameColumn = (col: TableColumn) =>
 
 export const migrateTemplate = (template: TemplateDefinition): TemplateDefinition => {
   const schemaVersion = template.schemaVersion ?? 0;
-  const nextStructureType =
+  const baseTemplateId = template.baseTemplateId ?? template.id;
+  const normalizedStructureType =
     template.structureType === 'line_items_v1' ? 'list_v1' : template.structureType;
+  const nextStructureType =
+    baseTemplateId === 'cards_v1' ? 'cards_v1' : normalizedStructureType;
   const needsStructureUpdate = nextStructureType !== template.structureType;
   const needsPageSizeUpdate = !template.pageSize;
-  if (schemaVersion >= TEMPLATE_SCHEMA_VERSION && !needsStructureUpdate && !needsPageSizeUpdate) {
+  const hasCardList = Array.isArray(template.elements)
+    ? template.elements.some((el) => el.type === 'cardList')
+    : false;
+  const needsCardListMigration = nextStructureType === 'cards_v1' && !hasCardList;
+
+  if (
+    schemaVersion >= TEMPLATE_SCHEMA_VERSION &&
+    !needsStructureUpdate &&
+    !needsPageSizeUpdate &&
+    !needsCardListMigration
+  ) {
     return template;
   }
 
@@ -51,19 +64,115 @@ export const migrateTemplate = (template: TemplateDefinition): TemplateDefinitio
     };
   });
 
-  const mapping =
+  let mapping =
     template.mapping &&
     typeof template.mapping === 'object' &&
     (template.mapping as any).structureType === 'line_items_v1'
       ? { ...(template.mapping as Record<string, unknown>), structureType: 'list_v1' }
       : template.mapping;
 
+  let nextElements = migratedElements;
+
+  if (nextStructureType === 'cards_v1') {
+    const existingCardList = nextElements.find((el) => el.type === 'cardList');
+    if (!existingCardList) {
+      const table = nextElements.find((el) => el.type === 'table') as TableElement | undefined;
+      const tableWidth = table?.columns?.reduce((sum, col) => sum + (col.width ?? 0), 0) ?? 520;
+      const fallbackFieldCodes = [
+        'card_primary_left',
+        'card_primary_right',
+        'card_mid_left',
+        'card_mid_right',
+        'card_bottom_left',
+        'card_bottom_right',
+      ];
+      const fieldIds = ['fieldA', 'fieldB', 'fieldC', 'fieldD', 'fieldE', 'fieldF'] as const;
+      const fieldLabels = ['Field A', 'Field B', 'Field C', 'Field D', 'Field E', 'Field F'] as const;
+
+      const baseY = typeof table?.y === 'number' ? table.y : 520;
+      const nextY = Math.min(baseY + 100, 640);
+      const cardList: CardListElement = {
+        id: 'cards',
+        type: 'cardList',
+        region: 'body',
+        x: table?.x ?? 60,
+        y: nextY,
+        width: tableWidth,
+        cardHeight: 80,
+        gapY: 11,
+        padding: 12,
+        borderWidth: 0.6,
+        borderColorGray: 0.84,
+        fillGray: 0.91,
+        cornerRadius: 8,
+        dataSource:
+          table?.dataSource?.type === 'kintoneSubtable'
+            ? table.dataSource
+            : { type: 'kintoneSubtable', fieldCode: 'Items' },
+        fields: fieldIds.map((id, index) => ({
+          id,
+          label: fieldLabels[index],
+          fieldCode: table?.columns?.[index]?.fieldCode ?? fallbackFieldCodes[index],
+          align: id === 'fieldB' || id === 'fieldD' || id === 'fieldF' ? 'right' : 'left',
+        })),
+      };
+
+      nextElements = nextElements.filter((el) => el.type !== 'table');
+      nextElements.push(cardList);
+    }
+
+    if (!mapping || typeof mapping !== 'object') {
+      mapping = {};
+    }
+    const mappingObj = mapping as any;
+    if (!mappingObj.cardList) {
+      const tableMapping = mappingObj.table ?? {};
+      const sourceFromMapping = tableMapping.source;
+      const cardSource =
+        sourceFromMapping?.kind === 'subtable' && sourceFromMapping.fieldCode
+          ? sourceFromMapping
+          : {
+              kind: 'subtable',
+              fieldCode:
+                (nextElements.find((el) => el.type === 'cardList') as CardListElement | undefined)
+                  ?.dataSource?.fieldCode ?? 'Items',
+            };
+
+      const fieldIds = ['fieldA', 'fieldB', 'fieldC', 'fieldD', 'fieldE', 'fieldF'] as const;
+      const fields: Record<string, unknown> = {};
+      const cols = Array.isArray(tableMapping.columns) ? tableMapping.columns : [];
+      fieldIds.forEach((id, index) => {
+        const col = cols[index];
+        if (col?.value) {
+          fields[id] = col.value;
+        } else if (cardSource.fieldCode) {
+          fields[id] = {
+            kind: 'subtableField',
+            subtableCode: cardSource.fieldCode,
+            fieldCode:
+              (nextElements.find((el) => el.type === 'cardList') as CardListElement | undefined)
+                ?.fields?.[index]?.fieldCode ?? '',
+          };
+        }
+      });
+
+      mapping = {
+        header: mappingObj.header ?? {},
+        cardList: {
+          source: cardSource,
+          fields,
+        },
+        footer: mappingObj.footer ?? {},
+      };
+    }
+  }
+
   return {
     ...template,
     schemaVersion: TEMPLATE_SCHEMA_VERSION,
     structureType: nextStructureType,
     pageSize: template.pageSize ?? 'A4',
-    elements: migratedElements,
+    elements: nextElements,
     mapping,
   };
 };

@@ -282,10 +282,10 @@ const getUserTemplateById = async (
     if (parsed?.baseTemplateId) {
       const baseTemplate = await getBaseTemplateById(parsed.baseTemplateId, env);
       const mapped =
-        baseTemplate.structureType === "list_v1" || parsed.baseTemplateId === "list_v1"
-          ? applyListV1MappingToTemplate(baseTemplate, parsed.mapping)
-          : baseTemplate.structureType === "cards_v1" || parsed.baseTemplateId === "cards_v1"
+        baseTemplate.structureType === "cards_v1" || parsed.baseTemplateId === "cards_v1"
           ? applyCardsV1MappingToTemplate(baseTemplate, parsed.mapping)
+          : baseTemplate.structureType === "list_v1" || parsed.baseTemplateId === "list_v1"
+          ? applyListV1MappingToTemplate(baseTemplate, parsed.mapping)
           : { ...baseTemplate, mapping: parsed.mapping };
       const layoutApplied = applySlotLayoutOverrides(mapped, parsed.overrides?.layout);
       const dataApplied = applySlotDataOverrides(layoutApplied, parsed.overrides?.slots);
@@ -1245,10 +1245,10 @@ export default {
             }
 
             const mapped =
-              baseTemplate.structureType === "list_v1" || baseTemplateId === "list_v1"
-                ? applyListV1MappingToTemplate(baseTemplate, payload?.mapping)
-                : baseTemplate.structureType === "cards_v1" || baseTemplateId === "cards_v1"
+              baseTemplate.structureType === "cards_v1" || baseTemplateId === "cards_v1"
                 ? applyCardsV1MappingToTemplate(baseTemplate, payload?.mapping)
+                : baseTemplate.structureType === "list_v1" || baseTemplateId === "list_v1"
+                ? applyListV1MappingToTemplate(baseTemplate, payload?.mapping)
                 : { ...baseTemplate, mapping: payload?.mapping };
             const layoutApplied = applySlotLayoutOverrides(mapped, payload?.overrides?.layout);
             const dataApplied = applySlotDataOverrides(layoutApplied, payload?.overrides?.slots);

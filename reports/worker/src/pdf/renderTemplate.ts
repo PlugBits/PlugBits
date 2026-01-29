@@ -199,6 +199,8 @@ const drawCellText = (
   cellH: number,
   align: 'left' | 'center' | 'right',
   minFontSize = MIN_FONT_SIZE,
+  valign: 'top' | 'middle' = 'middle',
+  color: ReturnType<typeof rgb> = rgb(0, 0, 0),
 ) => {
   const availableW = Math.max(0, cellW - CELL_PADDING_X * 2);
   const fontSize = calcShrinkFontSize(
@@ -217,9 +219,12 @@ const drawCellText = (
       ? cellX + (cellW - textW) / 2
       : cellX + CELL_PADDING_X;
 
-  const y = cellY + cellH / 2 - fontSize / 2;
+  const y =
+    valign === 'top'
+      ? cellY + cellH - fontSize - 2
+      : cellY + cellH / 2 - fontSize / 2;
 
-  page.drawText(text, { x, y, size: fontSize, font, color: rgb(0, 0, 0) });
+  page.drawText(text, { x, y, size: fontSize, font, color });
 };
 
 const drawAlignedText = (
@@ -1899,13 +1904,13 @@ function drawCardList(
   imageMap: Map<string, PDFImage>,
   warn: WarnFn,
 ): PDFPage {
-  const cardHeight = element.cardHeight ?? 90;
-  const gapY = element.gapY ?? 10;
-  const padding = element.padding ?? 10;
-  const borderWidth = element.borderWidth ?? 1;
-  const borderGray = element.borderColorGray ?? 0.7;
-  const fillGray = element.fillGray ?? 0.96;
-  const cornerRadius = element.cornerRadius ?? 0;
+  const cardHeight = element.cardHeight ?? 80;
+  const gapY = element.gapY ?? 11;
+  const padding = element.padding ?? 12;
+  const borderWidth = element.borderWidth ?? 0.6;
+  const borderGray = element.borderColorGray ?? 0.84;
+  const fillGray = element.fillGray ?? 0.91;
+  const cornerRadius = element.cornerRadius ?? 8;
 
   if (!Number.isFinite(cardHeight) || cardHeight <= 0) {
     warn('layout', 'cardHeight is invalid', { id: element.id, cardHeight });
@@ -1930,18 +1935,44 @@ function drawCardList(
     });
   }
 
-  if (rows.length === 0) {
-    return page;
+  let rowsToRender = rows;
+  if (rowsToRender.length === 0) {
+    const sampleValuesById: Record<string, string[]> = {
+      fieldA: [
+        'サンプル品名 ABC-12345 長いテキスト (sample)',
+        'サンプル品名 XYZ-888 (sample)',
+        'サンプル品名 QWE-77 (sample)',
+      ],
+      fieldB: ['120', '98', '64'],
+      fieldC: ['カテゴリA', 'カテゴリA', 'カテゴリA'],
+      fieldD: ['34.52', '18.4', '12.0'],
+      fieldE: ['SKU-01', 'SKU-02', 'SKU-03'],
+      fieldF: ['4142.4', '303.2', '999.0'],
+    };
+
+    rowsToRender = Array.from({ length: 3 }, (_, index) => {
+      const row: Record<string, unknown> = {
+        __placeholder: true,
+        __index: index,
+      };
+      for (const field of element.fields) {
+        if (!field.fieldCode) continue;
+        const values = sampleValuesById[field.id] ?? [''];
+        const sample = values[index % values.length];
+        if (sample) {
+          row[field.fieldCode] = sample;
+        }
+      }
+      return row;
+    });
+    warn('data', 'cardList rows empty; using placeholder rows', { id: element.id });
   }
 
   const startTopY = clampPdfY(toPdfYFromBottom(element.y, pageHeight), pageHeight - 5);
   const innerWidth = Math.max(0, cardWidth - padding * 2);
   const innerHeight = Math.max(0, cardHeight - padding * 2);
-  const leftWidth = Math.round(innerWidth * 0.62);
+  const leftWidth = Math.round(innerWidth * 0.72);
   const rightWidth = Math.max(0, innerWidth - leftWidth);
-  const topHeight = Math.round(innerHeight * 0.45);
-  const midHeight = Math.round(innerHeight * 0.3);
-  const bottomHeight = Math.max(0, innerHeight - topHeight - midHeight);
 
   const fieldsById = new Map(element.fields.map((field) => [field.id, field]));
 
@@ -1961,6 +1992,9 @@ function drawCardList(
     };
   };
 
+  const hasValue = (value: unknown) =>
+    value === 0 ? true : !!String(value ?? '').trim();
+
   const drawFieldText = (
     targetPage: PDFPage,
     row: Record<string, unknown>,
@@ -1970,7 +2004,8 @@ function drawCardList(
   ) => {
     const { field, spec } = getFieldSpec(fieldId);
     const fieldCode = field?.fieldCode;
-    const rawVal = fieldCode ? (row as any)[fieldCode] : '';
+    const isPlaceholderRow = (row as any).__placeholder === true;
+    const rawVal: unknown = fieldCode ? (row as any)[fieldCode] : undefined;
     const text = formatCellValue(rawVal, spec, warn, {
       cardId: element.id,
       fieldId,
@@ -1979,6 +2014,7 @@ function drawCardList(
     if (!text) return;
 
     const font = pickFontForText(text, jpFont, latinFont);
+    const textColor = isPlaceholderRow ? rgb(0.35, 0.35, 0.35) : rgb(0, 0, 0);
     if (fieldId === 'fieldA') {
       const maxWidth = Math.max(0, box.w);
       const lineHeight = fontSize * 1.2;
@@ -1991,7 +2027,7 @@ function drawCardList(
         box.y + box.h - fontSize,
         font,
         fontSize,
-        rgb(0, 0, 0),
+        textColor,
         maxLines,
         lineHeight,
       );
@@ -2010,6 +2046,8 @@ function drawCardList(
       box.h,
       align,
       spec.minFontSize,
+      'top',
+      textColor,
     );
   };
 
@@ -2041,8 +2079,8 @@ function drawCardList(
     });
   }
 
-  for (let i = 0; i < rows.length; i++) {
-    const row = rows[i];
+  for (let i = 0; i < rowsToRender.length; i++) {
+    const row = rowsToRender[i];
     if (!row || typeof row !== 'object' || Array.isArray(row)) {
       warn('data', 'cardList row is not object', { id: element.id, rowIndex: i });
       continue;
@@ -2067,52 +2105,91 @@ function drawCardList(
     const innerLeft = originX + padding;
     const innerTop = cardTopY - padding;
 
-    const topRowBottom = innerTop - topHeight;
-    const midRowBottom = topRowBottom - midHeight;
-    const bottomRowBottom = midRowBottom - bottomHeight;
+    const fieldOrder = ['fieldA', 'fieldB', 'fieldC', 'fieldD', 'fieldE', 'fieldF'] as const;
+    const presence = fieldOrder.reduce<Record<string, boolean>>((acc, fieldId) => {
+      const field = fieldsById.get(fieldId);
+      const fieldCode = field?.fieldCode;
+      const rawVal: unknown = fieldCode ? (row as any)[fieldCode] : undefined;
+      acc[fieldId] = hasValue(rawVal);
+      return acc;
+    }, {});
 
-    drawFieldText(
-      currentPage,
-      row as Record<string, unknown>,
-      'fieldA',
-      { x: innerLeft, y: topRowBottom, w: leftWidth, h: topHeight },
-      12,
-    );
-    drawFieldText(
-      currentPage,
-      row as Record<string, unknown>,
-      'fieldB',
-      { x: innerLeft + leftWidth, y: topRowBottom, w: rightWidth, h: topHeight },
-      10,
-    );
-    drawFieldText(
-      currentPage,
-      row as Record<string, unknown>,
-      'fieldC',
-      { x: innerLeft, y: midRowBottom, w: leftWidth, h: midHeight },
-      10,
-    );
-    drawFieldText(
-      currentPage,
-      row as Record<string, unknown>,
-      'fieldD',
-      { x: innerLeft + leftWidth, y: midRowBottom, w: rightWidth, h: midHeight },
-      10,
-    );
-    drawFieldText(
-      currentPage,
-      row as Record<string, unknown>,
-      'fieldE',
-      { x: innerLeft, y: bottomRowBottom, w: leftWidth, h: bottomHeight },
-      9,
-    );
-    drawFieldText(
-      currentPage,
-      row as Record<string, unknown>,
-      'fieldF',
-      { x: innerLeft + leftWidth, y: bottomRowBottom, w: rightWidth, h: bottomHeight },
-      9,
-    );
+    const presentIds = fieldOrder.filter((id) => presence[id]);
+    const hasA = presence.fieldA;
+    const hasB = presence.fieldB;
+    const otherCount = presentIds.filter((id) => id !== 'fieldA').length;
+
+    if (hasA && presentIds.length === 1) {
+      const lineHeight = 15 * 1.2;
+      const maxLines = Math.max(1, Math.min(3, Math.floor(innerHeight / lineHeight)));
+      const blockHeight = Math.min(innerHeight, maxLines * lineHeight);
+      const topY = innerTop - Math.max(0, (innerHeight - blockHeight) / 2);
+      drawFieldText(
+        currentPage,
+        row as Record<string, unknown>,
+        'fieldA',
+        { x: innerLeft, y: topY - blockHeight, w: innerWidth, h: blockHeight },
+        15,
+      );
+    } else {
+      const leftItems = ['fieldC', 'fieldE'].filter((id) => presence[id]);
+      const rightItems = ['fieldD', 'fieldF'].filter((id) => presence[id]);
+
+      const primaryLeftId =
+        hasA ? 'fieldA' : leftItems.shift() ?? rightItems.shift() ?? null;
+      const primaryRightId = hasB ? 'fieldB' : null;
+
+      const primaryHeightRatio = otherCount <= 2 ? 0.5 : 0.38;
+      const primaryHeight = Math.max(20, Math.round(innerHeight * primaryHeightRatio));
+      const lineGap = 4;
+      const laneRows = Math.max(leftItems.length, rightItems.length, 1);
+      const available = Math.max(0, innerHeight - primaryHeight - lineGap);
+      const blockHeight = Math.max(12, Math.floor(available / laneRows));
+
+      if (primaryLeftId) {
+        const primaryFontSize = primaryLeftId === 'fieldA' ? 14 : 12;
+        drawFieldText(
+          currentPage,
+          row as Record<string, unknown>,
+          primaryLeftId,
+          { x: innerLeft, y: innerTop - primaryHeight, w: leftWidth, h: primaryHeight },
+          primaryFontSize,
+        );
+      }
+      if (primaryRightId) {
+        drawFieldText(
+          currentPage,
+          row as Record<string, unknown>,
+          primaryRightId,
+          { x: innerLeft + leftWidth, y: innerTop - primaryHeight, w: rightWidth, h: primaryHeight },
+          10,
+        );
+      }
+
+      let leftY = innerTop - primaryHeight - lineGap;
+      for (const fieldId of leftItems) {
+        drawFieldText(
+          currentPage,
+          row as Record<string, unknown>,
+          fieldId,
+          { x: innerLeft, y: leftY - blockHeight, w: leftWidth, h: blockHeight },
+          10,
+        );
+        leftY -= blockHeight + lineGap;
+      }
+
+      let rightY = innerTop - primaryHeight - lineGap;
+      for (const fieldId of rightItems) {
+        drawFieldText(
+          currentPage,
+          row as Record<string, unknown>,
+          fieldId,
+          { x: innerLeft + leftWidth, y: rightY - blockHeight, w: rightWidth, h: blockHeight },
+          10,
+        );
+        rightY -= blockHeight + lineGap;
+      }
+    }
 
     cardTopY = cardTopY - cardHeight - gapY;
   }

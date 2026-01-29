@@ -235,9 +235,12 @@ const RegionMappingPanel: React.FC<Props> = ({
           })()}
 
           {region.fields.map((field) => {
-            const fieldValue: FieldRef | undefined = cardMapping?.fields?.[field.id];
+            const fieldValueRaw = cardMapping?.fields?.[field.id] ?? undefined;
+            const fieldValue: FieldRef | undefined =
+              fieldValueRaw && typeof fieldValueRaw === 'object' ? fieldValueRaw : undefined;
             const isOpen = openCardFieldId === field.id;
             const isEmpty = !fieldValue;
+            const canClear = field.id !== 'fieldA' && fieldValueRaw != null;
 
             return (
               <div
@@ -271,18 +274,38 @@ const RegionMappingPanel: React.FC<Props> = ({
 
                 {isOpen && (
                   <div className="mapping-row-detail">
-                    <FieldPicker
-                      mode="subtableField"
-                      subtableCode={currentSubtableCode}
-                      subtableFieldOptions={subtableFieldOptions}
-                      subtableAllowTypes={SUBTABLE_ALLOW_TYPES}
-                      value={fieldValue}
-                      onChange={(v) => {
-                        const next = setPath(mapping, [region.id, 'fields', field.id], v);
-                        onChangeMapping(next);
-                        if (v?.kind === 'subtableField') onFocusFieldRef(v as any);
-                      }}
-                    />
+                    <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'center' }}>
+                      <div style={{ fontSize: '0.85rem', color: '#667085' }}>
+                        サブテーブル項目
+                      </div>
+                      <button
+                        className="ghost"
+                        type="button"
+                        disabled={!canClear}
+                        onClick={() => {
+                          if (!canClear) return;
+                          const next = setPath(mapping, [region.id, 'fields', field.id], null);
+                          onChangeMapping(next);
+                          onClearFocus();
+                        }}
+                      >
+                        解除
+                      </button>
+                    </div>
+                    <div style={{ marginTop: 8 }}>
+                      <FieldPicker
+                        mode="subtableField"
+                        subtableCode={currentSubtableCode}
+                        subtableFieldOptions={subtableFieldOptions}
+                        subtableAllowTypes={SUBTABLE_ALLOW_TYPES}
+                        value={fieldValue}
+                        onChange={(v) => {
+                          const next = setPath(mapping, [region.id, 'fields', field.id], v);
+                          onChangeMapping(next);
+                          if (v?.kind === 'subtableField') onFocusFieldRef(v as any);
+                        }}
+                      />
+                    </div>
                   </div>
                 )}
               </div>
