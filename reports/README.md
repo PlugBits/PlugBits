@@ -13,6 +13,12 @@ curl -i -X PUT "$BASE/templates/list_v1" \
   --data @worker/dev-templates/list_v1.json
 ```
 
+All base templates:
+
+```sh
+BASE="https://your-worker.example" ADMIN_API_KEY="..." ./scripts/publish-templates.sh
+```
+
 取得:
 
 ```sh
