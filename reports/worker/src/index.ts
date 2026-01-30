@@ -13,6 +13,7 @@ import { getFixtureData } from "./fixtures/templateData.js";
 import { migrateTemplate, validateTemplate } from "./template/migrate.js";
 import { applyListV1MappingToTemplate } from "./template/listV1Mapping.ts";
 import { applyCardsV1MappingToTemplate } from "./template/cardsV1Mapping.ts";
+import { applyCardsV2MappingToTemplate } from "./template/cardsV2Mapping.ts";
 import {
   applySlotDataOverrides,
   applySlotLayoutOverrides,
@@ -229,7 +230,7 @@ const getTenantContext = (
 
  // templateId から TemplateDefinition を引く関数
  
-const TEMPLATE_IDS = new Set(["list_v1", "cards_v1", "card_v1", "multiTable_v1"]);
+const TEMPLATE_IDS = new Set(["list_v1", "cards_v1", "cards_v2", "card_v1", "multiTable_v1"]);
 const SLOT_SCHEMA_LIST_V1 = {
   header: [
     { slotId: "doc_title", label: "タイトル", kind: "text" as const },
@@ -264,6 +265,15 @@ const TEMPLATE_CATALOG = [
     flags: [] as string[],
     slotSchema: SLOT_SCHEMA_LIST_V1,
   },
+  {
+    templateId: "cards_v2",
+    displayName: "Card Compact",
+    structureType: "cards_v2",
+    description: "一覧向けのコンパクトカードテンプレ",
+    version: 1,
+    flags: [] as string[],
+    slotSchema: SLOT_SCHEMA_LIST_V1,
+  },
 ];
 
 const getUserTemplateById = async (
@@ -282,7 +292,9 @@ const getUserTemplateById = async (
     if (parsed?.baseTemplateId) {
       const baseTemplate = await getBaseTemplateById(parsed.baseTemplateId, env);
       const mapped =
-        baseTemplate.structureType === "cards_v1" || parsed.baseTemplateId === "cards_v1"
+        baseTemplate.structureType === "cards_v2" || parsed.baseTemplateId === "cards_v2"
+          ? applyCardsV2MappingToTemplate(baseTemplate, parsed.mapping)
+          : baseTemplate.structureType === "cards_v1" || parsed.baseTemplateId === "cards_v1"
           ? applyCardsV1MappingToTemplate(baseTemplate, parsed.mapping)
           : baseTemplate.structureType === "list_v1" || parsed.baseTemplateId === "list_v1"
           ? applyListV1MappingToTemplate(baseTemplate, parsed.mapping)
@@ -1245,7 +1257,9 @@ export default {
             }
 
             const mapped =
-              baseTemplate.structureType === "cards_v1" || baseTemplateId === "cards_v1"
+              baseTemplate.structureType === "cards_v2" || baseTemplateId === "cards_v2"
+                ? applyCardsV2MappingToTemplate(baseTemplate, payload?.mapping)
+                : baseTemplate.structureType === "cards_v1" || baseTemplateId === "cards_v1"
                 ? applyCardsV1MappingToTemplate(baseTemplate, payload?.mapping)
                 : baseTemplate.structureType === "list_v1" || baseTemplateId === "list_v1"
                 ? applyListV1MappingToTemplate(baseTemplate, payload?.mapping)
@@ -1563,7 +1577,8 @@ export default {
           if (
             !isUserTemplate &&
             body.templateId !== "list_v1" &&
-            body.templateId !== "cards_v1"
+            body.templateId !== "cards_v1" &&
+            body.templateId !== "cards_v2"
           ) {
             return new Response(
               JSON.stringify({

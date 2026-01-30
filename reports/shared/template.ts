@@ -3,7 +3,7 @@
 export type PageSize = 'A4' | 'Letter';
 export type Orientation = 'portrait' | 'landscape';
 //構造テンプレ種別（将来増やす） ---
-export type StructureType = 'list_v1' | 'cards_v1';
+export type StructureType = 'list_v1' | 'cards_v1' | 'cards_v2';
 //フッターの繰り返しモード ---
 export type FooterRepeatMode = 'all' | 'last';
 //mapping は MVP では unknown（Adapter側で解釈/検証） ---

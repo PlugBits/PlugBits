@@ -29,6 +29,8 @@ export const migrateTemplate = (template: TemplateDefinition): TemplateDefinitio
     template.structureType === 'line_items_v1' ? 'list_v1' : template.structureType;
   const nextStructureType =
     baseTemplateId === 'cards_v1' ? 'cards_v1' : normalizedStructureType;
+  const needsElementsNormalization = !Array.isArray(template.elements);
+  const needsMappingNormalization = template.mapping == null;
   const needsStructureUpdate = nextStructureType !== template.structureType;
   const needsPageSizeUpdate = !template.pageSize;
   const hasCardList = Array.isArray(template.elements)
@@ -40,7 +42,9 @@ export const migrateTemplate = (template: TemplateDefinition): TemplateDefinitio
     schemaVersion >= TEMPLATE_SCHEMA_VERSION &&
     !needsStructureUpdate &&
     !needsPageSizeUpdate &&
-    !needsCardListMigration
+    !needsCardListMigration &&
+    !needsElementsNormalization &&
+    !needsMappingNormalization
   ) {
     return template;
   }
@@ -71,6 +75,10 @@ export const migrateTemplate = (template: TemplateDefinition): TemplateDefinitio
       ? { ...(template.mapping as Record<string, unknown>), structureType: 'list_v1' }
       : template.mapping;
 
+  if (!mapping || typeof mapping !== 'object') {
+    mapping = {};
+  }
+
   let nextElements = migratedElements;
 
   if (nextStructureType === 'cards_v1') {
@@ -88,6 +96,8 @@ export const migrateTemplate = (template: TemplateDefinition): TemplateDefinitio
       ];
       const fieldIds = ['fieldA', 'fieldB', 'fieldC', 'fieldD', 'fieldE', 'fieldF'] as const;
       const fieldLabels = ['Field A', 'Field B', 'Field C', 'Field D', 'Field E', 'Field F'] as const;
+      const mappingObj = mapping as any;
+      const mappingFields = (mappingObj?.cardList?.fields ?? {}) as Record<string, any>;
 
       const baseY = typeof table?.y === 'number' ? table.y : 520;
       const nextY = Math.min(baseY + 100, 640);
@@ -112,7 +122,11 @@ export const migrateTemplate = (template: TemplateDefinition): TemplateDefinitio
         fields: fieldIds.map((id, index) => ({
           id,
           label: fieldLabels[index],
-          fieldCode: table?.columns?.[index]?.fieldCode ?? fallbackFieldCodes[index],
+          fieldCode:
+            (mappingFields[id]?.kind === 'subtableField' && mappingFields[id].fieldCode
+              ? mappingFields[id].fieldCode
+              : table?.columns?.[index]?.fieldCode) ??
+            (!table && id === 'fieldA' ? fallbackFieldCodes[0] : undefined),
           align: id === 'fieldB' || id === 'fieldD' || id === 'fieldF' ? 'right' : 'left',
         })),
       };
