@@ -786,7 +786,16 @@ const TemplateEditorPage = () => {
           </button>
         </div>
       ) : isLabelTemplate ? (
-        <div className="card" style={{ padding: '1rem', flex: 1, minHeight: 0, overflow: 'hidden' }}>
+        <div
+          className="card"
+          style={{
+            padding: '1rem',
+            flex: 1,
+            minHeight: 0,
+            overflowY: 'auto',
+            overflowX: 'hidden',
+          }}
+        >
           <LabelEditorPanel template={template} onChange={updateTemplate} />
         </div>
       ) : (
