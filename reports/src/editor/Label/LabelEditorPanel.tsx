@@ -55,8 +55,8 @@ const normalizeSheet = (raw: TemplateDefinition['sheetSettings']): LabelSheetSet
     paperPreset: preset,
     paperWidthMm,
     paperHeightMm,
-    cols: Math.floor(toNumber(source.cols, DEFAULT_SHEET.cols)),
-    rows: Math.floor(toNumber(source.rows, DEFAULT_SHEET.rows)),
+    cols: Math.max(1, Math.floor(toNumber(source.cols, DEFAULT_SHEET.cols))),
+    rows: Math.max(1, Math.floor(toNumber(source.rows, DEFAULT_SHEET.rows))),
     marginMm: clampNonNegative(toNumber(source.marginMm, DEFAULT_SHEET.marginMm)),
     gapMm: clampNonNegative(toNumber(source.gapMm, DEFAULT_SHEET.gapMm)),
     offsetXmm: toNumber(source.offsetXmm, DEFAULT_SHEET.offsetXmm),
@@ -88,8 +88,8 @@ const computeColsRows = (
   paperH: number,
   sheet: LabelSheetSettings,
 ): CalcResult => {
-  const cols = Math.floor(sheet.cols);
-  const rows = Math.floor(sheet.rows);
+  const cols = Math.max(1, Math.floor(sheet.cols));
+  const rows = Math.max(1, Math.floor(sheet.rows));
   const invalid = cols < 1 || rows < 1 || !Number.isFinite(paperW) || !Number.isFinite(paperH);
   return {
     cols,
@@ -199,9 +199,12 @@ const LabelEditorPanel: React.FC<Props> = ({ template, onChange }) => {
         gridTemplateColumns: 'minmax(260px, 360px) minmax(320px, 1fr)',
         gap: '1.25rem',
         alignItems: 'start',
+        height: '100%',
+        minHeight: 0,
       }}
     >
-      <div style={{ display: 'grid', gap: '1rem' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+        <div style={{ display: 'grid', gap: '1rem', flex: 1, minHeight: 0, overflowY: 'auto' }}>
         <div className="mapping-card" style={{ padding: '1rem' }}>
           <div className="mapping-card-title">用紙・面付け</div>
           <div style={{ display: 'grid', gap: '0.75rem' }}>
@@ -346,7 +349,7 @@ const LabelEditorPanel: React.FC<Props> = ({ template, onChange }) => {
               borderRadius: 8,
               background: '#fff',
               position: 'relative',
-              overflow: 'hidden',
+              overflow: 'auto',
             }}
           >
             {!isInvalid && previewCount > 0 && labelW > 0 && labelH > 0 && (
@@ -394,6 +397,7 @@ const LabelEditorPanel: React.FC<Props> = ({ template, onChange }) => {
             />
           </label>
           <p className="mapping-help">未指定/0/空は1枚扱い。上限1000。</p>
+        </div>
         </div>
       </div>
 
