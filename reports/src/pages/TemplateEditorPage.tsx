@@ -63,6 +63,9 @@ const TemplateEditorPage = () => {
     ['cards_v1', 'cards_v2', 'card_v1', 'multiTable_v1'].includes(
       template?.baseTemplateId ?? '',
     );
+  const isLabelConfigInvalid =
+    isLabelTemplate &&
+    ((template?.sheetSettings?.cols ?? 0) < 1 || (template?.sheetSettings?.rows ?? 0) < 1);
 
   useEffect(() => {
     if (!templateId || authState !== 'authorized') return;
@@ -480,6 +483,13 @@ const TemplateEditorPage = () => {
 
   const handleSave = async (isAutosave = false) => {
     if (!template) return;
+    if (isLabelTemplate && isLabelConfigInvalid) {
+      if (!isAutosave) {
+        setSaveStatus('error');
+        setSaveError('面付けが成立しません。ラベルサイズと余白を確認してください。');
+      }
+      return;
+    }
     setSaveStatus('saving');
     setSaveError('');
     try {
@@ -656,7 +666,11 @@ const TemplateEditorPage = () => {
               >
                 PDFプレビュー
               </button>
-              <button className="ghost" onClick={() => { void handleSave(); }} disabled={saveStatus === 'saving'}>
+              <button
+                className="ghost"
+                onClick={() => { void handleSave(); }}
+                disabled={saveStatus === 'saving' || isLabelConfigInvalid}
+              >
                 {saveStatus === 'saving' ? '保存中...' : '保存'}
               </button>
               <button
@@ -679,6 +693,9 @@ const TemplateEditorPage = () => {
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: 6 }}>
               {saveStatus === 'success' && <span className="status-pill success">保存しました</span>}
               {saveStatus === 'error' && <span className="status-pill error">{saveError}</span>}
+              {isLabelConfigInvalid && (
+                <span className="status-pill error">面付けが成立しません</span>
+              )}
             </div>
           </div>
         </div>

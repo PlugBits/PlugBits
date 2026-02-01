@@ -18,6 +18,12 @@ export type LabelSheetSettings = {
   gapMm: number;
   offsetXmm: number;
   offsetYmm: number;
+  labelWidthMm?: number;
+  labelHeightMm?: number;
+  marginTopMm?: number;
+  marginLeftMm?: number;
+  gapXmm?: number;
+  gapYmm?: number;
 };
 
 export type LabelSlotMapping = {
