@@ -2905,34 +2905,39 @@ export const renderLabelCalibrationPdf = async (
     borderWidth: 0.8,
   });
 
-  const firstLabelX = mmToPt(sheet.marginMm + sheet.offsetXmm);
-  const firstLabelY =
-    pageHeight - mmToPt(sheet.marginMm + sheet.offsetYmm) - labelHPt;
+  const crossSize = mmToPt(4);
+  for (let row = 0; row < sheet.rows; row += 1) {
+    for (let col = 0; col < sheet.cols; col += 1) {
+      const xMm = sheet.marginMm + col * (labelW + sheet.gapMm) + sheet.offsetXmm;
+      const yMm = sheet.marginMm + row * (labelH + sheet.gapMm) + sheet.offsetYmm;
+      const cellX = mmToPt(xMm);
+      const cellY = pageHeight - mmToPt(yMm) - labelHPt;
 
-  page.drawRectangle({
-    x: firstLabelX,
-    y: firstLabelY,
-    width: labelWPt,
-    height: labelHPt,
-    borderColor: rgb(0.2, 0.2, 0.2),
-    borderWidth: 0.8,
-  });
+      page.drawRectangle({
+        x: cellX,
+        y: cellY,
+        width: labelWPt,
+        height: labelHPt,
+        borderColor: rgb(0.2, 0.2, 0.2),
+        borderWidth: 0.6,
+      });
 
-  const crossSize = mmToPt(5);
-  const crossX = firstLabelX + labelWPt / 2;
-  const crossY = firstLabelY + labelHPt / 2;
-  page.drawLine({
-    start: { x: crossX - crossSize, y: crossY },
-    end: { x: crossX + crossSize, y: crossY },
-    thickness: 0.6,
-    color: rgb(0.3, 0.3, 0.3),
-  });
-  page.drawLine({
-    start: { x: crossX, y: crossY - crossSize },
-    end: { x: crossX, y: crossY + crossSize },
-    thickness: 0.6,
-    color: rgb(0.3, 0.3, 0.3),
-  });
+      const crossX = cellX + labelWPt / 2;
+      const crossY = cellY + labelHPt / 2;
+      page.drawLine({
+        start: { x: crossX - crossSize, y: crossY },
+        end: { x: crossX + crossSize, y: crossY },
+        thickness: 0.5,
+        color: rgb(0.3, 0.3, 0.3),
+      });
+      page.drawLine({
+        start: { x: crossX, y: crossY - crossSize },
+        end: { x: crossX, y: crossY + crossSize },
+        thickness: 0.5,
+        color: rgb(0.3, 0.3, 0.3),
+      });
+    }
+  }
 
   const scaleLen = mmToPt(10);
   const scaleX = marginPt;

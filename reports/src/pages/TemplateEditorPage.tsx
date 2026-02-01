@@ -65,7 +65,7 @@ const TemplateEditorPage = () => {
     );
   const isLabelConfigInvalid =
     isLabelTemplate &&
-    ((template?.sheetSettings?.cols ?? 0) < 1 || (template?.sheetSettings?.rows ?? 0) < 1);
+    ((template?.sheetSettings?.cols ?? 1) < 1 || (template?.sheetSettings?.rows ?? 1) < 1);
 
   useEffect(() => {
     if (!templateId || authState !== 'authorized') return;
