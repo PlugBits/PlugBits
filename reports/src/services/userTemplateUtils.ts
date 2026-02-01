@@ -1,4 +1,11 @@
-import type { TemplateDefinition, TemplateElement, TextElement, ImageElement, PageSize } from '@shared/template';
+import type {
+  TemplateDefinition,
+  TemplateElement,
+  TextElement,
+  ImageElement,
+  PageSize,
+  LabelSheetSettings,
+} from '@shared/template';
 import { getAdapter } from '../editor/Mapping/adapters/getAdapter';
 
 export type SlotFieldRef =
@@ -26,6 +33,7 @@ export type UserTemplateOverrides = {
 export type UserTemplatePayload = {
   baseTemplateId: string;
   pageSize?: PageSize;
+  sheetSettings?: LabelSheetSettings;
   mapping?: unknown;
   overrides?: UserTemplateOverrides;
   meta?: { name?: string; updatedAt?: string };
@@ -249,6 +257,16 @@ export const buildTemplateFromUserTemplate = (
   record: UserTemplateRecord,
 ): TemplateDefinition => {
   const structureType = baseTemplate.structureType ?? 'list_v1';
+  if (structureType === 'label_v1') {
+    return {
+      ...baseTemplate,
+      id: record.templateId,
+      name: record.meta?.name ?? baseTemplate.name,
+      baseTemplateId: record.baseTemplateId,
+      mapping: record.mapping ?? baseTemplate.mapping,
+      sheetSettings: record.sheetSettings ?? baseTemplate.sheetSettings,
+    };
+  }
   const adapter = getAdapter(structureType);
   const mapping = record.mapping ?? adapter.createDefaultMapping();
 

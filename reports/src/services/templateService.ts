@@ -220,6 +220,7 @@ export async function createTemplateRemote(
   const payload: UserTemplatePayload = {
     baseTemplateId,
     pageSize: template.pageSize,
+    sheetSettings: template.sheetSettings,
     mapping: template.mapping ?? null,
     overrides: {
       layout: extractSlotLayoutOverrides(template),
@@ -256,14 +257,20 @@ export const createUserTemplateFromBase = async (
   name?: string,
 ): Promise<TemplateDefinition> => {
   const base = await fetchBaseTemplate(baseTemplateId);
-  const adapter = (await import('../editor/Mapping/adapters/getAdapter')).getAdapter(
-    base.structureType ?? 'list_v1',
-  );
-  const mapping = base.mapping ?? adapter.createDefaultMapping();
-  const mapped = adapter.applyMappingToTemplate(
-    { ...base, structureType: base.structureType ?? 'list_v1', mapping },
-    mapping,
-  );
+  const structureType = base.structureType ?? 'list_v1';
+  let mapped: TemplateDefinition;
+  if (structureType === 'label_v1') {
+    mapped = { ...base, structureType };
+  } else {
+    const adapter = (await import('../editor/Mapping/adapters/getAdapter')).getAdapter(
+      structureType,
+    );
+    const mapping = base.mapping ?? adapter.createDefaultMapping();
+    mapped = adapter.applyMappingToTemplate(
+      { ...base, structureType, mapping },
+      mapping,
+    );
+  }
 
   const id = generateUserTemplateId();
   const template: TemplateDefinition = {
@@ -271,6 +278,8 @@ export const createUserTemplateFromBase = async (
     id,
     name: name ?? base.name,
     baseTemplateId,
+    mapping: mapped.mapping ?? base.mapping,
+    sheetSettings: mapped.sheetSettings ?? base.sheetSettings,
   };
 
   const saved = await createTemplateRemote(template);

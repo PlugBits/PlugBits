@@ -379,14 +379,14 @@ export const applyListV1MappingToTemplate = (
       ? {
           mode:
             summaryMode === "everyPageSubtotal+lastTotal"
-              ? "everyPageSubtotal+lastTotal"
-              : "lastPageOnly",
+              ? ("everyPageSubtotal+lastTotal" as const)
+              : ("lastPageOnly" as const),
           rows: [
             {
-              op: "sum",
+              op: "sum" as const,
               fieldCode: summaryFieldCode,
               columnId: summaryColumnId,
-              kind: summaryMode === "everyPageSubtotal+lastTotal" ? "both" : "total",
+              kind: summaryMode === "everyPageSubtotal+lastTotal" ? ("both" as const) : ("total" as const),
               label: "合計",
               labelSubtotal: "小計",
               labelTotal: "合計",

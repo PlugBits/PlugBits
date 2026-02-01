@@ -8,6 +8,7 @@ import Toast from '../components/Toast';
 import { selectTemplateById, useTemplateStore } from '../store/templateStore';
 import { useTemplateListStore } from '../store/templateListStore';
 import MappingPage from '../editor/Mapping/MappingPage';
+import LabelEditorPanel from '../editor/Label/LabelEditorPanel';
 import { getAdapter } from '../editor/Mapping/adapters/getAdapter';
 import { useEditorSession } from '../hooks/useEditorSession';
 
@@ -56,6 +57,12 @@ const TemplateEditorPage = () => {
     return qs ? `?${qs}` : '';
   }, [params]);
   const headerTemplateId = template?.id ?? templateId ?? '';
+  const isLabelTemplate = template?.structureType === 'label_v1';
+  const isCardTemplate =
+    template?.structureType === 'cards_v1' &&
+    ['cards_v1', 'cards_v2', 'card_v1', 'multiTable_v1'].includes(
+      template?.baseTemplateId ?? '',
+    );
 
   useEffect(() => {
     if (!templateId || authState !== 'authorized') return;
@@ -88,6 +95,7 @@ const TemplateEditorPage = () => {
       elements: template.elements,
       mapping: template.mapping ?? null,
       structureType: template.structureType ?? null,
+      sheetSettings: template.sheetSettings ?? null,
       footerRepeatMode: template.footerRepeatMode ?? null,
       footerReserveHeight: template.footerReserveHeight ?? null,
       advancedLayoutEditing: !!template.advancedLayoutEditing,
@@ -151,6 +159,7 @@ const TemplateEditorPage = () => {
     if (isUserTemplate) return;
 
     const structureType = template.structureType ?? 'list_v1';
+    if (structureType === 'label_v1') return;
     const adapter = getAdapter(structureType);
     const mapping = template.mapping ?? adapter.createDefaultMapping();
 
@@ -305,6 +314,7 @@ const TemplateEditorPage = () => {
 
   const slotLabelMap = useMemo(() => {
     const structureType = template?.structureType ?? 'list_v1';
+    if (structureType === 'label_v1') return {};
     const adapter = getAdapter(structureType);
     const map: Record<string, string> = {};
     for (const region of adapter.regions) {
@@ -486,6 +496,7 @@ const TemplateEditorPage = () => {
         elements: template.elements,
         mapping: template.mapping ?? null,
         structureType: template.structureType ?? null,
+        sheetSettings: template.sheetSettings ?? null,
         footerRepeatMode: template.footerRepeatMode ?? null,
         footerReserveHeight: template.footerReserveHeight ?? null,
         advancedLayoutEditing: !!template.advancedLayoutEditing,
@@ -659,9 +670,11 @@ const TemplateEditorPage = () => {
               >
                 一覧
               </button>
-              <button className="ghost" onClick={toggleControls}>
-                設定 {controlsOpen ? '▲' : '▼'}
-              </button>
+              {!isLabelTemplate && (
+                <button className="ghost" onClick={toggleControls}>
+                  設定 {controlsOpen ? '▲' : '▼'}
+                </button>
+              )}
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: 6 }}>
               {saveStatus === 'success' && <span className="status-pill success">保存しました</span>}
@@ -669,7 +682,7 @@ const TemplateEditorPage = () => {
             </div>
           </div>
         </div>
-        {controlsOpen && (
+        {controlsOpen && !isLabelTemplate && (
           <div
             style={{
               padding: '0.5rem 0.75rem 0.75rem',
@@ -745,132 +758,148 @@ const TemplateEditorPage = () => {
           </div>
         )}
       </div>
-      <div className="editor-layout" style={{ flex: 1, minHeight: 0 }}>
-        <div className="canvas-wrapper" style={{ minHeight: 0, maxHeight: '100%', height: '100%', overflow: 'auto' }}>
-          <TemplateCanvas
-            template={template}
-            selectedElementId={selectedElementId}
-            onSelect={(element) => setSelectedElementId(element?.id ?? null)}
-            onUpdateElement={(elementId, updates) => updateElement(template.id, elementId, updates)}
-            showGrid={gridVisible}
-            snapEnabled={snapEnabled}
-            showGuides={guideVisible}
-            highlightedElementIds={highlightedElementIds}
-            slotLabels={slotLabelMap}
-          />
+      {isCardTemplate ? (
+        <div className="card" style={{ padding: '1rem' }}>
+          <h3 style={{ marginTop: 0 }}>Card テンプレートは非推奨です</h3>
+          <p style={{ color: '#475467' }}>
+            Card 系テンプレートの編集・複製は終了しました。既存テンプレートは引き続きPDF出力に利用できます。
+          </p>
+          <button className="secondary" onClick={() => navigate(`/${preservedQuery}`)}>
+            一覧へ戻る
+          </button>
         </div>
-        <div
-          className="editor-panel"
-          style={{
-            position: 'sticky',
-            top: 24,
-            alignSelf: 'flex-start',
-            maxHeight: '100%',
-            height: '100%',
-            minHeight: 0,
-            overflow: 'hidden',
-          }}
-        >
-          <div style={{ maxHeight: '100%', height: '100%', minHeight: 0, overflowY: 'auto' }}>
-            {/* 右ペイン切替ボタン（ここに移動） */}
-            <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
-              <button
-                className={activeTab === 'layout' ? 'secondary' : 'ghost'}
-                onClick={() => setActiveTab('layout')}
-                type="button"
+      ) : isLabelTemplate ? (
+        <div className="card" style={{ padding: '1rem' }}>
+          <LabelEditorPanel template={template} onChange={updateTemplate} />
+        </div>
+      ) : (
+        <div className="editor-layout" style={{ flex: 1, minHeight: 0 }}>
+          <div className="canvas-wrapper" style={{ minHeight: 0, maxHeight: '100%', height: '100%', overflow: 'auto' }}>
+            <TemplateCanvas
+              template={template}
+              selectedElementId={selectedElementId}
+              onSelect={(element) => setSelectedElementId(element?.id ?? null)}
+              onUpdateElement={(elementId, updates) => updateElement(template.id, elementId, updates)}
+              showGrid={gridVisible}
+              snapEnabled={snapEnabled}
+              showGuides={guideVisible}
+              highlightedElementIds={highlightedElementIds}
+              slotLabels={slotLabelMap}
+            />
+          </div>
+          <div
+            className="editor-panel"
+            style={{
+              position: 'sticky',
+              top: 24,
+              alignSelf: 'flex-start',
+              maxHeight: '100%',
+              height: '100%',
+              minHeight: 0,
+              overflow: 'hidden',
+            }}
+          >
+            <div style={{ maxHeight: '100%', height: '100%', minHeight: 0, overflowY: 'auto' }}>
+              {/* 右ペイン切替ボタン（ここに移動） */}
+              <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
+                <button
+                  className={activeTab === 'layout' ? 'secondary' : 'ghost'}
+                  onClick={() => setActiveTab('layout')}
+                  type="button"
+                >
+                  要素
+                </button>
+                <button
+                  className={activeTab === 'mapping' ? 'secondary' : 'ghost'}
+                  onClick={() => setActiveTab('mapping')}
+                  type="button"
+                >
+                  割当
+                </button>
+              </div>
+              <div
+                style={{
+                  marginBottom: 12,
+                  border: '1px solid #e4e7ec',
+                  borderRadius: 12,
+                  padding: 10,
+                  maxHeight: 240,
+                  overflowY: 'auto',
+                }}
               >
-                要素
-              </button>
-              <button
-                className={activeTab === 'mapping' ? 'secondary' : 'ghost'}
-                onClick={() => setActiveTab('mapping')}
-                type="button"
-              >
-                割当
-              </button>
-            </div>
-            <div
-              style={{
-                marginBottom: 12,
-                border: '1px solid #e4e7ec',
-                borderRadius: 12,
-                padding: 10,
-                maxHeight: 240,
-                overflowY: 'auto',
-              }}
-            >
-              <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 8, color: '#101828' }}>
-                要素一覧（クリックで選択）
+                <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 8, color: '#101828' }}>
+                  要素一覧（クリックで選択）
+                </div>
+
+                {(['header', 'body', 'footer'] as const).map((region) => {
+                  const items = sortedByRegion(template.elements ?? [], region);
+                  if (items.length === 0) return null;
+
+                  const regionLabel = region === 'header' ? 'Header' : region === 'body' ? 'Body' : 'Footer';
+                  return (
+                    <div key={region} style={{ marginBottom: 10 }}>
+                      <div style={{ fontSize: 12, color: '#475467', marginBottom: 6, fontWeight: 600 }}>
+                        {regionLabel}
+                      </div>
+
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                        {items.map((el: any) => {
+                          const isSelected = selectedElementId === el.id;
+                          const typeLabel = typeLabelForList(el.type);
+                          const title = el.slotId && slotLabelMap[el.slotId]
+                            ? slotLabelMap[el.slotId]
+                            : el.type === 'label' && el.text
+                            ? el.text
+                            : typeLabel;
+                          const subtitle = typeLabel;
+                          const desc = describeElementForList(el);
+
+                          return (
+                            <button
+                              key={el.id}
+                              type="button"
+                              onClick={() => setSelectedElementId(el.id)}
+                              className={isSelected ? 'secondary' : 'ghost'}
+                              style={{
+                                textAlign: 'left',
+                                padding: '8px 10px',
+                                borderRadius: 10,
+                                border: '1px solid #e4e7ec',
+                                background: isSelected ? '#f0f9ff' : '#fff',
+                              }}
+                            >
+                              <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
+                                <div style={{ fontWeight: 700, fontSize: 12, color: '#101828' }}>
+                                  {title}
+                                </div>
+                                <div style={{ fontSize: 11, color: '#667085' }}>{subtitle}</div>
+                              </div>
+                              {desc && <div style={{ fontSize: 12, color: '#475467', marginTop: 4 }}>{desc}</div>}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
 
-              {(['header', 'body', 'footer'] as const).map((region) => {
-                const items = sortedByRegion(template.elements ?? [], region);
-                if (items.length === 0) return null;
-
-                const regionLabel = region === 'header' ? 'Header' : region === 'body' ? 'Body' : 'Footer';
-                return (
-                  <div key={region} style={{ marginBottom: 10 }}>
-                    <div style={{ fontSize: 12, color: '#475467', marginBottom: 6, fontWeight: 600 }}>
-                      {regionLabel}
-                    </div>
-
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                      {items.map((el: any) => {
-                        const isSelected = selectedElementId === el.id;
-                        const typeLabel = typeLabelForList(el.type);
-                        const title = el.slotId && slotLabelMap[el.slotId]
-                          ? slotLabelMap[el.slotId]
-                          : el.type === 'label' && el.text
-                          ? el.text
-                          : typeLabel;
-                        const subtitle = typeLabel;
-                        const desc = describeElementForList(el);
-
-                        return (
-                          <button
-                            key={el.id}
-                            type="button"
-                            onClick={() => setSelectedElementId(el.id)}
-                            className={isSelected ? 'secondary' : 'ghost'}
-                            style={{
-                              textAlign: 'left',
-                              padding: '8px 10px',
-                              borderRadius: 10,
-                              border: '1px solid #e4e7ec',
-                              background: isSelected ? '#f0f9ff' : '#fff',
-                            }}
-                          >
-                            <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
-                              <div style={{ fontWeight: 700, fontSize: 12, color: '#101828' }}>
-                                {title}
-                              </div>
-                              <div style={{ fontSize: 11, color: '#667085' }}>{subtitle}</div>
-                            </div>
-                            {desc && <div style={{ fontSize: 12, color: '#475467', marginTop: 4 }}>{desc}</div>}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                );
-              })}
+              {activeTab === 'layout' ? (
+                <ElementInspector templateId={template.id} element={selectedElement} />
+              ) : (
+                <MappingPage
+                  template={template}
+                  updateTemplate={updateTemplate}
+                  onFocusFieldRef={(ref) => {
+                    setHighlightRef(ref);
+                  }}
+                  onClearFocus={() => setHighlightRef(null)}
+                />
+              )}
             </div>
-
-            {activeTab === 'layout' ? (
-              <ElementInspector templateId={template.id} element={selectedElement} />
-            ) : (
-              <MappingPage
-                template={template}
-                updateTemplate={updateTemplate}
-                onFocusFieldRef={(ref) => {
-                  setHighlightRef(ref);
-                }}
-                onClearFocus={() => setHighlightRef(null)}
-              />
-            )}
           </div>
         </div>
-        </div>
+      )}
       </>
       )}
 

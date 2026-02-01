@@ -3,11 +3,35 @@
 export type PageSize = 'A4' | 'Letter';
 export type Orientation = 'portrait' | 'landscape';
 //構造テンプレ種別（将来増やす） ---
-export type StructureType = 'list_v1' | 'cards_v1' | 'cards_v2';
+export type StructureType = 'list_v1' | 'cards_v1' | 'label_v1';
 //フッターの繰り返しモード ---
 export type FooterRepeatMode = 'all' | 'last';
 //mapping は MVP では unknown（Adapter側で解釈/検証） ---
 export type TemplateMapping = unknown;
+
+export type LabelSheetSettings = {
+  paperWidthMm: number;
+  paperHeightMm: number;
+  cols: number;
+  rows: number;
+  marginMm: number;
+  gapMm: number;
+  offsetXmm: number;
+  offsetYmm: number;
+};
+
+export type LabelSlotMapping = {
+  title: string | null;
+  code: string | null;
+  qty: string | null;
+  qr: string | null;
+  extra?: string | null;
+};
+
+export type LabelMapping = {
+  slots: LabelSlotMapping;
+  copiesFieldCode: string | null;
+};
 
 // Editor canvas height (bottom-based UI coordinates)
 export const CANVAS_HEIGHT = 842;
@@ -185,6 +209,7 @@ export interface TemplateDefinition<
   };
   structureType?: StructureType;
   mapping?: TemplateMapping;
+  sheetSettings?: LabelSheetSettings;
   footerRepeatMode?: FooterRepeatMode;
   sampleData?: TData;
   footerReserveHeight?: number;

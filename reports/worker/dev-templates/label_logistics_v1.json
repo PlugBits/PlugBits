@@ -1,0 +1,29 @@
+{
+  "id": "label_logistics_v1",
+  "name": "Label Logistics",
+  "schemaVersion": 1,
+  "pageSize": "A4",
+  "orientation": "portrait",
+  "structureType": "label_v1",
+  "elements": [],
+  "sheetSettings": {
+    "paperWidthMm": 210,
+    "paperHeightMm": 297,
+    "cols": 2,
+    "rows": 4,
+    "marginMm": 8,
+    "gapMm": 2,
+    "offsetXmm": 0,
+    "offsetYmm": 0
+  },
+  "mapping": {
+    "slots": {
+      "title": null,
+      "code": null,
+      "qty": null,
+      "qr": null,
+      "extra": null
+    },
+    "copiesFieldCode": null
+  }
+}

@@ -10,6 +10,10 @@ import { useEditorSession } from '../hooks/useEditorSession';
 const buildListKey = (status: TemplateStatus, baseTemplateId?: string) =>
   `${status}:${baseTemplateId ?? ''}`;
 
+const CARD_BASE_IDS = new Set(['cards_v1', 'cards_v2', 'card_v1', 'multiTable_v1']);
+const isCardBase = (baseTemplateId?: string) =>
+  !!baseTemplateId && CARD_BASE_IDS.has(baseTemplateId);
+
 const TemplateListPage = () => {
   const navigate = useNavigate();
   const createTemplate = useTemplateStore((state) => state.createTemplate);
@@ -60,6 +64,10 @@ const TemplateListPage = () => {
         .filter(Boolean) as TemplateMeta[],
     [listState.ids, metasById],
   );
+  const visibleTemplateMetas = useMemo(
+    () => templateMetas.filter((meta) => !isCardBase(meta.baseTemplateId)),
+    [templateMetas],
+  );
 
   const catalogMap = useMemo(() => {
     const map = new Map<string, { name: string; description?: string }>();
@@ -72,10 +80,15 @@ const TemplateListPage = () => {
     return map;
   }, [catalogItems]);
 
+  const visibleCatalogItems = useMemo(
+    () => catalogItems.filter((item) => !isCardBase(item.templateId)),
+    [catalogItems],
+  );
+
   const grouped = useMemo(() => {
     const filtered = normalizedQuery
-      ? templateMetas.filter((meta) => meta.name?.toLowerCase().includes(normalizedQuery))
-      : templateMetas;
+      ? visibleTemplateMetas.filter((meta) => meta.name?.toLowerCase().includes(normalizedQuery))
+      : visibleTemplateMetas;
 
     const sorted = [...filtered].sort((a, b) => {
       if (sortMode === 'name') {
@@ -97,7 +110,7 @@ const TemplateListPage = () => {
       baseTemplateId,
       items,
     }));
-  }, [templateMetas, normalizedQuery, sortMode]);
+  }, [visibleTemplateMetas, normalizedQuery, sortMode]);
 
   useEffect(() => {
     if (isAuthMissing) return;
@@ -114,8 +127,8 @@ const TemplateListPage = () => {
   }, [ensureCatalog, isAuthMissing]);
 
   const hint = useMemo(() => {
-    return `ユーザー ${templateMetas.length} 件 / 配布 ${catalogItems.length} 件`;
-  }, [templateMetas.length, catalogItems.length]);
+    return `ユーザー ${visibleTemplateMetas.length} 件 / 配布 ${visibleCatalogItems.length} 件`;
+  }, [visibleTemplateMetas.length, visibleCatalogItems.length]);
 
   const handleCreate = async () => {
     setCreating(true);
@@ -517,8 +530,8 @@ const TemplateListPage = () => {
           {catalogLoading && <span className="status-pill pending">読み込み中...</span>}
           {catalogError && <span className="status-pill error">{catalogError}</span>}
           <div className="card-grid" style={{ marginTop: '0.75rem' }}>
-            {catalogItems.map((catalogItem) => (
-              <div className="card" key={`catalog-${catalogItem.templateId}`}>
+          {visibleCatalogItems.map((catalogItem) => (
+            <div className="card" key={`catalog-${catalogItem.templateId}`}>
                 <div>
                   <h3>{catalogItem.displayName}</h3>
                   <p style={{ color: '#475467' }}>{catalogItem.description ?? '配布テンプレート'}</p>

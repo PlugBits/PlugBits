@@ -4,7 +4,7 @@
   "schemaVersion": 1,
   "pageSize": "A4",
   "orientation": "portrait",
-  "structureType": "cards_v2",
+  "structureType": "cards_v1",
   "footerReserveHeight": 140,
   "slotSchema": {
     "header": [
@@ -27,7 +27,7 @@
       "slotId": "doc_title",
       "type": "text",
       "region": "header",
-      "x": 60,
+      "x": 0,
       "y": 780,
       "width": 320,
       "height": 28,
@@ -105,22 +105,22 @@
       "type": "cardList",
       "region": "body",
       "x": 60,
-      "y": 620,
-      "width": 520,
-      "cardHeight": 68,
+      "y": 680,
+      "width": 430,
+      "cardHeight": 70,
       "gapY": 10,
       "padding": 10,
       "borderWidth": 1,
-      "borderColorGray": 0.85,
-      "fillGray": 0.97,
-      "cornerRadius": 6,
+      "borderColorGray": 0.88,
+      "fillGray": 0.985,
+      "cornerRadius": 8,
       "dataSource": { "type": "kintoneSubtable", "fieldCode": "Items" },
       "fields": [
         { "id": "fieldA", "label": "Field A", "fieldCode": "card_primary_left" },
-        { "id": "fieldB", "label": "Field B", "fieldCode": "card_mid_left" },
-        { "id": "fieldC", "label": "Field C", "fieldCode": "card_mid_right", "align": "right" },
-        { "id": "fieldD", "label": "Field D" },
-        { "id": "fieldE", "label": "Field E" },
+        { "id": "fieldB", "label": "Field B", "fieldCode": "card_primary_right" },
+        { "id": "fieldC", "label": "Field C", "fieldCode": "card_mid_left", "align": "right" },
+        { "id": "fieldD", "label": "Field D", "fieldCode": "card_mid_right", "align": "right" },
+        { "id": "fieldE", "label": "Field E", "fieldCode": "card_bottom_left" },
         { "id": "fieldF", "label": "Field F" }
       ]
     },
@@ -178,8 +178,10 @@
       "source": { "kind": "subtable", "fieldCode": "Items" },
       "fields": {
         "fieldA": { "kind": "subtableField", "subtableCode": "Items", "fieldCode": "card_primary_left" },
-        "fieldB": { "kind": "subtableField", "subtableCode": "Items", "fieldCode": "card_mid_left" },
-        "fieldC": { "kind": "subtableField", "subtableCode": "Items", "fieldCode": "card_mid_right" }
+        "fieldB": { "kind": "subtableField", "subtableCode": "Items", "fieldCode": "card_primary_right" },
+        "fieldC": { "kind": "subtableField", "subtableCode": "Items", "fieldCode": "card_mid_left" },
+        "fieldD": { "kind": "subtableField", "subtableCode": "Items", "fieldCode": "card_mid_right" },
+        "fieldE": { "kind": "subtableField", "subtableCode": "Items", "fieldCode": "card_bottom_left" }
       }
     },
     "footer": {

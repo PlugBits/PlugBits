@@ -25,8 +25,9 @@ const isItemNameColumn = (col: TableColumn) =>
 export const migrateTemplate = (template: TemplateDefinition): TemplateDefinition => {
   const schemaVersion = template.schemaVersion ?? 0;
   const baseTemplateId = template.baseTemplateId ?? template.id;
+  const structureTypeRaw = template.structureType as unknown as string | undefined;
   const normalizedStructureType =
-    template.structureType === 'line_items_v1' ? 'list_v1' : template.structureType;
+    structureTypeRaw === 'line_items_v1' ? 'list_v1' : template.structureType;
   const nextStructureType =
     baseTemplateId === 'cards_v1' ? 'cards_v1' : normalizedStructureType;
   const needsElementsNormalization = !Array.isArray(template.elements);
@@ -55,10 +56,20 @@ export const migrateTemplate = (template: TemplateDefinition): TemplateDefinitio
     const table = element as TableElement;
     const columns = Array.isArray(table.columns) ? table.columns : [];
     const nextColumns = columns.map((col) => {
-      if (col.overflow) return col;
+      const overflowRaw = (col as any).overflow;
+      const normalizedOverflow =
+        overflowRaw === 'wrap' ||
+        overflowRaw === 'shrink' ||
+        overflowRaw === 'ellipsis' ||
+        overflowRaw === 'clip'
+          ? overflowRaw
+          : undefined;
+      if (normalizedOverflow) {
+        return { ...col, overflow: normalizedOverflow };
+      }
       return {
         ...col,
-        overflow: isItemNameColumn(col) ? 'wrap' : 'shrink',
+        overflow: isItemNameColumn(col) ? ('wrap' as const) : ('shrink' as const),
       };
     });
 

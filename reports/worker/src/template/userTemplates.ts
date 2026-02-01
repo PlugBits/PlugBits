@@ -5,7 +5,8 @@ import type {
   ImageElement,
   TemplateMeta,
   TemplateStatus,
-  type PageSize,
+  PageSize,
+  LabelSheetSettings,
 } from "../../../shared/template.js";
 import { canonicalizeAppId, canonicalizeKintoneBaseUrl } from "../utils/canonicalize.ts";
 
@@ -34,6 +35,7 @@ export type UserTemplateOverrides = {
 export type UserTemplatePayload = {
   baseTemplateId: string;
   pageSize?: PageSize;
+  sheetSettings?: LabelSheetSettings;
   mapping?: unknown;
   overrides?: UserTemplateOverrides;
   meta?: Partial<TemplateMeta>;
@@ -162,11 +164,6 @@ export const applySlotDataOverrides = (
     const region = normalizeSlotRegion(next, slotId);
     const base = idx >= 0 ? (elements[idx] as any) : null;
 
-    const dataSource =
-      override.kind === "recordField"
-        ? { type: "kintone", fieldCode: override.fieldCode }
-        : { type: "static", value: override.kind === "imageUrl" ? override.url ?? "" : override.text ?? "" };
-
     const layoutBase = {
       id: base?.id ?? slotId,
       slotId,
@@ -181,8 +178,16 @@ export const applySlotDataOverrides = (
 
     const nextElement: TemplateElement =
       override.kind === "imageUrl"
-        ? ensureImageElement(layoutBase, dataSource)
-        : ensureTextElement(layoutBase, dataSource);
+        ? ensureImageElement(layoutBase, {
+            type: "static",
+            value: override.url ?? "",
+          })
+        : ensureTextElement(
+            layoutBase,
+            override.kind === "recordField"
+              ? { type: "kintone", fieldCode: override.fieldCode }
+              : { type: "static", value: override.text ?? "" },
+          );
 
     if (idx >= 0) {
       elements[idx] = nextElement;
@@ -297,5 +302,6 @@ export const listTemplateMetas = async (
     }
   }
 
-  return { items, cursor: list.cursor };
+  const cursor = "cursor" in list ? (list as { cursor?: string }).cursor : undefined;
+  return { items, cursor };
 };

@@ -7,13 +7,12 @@ import type {
 } from "../../shared/template.js";
 import { TEMPLATE_SCHEMA_VERSION } from "../../shared/template.js";
 
-import { renderTemplateToPdf } from "./pdf/renderTemplate.ts";
+import { renderLabelCalibrationPdf, renderTemplateToPdf } from "./pdf/renderTemplate.ts";
 import { getFonts } from "./fonts/fontLoader.js";
 import { getFixtureData } from "./fixtures/templateData.js";
 import { migrateTemplate, validateTemplate } from "./template/migrate.js";
 import { applyListV1MappingToTemplate } from "./template/listV1Mapping.ts";
 import { applyCardsV1MappingToTemplate } from "./template/cardsV1Mapping.ts";
-import { applyCardsV2MappingToTemplate } from "./template/cardsV2Mapping.ts";
 import {
   applySlotDataOverrides,
   applySlotLayoutOverrides,
@@ -230,7 +229,16 @@ const getTenantContext = (
 
  // templateId から TemplateDefinition を引く関数
  
-const TEMPLATE_IDS = new Set(["list_v1", "cards_v1", "cards_v2", "card_v1", "multiTable_v1"]);
+const TEMPLATE_IDS = new Set([
+  "list_v1",
+  "cards_v1",
+  "cards_v2",
+  "label_standard_v1",
+  "label_compact_v1",
+  "label_logistics_v1",
+  "card_v1",
+  "multiTable_v1",
+]);
 const SLOT_SCHEMA_LIST_V1 = {
   header: [
     { slotId: "doc_title", label: "タイトル", kind: "text" as const },
@@ -245,6 +253,16 @@ const SLOT_SCHEMA_LIST_V1 = {
     { slotId: "total_label", label: "合計ラベル", kind: "text" as const },
     { slotId: "total", label: "合計", kind: "number" as const },
   ],
+};
+const SLOT_SCHEMA_LABEL_V1 = {
+  header: [
+    { slotId: "title", label: "タイトル", kind: "text" as const, required: true },
+    { slotId: "code", label: "コード", kind: "text" as const, required: true },
+    { slotId: "qty", label: "数量", kind: "number" as const, required: true },
+    { slotId: "qr", label: "QR", kind: "text" as const, required: true },
+    { slotId: "extra", label: "補足", kind: "text" as const },
+  ],
+  footer: [],
 };
 const TEMPLATE_CATALOG = [
   {
@@ -262,17 +280,44 @@ const TEMPLATE_CATALOG = [
     structureType: "cards_v1",
     description: "ヘッダ＋カード＋フッタのテンプレ",
     version: 1,
-    flags: [] as string[],
+    flags: ["hidden"] as string[],
     slotSchema: SLOT_SCHEMA_LIST_V1,
   },
   {
     templateId: "cards_v2",
     displayName: "Card Compact",
-    structureType: "cards_v2",
+    structureType: "cards_v1",
     description: "一覧向けのコンパクトカードテンプレ",
     version: 1,
-    flags: [] as string[],
+    flags: ["hidden"] as string[],
     slotSchema: SLOT_SCHEMA_LIST_V1,
+  },
+  {
+    templateId: "label_standard_v1",
+    displayName: "Label Standard",
+    structureType: "label_v1",
+    description: "標準ラベル（2x5）",
+    version: 1,
+    flags: [] as string[],
+    slotSchema: SLOT_SCHEMA_LABEL_V1,
+  },
+  {
+    templateId: "label_compact_v1",
+    displayName: "Label Compact",
+    structureType: "label_v1",
+    description: "小型ラベル（3x8）",
+    version: 1,
+    flags: [] as string[],
+    slotSchema: SLOT_SCHEMA_LABEL_V1,
+  },
+  {
+    templateId: "label_logistics_v1",
+    displayName: "Label Logistics",
+    structureType: "label_v1",
+    description: "物流ラベル（2x4）",
+    version: 1,
+    flags: [] as string[],
+    slotSchema: SLOT_SCHEMA_LABEL_V1,
   },
 ];
 
@@ -292,9 +337,9 @@ const getUserTemplateById = async (
     if (parsed?.baseTemplateId) {
       const baseTemplate = await getBaseTemplateById(parsed.baseTemplateId, env);
       const mapped =
-        baseTemplate.structureType === "cards_v2" || parsed.baseTemplateId === "cards_v2"
-          ? applyCardsV2MappingToTemplate(baseTemplate, parsed.mapping)
-          : baseTemplate.structureType === "cards_v1" || parsed.baseTemplateId === "cards_v1"
+        baseTemplate.structureType === "cards_v1" ||
+        parsed.baseTemplateId === "cards_v1" ||
+        parsed.baseTemplateId === "cards_v2"
           ? applyCardsV1MappingToTemplate(baseTemplate, parsed.mapping)
           : baseTemplate.structureType === "list_v1" || parsed.baseTemplateId === "list_v1"
           ? applyListV1MappingToTemplate(baseTemplate, parsed.mapping)
@@ -306,6 +351,7 @@ const getUserTemplateById = async (
         id: templateId,
         name: parsed.meta?.name ?? dataApplied.name,
         baseTemplateId: parsed.baseTemplateId,
+        sheetSettings: parsed.sheetSettings ?? dataApplied.sheetSettings,
       };
     }
     return null;
@@ -354,8 +400,8 @@ const applyListV1SummaryFromMapping = (
   if (!rawSummaryMode || rawSummaryMode === "none") return template;
   const summaryMode =
     rawSummaryMode === "everyPageSubtotal+lastTotal"
-      ? "everyPageSubtotal+lastTotal"
-      : "lastPageOnly";
+      ? ("everyPageSubtotal+lastTotal" as const)
+      : ("lastPageOnly" as const);
 
   const tableIndex = template.elements.findIndex(
     (el) => el.type === "table" && el.id === "items",
@@ -1257,9 +1303,9 @@ export default {
             }
 
             const mapped =
-              baseTemplate.structureType === "cards_v2" || baseTemplateId === "cards_v2"
-                ? applyCardsV2MappingToTemplate(baseTemplate, payload?.mapping)
-                : baseTemplate.structureType === "cards_v1" || baseTemplateId === "cards_v1"
+              baseTemplate.structureType === "cards_v1" ||
+              baseTemplateId === "cards_v1" ||
+              baseTemplateId === "cards_v2"
                 ? applyCardsV1MappingToTemplate(baseTemplate, payload?.mapping)
                 : baseTemplate.structureType === "list_v1" || baseTemplateId === "list_v1"
                 ? applyListV1MappingToTemplate(baseTemplate, payload?.mapping)
@@ -1284,6 +1330,7 @@ export default {
             id: templateId,
             name: nextName,
             baseTemplateId,
+            sheetSettings: payload?.sheetSettings ?? templateBody.sheetSettings,
           };
 
           const payloadSummaryMode =
@@ -1375,12 +1422,58 @@ export default {
           });
         }
 
-        return new Response(JSON.stringify({ templates: TEMPLATE_CATALOG }), {
+        const visibleTemplates = TEMPLATE_CATALOG.filter(
+          (item) => !(item.flags ?? []).includes("hidden"),
+        );
+        return new Response(JSON.stringify({ templates: visibleTemplates }), {
           status: 200,
           headers: {
             ...CORS_HEADERS,
             "Content-Type": "application/json",
             "Cache-Control": "public, max-age=300",
+          },
+        });
+      }
+
+      if (url.pathname === "/calibration/label") {
+        if (request.method !== "GET") {
+          return new Response("Method Not Allowed", {
+            status: 405,
+            headers: CORS_HEADERS,
+          });
+        }
+
+        const numParam = (key: string, fallback: number) => {
+          const raw = url.searchParams.get(key);
+          const value = raw === null ? fallback : Number(raw);
+          return Number.isFinite(value) ? value : fallback;
+        };
+        const intParam = (key: string, fallback: number) => {
+          const raw = url.searchParams.get(key);
+          const value = raw === null ? fallback : Number(raw);
+          const intVal = Number.isFinite(value) ? Math.floor(value) : fallback;
+          return intVal > 0 ? intVal : fallback;
+        };
+
+        const sheetSettings = {
+          paperWidthMm: numParam("paperWidthMm", 210),
+          paperHeightMm: numParam("paperHeightMm", 297),
+          cols: intParam("cols", 2),
+          rows: intParam("rows", 5),
+          marginMm: numParam("marginMm", 8),
+          gapMm: numParam("gapMm", 2),
+          offsetXmm: numParam("offsetXmm", 0),
+          offsetYmm: numParam("offsetYmm", 0),
+        };
+
+        const { bytes } = await renderLabelCalibrationPdf(sheetSettings);
+        const body = bytes.slice().buffer;
+        return new Response(body, {
+          status: 200,
+          headers: {
+            ...CORS_HEADERS,
+            "Content-Type": "application/pdf",
+            "Cache-Control": "no-store",
           },
         });
       }
@@ -1578,7 +1671,10 @@ export default {
             !isUserTemplate &&
             body.templateId !== "list_v1" &&
             body.templateId !== "cards_v1" &&
-            body.templateId !== "cards_v2"
+            body.templateId !== "cards_v2" &&
+            body.templateId !== "label_standard_v1" &&
+            body.templateId !== "label_compact_v1" &&
+            body.templateId !== "label_logistics_v1"
           ) {
             return new Response(
               JSON.stringify({

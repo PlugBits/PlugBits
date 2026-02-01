@@ -15,7 +15,14 @@ if [[ -z "${ADMIN_API_KEY:-}" ]]; then
 fi
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-TEMPLATES=(list_v1 cards_v1 cards_v2)
+TEMPLATES=(
+  list_v1
+  cards_v1
+  cards_v2
+  label_standard_v1
+  label_compact_v1
+  label_logistics_v1
+)
 
 for template_id in "${TEMPLATES[@]}"; do
   template_path="${ROOT_DIR}/worker/dev-templates/${template_id}.json"
