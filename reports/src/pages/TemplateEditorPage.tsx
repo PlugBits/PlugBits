@@ -63,9 +63,15 @@ const TemplateEditorPage = () => {
     ['cards_v1', 'cards_v2', 'card_v1', 'multiTable_v1'].includes(
       template?.baseTemplateId ?? '',
     );
+  const sheetSettings = template?.sheetSettings;
   const isLabelConfigInvalid =
     isLabelTemplate &&
-    ((template?.sheetSettings?.cols ?? 1) < 1 || (template?.sheetSettings?.rows ?? 1) < 1);
+    ((sheetSettings?.cols ?? 1) < 1 ||
+      (sheetSettings?.rows ?? 1) < 1 ||
+      !Number.isFinite(sheetSettings?.paperWidthMm ?? NaN) ||
+      !Number.isFinite(sheetSettings?.paperHeightMm ?? NaN) ||
+      (sheetSettings?.paperWidthMm ?? 0) <= 0 ||
+      (sheetSettings?.paperHeightMm ?? 0) <= 0);
 
   useEffect(() => {
     if (!templateId || authState !== 'authorized') return;

@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type { LabelMapping, LabelSheetSettings, TemplateDefinition } from '@shared/template';
 import KintoneFieldSelect from '../../components/KintoneFieldSelect';
 import { useKintoneFields } from '../../hooks/useKintoneFields';
@@ -38,6 +38,10 @@ const toNumber = (value: unknown, fallback: number) => {
 };
 
 const clampNonNegative = (value: number) => (Number.isFinite(value) ? Math.max(0, value) : 0);
+const parsePositiveNumber = (value: string) => {
+  const next = Number(value);
+  return Number.isFinite(next) && next > 0 ? next : null;
+};
 
 const normalizeSheet = (raw: TemplateDefinition['sheetSettings']): LabelSheetSettings => {
   const source = raw && typeof raw === 'object' ? raw : DEFAULT_SHEET;
@@ -120,6 +124,8 @@ const TEXT_OR_NUMBER_TYPES = [...TEXT_TYPES, ...NUMBER_TYPES];
 const LabelEditorPanel: React.FC<Props> = ({ template, onChange }) => {
   const sheet = useMemo(() => normalizeSheet(template.sheetSettings), [template.sheetSettings]);
   const mapping = useMemo(() => normalizeMapping(template.mapping), [template.mapping]);
+  const [widthStr, setWidthStr] = useState(() => String(sheet.paperWidthMm));
+  const [heightStr, setHeightStr] = useState(() => String(sheet.paperHeightMm));
   const { fields, loading, error } = useKintoneFields();
   const tenantContext = useTenantStore((state) => state.tenantContext);
   const recordOptions = useMemo(
@@ -130,12 +136,30 @@ const LabelEditorPanel: React.FC<Props> = ({ template, onChange }) => {
     [fields],
   );
 
-  const calcPaperW = template.orientation === 'landscape'
-    ? sheet.paperHeightMm
+  useEffect(() => {
+    setWidthStr(String(sheet.paperWidthMm));
+    setHeightStr(String(sheet.paperHeightMm));
+  }, [template.id]);
+
+  useEffect(() => {
+    if (sheet.paperPreset === 'Custom') return;
+    setWidthStr(String(sheet.paperWidthMm));
+    setHeightStr(String(sheet.paperHeightMm));
+  }, [sheet.paperPreset, sheet.paperWidthMm, sheet.paperHeightMm]);
+
+  const resolvedWidthMm = sheet.paperPreset === 'Custom'
+    ? parsePositiveNumber(widthStr) ?? NaN
     : sheet.paperWidthMm;
-  const calcPaperH = template.orientation === 'landscape'
-    ? sheet.paperWidthMm
+  const resolvedHeightMm = sheet.paperPreset === 'Custom'
+    ? parsePositiveNumber(heightStr) ?? NaN
     : sheet.paperHeightMm;
+
+  const calcPaperW = template.orientation === 'landscape'
+    ? resolvedHeightMm
+    : resolvedWidthMm;
+  const calcPaperH = template.orientation === 'landscape'
+    ? resolvedWidthMm
+    : resolvedHeightMm;
 
   const calcResult = useMemo(
     () => computeColsRows(calcPaperW, calcPaperH, sheet),
@@ -158,9 +182,19 @@ const LabelEditorPanel: React.FC<Props> = ({ template, onChange }) => {
   const openCalibration = () => {
     const baseUrl = tenantContext?.workerBaseUrl;
     if (!baseUrl) return;
+    const customWidth = sheet.paperPreset === 'Custom'
+      ? parsePositiveNumber(widthStr)
+      : sheet.paperWidthMm;
+    const customHeight = sheet.paperPreset === 'Custom'
+      ? parsePositiveNumber(heightStr)
+      : sheet.paperHeightMm;
+    if (!customWidth || !customHeight) {
+      alert('用紙幅/高さを正しく入力してください。');
+      return;
+    }
     const query = new URLSearchParams({
-      paperWidthMm: String(sheet.paperWidthMm),
-      paperHeightMm: String(sheet.paperHeightMm),
+      paperWidthMm: String(customWidth),
+      paperHeightMm: String(customHeight),
       cols: String(calcResult.cols),
       rows: String(calcResult.rows),
       marginMm: String(sheet.marginMm),
@@ -223,6 +257,8 @@ const LabelEditorPanel: React.FC<Props> = ({ template, onChange }) => {
                     updateSheet({ ...PRESET_LETTER, paperPreset: 'Letter' });
                     return;
                   }
+                  setWidthStr(String(sheet.paperWidthMm));
+                  setHeightStr(String(sheet.paperHeightMm));
                   updateSheet({ paperPreset: 'Custom' });
                 }}
               >
@@ -240,8 +276,17 @@ const LabelEditorPanel: React.FC<Props> = ({ template, onChange }) => {
                     type="number"
                     step="0.1"
                     className="mapping-control"
-                    value={sheet.paperWidthMm}
-                    onChange={(event) => updateSheet({ paperWidthMm: Number(event.target.value) })}
+                    value={widthStr}
+                    onChange={(event) => {
+                      const value = event.target.value;
+                      setWidthStr(value);
+                      const parsed = parsePositiveNumber(value);
+                      updateSheet({ paperWidthMm: parsed ?? 0 });
+                    }}
+                    onBlur={() => {
+                      const parsed = parsePositiveNumber(widthStr);
+                      if (parsed) updateSheet({ paperWidthMm: parsed });
+                    }}
                   />
                 </label>
                 <label>
@@ -250,8 +295,17 @@ const LabelEditorPanel: React.FC<Props> = ({ template, onChange }) => {
                     type="number"
                     step="0.1"
                     className="mapping-control"
-                    value={sheet.paperHeightMm}
-                    onChange={(event) => updateSheet({ paperHeightMm: Number(event.target.value) })}
+                    value={heightStr}
+                    onChange={(event) => {
+                      const value = event.target.value;
+                      setHeightStr(value);
+                      const parsed = parsePositiveNumber(value);
+                      updateSheet({ paperHeightMm: parsed ?? 0 });
+                    }}
+                    onBlur={() => {
+                      const parsed = parsePositiveNumber(heightStr);
+                      if (parsed) updateSheet({ paperHeightMm: parsed });
+                    }}
                   />
                 </label>
               </div>
