@@ -1167,6 +1167,58 @@ const normalizeLabelMapping = (raw: unknown): LabelMapping => {
   };
 };
 
+type LabelGridLayout = {
+  pageWidthPt: number;
+  pageHeightPt: number;
+  labelWmm: number;
+  labelHmm: number;
+  labelWPt: number;
+  labelHPt: number;
+  labelsPerPage: number;
+  getCellRect: (index: number) => { x: number; y: number; width: number; height: number };
+};
+
+const buildLabelGridLayout = (
+  sheet: LabelSheetSettings,
+  warn: WarnFn,
+): LabelGridLayout | null => {
+  const innerW = sheet.paperWidthMm - sheet.marginMm * 2 - sheet.gapMm * (sheet.cols - 1);
+  const innerH = sheet.paperHeightMm - sheet.marginMm * 2 - sheet.gapMm * (sheet.rows - 1);
+  if (innerW <= 0 || innerH <= 0) {
+    warn('layout', 'label sheet is too small', { innerW, innerH });
+    return null;
+  }
+
+  const labelWmm = innerW / sheet.cols;
+  const labelHmm = innerH / sheet.rows;
+  const pageWidthPt = mmToPt(sheet.paperWidthMm);
+  const pageHeightPt = mmToPt(sheet.paperHeightMm);
+  const labelWPt = mmToPt(labelWmm);
+  const labelHPt = mmToPt(labelHmm);
+  const labelsPerPage = sheet.cols * sheet.rows;
+
+  const getCellRect = (index: number) => {
+    const row = Math.floor(index / sheet.cols);
+    const col = index % sheet.cols;
+    const xMm = sheet.marginMm + col * (labelWmm + sheet.gapMm) + sheet.offsetXmm;
+    const yMm = sheet.marginMm + row * (labelHmm + sheet.gapMm) + sheet.offsetYmm;
+    const x = mmToPt(xMm);
+    const y = pageHeightPt - mmToPt(yMm) - labelHPt;
+    return { x, y, width: labelWPt, height: labelHPt };
+  };
+
+  return {
+    pageWidthPt,
+    pageHeightPt,
+    labelWmm,
+    labelHmm,
+    labelWPt,
+    labelHPt,
+    labelsPerPage,
+    getCellRect,
+  };
+};
+
 const getLabelFieldValue = (
   data: TemplateDataRecord | undefined,
   fieldCode: string | null | undefined,
@@ -1401,30 +1453,14 @@ const drawLabelSheet = (
   const mapping = normalizeLabelMapping(template.mapping);
   const copies = resolveCopiesCount(data, mapping.copiesFieldCode, warn);
 
-  const paperW = sheet.paperWidthMm;
-  const paperH = sheet.paperHeightMm;
-  const cols = sheet.cols;
-  const rows = sheet.rows;
-  const margin = sheet.marginMm;
-  const gap = sheet.gapMm;
-
-  const innerW = paperW - margin * 2 - gap * (cols - 1);
-  const innerH = paperH - margin * 2 - gap * (rows - 1);
-  if (innerW <= 0 || innerH <= 0) {
-    warn('layout', 'label sheet is too small', { innerW, innerH });
-    return;
-  }
-
-  const labelW = innerW / cols;
-  const labelH = innerH / rows;
-  const pageWidth = mmToPt(paperW);
-  const pageHeight = mmToPt(paperH);
+  const layout = buildLabelGridLayout(sheet, warn);
+  if (!layout) return;
 
   const safeMarginMm = 3;
   const internalGapMm = 3;
-  const qrSizeMm = labelH * 0.3;
+  const qrSizeMm = layout.labelHmm * 0.3;
 
-  const labelsPerPage = cols * rows;
+  const labelsPerPage = layout.labelsPerPage;
   let currentPage = firstPage;
 
   const titleValue = getLabelFieldValue(data, mapping.slots.title, warn, { slot: 'title' });
@@ -1439,36 +1475,23 @@ const drawLabelSheet = (
 
   for (let i = 0; i < copies; i++) {
     if (i > 0 && i % labelsPerPage === 0) {
-      currentPage = pdfDoc.addPage([pageWidth, pageHeight]);
+      currentPage = pdfDoc.addPage([layout.pageWidthPt, layout.pageHeightPt]);
     }
     const index = i % labelsPerPage;
-    const row = Math.floor(index / cols);
-    const col = index % cols;
-
-    const xMm = margin + col * (labelW + gap) + sheet.offsetXmm;
-    const yMm = margin + row * (labelH + gap) + sheet.offsetYmm;
-    const x = mmToPt(xMm);
-    const y = pageHeight - mmToPt(yMm) - mmToPt(labelH);
-    const w = mmToPt(labelW);
-    const h = mmToPt(labelH);
+    const rect = layout.getCellRect(index);
+    const x = rect.x;
+    const y = rect.y;
+    const w = rect.width;
+    const h = rect.height;
 
     const safeMarginPt = mmToPt(safeMarginMm);
     const internalGapPt = mmToPt(internalGapMm);
     const headerHeightPt = h * 0.5;
     const footerTop = y + h - headerHeightPt;
 
-    currentPage.drawRectangle({
-      x,
-      y,
-      width: w,
-      height: h,
-      borderColor: rgb(0.6, 0.6, 0.6),
-      borderWidth: 0.5,
-    });
-
     const qrSizePt = mmToPt(qrSizeMm);
     if (qrSizePt > footerTop - (y + safeMarginPt)) {
-      warn('layout', 'qr size exceeds footer height', { qrSizeMm, labelH });
+      warn('layout', 'qr size exceeds footer height', { qrSizeMm, labelH: layout.labelHmm });
     }
     const qrX = x + w - safeMarginPt - qrSizePt;
     const qrY = y + safeMarginPt;
@@ -2991,17 +3014,17 @@ export const renderLabelCalibrationPdf = async (
   const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
 
   const sheet = normalizeLabelSheetSettings(settings, () => undefined);
-  const pageWidth = mmToPt(sheet.paperWidthMm);
-  const pageHeight = mmToPt(sheet.paperHeightMm);
+  const layout = buildLabelGridLayout(sheet, () => undefined);
+  if (!layout) {
+    return { bytes: await pdfDoc.save() };
+  }
+  const pageWidth = layout.pageWidthPt;
+  const pageHeight = layout.pageHeightPt;
   const page = pdfDoc.addPage([pageWidth, pageHeight]);
 
   const marginPt = mmToPt(sheet.marginMm);
-  const innerW = sheet.paperWidthMm - sheet.marginMm * 2 - sheet.gapMm * (sheet.cols - 1);
-  const innerH = sheet.paperHeightMm - sheet.marginMm * 2 - sheet.gapMm * (sheet.rows - 1);
-  const labelW = innerW / sheet.cols;
-  const labelH = innerH / sheet.rows;
-  const labelWPt = mmToPt(labelW);
-  const labelHPt = mmToPt(labelH);
+  const labelWPt = layout.labelWPt;
+  const labelHPt = layout.labelHPt;
 
   page.drawRectangle({
     x: 0,
@@ -3015,18 +3038,18 @@ export const renderLabelCalibrationPdf = async (
   const crossSize = mmToPt(4);
   for (let row = 0; row < sheet.rows; row += 1) {
     for (let col = 0; col < sheet.cols; col += 1) {
-      const xMm = sheet.marginMm + col * (labelW + sheet.gapMm) + sheet.offsetXmm;
-      const yMm = sheet.marginMm + row * (labelH + sheet.gapMm) + sheet.offsetYmm;
-      const cellX = mmToPt(xMm);
-      const cellY = pageHeight - mmToPt(yMm) - labelHPt;
+      const index = row * sheet.cols + col;
+      const rect = layout.getCellRect(index);
+      const cellX = rect.x;
+      const cellY = rect.y;
 
       page.drawRectangle({
         x: cellX,
         y: cellY,
         width: labelWPt,
         height: labelHPt,
-        borderColor: rgb(0.2, 0.2, 0.2),
-        borderWidth: 0.6,
+        borderColor: rgb(0.8, 0.8, 0.8),
+        borderWidth: 0.5,
       });
 
       const crossX = cellX + labelWPt / 2;
