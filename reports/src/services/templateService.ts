@@ -1,6 +1,12 @@
 // src/services/templateService.ts
 
-import type { TemplateDefinition, TemplateMeta, TemplateStatus, TableElement } from '@shared/template';
+import type {
+  LabelMapping,
+  TemplateDefinition,
+  TemplateMeta,
+  TemplateStatus,
+  TableElement,
+} from '@shared/template';
 import {
   applySlotDataOverrides,
   applySlotLayoutOverrides,
@@ -65,6 +71,25 @@ const getSummarySnapshot = (template: TemplateDefinition) => {
       columnId: row.columnId,
       fieldCode: 'fieldCode' in row ? row.fieldCode : undefined,
     })) ?? [],
+  };
+};
+
+const normalizeLabelMappingForSave = (raw: unknown): LabelMapping => {
+  const source = raw && typeof raw === 'object' ? (raw as Record<string, unknown>) : {};
+  const slots = source.slots && typeof source.slots === 'object'
+    ? (source.slots as Record<string, unknown>)
+    : {};
+  const normalizeField = (value: unknown) =>
+    typeof value === 'string' && value.trim() !== '' ? value.trim() : null;
+  return {
+    slots: {
+      title: normalizeField(slots.title),
+      code: normalizeField(slots.code),
+      qty: normalizeField(slots.qty),
+      qr: normalizeField(slots.qr),
+      extra: normalizeField(slots.extra),
+    },
+    copiesFieldCode: normalizeField(source.copiesFieldCode),
   };
 };
 
@@ -217,11 +242,16 @@ export async function createTemplateRemote(
     ...getSummarySnapshot(template),
   });
   const baseTemplateId = template.baseTemplateId ?? 'list_v1';
+  const structureType = template.structureType ?? 'list_v1';
+  const mapping =
+    structureType === 'label_v1'
+      ? normalizeLabelMappingForSave(template.mapping)
+      : template.mapping ?? null;
   const payload: UserTemplatePayload = {
     baseTemplateId,
     pageSize: template.pageSize,
     sheetSettings: template.sheetSettings,
-    mapping: template.mapping ?? null,
+    mapping,
     overrides: {
       layout: extractSlotLayoutOverrides(template),
       slots: extractSlotDataOverrides(template),
