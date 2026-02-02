@@ -1291,6 +1291,97 @@ const drawQrCode = (
   }
 };
 
+type FitResult = { lines: string[]; fontSize: number };
+
+const calcMaxFontSizeForLines = (
+  lines: string[],
+  font: PDFFont,
+  boxW: number,
+  boxH: number,
+  lineHeightFactor: number,
+): number => {
+  if (lines.length === 0 || boxW <= 0 || boxH <= 0) return 0;
+  const heightLimit = boxH / (lines.length * lineHeightFactor);
+  let widthLimit = Number.POSITIVE_INFINITY;
+  for (const line of lines) {
+    if (!line) continue;
+    const widthAt1 = font.widthOfTextAtSize(line, 1);
+    if (widthAt1 > 0) {
+      widthLimit = Math.min(widthLimit, boxW / widthAt1);
+    }
+  }
+  const maxSize = Math.min(heightLimit, widthLimit);
+  return Number.isFinite(maxSize) ? Math.max(0, maxSize) : 0;
+};
+
+const fitLines = (
+  lines: string[],
+  font: PDFFont,
+  boxW: number,
+  boxH: number,
+  lineHeightFactor: number,
+): FitResult => ({
+  lines,
+  fontSize: calcMaxFontSizeForLines(lines, font, boxW, boxH, lineHeightFactor),
+});
+
+const makeTwoLineCandidates = (text: string, maxCandidates = 30): string[][] => {
+  const positions: number[] = [];
+  const splitter = /[\s\-\/／_・|]/g;
+  let match: RegExpExecArray | null;
+  while ((match = splitter.exec(text)) !== null) {
+    const idx = match.index;
+    if (idx > 0 && idx < text.length - 1) positions.push(idx);
+  }
+  const mid = Math.floor(text.length / 2);
+  positions.sort((a, b) => Math.abs(a - mid) - Math.abs(b - mid));
+  const limited = positions.slice(0, maxCandidates);
+  const candidates: string[][] = [];
+  for (const idx of limited) {
+    const left = text.slice(0, idx).trim();
+    const right = text.slice(idx + 1).trim();
+    if (!left || !right) continue;
+    candidates.push([left, right]);
+  }
+  return candidates;
+};
+
+const splitHalf = (text: string): string[] => {
+  if (text.length < 2) return [text];
+  const mid = Math.floor(text.length / 2);
+  const left = text.slice(0, mid).trim();
+  const right = text.slice(mid).trim();
+  if (!left || !right) return [text];
+  return [left, right];
+};
+
+const fitTitleUpTo2Lines = (
+  text: string,
+  font: PDFFont,
+  boxW: number,
+  boxH: number,
+  lineHeightFactor: number,
+): FitResult => {
+  const trimmed = text.trim();
+  if (!trimmed || boxW <= 0 || boxH <= 0) {
+    return { lines: [], fontSize: 0 };
+  }
+
+  let best = fitLines([trimmed], font, boxW, boxH, lineHeightFactor);
+  const candidates = makeTwoLineCandidates(trimmed);
+  for (const lines of candidates) {
+    const fit = fitLines(lines, font, boxW, boxH, lineHeightFactor);
+    if (fit.fontSize > best.fontSize) best = fit;
+  }
+
+  if (best.fontSize <= 0 && candidates.length === 0) {
+    const fallbackLines = splitHalf(trimmed);
+    best = fitLines(fallbackLines, font, boxW, boxH, lineHeightFactor);
+  }
+
+  return best;
+};
+
 const drawLabelSheet = (
   pdfDoc: PDFDocument,
   firstPage: PDFPage,
@@ -1389,27 +1480,38 @@ const drawLabelSheet = (
     const titleFont = pickFontForText(titleValue, jpFont, latinFont);
     const subFont = pickFontForText(codeValue || qtyValue || extraValue || '', jpFont, latinFont);
 
-    if (titleValue) {
-      const titleFontSize = layoutPreset.titleFont;
-      const titleLineHeight = titleFontSize * 1.2;
-      const lines = wrapTextToLines(titleValue, titleFont, titleFontSize, textWidth);
-      const clamped = clampLinesWithEllipsis(lines, titleFont, titleFontSize, textWidth, 2);
-      drawMultilineText(
-        currentPage,
-        clamped,
-        textX,
-        y + h - padPt - titleFontSize,
-        titleFont,
-        titleFontSize,
-        rgb(0, 0, 0),
-        2,
-        titleLineHeight,
-      );
-    }
-
     let lineY = y + padPt;
     const subFontSize = layoutPreset.subFont;
     const subLineHeight = subFontSize * 1.25;
+    const subValues = [codeValue, qtyValue, extraValue].filter((value) => value);
+    const reservedHeight = subValues.length * subLineHeight;
+    const titleBoxHeight = Math.max(0, h - padPt * 2 - reservedHeight);
+    const titleBoxTop = y + h - padPt;
+    const titleLineHeightFactor = 1.2;
+
+    if (titleValue && titleBoxHeight > 0) {
+      const fit = fitTitleUpTo2Lines(
+        titleValue,
+        titleFont,
+        textWidth,
+        titleBoxHeight,
+        titleLineHeightFactor,
+      );
+      if (fit.fontSize > 0 && fit.lines.length > 0) {
+        const titleLineHeight = fit.fontSize * titleLineHeightFactor;
+        drawMultilineText(
+          currentPage,
+          fit.lines,
+          textX,
+          titleBoxTop - fit.fontSize,
+          titleFont,
+          fit.fontSize,
+          rgb(0, 0, 0),
+          fit.lines.length,
+          titleLineHeight,
+        );
+      }
+    }
 
     const drawSingleLine = (value: string) => {
       if (!value) return;
