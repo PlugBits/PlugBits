@@ -1367,6 +1367,12 @@ const fitTitleUpTo2Lines = (
     return { lines: [], fontSize: 0 };
   }
 
+  const heightLimit = boxH / lineHeightFactor;
+  const widthAtHeightLimit = font.widthOfTextAtSize(trimmed, heightLimit);
+  if (Number.isFinite(widthAtHeightLimit) && widthAtHeightLimit <= boxW) {
+    return { lines: [trimmed], fontSize: heightLimit };
+  }
+
   let best = fitLines([trimmed], font, boxW, boxH, lineHeightFactor);
   const candidates = makeTwoLineCandidates(trimmed);
   for (const lines of candidates) {
@@ -1414,25 +1420,9 @@ const drawLabelSheet = (
   const pageWidth = mmToPt(paperW);
   const pageHeight = mmToPt(paperH);
 
-  const baseTemplateId = template.baseTemplateId ?? template.id;
-  const layoutKey =
-    baseTemplateId === 'label_compact_v1'
-      ? 'compact'
-      : baseTemplateId === 'label_logistics_v1'
-      ? 'logistics'
-      : 'standard';
-  const layoutPreset =
-    layoutKey === 'compact'
-      ? { titleFont: 10, subFont: 8, padMm: 2, qrMm: 20 }
-      : layoutKey === 'logistics'
-      ? { titleFont: 14, subFont: 10, padMm: 3, qrMm: 26 }
-      : { titleFont: 12, subFont: 9, padMm: 2.5, qrMm: 22 };
-
-  const padMm = layoutPreset.padMm;
-  const qrSizeMm = Math.min(layoutPreset.qrMm, labelW * 0.4, labelH - padMm * 2);
-  if (qrSizeMm < 20) {
-    warn('layout', 'qr size below 20mm', { qrSizeMm, labelW, labelH });
-  }
+  const safeMarginMm = 3;
+  const internalGapMm = 3;
+  const qrSizeMm = labelH * 0.3;
 
   const labelsPerPage = cols * rows;
   let currentPage = firstPage;
@@ -1462,6 +1452,11 @@ const drawLabelSheet = (
     const w = mmToPt(labelW);
     const h = mmToPt(labelH);
 
+    const safeMarginPt = mmToPt(safeMarginMm);
+    const internalGapPt = mmToPt(internalGapMm);
+    const headerHeightPt = h * 0.5;
+    const footerTop = y + h - headerHeightPt;
+
     currentPage.drawRectangle({
       x,
       y,
@@ -1471,30 +1466,29 @@ const drawLabelSheet = (
       borderWidth: 0.5,
     });
 
-    const padPt = mmToPt(padMm);
     const qrSizePt = mmToPt(qrSizeMm);
-    const qrX = x + w - padPt - qrSizePt;
-    const qrY = y + padPt;
-    const textX = x + padPt;
-    const textWidth = Math.max(0, qrX - padPt - textX);
+    if (qrSizePt > footerTop - (y + safeMarginPt)) {
+      warn('layout', 'qr size exceeds footer height', { qrSizeMm, labelH });
+    }
+    const qrX = x + w - safeMarginPt - qrSizePt;
+    const qrY = y + safeMarginPt;
+    const textX = x + safeMarginPt;
+    const textWidth = Math.max(0, w - safeMarginPt * 2 - qrSizePt - internalGapPt);
     const titleFont = pickFontForText(titleValue, jpFont, latinFont);
     const subFont = pickFontForText(codeValue || qtyValue || extraValue || '', jpFont, latinFont);
 
-    let lineY = y + padPt;
-    const subFontSize = layoutPreset.subFont;
-    const subLineHeight = subFontSize * 1.25;
-    const subValues = [codeValue, qtyValue, extraValue].filter((value) => value);
-    const reservedHeight = subValues.length * subLineHeight;
-    const titleBoxHeight = Math.max(0, h - padPt * 2 - reservedHeight);
-    const titleBoxTop = y + h - padPt;
+    const headerTop = y + h - safeMarginPt;
+    const headerBottom = Math.max(footerTop, y + safeMarginPt);
+    const headerBoxHeight = Math.max(0, headerTop - headerBottom);
+    const headerBoxWidth = Math.max(0, w - safeMarginPt * 2);
     const titleLineHeightFactor = 1.2;
 
-    if (titleValue && titleBoxHeight > 0) {
+    if (titleValue && headerBoxHeight > 0 && headerBoxWidth > 0) {
       const fit = fitTitleUpTo2Lines(
         titleValue,
         titleFont,
-        textWidth,
-        titleBoxHeight,
+        headerBoxWidth,
+        headerBoxHeight,
         titleLineHeightFactor,
       );
       if (fit.fontSize > 0 && fit.lines.length > 0) {
@@ -1503,7 +1497,7 @@ const drawLabelSheet = (
           currentPage,
           fit.lines,
           textX,
-          titleBoxTop - fit.fontSize,
+          headerTop - fit.fontSize,
           titleFont,
           fit.fontSize,
           rgb(0, 0, 0),
@@ -1513,22 +1507,33 @@ const drawLabelSheet = (
       }
     }
 
-    const drawSingleLine = (value: string) => {
-      if (!value) return;
-      const clipped = ellipsisTextToWidth(value, subFont, subFontSize, textWidth);
-      currentPage.drawText(clipped, {
-        x: textX,
-        y: lineY,
-        size: subFontSize,
-        font: subFont,
-        color: rgb(0.2, 0.2, 0.2),
-      });
-      lineY += subLineHeight;
-    };
-
-    if (codeValue) drawSingleLine(codeValue);
-    if (qtyValue) drawSingleLine(qtyValue);
-    if (extraValue) drawSingleLine(extraValue);
+    const footerTextY = y + safeMarginPt;
+    const footerTextHeight = Math.max(0, footerTop - footerTextY);
+    const subValues = [codeValue, qtyValue, extraValue].filter((value) => value);
+    if (subValues.length > 0 && footerTextHeight > 0 && textWidth > 0) {
+      const subLineHeightFactor = 1.2;
+      const subFontSize = calcMaxFontSizeForLines(
+        subValues,
+        subFont,
+        textWidth,
+        footerTextHeight,
+        subLineHeightFactor,
+      );
+      if (subFontSize > 0) {
+        const subLineHeight = subFontSize * subLineHeightFactor;
+        drawMultilineText(
+          currentPage,
+          subValues,
+          textX,
+          footerTop - subFontSize,
+          subFont,
+          subFontSize,
+          rgb(0.2, 0.2, 0.2),
+          subValues.length,
+          subLineHeight,
+        );
+      }
+    }
 
     drawQrCode(currentPage, qrX, qrY, qrSizePt, qrValue, warn, subFont);
   }
