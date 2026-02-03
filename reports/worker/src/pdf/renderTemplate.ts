@@ -3044,6 +3044,13 @@ function drawImageElement(
   imageMap: Map<string, PDFImage>,
   warn: WarnFn,
 ) {
+  if (previewMode === 'fieldCode') {
+    const fieldCode =
+      element.dataSource?.type === 'kintone' ? element.dataSource.fieldCode : '';
+    drawImagePlaceholderWithFieldCode(page, element, pageHeight, fieldCode);
+    return;
+  }
+
   const url = resolveDataSource(
     element.dataSource,
     data,
@@ -3118,6 +3125,48 @@ function drawImagePlaceholder(
     size: 10,
     color: rgb(0.4, 0.4, 0.4),
   });
+}
+
+function drawImagePlaceholderWithFieldCode(
+  page: PDFPage,
+  element: ImageElement,
+  pageHeight: number,
+  fieldCode?: string,
+) {
+  const width = element.width ?? 120;
+  const height = element.height ?? 80;
+
+  let pdfY = toPdfYFromBottom(element.y, pageHeight);
+  pdfY = clampPdfY(pdfY, pageHeight - height);
+
+  page.drawRectangle({
+    x: element.x,
+    y: pdfY,
+    width,
+    height,
+    borderColor: rgb(0.5, 0.5, 0.5),
+    borderWidth: 1,
+  });
+
+  const centerX = element.x + width / 2;
+  const centerY = pdfY + height / 2;
+  const lineHeight = 10;
+
+  page.drawText('IMAGE', {
+    x: centerX - 18,
+    y: centerY + lineHeight / 2 - 4,
+    size: 9,
+    color: rgb(0.4, 0.4, 0.4),
+  });
+
+  if (fieldCode) {
+    page.drawText(fieldCode, {
+      x: centerX - fieldCode.length * 2.5,
+      y: centerY - lineHeight / 2 - 6,
+      size: 8,
+      color: rgb(0.4, 0.4, 0.4),
+    });
+  }
 }
 
 export const renderLabelCalibrationPdf = async (
