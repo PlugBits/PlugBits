@@ -58,6 +58,9 @@ type RenderRequestBody = {
 
   // 将来用: kintone に関するメタ情報など（今の実装では未使用）
   kintone?: unknown;
+
+  // 編集UI向け: fieldCode可視化モード
+  previewMode?: "record" | "fieldCode";
 };
 
 // CORS 設定
@@ -1654,6 +1657,8 @@ export default {
         }
 
         const debug = url.searchParams.get("debug") === "1";
+        const previewMode =
+          body.previewMode === "fieldCode" ? "fieldCode" : "record";
 
         // template / templateId のどちらかから TemplateDefinition を決定
         let template: TemplateDefinition<TemplateDataRecord>;
@@ -1872,7 +1877,7 @@ export default {
             templateForRender,
             dataForRender as TemplateDataRecord | undefined,
             fonts,
-            { debug },
+            { debug, previewMode },
           );
 
           const pdfBytes = new Uint8Array(rawPdfBytes);

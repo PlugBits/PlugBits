@@ -26,6 +26,7 @@ type WarnFn = (
   message: string,
   context?: Record<string, unknown>,
 ) => void;
+type PreviewMode = 'record' | 'fieldCode';
 const MAX_TEXT_LENGTH = 200;
 
 const truncateText = (text: string, maxLength = MAX_TEXT_LENGTH) => {
@@ -73,6 +74,21 @@ const stringifyValue = (
 
   warn?.('data', 'unsupported value type', { ...context, type });
   return '';
+};
+
+const resolveFieldValue = (
+  fieldCode: string | null | undefined,
+  record: Record<string, unknown> | undefined,
+  previewMode: PreviewMode,
+): unknown => {
+  if (!fieldCode) return '';
+  if (previewMode === 'fieldCode') return fieldCode;
+  if (!record) return '';
+  const raw = record[fieldCode];
+  if (raw && typeof raw === 'object' && 'value' in raw) {
+    return (raw as { value?: unknown }).value;
+  }
+  return raw;
 };
 
 const numericLikePattern = /^[0-9.,+\-() ¥$]*$/;
@@ -491,6 +507,7 @@ async function preloadImages(
   pdfDoc: PDFDocument,
   template: TemplateDefinition,
   data: TemplateDataRecord | undefined,
+  previewMode: PreviewMode,
   warn: WarnFn,
 ): Promise<Map<string, PDFImage>> {
   const map = new Map<string, PDFImage>();
@@ -502,7 +519,7 @@ async function preloadImages(
   const urls = Array.from(
     new Set(
       imageElements
-        .map((e) => resolveDataSource(e.dataSource, data, warn, { elementId: e.id }))
+        .map((e) => resolveDataSource(e.dataSource, data, previewMode, warn, { elementId: e.id }))
         .filter((u): u is string => !!u && isHttpUrl(u)),
     ),
   );
@@ -596,6 +613,7 @@ const clampPdfY = (pdfY: number, maxY: number) => {
 function resolveDataSource(
   source: DataSource | undefined,
   data: TemplateDataRecord | undefined,
+  previewMode: PreviewMode,
   warn?: WarnFn,
   context?: Record<string, unknown>,
 ): string {
@@ -610,11 +628,13 @@ function resolveDataSource(
     return '';
   }
 
-  if (!data) return '';
-
   // kintone / kintoneSubtable 系
   if ('fieldCode' in source && source.fieldCode) {
-    const value = data[source.fieldCode];
+    const value = resolveFieldValue(
+      source.fieldCode,
+      data as Record<string, unknown> | undefined,
+      previewMode,
+    );
     if (value === null || value === undefined) return '';
     if (typeof value === 'number') {
       if (Number.isSafeInteger(value)) {
@@ -658,10 +678,11 @@ export async function renderTemplateToPdf(
   template: TemplateDefinition,
   data: TemplateDataRecord | undefined,
   fonts: { jp: Uint8Array; latin: Uint8Array },
-  options?: { debug?: boolean },
+  options?: { debug?: boolean; previewMode?: PreviewMode },
 ): Promise<{ bytes: Uint8Array; warnings: string[] }> {
   const warnings = new Set<string>();
   const debugEnabled = options?.debug === true;
+  const previewMode: PreviewMode = options?.previewMode ?? 'record';
   const warn: WarnFn = (category, message, context) => {
     if (category === 'debug' && !debugEnabled) return;
     let entry = `[${category}] ${message}`;
@@ -680,7 +701,7 @@ export async function renderTemplateToPdf(
 
   const [pageWidth, pageHeight] = getPageSize(template);
   const renderData = data ? structuredClone(data) : undefined;
-  const imageMap = await preloadImages(pdfDoc, template, renderData, warn);
+  const imageMap = await preloadImages(pdfDoc, template, renderData, previewMode, warn);
 
   // ★ let にして、テーブル描画の途中で別ページに差し替えられるようにする
   let page = pdfDoc.addPage([pageWidth, pageHeight]);
@@ -690,7 +711,7 @@ export async function renderTemplateToPdf(
   const latinFont = await pdfDoc.embedFont(fonts.latin, { subset: false });
 
   if (template.structureType === 'label_v1') {
-    drawLabelSheet(pdfDoc, page, template, renderData, jpFont, latinFont, warn);
+    drawLabelSheet(pdfDoc, page, template, renderData, previewMode, jpFont, latinFont, warn);
     const bytes = await pdfDoc.save();
     const warningList = Array.from(warnings.values());
     return { bytes, warnings: warningList };
@@ -816,6 +837,7 @@ export async function renderTemplateToPdf(
     [...repeatingHeaderElements, ...firstPageOnlyHeaderElements],
     pageHeight,
     renderData,
+    previewMode,
     jpFont,
     latinFont,
     imageMap,
@@ -837,6 +859,7 @@ export async function renderTemplateToPdf(
       jpFont,
       latinFont,
       renderData,
+      previewMode,
       repeatingHeaderElements,
       footerReserveHeight,
       imageMap,
@@ -854,6 +877,7 @@ export async function renderTemplateToPdf(
       jpFont,
       latinFont,
       renderData,
+      previewMode,
       repeatingHeaderElements,
       footerReserveHeight,
       imageMap,
@@ -880,6 +904,7 @@ export async function renderTemplateToPdf(
       footerElementsForThisPage,
       pageHeight,
       renderData,
+      previewMode,
       jpFont,
       latinFont,
       imageMap,
@@ -967,13 +992,20 @@ function drawText(
   latinFont: PDFFont,
   pageHeight: number,
   data: TemplateDataRecord | undefined,
+  previewMode: PreviewMode,
   warn: WarnFn,
 ) {
   const fontSize = element.fontSize ?? 12;
   const lineHeight = fontSize * 1.2;
   const maxWidth = element.width ?? 200;
 
-  const resolved = resolveDataSource(element.dataSource, data, warn, { elementId: element.id });
+  const resolved = resolveDataSource(
+    element.dataSource,
+    data,
+    previewMode,
+    warn,
+    { elementId: element.id },
+  );
   const text = resolved || element.text || '';
   const maxLines = element.height ? Math.floor(element.height / lineHeight) : 99999;
 
@@ -1003,6 +1035,7 @@ function drawHeaderElements(
   headerElements: TemplateElement[],
   pageHeight: number,
   data: TemplateDataRecord | undefined,
+  previewMode: PreviewMode,
   jpFont: PDFFont,
   latinFont: PDFFont,
   imageMap: Map<string, PDFImage>,
@@ -1022,6 +1055,7 @@ function drawHeaderElements(
           latinFont,
           pageHeight,
           data,
+          previewMode,
           warn,
         );
         break;
@@ -1032,6 +1066,7 @@ function drawHeaderElements(
           element as ImageElement,
           pageHeight,
           data,
+          previewMode,
           imageMap,
           warn,
         );
@@ -1060,6 +1095,7 @@ function drawFooterElements(
   footerElements: TemplateElement[],
   pageHeight: number,
   data: TemplateDataRecord | undefined,
+  previewMode: PreviewMode,
   jpFont: PDFFont,
   latinFont: PDFFont,
   imageMap: Map<string, PDFImage>,
@@ -1079,6 +1115,7 @@ function drawFooterElements(
           latinFont,
           pageHeight,
           data,
+          previewMode,
           warn,
         );
         break;
@@ -1089,6 +1126,7 @@ function drawFooterElements(
           element as ImageElement,
           pageHeight,
           data,
+          previewMode,
           imageMap,
           warn,
         );
@@ -1222,12 +1260,16 @@ const buildLabelGridLayout = (
 const getLabelFieldValue = (
   data: TemplateDataRecord | undefined,
   fieldCode: string | null | undefined,
+  previewMode: PreviewMode,
   warn: WarnFn,
   context: Record<string, unknown>,
 ): string => {
   if (!fieldCode) return '';
-  if (!data) return '';
-  const raw = (data as Record<string, unknown>)[fieldCode];
+  const raw = resolveFieldValue(
+    fieldCode,
+    data as Record<string, unknown> | undefined,
+    previewMode,
+  );
   return stringifyValue(raw, warn, { ...context, fieldCode });
 };
 
@@ -1248,14 +1290,19 @@ const clampLinesWithEllipsis = (
 const resolveCopiesCount = (
   data: TemplateDataRecord | undefined,
   fieldCode: string | null,
+  previewMode: PreviewMode,
   warn: WarnFn,
 ): number => {
   if (!fieldCode) return 1;
-  if (!data) {
+  const raw = resolveFieldValue(
+    fieldCode,
+    data as Record<string, unknown> | undefined,
+    previewMode,
+  );
+  if (raw === null || raw === undefined || raw === '') {
     warn('data', 'copies field missing data', { fieldCode });
     return 1;
   }
-  const raw = (data as Record<string, unknown>)[fieldCode];
   const num = Number(raw);
   if (!Number.isFinite(num)) {
     warn('data', 'copies is not numeric', { fieldCode, value: raw });
@@ -1445,13 +1492,14 @@ const drawLabelSheet = (
   firstPage: PDFPage,
   template: TemplateDefinition,
   data: TemplateDataRecord | undefined,
+  previewMode: PreviewMode,
   jpFont: PDFFont,
   latinFont: PDFFont,
   warn: WarnFn,
 ): void => {
   const sheet = normalizeLabelSheetSettings(template.sheetSettings, warn);
   const mapping = normalizeLabelMapping(template.mapping);
-  const copies = resolveCopiesCount(data, mapping.copiesFieldCode, warn);
+  const copies = resolveCopiesCount(data, mapping.copiesFieldCode, previewMode, warn);
 
   const layout = buildLabelGridLayout(sheet, warn);
   if (!layout) return;
@@ -1463,11 +1511,11 @@ const drawLabelSheet = (
   const labelsPerPage = layout.labelsPerPage;
   let currentPage = firstPage;
 
-  const titleValue = getLabelFieldValue(data, mapping.slots.title, warn, { slot: 'title' });
-  const codeValue = getLabelFieldValue(data, mapping.slots.code, warn, { slot: 'code' });
-  const qtyValue = getLabelFieldValue(data, mapping.slots.qty, warn, { slot: 'qty' });
-  const qrValue = getLabelFieldValue(data, mapping.slots.qr, warn, { slot: 'qr' });
-  const extraValue = getLabelFieldValue(data, mapping.slots.extra, warn, { slot: 'extra' });
+  const titleValue = getLabelFieldValue(data, mapping.slots.title, previewMode, warn, { slot: 'title' });
+  const codeValue = getLabelFieldValue(data, mapping.slots.code, previewMode, warn, { slot: 'code' });
+  const qtyValue = getLabelFieldValue(data, mapping.slots.qty, previewMode, warn, { slot: 'qty' });
+  const qrValue = getLabelFieldValue(data, mapping.slots.qr, previewMode, warn, { slot: 'qr' });
+  const extraValue = getLabelFieldValue(data, mapping.slots.extra, previewMode, warn, { slot: 'extra' });
 
   if (!qrValue) {
     warn('data', 'qr value is empty', { slot: 'qr' });
@@ -1575,6 +1623,7 @@ function drawTable(
   jpFont: PDFFont,
   latinFont: PDFFont,
   data: TemplateDataRecord | undefined,
+  previewMode: PreviewMode,
   headerElements: TemplateElement[],
   footerReserveHeight: number,
   imageMap: Map<string, PDFImage>,
@@ -1710,6 +1759,7 @@ function drawTable(
       headerElements,
       pageHeight,
       data,
+      previewMode,
       jpFont,
       latinFont,
       imageMap,
@@ -1920,6 +1970,7 @@ function drawTable(
       headerElements,
       pageHeight,
       data,
+      previewMode,
       jpFont,
       latinFont,
       imageMap,
@@ -2022,7 +2073,11 @@ function drawTable(
       const colWidth = col.width;
       const maxCellWidth = Math.max(0, colWidth - (paddingLeft + paddingRight));
       const spec = normalizeColumnSpec(col);
-      const rawVal = col.fieldCode ? (row as any)[col.fieldCode] : '';
+      const rawVal = resolveFieldValue(
+        col.fieldCode,
+        row as Record<string, unknown>,
+        previewMode,
+      );
       const cellTextRaw = formatCellValue(rawVal, spec, warn, {
         tableId: element.id,
         columnId: col.id,
@@ -2089,6 +2144,7 @@ function drawTable(
           headerElements,
           pageHeight,
           data,
+          previewMode,
           jpFont,
           latinFont,
           imageMap,
@@ -2124,6 +2180,7 @@ function drawTable(
         headerElements,
         pageHeight,
         data,
+        previewMode,
         jpFont,
         latinFont,
         imageMap,
@@ -2240,7 +2297,11 @@ function drawTable(
     if (summaryStates.length > 0) {
       for (const state of summaryStates) {
         if (state.row.op !== 'sum') continue;
-        const rawVal = (row as any)[state.row.fieldCode];
+        const rawVal = resolveFieldValue(
+          state.row.fieldCode,
+          row as Record<string, unknown>,
+          previewMode,
+        );
         const parsed = parseDecimalToScaledBigInt(rawVal, warn, {
           tableId: element.id,
           fieldCode: state.row.fieldCode,
@@ -2266,7 +2327,11 @@ function drawTable(
       }
     }
     if (needsFallbackTotal && amountFieldCode) {
-      const rawVal = (row as any)[amountFieldCode];
+      const rawVal = resolveFieldValue(
+        amountFieldCode,
+        row as Record<string, unknown>,
+        previewMode,
+      );
       const parsed = parseDecimalToScaledBigInt(rawVal, warn, {
         tableId: element.id,
         fieldCode: amountFieldCode,
@@ -2387,6 +2452,7 @@ function drawCardList(
   jpFont: PDFFont,
   latinFont: PDFFont,
   data: TemplateDataRecord | undefined,
+  previewMode: PreviewMode,
   headerElements: TemplateElement[],
   footerReserveHeight: number,
   imageMap: Map<string, PDFImage>,
@@ -2508,7 +2574,11 @@ function drawCardList(
     const { field, spec } = getFieldSpec(fieldId);
     const fieldCode = field?.fieldCode;
     const isPlaceholderRow = (row as any).__placeholder === true;
-    const rawVal: unknown = fieldCode ? (row as any)[fieldCode] : undefined;
+    const rawVal: unknown = resolveFieldValue(
+      fieldCode,
+      row as Record<string, unknown>,
+      previewMode,
+    );
     const text = formatCellValue(rawVal, spec, warn, {
       cardId: element.id,
       fieldId,
@@ -2574,6 +2644,7 @@ function drawCardList(
       headerElements,
       pageHeight,
       data,
+      previewMode,
       jpFont,
       latinFont,
       imageMap,
@@ -2645,7 +2716,11 @@ function drawCardList(
       const singleFieldId = (isCompactV2 ? activeCompactIds[0] : activeFieldIds[0]) ?? 'fieldA';
       const { field, spec } = getFieldSpec(singleFieldId);
       const fieldCode = field?.fieldCode;
-      const rawVal: unknown = fieldCode ? (row as any)[fieldCode] : undefined;
+      const rawVal: unknown = resolveFieldValue(
+        fieldCode,
+        row as Record<string, unknown>,
+        previewMode,
+      );
       if (hasValue(rawVal)) {
         const text = formatCellValue(rawVal, spec, warn, {
           cardId: element.id,
@@ -2725,7 +2800,11 @@ function drawCardList(
           : null;
         const titleTextField = getFieldSpec(titleFieldId ?? "fieldA");
         const titleFieldCode = titleTextField.field?.fieldCode;
-        const titleRaw = titleFieldCode ? (row as any)[titleFieldCode] : undefined;
+        const titleRaw = resolveFieldValue(
+          titleFieldCode,
+          row as Record<string, unknown>,
+          previewMode,
+        );
         const titleText = hasValue(titleRaw)
           ? formatCellValue(titleRaw, titleTextField.spec, warn, {
               cardId: element.id,
@@ -2771,7 +2850,11 @@ function drawCardList(
         if (subFieldId) {
           const { field, spec } = getFieldSpec(subFieldId);
           const fieldCode = field?.fieldCode;
-          const rawVal: unknown = fieldCode ? (row as any)[fieldCode] : undefined;
+          const rawVal: unknown = resolveFieldValue(
+            fieldCode,
+            row as Record<string, unknown>,
+            previewMode,
+          );
           if (hasValue(rawVal)) {
             const text = formatCellValue(rawVal, spec, warn, {
               cardId: element.id,
@@ -2801,7 +2884,11 @@ function drawCardList(
         const drawRightNumber = (fieldId: string, x: number, width: number) => {
           const { field, spec } = getFieldSpec(fieldId);
           const fieldCode = field?.fieldCode;
-          const rawVal: unknown = fieldCode ? (row as any)[fieldCode] : undefined;
+          const rawVal: unknown = resolveFieldValue(
+            fieldCode,
+            row as Record<string, unknown>,
+            previewMode,
+          );
           if (!hasValue(rawVal)) return;
           const text = formatCellValue(rawVal, spec, warn, {
             cardId: element.id,
@@ -2841,7 +2928,11 @@ function drawCardList(
         const presentSecondary = secondaryIds.filter((id) => {
           const field = fieldsById.get(id);
           const fieldCode = field?.fieldCode;
-          const rawVal: unknown = fieldCode ? (row as any)[fieldCode] : undefined;
+          const rawVal: unknown = resolveFieldValue(
+            fieldCode,
+            row as Record<string, unknown>,
+            previewMode,
+          );
           return hasValue(rawVal);
         });
         const titleHeight = Math.max(24, Math.round(innerHeight * 0.6));
@@ -2934,10 +3025,17 @@ function drawImageElement(
   element: ImageElement,
   pageHeight: number,
   data: TemplateDataRecord | undefined,
+  previewMode: PreviewMode,
   imageMap: Map<string, PDFImage>,
   warn: WarnFn,
 ) {
-  const url = resolveDataSource(element.dataSource, data, warn, { elementId: element.id });
+  const url = resolveDataSource(
+    element.dataSource,
+    data,
+    previewMode,
+    warn,
+    { elementId: element.id },
+  );
   if (!url || !isHttpUrl(url)) {
     drawImagePlaceholder(page, element, pageHeight);
     return;

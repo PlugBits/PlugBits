@@ -28,6 +28,7 @@ export async function requestPreviewPdf(
       templateId: template.id,
       template,
       data,
+      previewMode: "fieldCode",
     }),
   });
 
