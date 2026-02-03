@@ -700,7 +700,7 @@ export async function renderTemplateToPdf(
   pdfDoc.registerFontkit(fontkit);
 
   const [pageWidth, pageHeight] = getPageSize(template);
-  const renderData = data ? structuredClone(data) : undefined;
+  let renderData = data ? structuredClone(data) : undefined;
   const imageMap = await preloadImages(pdfDoc, template, renderData, previewMode, warn);
 
   // ★ let にして、テーブル描画の途中で別ページに差し替えられるようにする
@@ -830,6 +830,21 @@ export async function renderTemplateToPdf(
   }
   const tableElementToRender =
     tableElements.find((el) => el.id === 'items') ?? tableElements[0];
+
+  if (
+    previewMode === 'fieldCode' &&
+    tableElementToRender?.dataSource?.type === 'kintoneSubtable'
+  ) {
+    const fieldCode = tableElementToRender.dataSource.fieldCode;
+    const base =
+      renderData && typeof renderData === 'object'
+        ? (renderData as Record<string, unknown>)
+        : {};
+    renderData = {
+      ...base,
+      [fieldCode]: Array.from({ length: 5 }, () => ({})),
+    } as TemplateDataRecord;
+  }
 
   // 1ページ目にヘッダー要素を描画
   drawHeaderElements(
