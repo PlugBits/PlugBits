@@ -63,8 +63,9 @@ type RenderRequestBody = {
 // CORS 設定
 const CORS_HEADERS: Record<string, string> = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "Content-Type, Authorization, x-api-key, x-kintone-api-token",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization, x-api-key, x-kintone-api-token, X-Requested-With",
   "Access-Control-Allow-Methods": "GET,POST,PUT,DELETE,OPTIONS",
+  "Access-Control-Max-Age": "86400",
 };
 
 const truncateHeaderValue = (value: string, maxLength = 200) =>
@@ -563,7 +564,7 @@ export default {
       // CORS preflight
       if (request.method === "OPTIONS") {
         return new Response(null, {
-          status: 204,
+          status: 200,
           headers: CORS_HEADERS,
         });
       }
