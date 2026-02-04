@@ -42,6 +42,10 @@
         background: #e5e7eb;
         color: #111827;
       }
+      .btn[disabled] {
+        opacity: 0.6;
+        cursor: not-allowed;
+      }
       .notice {
         margin-left: 12px;
         font-size: 12px;
@@ -60,11 +64,6 @@
       .hidden {
         display: none;
       }
-      .link {
-        color: #2563eb;
-        text-decoration: none;
-        font-size: 14px;
-      }
     </style>
   </head>
   <body>
@@ -72,7 +71,7 @@
       <div class="title">PlugBits 印刷</div>
       <button id="printButton" class="btn hidden">印刷</button>
       <button id="shareButton" class="btn hidden">共有して印刷</button>
-      <a id="openLink" class="link hidden" target="_blank" rel="noopener noreferrer">PDFを開く</a>
+      <button id="openButton" class="btn secondary hidden">PDFを開く</button>
       <span id="mobileNote" class="notice hidden">印刷設定は “実際のサイズ(100%)” 推奨</span>
     </div>
     <div id="status" class="status">PDFを生成中...</div>
@@ -89,10 +88,11 @@
       const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
       const printButton = document.getElementById("printButton");
       const shareButton = document.getElementById("shareButton");
-      const openLink = document.getElementById("openLink");
+      const openButton = document.getElementById("openButton");
       const statusEl = document.getElementById("status");
       const pdfFrame = document.getElementById("pdfFrame");
       const mobileNote = document.getElementById("mobileNote");
+      const canStart = Boolean(workerBaseUrl && templateId);
 
       const setStatus = (text) => {
         statusEl.textContent = text;
@@ -106,85 +106,211 @@
         }
       };
 
+      const setButtonsDisabled = (disabled) => {
+        printButton.disabled = disabled;
+        shareButton.disabled = disabled;
+        openButton.disabled = disabled;
+      };
+
+      const shouldRetryStatus = (status) => status === 429 || status >= 500;
+      const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+      const baseDelayMs = 800;
+      const maxRetries = 1;
+      const maxStatusLogOnce = { logged: false };
+
       let pdfBlobUrl = "";
-      const renderPdf = async (data) => {
-        if (!workerBaseUrl || !templateId) {
+      let renderData = null;
+      let dataReady = false;
+      let inFlight = null;
+      let pendingAction = null;
+      let pendingWindow = null;
+
+      const markReady = (data) => {
+        if (dataReady) return;
+        renderData = data || {};
+        dataReady = true;
+        setButtonsDisabled(!canStart);
+        if (!canStart) {
           setStatus("必要なパラメータが不足しています。");
           return;
         }
+        setStatus("印刷ボタンを押してPDFを生成します。");
+        if (pendingAction) {
+          const next = pendingAction;
+          const targetWindow = pendingWindow;
+          pendingAction = null;
+          pendingWindow = null;
+          if (next === "share") {
+            return;
+          }
+          executeWindowAction(next, targetWindow);
+        }
+      };
+
+      const generatePdf = () => {
+        if (!canStart) {
+          setStatus("必要なパラメータが不足しています。");
+          return Promise.reject(new Error("missing params"));
+        }
+        if (!dataReady) {
+          setStatus("印刷データを待機中...");
+          return Promise.reject(new Error("data not ready"));
+        }
+        if (inFlight) return inFlight;
+
+        setButtonsDisabled(true);
         setStatus("PDFを生成中...");
+        maxStatusLogOnce.logged = false;
+
         const body = {
           templateId,
-          data,
+          data: renderData || {},
           kintone: {
             baseUrl: kintoneBaseUrl,
             appId,
             recordId,
           },
         };
-        try {
-          const res = await fetch(workerBaseUrl.replace(/\/$/, "") + "/render", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(body),
-          });
-          if (!res.ok) {
+
+        const requestIdFrom = (res) =>
+          res.headers.get("cf-ray") || res.headers.get("x-request-id") || "";
+        const logOnce = (payload) => {
+          if (maxStatusLogOnce.logged) return;
+          maxStatusLogOnce.logged = true;
+          console.info("print.html render failed", payload);
+        };
+
+        inFlight = (async () => {
+          for (let attempt = 0; attempt <= maxRetries; attempt += 1) {
+            let res;
+            try {
+              res = await fetch(workerBaseUrl.replace(/\/$/, "") + "/render", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(body),
+              });
+            } catch (err) {
+              if (attempt < maxRetries) {
+                const waitMs =
+                  baseDelayMs * 2 ** attempt + Math.floor(Math.random() * 200);
+                await sleep(waitMs);
+                continue;
+              }
+              logOnce({ error: String(err), body });
+              return null;
+            }
+
+            if (res.ok) {
+              const blob = await res.blob();
+              pdfBlobUrl = URL.createObjectURL(blob);
+              pdfFrame.src = pdfBlobUrl;
+              pdfFrame.onload = () => {
+                setStatus("PDFの準備ができました。");
+              };
+              return pdfBlobUrl;
+            }
+
+            const status = res.status;
             const text = await res.text().catch(() => "");
-            setStatus(text || "PDF生成に失敗しました。");
+            const requestId = requestIdFrom(res);
+            if (shouldRetryStatus(status) && attempt < maxRetries) {
+              const waitMs =
+                baseDelayMs * 2 ** attempt + Math.floor(Math.random() * 200);
+              await sleep(waitMs);
+              continue;
+            }
+
+            if (status === 503) {
+              setStatus("サーバーが混雑しています。10秒後に再試行してください。");
+            } else {
+              setStatus(text || "PDF生成に失敗しました。");
+            }
+            logOnce({ status, requestId, body });
+            return null;
+          }
+          return null;
+        })()
+          .finally(() => {
+            inFlight = null;
+            setButtonsDisabled(!canStart || !dataReady);
+          });
+
+        return inFlight;
+      };
+
+      const executeWindowAction = async (action, targetWindow) => {
+        if (!targetWindow) {
+          setStatus("印刷用のタブを開けませんでした。");
+          return;
+        }
+        const blobUrl = await generatePdf();
+        if (!blobUrl) return;
+        targetWindow.location.href = blobUrl;
+      };
+
+      const handleAction = async (action) => {
+        if (!dataReady) {
+          setStatus("印刷データを待機中...");
+          if (action === "share") return;
+          const w = window.open("", "_blank");
+          if (!w) {
+            setStatus("印刷用のタブを開けませんでした。");
             return;
           }
-          const blob = await res.blob();
-          pdfBlobUrl = URL.createObjectURL(blob);
-          pdfFrame.src = pdfBlobUrl;
-          openLink.href = pdfBlobUrl;
-          openLink.classList.remove("hidden");
-
-          if (isMobile) {
-            mobileNote.classList.remove("hidden");
-            shareButton.classList.remove("hidden");
-          } else {
-            printButton.classList.remove("hidden");
-          }
-
-          pdfFrame.onload = () => {
-            setStatus("PDFの準備ができました。");
-          };
-
-          printButton.onclick = () => {
-            if (!pdfBlobUrl) return;
-            const w = window.open("", "_blank");
-            if (!w) {
-              setStatus("印刷用のタブを開けませんでした。");
-              return;
-            }
-            w.location.href = pdfBlobUrl;
-          };
-          shareButton.onclick = async () => {
-            if (!navigator.share) {
-              setStatus("共有が利用できないため、PDFを開いてください。");
-              return;
-            }
-            const file = new File([blob], "plugbits-report.pdf", { type: "application/pdf" });
-            try {
-              if (navigator.canShare && !navigator.canShare({ files: [file] })) {
-                setStatus("この端末では共有が利用できません。");
-                return;
-              }
-              await navigator.share({ files: [file], title: "PlugBits PDF" });
-            } catch {
-              setStatus("共有に失敗しました。PDFを開いてください。");
-            }
-          };
-        } catch {
-          setStatus("PDF生成に失敗しました。");
+          pendingAction = action;
+          pendingWindow = w;
+          return;
         }
+        if (!canStart) {
+          setStatus("必要なパラメータが不足しています。");
+          return;
+        }
+
+        if (action === "share") {
+          if (!navigator.share) {
+            setStatus("共有が利用できないため、PDFを開いてください。");
+            return;
+          }
+          const blobUrl = await generatePdf();
+          if (!blobUrl) return;
+          const blob = await fetch(blobUrl).then((res) => res.blob());
+          const file = new File([blob], "plugbits-report.pdf", {
+            type: "application/pdf",
+          });
+          try {
+            if (navigator.canShare && !navigator.canShare({ files: [file] })) {
+              setStatus("この端末では共有が利用できません。");
+              return;
+            }
+            await navigator.share({ files: [file], title: "PlugBits PDF" });
+          } catch {
+            setStatus("共有に失敗しました。PDFを開いてください。");
+          }
+          return;
+        }
+
+        const w = window.open("", "_blank");
+        await executeWindowAction(action, w);
       };
+
+      if (isMobile) {
+        shareButton.classList.remove("hidden");
+        mobileNote.classList.remove("hidden");
+      } else {
+        printButton.classList.remove("hidden");
+      }
+      openButton.classList.remove("hidden");
+      setButtonsDisabled(true);
+
+      printButton.addEventListener("click", () => handleAction("print"));
+      openButton.addEventListener("click", () => handleAction("open"));
+      shareButton.addEventListener("click", () => handleAction("share"));
 
       const dataParam = params.get("data");
       if (dataParam) {
         try {
           const decoded = decodeURIComponent(dataParam);
-          renderPdf(JSON.parse(decoded));
+          markReady(JSON.parse(decoded));
         } catch {
           setStatus("PDFデータの読み込みに失敗しました。");
         }
@@ -195,13 +321,13 @@
           window.addEventListener("message", (event) => {
             if (event.origin !== kintoneOrigin) return;
             if (event.data && event.data.type === "plugbits-print-data") {
-              renderPdf(event.data.data || {});
+              markReady(event.data.data || {});
             }
           });
           opener.postMessage({ type: "plugbits-print-ready" }, kintoneOrigin);
           setStatus("印刷データを待機中...");
         } else {
-          renderPdf({});
+          markReady({});
         }
       }
     </script>
