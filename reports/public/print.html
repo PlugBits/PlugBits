@@ -106,6 +106,7 @@
         }
       };
 
+      let pdfBlobUrl = "";
       const renderPdf = async (data) => {
         if (!workerBaseUrl || !templateId) {
           setStatus("必要なパラメータが不足しています。");
@@ -133,9 +134,9 @@
             return;
           }
           const blob = await res.blob();
-          const url = URL.createObjectURL(blob);
-          pdfFrame.src = url;
-          openLink.href = url;
+          pdfBlobUrl = URL.createObjectURL(blob);
+          pdfFrame.src = pdfBlobUrl;
+          openLink.href = pdfBlobUrl;
           openLink.classList.remove("hidden");
 
           if (isMobile) {
@@ -147,18 +148,17 @@
 
           pdfFrame.onload = () => {
             setStatus("PDFの準備ができました。");
-            if (!isMobile) {
-              setTimeout(() => {
-                try {
-                  window.print();
-                } catch {
-                  // ignore
-                }
-              }, 400);
-            }
           };
 
-          printButton.onclick = () => window.print();
+          printButton.onclick = () => {
+            if (!pdfBlobUrl) return;
+            const w = window.open("", "_blank");
+            if (!w) {
+              setStatus("印刷用のタブを開けませんでした。");
+              return;
+            }
+            w.location.href = pdfBlobUrl;
+          };
           shareButton.onclick = async () => {
             if (!navigator.share) {
               setStatus("共有が利用できないため、PDFを開いてください。");
