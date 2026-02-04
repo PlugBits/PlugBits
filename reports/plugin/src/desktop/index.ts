@@ -1,4 +1,4 @@
-import { WORKER_BASE_URL } from '../constants';
+import { UI_BASE_URL, WORKER_BASE_URL } from '../constants';
 import type { PluginConfig } from '../config/index.ts';
 
 const PLUGIN_ID =
@@ -450,6 +450,66 @@ const addButton = (config: PluginConfig) => {
   });
 
   toolbar.appendChild(button);
+
+  const printButton = createButton('印刷');
+  printButton.id = 'plugbits-print-only-button';
+  printButton.addEventListener('click', async () => {
+    const record = (window as any).kintone?.app?.record?.get()?.record;
+    if (!record) {
+      notify('レコード情報を取得できません');
+      return;
+    }
+
+    const recordId = record.$id?.value;
+    if (!recordId) {
+      notify('レコードIDが取得できません');
+      return;
+    }
+
+    const templateOk = await checkTemplateAvailability(config);
+    if (!templateOk) return;
+
+    const appId = (window as any).kintone?.app?.getId?.();
+    const appIdValue = appId ? String(appId) : '';
+    const params = new URLSearchParams({
+      workerBaseUrl: WORKER_BASE_URL,
+      kintoneBaseUrl: location.origin,
+      appId: appIdValue,
+      recordId,
+      templateId: config.templateId,
+    });
+    const printUrl = `${UI_BASE_URL.replace(/\/$/, '')}/print.html?${params.toString()}`;
+    const printWindow = window.open(printUrl, '_blank');
+    if (!printWindow) {
+      notify('印刷ページを開けませんでした', 'error');
+      return;
+    }
+
+    const templateData = buildTemplateDataFromKintoneRecord(record);
+    const targetOrigin = new URL(UI_BASE_URL).origin;
+    const sendData = () => {
+      try {
+        printWindow.postMessage(
+          { type: 'plugbits-print-data', data: templateData },
+          targetOrigin,
+        );
+      } catch {
+        // ignore
+      }
+    };
+    const handleMessage = (event: MessageEvent) => {
+      if (event.origin !== targetOrigin) return;
+      if (event.source !== printWindow) return;
+      if (event.data?.type !== 'plugbits-print-ready') return;
+      sendData();
+      window.removeEventListener('message', handleMessage);
+    };
+    window.addEventListener('message', handleMessage);
+    setTimeout(sendData, 500);
+    setTimeout(sendData, 1500);
+  });
+
+  toolbar.appendChild(printButton);
 };
 
 const setupRecordDetailButton = () => {

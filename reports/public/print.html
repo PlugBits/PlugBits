@@ -1,0 +1,209 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>PlugBits 印刷</title>
+    <style>
+      :root {
+        color-scheme: light;
+      }
+      body {
+        margin: 0;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        background: #f6f7fb;
+        color: #111827;
+      }
+      .toolbar {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 12px 16px;
+        background: #ffffff;
+        border-bottom: 1px solid #e5e7eb;
+        position: sticky;
+        top: 0;
+        z-index: 2;
+      }
+      .title {
+        font-weight: 600;
+        margin-right: auto;
+      }
+      .btn {
+        border: none;
+        border-radius: 6px;
+        padding: 8px 12px;
+        cursor: pointer;
+        font-size: 14px;
+        background: #2563eb;
+        color: #fff;
+      }
+      .btn.secondary {
+        background: #e5e7eb;
+        color: #111827;
+      }
+      .notice {
+        margin-left: 12px;
+        font-size: 12px;
+        color: #6b7280;
+      }
+      .status {
+        padding: 10px 16px;
+        font-size: 14px;
+        color: #374151;
+      }
+      .viewer {
+        width: 100%;
+        height: calc(100vh - 104px);
+        border: none;
+      }
+      .hidden {
+        display: none;
+      }
+      .link {
+        color: #2563eb;
+        text-decoration: none;
+        font-size: 14px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="toolbar">
+      <div class="title">PlugBits 印刷</div>
+      <button id="printButton" class="btn hidden">印刷</button>
+      <button id="shareButton" class="btn hidden">共有して印刷</button>
+      <a id="openLink" class="link hidden" target="_blank" rel="noopener noreferrer">PDFを開く</a>
+      <span id="mobileNote" class="notice hidden">印刷設定は “実際のサイズ(100%)” 推奨</span>
+    </div>
+    <div id="status" class="status">PDFを生成中...</div>
+    <iframe id="pdfFrame" class="viewer" title="PDF Preview"></iframe>
+
+    <script>
+      const params = new URLSearchParams(location.search);
+      const workerBaseUrl = params.get("workerBaseUrl") || "";
+      const kintoneBaseUrl = params.get("kintoneBaseUrl") || "";
+      const appId = params.get("appId") || "";
+      const recordId = params.get("recordId") || "";
+      const templateId = params.get("templateId") || "";
+
+      const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+      const printButton = document.getElementById("printButton");
+      const shareButton = document.getElementById("shareButton");
+      const openLink = document.getElementById("openLink");
+      const statusEl = document.getElementById("status");
+      const pdfFrame = document.getElementById("pdfFrame");
+      const mobileNote = document.getElementById("mobileNote");
+
+      const setStatus = (text) => {
+        statusEl.textContent = text;
+      };
+
+      const normalizeOrigin = (value) => {
+        try {
+          return new URL(value).origin;
+        } catch {
+          return "";
+        }
+      };
+
+      const renderPdf = async (data) => {
+        if (!workerBaseUrl || !templateId) {
+          setStatus("必要なパラメータが不足しています。");
+          return;
+        }
+        setStatus("PDFを生成中...");
+        const body = {
+          templateId,
+          data,
+          kintone: {
+            baseUrl: kintoneBaseUrl,
+            appId,
+            recordId,
+          },
+        };
+        try {
+          const res = await fetch(workerBaseUrl.replace(/\/$/, "") + "/render", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(body),
+          });
+          if (!res.ok) {
+            const text = await res.text().catch(() => "");
+            setStatus(text || "PDF生成に失敗しました。");
+            return;
+          }
+          const blob = await res.blob();
+          const url = URL.createObjectURL(blob);
+          pdfFrame.src = url;
+          openLink.href = url;
+          openLink.classList.remove("hidden");
+
+          if (isMobile) {
+            mobileNote.classList.remove("hidden");
+            shareButton.classList.remove("hidden");
+          } else {
+            printButton.classList.remove("hidden");
+          }
+
+          pdfFrame.onload = () => {
+            setStatus("PDFの準備ができました。");
+            if (!isMobile) {
+              setTimeout(() => {
+                try {
+                  window.print();
+                } catch {
+                  // ignore
+                }
+              }, 400);
+            }
+          };
+
+          printButton.onclick = () => window.print();
+          shareButton.onclick = async () => {
+            if (!navigator.share) {
+              setStatus("共有が利用できないため、PDFを開いてください。");
+              return;
+            }
+            const file = new File([blob], "plugbits-report.pdf", { type: "application/pdf" });
+            try {
+              if (navigator.canShare && !navigator.canShare({ files: [file] })) {
+                setStatus("この端末では共有が利用できません。");
+                return;
+              }
+              await navigator.share({ files: [file], title: "PlugBits PDF" });
+            } catch {
+              setStatus("共有に失敗しました。PDFを開いてください。");
+            }
+          };
+        } catch {
+          setStatus("PDF生成に失敗しました。");
+        }
+      };
+
+      const dataParam = params.get("data");
+      if (dataParam) {
+        try {
+          const decoded = decodeURIComponent(dataParam);
+          renderPdf(JSON.parse(decoded));
+        } catch {
+          setStatus("PDFデータの読み込みに失敗しました。");
+        }
+      } else {
+        const opener = window.opener;
+        const kintoneOrigin = normalizeOrigin(kintoneBaseUrl);
+        if (opener && kintoneOrigin) {
+          window.addEventListener("message", (event) => {
+            if (event.origin !== kintoneOrigin) return;
+            if (event.data && event.data.type === "plugbits-print-data") {
+              renderPdf(event.data.data || {});
+            }
+          });
+          opener.postMessage({ type: "plugbits-print-ready" }, kintoneOrigin);
+          setStatus("印刷データを待機中...");
+        } else {
+          renderPdf({});
+        }
+      }
+    </script>
+  </body>
+</html>
