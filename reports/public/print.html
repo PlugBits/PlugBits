@@ -69,7 +69,7 @@
   <body>
     <div class="toolbar">
       <div class="title">PlugBits 印刷</div>
-      <button id="printButton" class="btn hidden">印刷</button>
+      <button id="printButton" class="btn secondary hidden">再試行</button>
       <button id="shareButton" class="btn hidden">共有して印刷</button>
       <button id="openButton" class="btn secondary hidden">PDFを開く</button>
       <span id="mobileNote" class="notice hidden">印刷設定は “実際のサイズ(100%)” 推奨</span>
@@ -98,6 +98,15 @@
         statusEl.textContent = text;
       };
 
+      const showRetry = () => {
+        printButton.classList.remove("hidden");
+        printButton.disabled = false;
+      };
+
+      const hideRetry = () => {
+        printButton.classList.add("hidden");
+      };
+
       const normalizeOrigin = (value) => {
         try {
           return new URL(value).origin;
@@ -124,17 +133,19 @@
       let inFlight = null;
       let pendingAction = null;
       let pendingWindow = null;
+      let autoStarted = false;
 
       const markReady = (data) => {
         if (dataReady) return;
         renderData = data || {};
         dataReady = true;
-        setButtonsDisabled(!canStart);
+        setButtonsDisabled(true);
+        hideRetry();
         if (!canStart) {
           setStatus("必要なパラメータが不足しています。");
           return;
         }
-        setStatus("印刷ボタンを押してPDFを生成します。");
+        setStatus("PDFを自動生成します。");
         if (pendingAction) {
           const next = pendingAction;
           const targetWindow = pendingWindow;
@@ -144,6 +155,15 @@
             return;
           }
           executeWindowAction(next, targetWindow);
+        }
+
+        if (!autoStarted) {
+          autoStarted = true;
+          generatePdf().then((blobUrl) => {
+            if (!blobUrl) {
+              showRetry();
+            }
+          });
         }
       };
 
@@ -156,9 +176,13 @@
           setStatus("印刷データを待機中...");
           return Promise.reject(new Error("data not ready"));
         }
+        if (pdfBlobUrl) {
+          return Promise.resolve(pdfBlobUrl);
+        }
         if (inFlight) return inFlight;
 
         setButtonsDisabled(true);
+        hideRetry();
         setStatus("PDFを生成中...");
         maxStatusLogOnce.logged = false;
 
@@ -204,6 +228,8 @@
               const blob = await res.blob();
               pdfBlobUrl = URL.createObjectURL(blob);
               pdfFrame.src = pdfBlobUrl;
+              openButton.classList.remove("hidden");
+              setButtonsDisabled(false);
               pdfFrame.onload = () => {
                 setStatus("PDFの準備ができました。");
               };
@@ -226,13 +252,14 @@
               setStatus(text || "PDF生成に失敗しました。");
             }
             logOnce({ status, requestId, body });
+            showRetry();
             return null;
           }
           return null;
         })()
           .finally(() => {
             inFlight = null;
-            setButtonsDisabled(!canStart || !dataReady);
+            setButtonsDisabled(!pdfBlobUrl);
           });
 
         return inFlight;
@@ -296,13 +323,14 @@
       if (isMobile) {
         shareButton.classList.remove("hidden");
         mobileNote.classList.remove("hidden");
-      } else {
-        printButton.classList.remove("hidden");
       }
       openButton.classList.remove("hidden");
       setButtonsDisabled(true);
 
-      printButton.addEventListener("click", () => handleAction("print"));
+      printButton.addEventListener("click", () => {
+        if (!dataReady || !canStart) return;
+        generatePdf();
+      });
       openButton.addEventListener("click", () => handleAction("open"));
       shareButton.addEventListener("click", () => handleAction("share"));
 
