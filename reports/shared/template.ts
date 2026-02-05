@@ -9,6 +9,14 @@ export type FooterRepeatMode = 'all' | 'last';
 //mapping は MVP では unknown（Adapter側で解釈/検証） ---
 export type TemplateMapping = unknown;
 
+export type FontScalePreset = 'S' | 'M' | 'L';
+export type PagePaddingPreset = 'Narrow' | 'Normal' | 'Wide';
+
+export type TemplateSettings = {
+  fontScalePreset?: FontScalePreset;
+  pagePaddingPreset?: PagePaddingPreset;
+};
+
 export type LabelSheetSettings = {
   paperPreset?: 'A4' | 'Letter' | 'Custom';
   paperWidthMm: number;
@@ -52,6 +60,7 @@ export interface BaseElement {
   width?: number;
   height?: number;
   alignX?: 'left' | 'center' | 'right';
+  hidden?: boolean;
   region?: 'header' | 'body' | 'footer';
   repeatOnEveryPage?: boolean;
   footerRepeatMode?: 'all' | 'last';
@@ -211,6 +220,7 @@ export interface TemplateDefinition<
   };
   structureType?: StructureType;
   mapping?: TemplateMapping;
+  settings?: TemplateSettings;
   sheetSettings?: LabelSheetSettings;
   footerRepeatMode?: FooterRepeatMode;
   sampleData?: TData;

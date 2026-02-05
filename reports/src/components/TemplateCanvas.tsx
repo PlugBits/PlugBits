@@ -36,6 +36,18 @@ type ResizeState = {
 const GRID_SIZE = 5;
 const ALIGN_PADDING = 12;
 
+const resolvePagePadding = (preset?: 'Narrow' | 'Normal' | 'Wide') => {
+  if (preset === 'Narrow') return 8;
+  if (preset === 'Wide') return 24;
+  return 16;
+};
+
+const resolveFontScale = (preset?: 'S' | 'M' | 'L') => {
+  if (preset === 'S') return 0.9;
+  if (preset === 'L') return 1.1;
+  return 1.0;
+};
+
 const getTableWidth = (element: TemplateElement) => {
   if (element.type === 'table') {
     return element.columns.reduce((sum, column) => sum + column.width, 0);
@@ -65,23 +77,31 @@ const getElementHeightValue = (element: TemplateElement) => {
   return element.height ?? 32;
 };
 
-const resolveAlignedX = (element: TemplateElement, width: number) => {
+const resolveAlignedX = (
+  element: TemplateElement,
+  width: number,
+  pagePadding: number,
+) => {
   const slotId = (element as any).slotId as string | undefined;
   if (slotId !== 'doc_title') return element.x;
   const alignX = (element as any).alignX as 'left' | 'center' | 'right' | undefined;
   if (!alignX) return element.x;
   const safeWidth = Number.isFinite(width) ? width : 0;
   if (safeWidth <= 0) return element.x;
-  if (alignX === 'left') return ALIGN_PADDING;
+  const padding = Number.isFinite(pagePadding) ? pagePadding : ALIGN_PADDING;
+  if (alignX === 'left') return padding;
   if (alignX === 'center') return (CANVAS_WIDTH - safeWidth) / 2;
-  if (alignX === 'right') return CANVAS_WIDTH - safeWidth - ALIGN_PADDING;
+  if (alignX === 'right') return CANVAS_WIDTH - safeWidth - padding;
   return element.x;
 };
 
-const getElementStyle = (element: TemplateElement): CSSProperties => {
+const getElementStyle = (
+  element: TemplateElement,
+  pagePadding: number,
+): CSSProperties => {
   const widthValue = getElementWidthValue(element);
   const base: CSSProperties = {
-    left: `${resolveAlignedX(element, widthValue)}px`,
+    left: `${resolveAlignedX(element, widthValue, pagePadding)}px`,
     bottom: `${element.y}px`,
   };
 
@@ -147,6 +167,9 @@ const TemplateCanvas = ({
   slotLabels,
 }: CanvasProps) => {
   const isAdvanced = !!template.advancedLayoutEditing;
+  const pagePadding = resolvePagePadding(template.settings?.pagePaddingPreset);
+  const fontScale = resolveFontScale(template.settings?.fontScalePreset);
+  const visibleElements = template.elements.filter((el) => !(el as any).hidden);
 
   const canvasRef = useRef<HTMLDivElement | null>(null);
   const [dragState, setDragState] = useState<DragState | null>(null);
@@ -230,10 +253,10 @@ const TemplateCanvas = ({
       : null;
 
     const hitList = point
-      ? template.elements.filter((el) => {
+      ? visibleElements.filter((el) => {
           const width = getElementWidthValue(el);
           const height = getElementHeightValue(el);
-          const left = resolveAlignedX(el, width);
+          const left = resolveAlignedX(el, width, pagePadding);
           return (
             point.x >= left &&
             point.x <= left + width &&
@@ -307,7 +330,7 @@ const TemplateCanvas = ({
     ? (() => {
         const width = getElementWidthValue(selectedElement);
         const height = getElementHeightValue(selectedElement);
-        const alignedX = resolveAlignedX(selectedElement, width);
+        const alignedX = resolveAlignedX(selectedElement, width, pagePadding);
         const badgeLeft = Math.min(alignedX + width + 12, CANVAS_WIDTH - 80);
         const badgeBottom = Math.min(selectedElement.y + height + 12, CANVAS_HEIGHT - 24);
         return (
@@ -324,7 +347,7 @@ const TemplateCanvas = ({
 
   return (
     <div className="template-canvas" style={canvasStyle} onMouseDown={handleCanvasMouseDown} ref={canvasRef}>
-      {template.elements.map((element) => (
+      {visibleElements.map((element) => (
         <div
           key={element.id}
           className={[
@@ -333,7 +356,7 @@ const TemplateCanvas = ({
             highlightedElementIds?.has(element.id) ? 'highlighted' : '',
           ].filter(Boolean).join(' ')}
           style={{
-            ...getElementStyle(element),
+            ...getElementStyle(element, pagePadding),
             zIndex: selectedElementId === element.id ? 50 : highlightedElementIds?.has(element.id) ? 40 : undefined,
           }}
           onMouseDown={(event) => handleElementMouseDown(event, element)}
@@ -393,7 +416,7 @@ const TemplateCanvas = ({
               >
                 {slotLabels?.[(element as any).slotId] ?? element.type}
               </strong>
-              <span style={{ fontSize: '0.85rem' }}>{describeDataSource(element)}</span>
+              <span style={{ fontSize: `${0.85 * fontScale}rem` }}>{describeDataSource(element)}</span>
             </>
           )}
           {isAdvanced && element.type !== 'table' && element.type !== 'cardList' && (

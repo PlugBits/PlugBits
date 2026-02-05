@@ -700,6 +700,8 @@ export async function renderTemplateToPdf(
   pdfDoc.registerFontkit(fontkit);
 
   const [pageWidth, pageHeight] = getPageSize(template);
+  const fontScale = resolveFontScale(template.settings?.fontScalePreset);
+  const pagePadding = resolvePagePadding(template.settings?.pagePaddingPreset);
   let renderData = data ? structuredClone(data) : undefined;
   const imageMap = await preloadImages(pdfDoc, template, renderData, previewMode, warn);
 
@@ -764,7 +766,7 @@ export async function renderTemplateToPdf(
 
     // ラベル／テキストだけ対象にする
     const textFooterElems = allFooterElems.filter(
-      (el) => el.type === "label" || el.type === "text",
+      (el) => (el.type === "label" || el.type === "text") && !(el as any).hidden,
     );
     if (textFooterElems.length === 0) return 0;
 
@@ -777,7 +779,7 @@ export async function renderTemplateToPdf(
     const ROW_THRESHOLD = 5; // この差以内なら同じ行とみなす
 
     for (const el of sorted) {
-      const fontSize = (el as any).fontSize ?? 12;
+      const fontSize = ((el as any).fontSize ?? 12) * fontScale;
       if (rows.length === 0) {
         rows.push({ y: el.y, maxFontSize: fontSize });
         continue;
@@ -811,10 +813,10 @@ export async function renderTemplateToPdf(
     template.footerReserveHeight ?? estimatedFooterHeight ?? 0;
 
   const tableElements = template.elements.filter(
-    (e): e is TableElement => e.type === 'table',
+    (e): e is TableElement => e.type === 'table' && !(e as any).hidden,
   );
   const cardListElements = template.elements.filter(
-    (e): e is CardListElement => e.type === 'cardList',
+    (e): e is CardListElement => e.type === 'cardList' && !(e as any).hidden,
   );
   if (cardListElements.length > 1) {
     warn('layout', 'multiple cardList elements found', {
@@ -857,6 +859,8 @@ export async function renderTemplateToPdf(
     jpFont,
     latinFont,
     imageMap,
+    fontScale,
+    pagePadding,
     warn,
   );
 
@@ -879,6 +883,8 @@ export async function renderTemplateToPdf(
       repeatingHeaderElements,
       footerReserveHeight,
       imageMap,
+      fontScale,
+      pagePadding,
       warn,
       cardListVariant,
     );
@@ -897,6 +903,8 @@ export async function renderTemplateToPdf(
       repeatingHeaderElements,
       footerReserveHeight,
       imageMap,
+      fontScale,
+      pagePadding,
       warn,
     );
   }
@@ -925,6 +933,8 @@ export async function renderTemplateToPdf(
       jpFont,
       latinFont,
       imageMap,
+      fontScale,
+      pagePadding,
       warn,
     );
 
@@ -969,10 +979,23 @@ function pickFontForText(text: string, jpFont: PDFFont, latinFont: PDFFont): PDF
 
 const ALIGN_PADDING = 12;
 
+const resolveFontScale = (preset?: 'S' | 'M' | 'L') => {
+  if (preset === 'S') return 0.9;
+  if (preset === 'L') return 1.1;
+  return 1.0;
+};
+
+const resolvePagePadding = (preset?: 'Narrow' | 'Normal' | 'Wide') => {
+  if (preset === 'Narrow') return 8;
+  if (preset === 'Wide') return 24;
+  return 16;
+};
+
 const resolveAlignedX = (
   element: TemplateElement,
   pageWidth: number,
   elementWidth: number,
+  pagePadding: number,
 ) => {
   const slotId = (element as any).slotId as string | undefined;
   if (slotId !== 'doc_title') return element.x;
@@ -980,9 +1003,10 @@ const resolveAlignedX = (
   if (!alignX) return element.x;
   const safeWidth = Number.isFinite(elementWidth) ? elementWidth : 0;
   if (safeWidth <= 0) return element.x;
-  if (alignX === 'left') return ALIGN_PADDING;
+  const padding = Number.isFinite(pagePadding) ? pagePadding : ALIGN_PADDING;
+  if (alignX === 'left') return padding;
   if (alignX === 'center') return (pageWidth - safeWidth) / 2;
-  if (alignX === 'right') return pageWidth - safeWidth - ALIGN_PADDING;
+  if (alignX === 'right') return pageWidth - safeWidth - padding;
   return element.x;
 };
 
@@ -996,8 +1020,10 @@ function drawLabel(
   jpFont: PDFFont,
   pageWidth: number,
   pageHeight: number,
+  fontScale: number,
+  pagePadding: number,
 ) {
-  const fontSize = element.fontSize ?? 12;
+  const fontSize = (element.fontSize ?? 12) * fontScale;
   const text = element.text ?? '';
   const maxWidth = element.width ?? 180;
   const maxLines = 99;
@@ -1006,7 +1032,7 @@ function drawLabel(
   yStart = clampPdfY(yStart, pageHeight - fontSize - 2);
 
   const lines = wrapTextToLines(text, jpFont, fontSize, maxWidth);
-  const x = resolveAlignedX(element, pageWidth, maxWidth);
+  const x = resolveAlignedX(element, pageWidth, maxWidth, pagePadding);
   drawMultilineText(
     page,
     lines,
@@ -1032,9 +1058,11 @@ function drawText(
   pageHeight: number,
   data: TemplateDataRecord | undefined,
   previewMode: PreviewMode,
+  fontScale: number,
+  pagePadding: number,
   warn: WarnFn,
 ) {
-  const fontSize = element.fontSize ?? 12;
+  const fontSize = (element.fontSize ?? 12) * fontScale;
   const lineHeight = fontSize * 1.2;
   const maxWidth = element.width ?? 200;
 
@@ -1053,7 +1081,7 @@ function drawText(
   const fontToUse = pickFontForText(text, jpFont, latinFont);
 
   const lines = wrapTextToLines(text, fontToUse, fontSize, maxWidth);
-  const x = resolveAlignedX(element, pageWidth, maxWidth);
+  const x = resolveAlignedX(element, pageWidth, maxWidth, pagePadding);
   drawMultilineText(
     page,
     lines,
@@ -1080,12 +1108,15 @@ function drawHeaderElements(
   jpFont: PDFFont,
   latinFont: PDFFont,
   imageMap: Map<string, PDFImage>,
+  fontScale: number,
+  pagePadding: number,
   warn: WarnFn,
 ) {
   for (const element of headerElements) {
+    if ((element as any).hidden) continue;
     switch (element.type) {
       case 'label':
-        drawLabel(page, element as LabelElement, jpFont, pageWidth, pageHeight);
+        drawLabel(page, element as LabelElement, jpFont, pageWidth, pageHeight, fontScale, pagePadding);
         break;
 
       case 'text':
@@ -1098,6 +1129,8 @@ function drawHeaderElements(
           pageHeight,
           data,
           previewMode,
+          fontScale,
+          pagePadding,
           warn,
         );
         break;
@@ -1110,6 +1143,7 @@ function drawHeaderElements(
           pageHeight,
           data,
           previewMode,
+          pagePadding,
           imageMap,
           warn,
         );
@@ -1143,12 +1177,15 @@ function drawFooterElements(
   jpFont: PDFFont,
   latinFont: PDFFont,
   imageMap: Map<string, PDFImage>,
+  fontScale: number,
+  pagePadding: number,
   warn: WarnFn,
 ) {
   for (const element of footerElements) {
+    if ((element as any).hidden) continue;
     switch (element.type) {
       case 'label':
-        drawLabel(page, element as LabelElement, jpFont, pageWidth, pageHeight);
+        drawLabel(page, element as LabelElement, jpFont, pageWidth, pageHeight, fontScale, pagePadding);
         break;
 
       case 'text':
@@ -1161,6 +1198,8 @@ function drawFooterElements(
           pageHeight,
           data,
           previewMode,
+          fontScale,
+          pagePadding,
           warn,
         );
         break;
@@ -1173,6 +1212,7 @@ function drawFooterElements(
           pageHeight,
           data,
           previewMode,
+          pagePadding,
           imageMap,
           warn,
         );
@@ -1673,6 +1713,8 @@ function drawTable(
   headerElements: TemplateElement[],
   footerReserveHeight: number,
   imageMap: Map<string, PDFImage>,
+  fontScale: number,
+  pagePadding: number,
   warn: WarnFn,
 ): PDFPage {
   const rowHeight = element.rowHeight ?? 18;
@@ -1810,6 +1852,8 @@ function drawTable(
       jpFont,
       latinFont,
       imageMap,
+      fontScale,
+      pagePadding,
       warn,
     );
 
@@ -2022,6 +2066,8 @@ function drawTable(
       jpFont,
       latinFont,
       imageMap,
+      fontScale,
+      pagePadding,
       warn,
     );
 
@@ -2197,6 +2243,8 @@ function drawTable(
           jpFont,
           latinFont,
           imageMap,
+          fontScale,
+          pagePadding,
           warn,
         );
 
@@ -2234,6 +2282,8 @@ function drawTable(
         jpFont,
         latinFont,
         imageMap,
+        fontScale,
+        pagePadding,
         warn,
       );
 
@@ -2506,6 +2556,8 @@ function drawCardList(
   headerElements: TemplateElement[],
   footerReserveHeight: number,
   imageMap: Map<string, PDFImage>,
+  fontScale: number,
+  pagePadding: number,
   warn: WarnFn,
   layoutVariant?: "compact_v2",
 ): PDFPage {
@@ -2527,7 +2579,7 @@ function drawCardList(
   const cardWidth = isCompactV2 ? 430 : cardWidthBase;
   const originX = isCompactV2
     ? Math.max(0, (pageWidth - cardWidth) / 2)
-    : resolveAlignedX(element, pageWidth, cardWidth);
+    : resolveAlignedX(element, pageWidth, cardWidth, pagePadding);
   const bottomMargin = footerReserveHeight + 40;
 
   const rawRows =
@@ -2699,6 +2751,8 @@ function drawCardList(
       jpFont,
       latinFont,
       imageMap,
+      fontScale,
+      pagePadding,
       warn,
     );
     cardTopY = startTopY;
@@ -3078,13 +3132,14 @@ function drawImageElement(
   pageHeight: number,
   data: TemplateDataRecord | undefined,
   previewMode: PreviewMode,
+  pagePadding: number,
   imageMap: Map<string, PDFImage>,
   warn: WarnFn,
 ) {
   if (previewMode === 'fieldCode') {
     const fieldCode =
       element.dataSource?.type === 'kintone' ? element.dataSource.fieldCode : '';
-    drawImagePlaceholderWithFieldCode(page, element, pageWidth, pageHeight, fieldCode);
+    drawImagePlaceholderWithFieldCode(page, element, pageWidth, pageHeight, pagePadding, fieldCode);
     return;
   }
 
@@ -3096,13 +3151,13 @@ function drawImageElement(
     { elementId: element.id },
   );
   if (!url || !isHttpUrl(url)) {
-    drawImagePlaceholder(page, element, pageWidth, pageHeight);
+    drawImagePlaceholder(page, element, pageWidth, pageHeight, pagePadding);
     return;
   }
 
   const embedded = imageMap.get(url);
   if (!embedded) {
-    drawImagePlaceholder(page, element, pageWidth, pageHeight);
+    drawImagePlaceholder(page, element, pageWidth, pageHeight, pagePadding);
     return;
   }
 
@@ -3123,7 +3178,7 @@ function drawImageElement(
     drawHeight = imgH * scale;
   }
 
-  const drawX = resolveAlignedX(element, pageWidth, width);
+  const drawX = resolveAlignedX(element, pageWidth, width, pagePadding);
 
   page.drawImage(embedded, {
     x: drawX,
@@ -3143,6 +3198,7 @@ function drawImagePlaceholder(
   element: ImageElement,
   pageWidth: number,
   pageHeight: number,
+  pagePadding: number,
 ) {
   const width = element.width ?? 120;
   const height = element.height ?? 80;
@@ -3150,7 +3206,7 @@ function drawImagePlaceholder(
   let pdfY = toPdfYFromBottom(element.y, pageHeight);
   pdfY = clampPdfY(pdfY, pageHeight - height);
 
-  const drawX = resolveAlignedX(element, pageWidth, width);
+  const drawX = resolveAlignedX(element, pageWidth, width, pagePadding);
 
   page.drawRectangle({
     x: drawX,
@@ -3174,6 +3230,7 @@ function drawImagePlaceholderWithFieldCode(
   element: ImageElement,
   pageWidth: number,
   pageHeight: number,
+  pagePadding: number,
   fieldCode?: string,
 ) {
   const width = element.width ?? 120;
@@ -3182,7 +3239,7 @@ function drawImagePlaceholderWithFieldCode(
   let pdfY = toPdfYFromBottom(element.y, pageHeight);
   pdfY = clampPdfY(pdfY, pageHeight - height);
 
-  const drawX = resolveAlignedX(element, pageWidth, width);
+  const drawX = resolveAlignedX(element, pageWidth, width, pagePadding);
 
   page.drawRectangle({
     x: drawX,

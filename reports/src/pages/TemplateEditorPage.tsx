@@ -63,6 +63,13 @@ const TemplateEditorPage = () => {
     ['cards_v1', 'cards_v2', 'card_v1', 'multiTable_v1'].includes(
       template?.baseTemplateId ?? '',
     );
+  const quickSettings = template?.settings ?? {};
+  const fontScalePreset = quickSettings.fontScalePreset ?? 'M';
+  const pagePaddingPreset = quickSettings.pagePaddingPreset ?? 'Normal';
+  const labelElements = useMemo(
+    () => (template?.elements ?? []).filter((el) => el.type === 'label'),
+    [template?.elements],
+  );
   const sheetSettings = template?.sheetSettings;
   const isLabelConfigInvalid =
     isLabelTemplate &&
@@ -99,20 +106,32 @@ const TemplateEditorPage = () => {
 
   const templateSignature = useMemo(() => {
     if (!template) return '';
-    return JSON.stringify({
-      name: template.name,
-      elements: template.elements,
-      mapping: template.mapping ?? null,
-      structureType: template.structureType ?? null,
-      sheetSettings: template.sheetSettings ?? null,
-      footerRepeatMode: template.footerRepeatMode ?? null,
-      footerReserveHeight: template.footerReserveHeight ?? null,
-      advancedLayoutEditing: !!template.advancedLayoutEditing,
-      pageSize: template.pageSize ?? 'A4',
+      return JSON.stringify({
+        name: template.name,
+        elements: template.elements,
+        mapping: template.mapping ?? null,
+        structureType: template.structureType ?? null,
+        settings: template.settings ?? null,
+        sheetSettings: template.sheetSettings ?? null,
+        footerRepeatMode: template.footerRepeatMode ?? null,
+        footerReserveHeight: template.footerReserveHeight ?? null,
+        advancedLayoutEditing: !!template.advancedLayoutEditing,
+        pageSize: template.pageSize ?? 'A4',
     });
   }, [template]);
 
   const isDirty = !!templateSignature && templateSignature !== lastSavedSignature.current;
+
+  const updateTemplateSettings = (patch: Record<string, unknown>) => {
+    if (!template) return;
+    updateTemplate({
+      ...template,
+      settings: {
+        ...(template.settings ?? {}),
+        ...patch,
+      },
+    });
+  };
 
 
   useEffect(() => {
@@ -832,6 +851,112 @@ const TemplateEditorPage = () => {
             }}
           >
             <div style={{ maxHeight: '100%', height: '100%', minHeight: 0, overflowY: 'auto' }}>
+              {!isLabelTemplate && !isCardTemplate && template && (
+                <div
+                  style={{
+                    marginBottom: 12,
+                    border: '1px solid #e4e7ec',
+                    borderRadius: 12,
+                    padding: 10,
+                  }}
+                >
+                  <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 8, color: '#101828' }}>
+                    かんたん調整
+                  </div>
+                  <div style={{ fontSize: 12, color: '#475467', marginBottom: 6, fontWeight: 600 }}>
+                    フォントサイズ
+                  </div>
+                  <div style={{ display: 'flex', gap: 6, marginBottom: 10 }}>
+                    {(['S', 'M', 'L'] as const).map((value) => {
+                      const active = fontScalePreset === value;
+                      return (
+                        <button
+                          key={value}
+                          type="button"
+                          onClick={() => updateTemplateSettings({ fontScalePreset: value })}
+                          style={{
+                            padding: '4px 10px',
+                            borderRadius: 6,
+                            border: `1px solid ${active ? '#2563eb' : '#d0d5dd'}`,
+                            background: active ? '#eff6ff' : '#fff',
+                            color: active ? '#1d4ed8' : '#344054',
+                            fontSize: '0.8rem',
+                            fontWeight: 600,
+                            cursor: 'pointer',
+                          }}
+                        >
+                          {value === 'S' ? '小' : value === 'M' ? '標準' : '大'}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <div style={{ fontSize: 12, color: '#475467', marginBottom: 6, fontWeight: 600 }}>
+                    余白
+                  </div>
+                  <div style={{ display: 'flex', gap: 6, marginBottom: 10 }}>
+                    {([
+                      { key: 'Narrow', label: '狭い' },
+                      { key: 'Normal', label: '標準' },
+                      { key: 'Wide', label: '広い' },
+                    ] as const).map((item) => {
+                      const active = pagePaddingPreset === item.key;
+                      return (
+                        <button
+                          key={item.key}
+                          type="button"
+                          onClick={() => updateTemplateSettings({ pagePaddingPreset: item.key })}
+                          style={{
+                            padding: '4px 10px',
+                            borderRadius: 6,
+                            border: `1px solid ${active ? '#2563eb' : '#d0d5dd'}`,
+                            background: active ? '#eff6ff' : '#fff',
+                            color: active ? '#1d4ed8' : '#344054',
+                            fontSize: '0.8rem',
+                            fontWeight: 600,
+                            cursor: 'pointer',
+                          }}
+                        >
+                          {item.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <details>
+                    <summary style={{ cursor: 'pointer', fontSize: 12, color: '#2563eb', fontWeight: 600 }}>
+                      ラベル表示/非表示
+                    </summary>
+                    <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 6 }}>
+                      {labelElements.length === 0 ? (
+                        <div style={{ fontSize: 12, color: '#667085' }}>固定ラベルがありません</div>
+                      ) : (
+                        labelElements.map((el) => {
+                          const slotId = (el as any).slotId as string | undefined;
+                          const label =
+                            (slotId && slotLabelMap[slotId]) ||
+                            (el as any).text ||
+                            el.id;
+                          const isVisible = !(el as any).hidden;
+                          return (
+                            <label
+                              key={el.id}
+                              style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: '#344054' }}
+                            >
+                              <input
+                                type="checkbox"
+                                checked={isVisible}
+                                onChange={(event) => {
+                                  updateElement(template.id, el.id, { hidden: !event.target.checked });
+                                }}
+                              />
+                              <span>{label}</span>
+                            </label>
+                          );
+                        })
+                      )}
+                    </div>
+                  </details>
+                </div>
+              )}
               {/* 右ペイン切替ボタン（ここに移動） */}
               <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
                 <button
