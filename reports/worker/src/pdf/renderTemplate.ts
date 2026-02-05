@@ -974,6 +974,8 @@ const resolveAlignedX = (
   pageWidth: number,
   elementWidth: number,
 ) => {
+  const slotId = (element as any).slotId as string | undefined;
+  if (slotId !== 'doc_title') return element.x;
   const alignX = (element as any).alignX as 'left' | 'center' | 'right' | undefined;
   if (!alignX) return element.x;
   const safeWidth = Number.isFinite(elementWidth) ? elementWidth : 0;

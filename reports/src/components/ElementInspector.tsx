@@ -280,7 +280,7 @@ const ElementInspector = ({ templateId, element }: ElementInspectorProps) => {
         </label>
       )}
 
-      {element.type !== 'table' && (
+      {element.type !== 'table' && currentSlotId === 'doc_title' && (
         <div style={{ marginTop: 6 }}>
           <div style={{ fontWeight: 600, color: '#101828', marginBottom: 6 }}>位置（簡易）</div>
           <div style={{ display: 'flex', gap: 6 }}>

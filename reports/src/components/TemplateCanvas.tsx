@@ -66,6 +66,8 @@ const getElementHeightValue = (element: TemplateElement) => {
 };
 
 const resolveAlignedX = (element: TemplateElement, width: number) => {
+  const slotId = (element as any).slotId as string | undefined;
+  if (slotId !== 'doc_title') return element.x;
   const alignX = (element as any).alignX as 'left' | 'center' | 'right' | undefined;
   if (!alignX) return element.x;
   const safeWidth = Number.isFinite(width) ? width : 0;
