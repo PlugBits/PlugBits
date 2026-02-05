@@ -1,0 +1,73 @@
+/* PlugBits theme (scoped) */
+.pb-root {
+  --pb-fg: #1f2937;
+  --pb-muted: #6b7280;
+  --pb-border: #e5e7eb;
+  --pb-bg: #ffffff;
+  --pb-primary: #2563eb;
+  --pb-primary-hover: #1d4ed8;
+  --pb-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
+}
+
+.pb-btn {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 12px;
+  border-radius: 10px;
+  border: 1px solid var(--pb-border);
+  background: var(--pb-bg);
+  color: var(--pb-fg);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1;
+  cursor: pointer;
+  user-select: none;
+  box-shadow: 0 1px 0 rgba(15, 23, 42, 0.04);
+  transition: transform 0.02s ease, background 0.12s ease, border-color 0.12s ease, box-shadow 0.12s ease;
+}
+
+.pb-btn:hover {
+  background: #f8fafc;
+  border-color: #d1d5db;
+}
+
+.pb-btn:active {
+  transform: translateY(1px);
+}
+
+.pb-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.pb-btn--primary {
+  background: var(--pb-primary);
+  border-color: var(--pb-primary);
+  color: #fff;
+}
+
+.pb-btn--primary:hover {
+  background: var(--pb-primary-hover);
+  border-color: var(--pb-primary-hover);
+}
+
+.pb-btn--ghost {
+  background: transparent;
+}
+
+.pb-btn-row {
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+}
+
+/* Kintone header area spacing tweak */
+.pb-kintone-header-slot {
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+}

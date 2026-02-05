@@ -19,7 +19,13 @@
     "js": [
       "src/js/desktop.js"
     ],
-    "css": []
+    "css": ["src/css/pb-theme.css"]
+  },
+  "mobile": {
+    "js": [
+      "src/js/mobile.js"
+    ],
+    "css": ["src/css/pb-theme.css"]
   },
   "config": {
     "html": "src/html/config.html",

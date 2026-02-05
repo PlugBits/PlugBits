@@ -136,6 +136,7 @@ const ElementInspector = ({ templateId, element }: ElementInspectorProps) => {
   const currentSlotId = (element as any).slotId as string | undefined;
   const currentSlotDef = slotDefs.find((slot) => slot.slotId === currentSlotId);
   const isSlotElement = !!currentSlotId;
+  const alignX = (element as any).alignX as 'left' | 'center' | 'right' | undefined;
 
   // レイアウト編集可否（tableは常に固定）
   const canEditLayoutForElement = isAdvanced && !isTable && !isCardList;
@@ -277,6 +278,40 @@ const ElementInspector = ({ templateId, element }: ElementInspectorProps) => {
             </optgroup>
           </select>
         </label>
+      )}
+
+      {element.type !== 'table' && (
+        <div style={{ marginTop: 6 }}>
+          <div style={{ fontWeight: 600, color: '#101828', marginBottom: 6 }}>位置（簡易）</div>
+          <div style={{ display: 'flex', gap: 6 }}>
+            {(['left', 'center', 'right'] as const).map((value) => {
+              const active = alignX === value;
+              return (
+                <button
+                  key={value}
+                  type="button"
+                  onClick={() => {
+                    updateElement(templateId, element.id, {
+                      alignX: value,
+                    } as Partial<TemplateElement>);
+                  }}
+                  style={{
+                    padding: '4px 10px',
+                    borderRadius: 6,
+                    border: `1px solid ${active ? '#2563eb' : '#d0d5dd'}`,
+                    background: active ? '#eff6ff' : '#fff',
+                    color: active ? '#1d4ed8' : '#344054',
+                    fontSize: '0.8rem',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                  }}
+                >
+                  {value === 'left' ? '左' : value === 'center' ? '中央' : '右'}
+                </button>
+              );
+            })}
+          </div>
+        </div>
       )}
       <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 4 }}>
         <button

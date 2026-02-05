@@ -850,6 +850,7 @@ export async function renderTemplateToPdf(
   drawHeaderElements(
     page,
     [...repeatingHeaderElements, ...firstPageOnlyHeaderElements],
+    pageWidth,
     pageHeight,
     renderData,
     previewMode,
@@ -917,6 +918,7 @@ export async function renderTemplateToPdf(
     drawFooterElements(
       p,
       footerElementsForThisPage,
+      pageWidth,
       pageHeight,
       renderData,
       previewMode,
@@ -965,6 +967,23 @@ function pickFontForText(text: string, jpFont: PDFFont, latinFont: PDFFont): PDF
   return /^[\x00-\x7F]*$/.test(text) ? latinFont : jpFont;
 }
 
+const ALIGN_PADDING = 12;
+
+const resolveAlignedX = (
+  element: TemplateElement,
+  pageWidth: number,
+  elementWidth: number,
+) => {
+  const alignX = (element as any).alignX as 'left' | 'center' | 'right' | undefined;
+  if (!alignX) return element.x;
+  const safeWidth = Number.isFinite(elementWidth) ? elementWidth : 0;
+  if (safeWidth <= 0) return element.x;
+  if (alignX === 'left') return ALIGN_PADDING;
+  if (alignX === 'center') return (pageWidth - safeWidth) / 2;
+  if (alignX === 'right') return pageWidth - safeWidth - ALIGN_PADDING;
+  return element.x;
+};
+
 // ============================
 // Label
 // ============================
@@ -973,21 +992,23 @@ function drawLabel(
   page: PDFPage,
   element: LabelElement,
   jpFont: PDFFont,
+  pageWidth: number,
   pageHeight: number,
 ) {
   const fontSize = element.fontSize ?? 12;
   const text = element.text ?? '';
-  const maxWidth = 180;
+  const maxWidth = element.width ?? 180;
   const maxLines = 99;
 
   let yStart = toPdfYFromBottom(element.y, pageHeight);
   yStart = clampPdfY(yStart, pageHeight - fontSize - 2);
 
   const lines = wrapTextToLines(text, jpFont, fontSize, maxWidth);
+  const x = resolveAlignedX(element, pageWidth, maxWidth);
   drawMultilineText(
     page,
     lines,
-    element.x,
+    x,
     yStart,
     jpFont,
     fontSize,
@@ -1005,6 +1026,7 @@ function drawText(
   element: TextElement,
   jpFont: PDFFont,
   latinFont: PDFFont,
+  pageWidth: number,
   pageHeight: number,
   data: TemplateDataRecord | undefined,
   previewMode: PreviewMode,
@@ -1029,10 +1051,11 @@ function drawText(
   const fontToUse = pickFontForText(text, jpFont, latinFont);
 
   const lines = wrapTextToLines(text, fontToUse, fontSize, maxWidth);
+  const x = resolveAlignedX(element, pageWidth, maxWidth);
   drawMultilineText(
     page,
     lines,
-    element.x,
+    x,
     yStart,
     fontToUse,
     fontSize,
@@ -1048,6 +1071,7 @@ function drawText(
 function drawHeaderElements(
   page: PDFPage,
   headerElements: TemplateElement[],
+  pageWidth: number,
   pageHeight: number,
   data: TemplateDataRecord | undefined,
   previewMode: PreviewMode,
@@ -1059,7 +1083,7 @@ function drawHeaderElements(
   for (const element of headerElements) {
     switch (element.type) {
       case 'label':
-        drawLabel(page, element as LabelElement, jpFont, pageHeight);
+        drawLabel(page, element as LabelElement, jpFont, pageWidth, pageHeight);
         break;
 
       case 'text':
@@ -1068,6 +1092,7 @@ function drawHeaderElements(
           element as TextElement,
           jpFont,
           latinFont,
+          pageWidth,
           pageHeight,
           data,
           previewMode,
@@ -1079,6 +1104,7 @@ function drawHeaderElements(
         drawImageElement(
           page,
           element as ImageElement,
+          pageWidth,
           pageHeight,
           data,
           previewMode,
@@ -1108,6 +1134,7 @@ function drawHeaderElements(
 function drawFooterElements(
   page: PDFPage,
   footerElements: TemplateElement[],
+  pageWidth: number,
   pageHeight: number,
   data: TemplateDataRecord | undefined,
   previewMode: PreviewMode,
@@ -1119,7 +1146,7 @@ function drawFooterElements(
   for (const element of footerElements) {
     switch (element.type) {
       case 'label':
-        drawLabel(page, element as LabelElement, jpFont, pageHeight);
+        drawLabel(page, element as LabelElement, jpFont, pageWidth, pageHeight);
         break;
 
       case 'text':
@@ -1128,6 +1155,7 @@ function drawFooterElements(
           element as TextElement,
           jpFont,
           latinFont,
+          pageWidth,
           pageHeight,
           data,
           previewMode,
@@ -1139,6 +1167,7 @@ function drawFooterElements(
         drawImageElement(
           page,
           element as ImageElement,
+          pageWidth,
           pageHeight,
           data,
           previewMode,
@@ -1772,6 +1801,7 @@ function drawTable(
     drawHeaderElements(
       currentPage,
       headerElements,
+      pageWidth,
       pageHeight,
       data,
       previewMode,
@@ -1983,6 +2013,7 @@ function drawTable(
     drawHeaderElements(
       currentPage,
       headerElements,
+      pageWidth,
       pageHeight,
       data,
       previewMode,
@@ -2157,6 +2188,7 @@ function drawTable(
         drawHeaderElements(
           currentPage,
           headerElements,
+          pageWidth,
           pageHeight,
           data,
           previewMode,
@@ -2193,6 +2225,7 @@ function drawTable(
       drawHeaderElements(
         currentPage,
         headerElements,
+        pageWidth,
         pageHeight,
         data,
         previewMode,
@@ -2492,7 +2525,7 @@ function drawCardList(
   const cardWidth = isCompactV2 ? 430 : cardWidthBase;
   const originX = isCompactV2
     ? Math.max(0, (pageWidth - cardWidth) / 2)
-    : element.x;
+    : resolveAlignedX(element, pageWidth, cardWidth);
   const bottomMargin = footerReserveHeight + 40;
 
   const rawRows =
@@ -2657,6 +2690,7 @@ function drawCardList(
     drawHeaderElements(
       currentPage,
       headerElements,
+      pageWidth,
       pageHeight,
       data,
       previewMode,
@@ -3038,6 +3072,7 @@ function drawCardList(
 function drawImageElement(
   page: PDFPage,
   element: ImageElement,
+  pageWidth: number,
   pageHeight: number,
   data: TemplateDataRecord | undefined,
   previewMode: PreviewMode,
@@ -3047,7 +3082,7 @@ function drawImageElement(
   if (previewMode === 'fieldCode') {
     const fieldCode =
       element.dataSource?.type === 'kintone' ? element.dataSource.fieldCode : '';
-    drawImagePlaceholderWithFieldCode(page, element, pageHeight, fieldCode);
+    drawImagePlaceholderWithFieldCode(page, element, pageWidth, pageHeight, fieldCode);
     return;
   }
 
@@ -3059,13 +3094,13 @@ function drawImageElement(
     { elementId: element.id },
   );
   if (!url || !isHttpUrl(url)) {
-    drawImagePlaceholder(page, element, pageHeight);
+    drawImagePlaceholder(page, element, pageWidth, pageHeight);
     return;
   }
 
   const embedded = imageMap.get(url);
   if (!embedded) {
-    drawImagePlaceholder(page, element, pageHeight);
+    drawImagePlaceholder(page, element, pageWidth, pageHeight);
     return;
   }
 
@@ -3086,8 +3121,10 @@ function drawImageElement(
     drawHeight = imgH * scale;
   }
 
+  const drawX = resolveAlignedX(element, pageWidth, width);
+
   page.drawImage(embedded, {
-    x: element.x,
+    x: drawX,
     y: pdfY,
     width: drawWidth,
     height: drawHeight,
@@ -3102,6 +3139,7 @@ function drawImageElement(
 function drawImagePlaceholder(
   page: PDFPage,
   element: ImageElement,
+  pageWidth: number,
   pageHeight: number,
 ) {
   const width = element.width ?? 120;
@@ -3110,8 +3148,10 @@ function drawImagePlaceholder(
   let pdfY = toPdfYFromBottom(element.y, pageHeight);
   pdfY = clampPdfY(pdfY, pageHeight - height);
 
+  const drawX = resolveAlignedX(element, pageWidth, width);
+
   page.drawRectangle({
-    x: element.x,
+    x: drawX,
     y: pdfY,
     width,
     height,
@@ -3120,7 +3160,7 @@ function drawImagePlaceholder(
   });
 
   page.drawText('IMAGE', {
-    x: element.x + 8,
+    x: drawX + 8,
     y: pdfY + height / 2 - 6,
     size: 10,
     color: rgb(0.4, 0.4, 0.4),
@@ -3130,6 +3170,7 @@ function drawImagePlaceholder(
 function drawImagePlaceholderWithFieldCode(
   page: PDFPage,
   element: ImageElement,
+  pageWidth: number,
   pageHeight: number,
   fieldCode?: string,
 ) {
@@ -3139,8 +3180,10 @@ function drawImagePlaceholderWithFieldCode(
   let pdfY = toPdfYFromBottom(element.y, pageHeight);
   pdfY = clampPdfY(pdfY, pageHeight - height);
 
+  const drawX = resolveAlignedX(element, pageWidth, width);
+
   page.drawRectangle({
-    x: element.x,
+    x: drawX,
     y: pdfY,
     width,
     height,
@@ -3148,7 +3191,7 @@ function drawImagePlaceholderWithFieldCode(
     borderWidth: 1,
   });
 
-  const centerX = element.x + width / 2;
+  const centerX = drawX + width / 2;
   const centerY = pdfY + height / 2;
   const lineHeight = 10;
 

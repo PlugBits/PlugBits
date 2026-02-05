@@ -6,17 +6,26 @@ const PLUGIN_ID =
 export type PluginConfig = {
   templateId: string;
   attachmentFieldCode: string;
+  enableSaveButton: boolean;
 };
 
 const buildInitialConfig = (): PluginConfig => ({
   templateId: '',
   attachmentFieldCode: '',
+  enableSaveButton: false,
 });
+
+const parseBoolean = (value: unknown): boolean => {
+  if (value === true) return true;
+  if (value === 'true' || value === '1') return true;
+  return false;
+};
 
 const normalizeConfig = (rawConfig: Record<string, any>) => ({
   config: {
     templateId: rawConfig.templateId ?? '',
     attachmentFieldCode: rawConfig.attachmentFieldCode ?? '',
+    enableSaveButton: parseBoolean(rawConfig.enableSaveButton),
   },
 });
 
@@ -65,9 +74,8 @@ const renderForm = () => {
   container.innerHTML = `
     <h1 class="kb-title">PlugBits 帳票プラグイン設定</h1>
     <p class="kb-desc">
-      テンプレートを選択し、生成した PDF を添付するフィールドコードを入力してください。
+      テンプレートを選択し、必要な場合のみ「PDFをレコードに保存する」を有効にしてください。
     </p>
-    <p class="kb-desc">接続先URLは固定です（UI: ${UI_BASE_URL} / Worker: ${WORKER_BASE_URL}）。</p>
 
     <label class="kb-label">選択中テンプレート</label>
     <div class="kb-row" style="margin-top:4px; gap:8px; align-items:center; flex-wrap:wrap;">
@@ -75,22 +83,6 @@ const renderForm = () => {
         id="selectedTemplateBadge"
         style="display:inline-flex; align-items:center; padding:2px 10px; border-radius:999px; border:1px solid #e4e7ec; background:#f2f4f7; color:#344054; font-size:12px;"
       >テンプレ: 未選択</span>
-      <span
-        id="selectedTemplateUpdatedAt"
-        style="display:inline-flex; align-items:center; padding:2px 10px; border-radius:999px; border:1px solid #e4e7ec; background:#f2f4f7; color:#667085; font-size:12px;"
-      >更新: -</span>
-      <span
-        id="selectedTemplateStatus"
-        style="display:inline-flex; align-items:center; padding:2px 10px; border-radius:999px; border:1px solid #e4e7ec; background:#f2f4f7; color:#667085; font-size:12px;"
-      >状態: -</span>
-      <span
-        id="selectedTemplateState"
-        style="display:inline-flex; align-items:center; padding:2px 10px; border-radius:999px; border:1px solid #e4e7ec; background:#f2f4f7; color:#667085; font-size:12px;"
-      >未確認</span>
-      <span
-        id="selectedTemplateCheckedAt"
-        style="display:inline-flex; align-items:center; padding:2px 10px; border-radius:999px; border:1px solid #e4e7ec; background:#f2f4f7; color:#667085; font-size:12px;"
-      >最終確認: -</span>
     </div>
     <div class="kb-desc" id="templateIdStatus" style="margin-top:4px; color:#b42318;"></div>
     <div class="kb-row" style="margin-top:6px;">
@@ -100,14 +92,50 @@ const renderForm = () => {
 
     <input id="templateId" type="hidden" />
 
-    <label class="kb-label" for="attachmentFieldCode">添付ファイルフィールドコード</label>
-    <input class="kb-input" id="attachmentFieldCode" type="text" placeholder="attachment" />
+    <div class="kb-row" style="margin-top:12px; align-items:center;">
+      <label style="display:flex; align-items:center; gap:8px; font-weight:600; color:#101828;">
+        <input id="enableSaveButton" type="checkbox" />
+        PDFをレコードに保存する
+      </label>
+    </div>
+    <div id="attachmentFieldRow" style="margin-top:8px;">
+      <label class="kb-label" for="attachmentFieldCode">添付ファイルフィールドコード</label>
+      <input class="kb-input" id="attachmentFieldCode" type="text" placeholder="attachment" />
+      <div class="kb-desc" id="attachmentFieldWarning" style="margin-top:4px; color:#b42318;"></div>
+    </div>
 
     <div class="kb-row kb-toolbar">
       <button id="saveButton" class="kb-btn kb-primary" type="button">保存</button>
       <button id="cancelButton" class="kb-btn" type="button">キャンセル</button>
-      <button id="resetConfigButton" class="kb-btn" type="button">設定をリセット</button>
     </div>
+
+    <details style="margin-top:12px;">
+      <summary style="cursor:pointer; color:#2563EB;">詳細</summary>
+      <div class="kb-row" style="margin-top:8px; gap:8px; align-items:center; flex-wrap:wrap;">
+        <span
+          id="selectedTemplateUpdatedAt"
+          style="display:inline-flex; align-items:center; padding:2px 10px; border-radius:999px; border:1px solid #e4e7ec; background:#f2f4f7; color:#667085; font-size:12px;"
+        >更新: -</span>
+        <span
+          id="selectedTemplateStatus"
+          style="display:inline-flex; align-items:center; padding:2px 10px; border-radius:999px; border:1px solid #e4e7ec; background:#f2f4f7; color:#667085; font-size:12px;"
+        >状態: -</span>
+        <span
+          id="selectedTemplateState"
+          style="display:inline-flex; align-items:center; padding:2px 10px; border-radius:999px; border:1px solid #e4e7ec; background:#f2f4f7; color:#667085; font-size:12px;"
+        >未確認</span>
+        <span
+          id="selectedTemplateCheckedAt"
+          style="display:inline-flex; align-items:center; padding:2px 10px; border-radius:999px; border:1px solid #e4e7ec; background:#f2f4f7; color:#667085; font-size:12px;"
+        >最終確認: -</span>
+      </div>
+      <p class="kb-desc" style="margin-top:8px;">
+        接続先URLは固定です（UI: ${UI_BASE_URL} / Worker: ${WORKER_BASE_URL}）。
+      </p>
+      <div class="kb-row" style="margin-top:8px;">
+        <button id="resetConfigButton" class="kb-btn" type="button">設定をリセット</button>
+      </div>
+    </details>
   `;
 
   const setInputValue = (id: string, value: string) => {
@@ -115,8 +143,14 @@ const renderForm = () => {
     if (el) el.value = value;
   };
 
+  const setCheckboxValue = (id: string, value: boolean) => {
+    const el = document.getElementById(id) as HTMLInputElement | null;
+    if (el) el.checked = value;
+  };
+
   setInputValue('templateId', config.templateId);
   setInputValue('attachmentFieldCode', config.attachmentFieldCode);
+  setCheckboxValue('enableSaveButton', config.enableSaveButton);
 
   const getInputValue = (id: string) =>
     (document.getElementById(id) as HTMLInputElement | null)?.value.trim() || '';
@@ -202,9 +236,28 @@ const renderForm = () => {
   const templateIdStatus = document.getElementById('templateIdStatus');
   const openTemplatePicker = document.getElementById('openTemplatePicker') as HTMLButtonElement | null;
   const openTemplateEditor = document.getElementById('openTemplateEditor') as HTMLButtonElement | null;
+  const enableSaveCheckbox = document.getElementById('enableSaveButton') as HTMLInputElement | null;
+  const attachmentFieldRow = document.getElementById('attachmentFieldRow');
+  const attachmentFieldWarning = document.getElementById('attachmentFieldWarning');
 
   let currentTemplateValidity: 'valid' | 'invalid' | 'unset' | 'unknown' = 'unknown';
   let currentTemplateStatus: 'active' | 'archived' | 'deleted' | 'not_found' | 'unknown' = 'unknown';
+
+  const updateAttachmentVisibility = () => {
+    if (!attachmentFieldRow) return;
+    const enabled = enableSaveCheckbox?.checked ?? false;
+    attachmentFieldRow.style.display = enabled ? 'block' : 'none';
+    if (!attachmentFieldWarning) return;
+    if (enabled && !getInputValue('attachmentFieldCode')) {
+      attachmentFieldWarning.textContent = '保存を有効にするには添付フィールドコードが必要です。';
+    } else {
+      attachmentFieldWarning.textContent = '';
+    }
+  };
+
+  updateAttachmentVisibility();
+  enableSaveCheckbox?.addEventListener('change', updateAttachmentVisibility);
+  document.getElementById('attachmentFieldCode')?.addEventListener('input', updateAttachmentVisibility);
 
   const updateSelectedTemplateBadge = (label: string) => {
     if (!selectedTemplateBadge) return;
@@ -538,6 +591,7 @@ const renderForm = () => {
     (kintone as any).plugin?.app?.setConfig({
       templateId: '',
       attachmentFieldCode: '',
+      enableSaveButton: 'false',
     });
     alert('設定をリセットしました。画面を更新してください。');
   });
@@ -601,13 +655,19 @@ const renderForm = () => {
   });
 
   document.getElementById('saveButton')?.addEventListener('click', () => {
+    const enableSaveButton = enableSaveCheckbox?.checked ?? false;
     const payload: PluginConfig = {
       templateId: getInputValue('templateId'),
       attachmentFieldCode: getInputValue('attachmentFieldCode'),
+      enableSaveButton,
     };
 
-    if (!payload.templateId || !payload.attachmentFieldCode) {
-      alert('必須項目が未入力です');
+    if (!payload.templateId) {
+      alert('テンプレートが未選択です');
+      return;
+    }
+    if (payload.enableSaveButton && !payload.attachmentFieldCode) {
+      alert('保存を有効にするには添付フィールドコードが必要です');
       return;
     }
     if (payload.templateId && currentTemplateValidity !== 'valid') {
@@ -620,7 +680,11 @@ const renderForm = () => {
       return;
     }
 
-    (kintone as any).plugin?.app?.setConfig(payload);
+    (kintone as any).plugin?.app?.setConfig({
+      templateId: payload.templateId,
+      attachmentFieldCode: payload.attachmentFieldCode,
+      enableSaveButton: payload.enableSaveButton ? 'true' : 'false',
+    });
   });
 
   document.getElementById('cancelButton')?.addEventListener('click', () => {

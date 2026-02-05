@@ -1,8 +1,14 @@
-import { UI_BASE_URL, WORKER_BASE_URL } from '../constants';
+import { WORKER_BASE_URL } from '../constants';
 import type { PluginConfig } from '../config/index.ts';
 
 const PLUGIN_ID =
   (typeof kintone !== 'undefined' ? (kintone as any).$PLUGIN_ID : '') || '';
+
+const parseBoolean = (value: unknown): boolean => {
+  if (value === true) return true;
+  if (value === 'true' || value === '1') return true;
+  return false;
+};
 
 // ✅ 修正後
 const getConfig = (): PluginConfig | null => {
@@ -14,15 +20,15 @@ const getConfig = (): PluginConfig | null => {
   return {
     templateId: raw.templateId ?? '',
     attachmentFieldCode: raw.attachmentFieldCode ?? '',
+    enableSaveButton: parseBoolean(raw.enableSaveButton),
   };
 };
 
 
-const createButton = (label: string) => {
+const createButton = (label: string, variant: 'primary' | 'default' = 'default') => {
   const button = document.createElement('button');
   button.textContent = label;
-  button.className = 'kintoneplugin-button-normal plugbits-print-button plugbits-pdf-btn';
-  button.style.marginLeft = '8px';
+  button.className = `pb-btn${variant === 'primary' ? ' pb-btn--primary' : ''}`;
   button.dataset.defaultLabel = label;
   button.dataset.loadingLabel = '出力中...';
   return button;
@@ -177,7 +183,25 @@ const getRequestToken = () =>
 
 
 const isConfigComplete = (config: PluginConfig) =>
-  Boolean(config.templateId && config.attachmentFieldCode);
+  Boolean(config.templateId);
+
+const openPdfWindow = () => {
+  const w = window.open('', '_blank');
+  if (!w) {
+    notify('PDFを開くタブを開けませんでした', 'error');
+    return null;
+  }
+  return w;
+};
+
+const closePdfWindow = (w: Window | null) => {
+  if (!w) return;
+  try {
+    w.close();
+  } catch {
+    // ignore
+  }
+};
 
 const uploadFile = async (blob: Blob): Promise<string> => {
   const formData = new FormData();
@@ -293,21 +317,47 @@ const callRenderApi = async (
   const baseUrl = WORKER_BASE_URL;
   const appId = (window as any).kintone?.app?.getId?.();
   const appIdValue = appId ? String(appId) : '';
-  const response = await fetch(`${baseUrl.replace(/\/$/, '')}/render`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
+  const url = `${baseUrl.replace(/\/$/, '')}/render`;
+  const body = JSON.stringify({
+    templateId: config.templateId,
+    data: templateData,
+    kintone: {
+      baseUrl: location.origin,
+      appId: appIdValue,
+      recordId,
     },
-    body: JSON.stringify({
-      templateId: config.templateId,
-      data: templateData,
-      kintone: {
-        baseUrl: location.origin,
-        appId: appIdValue,
-        recordId,
-      },
-    }),
   });
+  const shouldRetry = (status: number) => status === 429 || status >= 500;
+  const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+  const baseDelayMs = 800;
+
+  let response: Response | null = null;
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    try {
+      response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body,
+      });
+    } catch {
+      response = null;
+    }
+
+    if (response && response.ok) break;
+    const status = response?.status ?? 0;
+    if (attempt === 0 && (response === null || shouldRetry(status))) {
+      const waitMs = baseDelayMs * 2 ** attempt + Math.floor(Math.random() * 200);
+      await sleep(waitMs);
+      continue;
+    }
+    break;
+  }
+
+  if (!response) {
+    throw new Error('PDF生成に失敗しました');
+  }
 
   if (!response.ok) {
     let text = '';
@@ -341,6 +391,8 @@ const callRenderApi = async (
       message = '認証に失敗しました。';
     } else if (response.status === 404) {
       message = 'テンプレが見つかりません（templateId が存在しない可能性）。';
+    } else if (response.status === 409) {
+      message = `テンプレがActiveでない/アプリ紐付け不一致/環境不一致の可能性があります。${text ? `詳細: ${text}` : ''}`;
     } else if (response.status === 500) {
       message = 'サーバー側でPDF生成に失敗しました。少し時間をおいて再試行してください。';
     } else {
@@ -353,7 +405,10 @@ const callRenderApi = async (
   return response.blob();
 };
 
-const checkTemplateAvailability = async (config: PluginConfig): Promise<boolean> => {
+const checkTemplateAvailability = async (
+  config: PluginConfig,
+  options?: { allowInactiveFallback?: boolean; onError?: (message: string) => void },
+): Promise<boolean> => {
   const baseUrl = WORKER_BASE_URL.replace(/\/$/, '');
   const templateId = config.templateId;
   if (!templateId) {
@@ -365,151 +420,225 @@ const checkTemplateAvailability = async (config: PluginConfig): Promise<boolean>
     alert('アプリIDが取得できません');
     return false;
   }
-  const params = new URLSearchParams({
-    kintoneBaseUrl: location.origin,
-    appId: String(appId),
-  });
-  if (templateId.startsWith('tpl_')) {
-    params.set('requireActive', '1');
-  }
-  const url = `${baseUrl}/templates/${encodeURIComponent(templateId)}?${params.toString()}`;
+  const buildUrl = (requireActive: boolean) => {
+    const params = new URLSearchParams({
+      kintoneBaseUrl: location.origin,
+      appId: String(appId),
+    });
+    if (templateId.startsWith('tpl_') && requireActive) {
+      params.set('requireActive', '1');
+    }
+    return `${baseUrl}/templates/${encodeURIComponent(templateId)}?${params.toString()}`;
+  };
+
+  const notifyError = (message: string) => {
+    if (options?.onError) {
+      options.onError(message);
+    } else {
+      alert(message);
+    }
+  };
+
+  const requestTemplate = async (requireActive: boolean) => {
+    const url = buildUrl(requireActive);
+    const res = await fetch(url, { cache: 'no-store' });
+    if (res.ok) return { ok: true as const };
+    const text = await res.text().catch(() => '');
+    return { ok: false as const, status: res.status, text };
+  };
 
   try {
-    const res = await fetch(url, { cache: 'no-store' });
-    if (res.ok) return true;
-    const text = await res.text().catch(() => '');
-    if (res.status === 404 || res.status === 410 || text.includes('not active') || text.includes('not found')) {
-      alert('テンプレが無効です。プラグイン設定画面でテンプレを選び直してください。');
+    const first = await requestTemplate(true);
+    if (first.ok) return true;
+    if (first.status === 409 && options?.allowInactiveFallback) {
+      const fallback = await requestTemplate(false);
+      if (fallback.ok) return true;
+      const detail = fallback.text || first.text;
+      notifyError(
+        `テンプレがActiveでない/アプリ紐付け不一致/環境不一致の可能性があります。${detail ? `詳細: ${detail}` : ''}`,
+      );
       return false;
     }
-    alert(text || 'テンプレ確認に失敗しました。プラグイン設定で再選択してください');
+    if (first.status === 409) {
+      notifyError(
+        `テンプレがActiveでない/アプリ紐付け不一致/環境不一致の可能性があります。${first.text ? `詳細: ${first.text}` : ''}`,
+      );
+      return false;
+    }
+    if (
+      first.status === 404 ||
+      first.status === 410 ||
+      first.text.includes('not active') ||
+      first.text.includes('not found')
+    ) {
+      notifyError('テンプレが無効です。プラグイン設定画面でテンプレを選び直してください。');
+      return false;
+    }
+    notifyError(first.text || 'テンプレ確認に失敗しました。プラグイン設定で再選択してください');
     return false;
   } catch {
-    alert('テンプレ確認に失敗しました。プラグイン設定で再選択してください');
+    notifyError('テンプレ確認に失敗しました。プラグイン設定で再選択してください');
     return false;
   }
 };
 
-const addButton = (config: PluginConfig) => {
+const addButton = (config: PluginConfig | null) => {
   const headerMenuSpace =
     (window as any).kintone?.app?.record?.getHeaderMenuSpaceElement?.() || null;
   const toolbar = headerMenuSpace || document.querySelector('.gaia-argoui-app-toolbar') || document.body;
   if (!toolbar) return;
 
-  if (document.getElementById('plugbits-print-button')) return;
+  if (document.getElementById('plugbits-print-button-root')) return;
 
-  const button = createButton('PDF出力 (PlugBits)');
-  button.id = 'plugbits-print-button';
-  button.addEventListener('click', async () => {
+  const root = document.createElement('div');
+  root.id = 'plugbits-print-button-root';
+  root.className = 'pb-root pb-kintone-header-slot';
+
+  const printButton = createButton('印刷', 'primary');
+  printButton.id = 'plugbits-print-button';
+  let isPrinting = false;
+  printButton.addEventListener('click', async () => {
+    if (isPrinting) return;
+    isPrinting = true;
+    setButtonLoading(printButton, true);
+    const pdfWindow = openPdfWindow();
+    if (!pdfWindow) return;
+    const latestConfig = getConfig();
+    if (!latestConfig || !latestConfig.templateId) {
+      notify('プラグイン設定でテンプレを選んでください', 'error');
+      closePdfWindow(pdfWindow);
+      setButtonLoading(printButton, false);
+      isPrinting = false;
+      return;
+    }
     const record = (window as any).kintone?.app?.record?.get()?.record;
     if (!record) {
       notify('レコード情報を取得できません');
+      closePdfWindow(pdfWindow);
+      setButtonLoading(printButton, false);
+      isPrinting = false;
       return;
     }
 
     const recordId = record.$id?.value;
     if (!recordId) {
       notify('レコードIDが取得できません');
+      closePdfWindow(pdfWindow);
+      setButtonLoading(printButton, false);
+      isPrinting = false;
       return;
     }
 
-    const templateOk = await checkTemplateAvailability(config);
-    if (!templateOk) return;
+    const templateOk = await checkTemplateAvailability(latestConfig, {
+      allowInactiveFallback: true,
+      onError: (message) => notify(message, 'error'),
+    });
+    if (!templateOk) {
+      closePdfWindow(pdfWindow);
+      setButtonLoading(printButton, false);
+      isPrinting = false;
+      return;
+    }
 
     const templateData = buildTemplateDataFromKintoneRecord(record);
-    console.log('PlugBits templateData:', templateData);
-    setButtonLoading(button, true);
-
     try {
-      const pdfBlob = await callRenderApi(config, recordId, templateData);
-
-      // ① PDF表示
+      const pdfBlob = await callRenderApi(latestConfig, recordId, templateData);
       const url = URL.createObjectURL(pdfBlob);
-      window.open(url, "_blank");
-
-      // ここから添付処理 --------------------
-      console.log('PlugBits: start upload');  // ← デバッグ用
-
-      const fileKey = await uploadFile(pdfBlob);
-      console.log('PlugBits: fileKey', fileKey);
-
-      await updateRecordAttachment(recordId, config.attachmentFieldCode, fileKey);
-      console.log('PlugBits: record updated');
-
-      notify('PDFを添付フィールドに保存しました', 'success');
-
-      // 画面リロード（添付を反映）
-      location.reload();
-      // -----------------------------------
+      pdfWindow.location.href = url;
     } catch (error) {
       console.error(error);
+      closePdfWindow(pdfWindow);
       notify(error instanceof Error ? error.message : 'PDF生成に失敗しました', 'error');
     } finally {
-      setButtonLoading(button, false);
+      setButtonLoading(printButton, false);
+      isPrinting = false;
     }
   });
 
-  toolbar.appendChild(button);
+  root.appendChild(printButton);
 
-  const printButton = createButton('印刷');
-  printButton.id = 'plugbits-print-only-button';
-  printButton.addEventListener('click', async () => {
-    const record = (window as any).kintone?.app?.record?.get()?.record;
-    if (!record) {
-      notify('レコード情報を取得できません');
-      return;
-    }
-
-    const recordId = record.$id?.value;
-    if (!recordId) {
-      notify('レコードIDが取得できません');
-      return;
-    }
-
-    const templateOk = await checkTemplateAvailability(config);
-    if (!templateOk) return;
-
-    const appId = (window as any).kintone?.app?.getId?.();
-    const appIdValue = appId ? String(appId) : '';
-    const params = new URLSearchParams({
-      workerBaseUrl: WORKER_BASE_URL,
-      kintoneBaseUrl: location.origin,
-      appId: appIdValue,
-      recordId,
-      templateId: config.templateId,
-    });
-    const printUrl = `${UI_BASE_URL.replace(/\/$/, '')}/print.html?${params.toString()}`;
-    const printWindow = window.open(printUrl, '_blank');
-    if (!printWindow) {
-      notify('印刷ページを開けませんでした', 'error');
-      return;
-    }
-
-    const templateData = buildTemplateDataFromKintoneRecord(record);
-    const targetOrigin = new URL(UI_BASE_URL).origin;
-    const sendData = () => {
-      try {
-        printWindow.postMessage(
-          { type: 'plugbits-print-data', data: templateData },
-          targetOrigin,
-        );
-      } catch {
-        // ignore
+  if (config?.enableSaveButton) {
+    const saveButton = createButton('保存');
+    saveButton.id = 'plugbits-save-button';
+    saveButton.dataset.loadingLabel = '保存中...';
+    let isSaving = false;
+    saveButton.addEventListener('click', async () => {
+      if (isSaving) return;
+      isSaving = true;
+      const pdfWindow = openPdfWindow();
+      if (!pdfWindow) {
+        isSaving = false;
+        return;
       }
-    };
-    const handleMessage = (event: MessageEvent) => {
-      if (event.origin !== targetOrigin) return;
-      if (event.source !== printWindow) return;
-      if (event.data?.type !== 'plugbits-print-ready') return;
-      sendData();
-      window.removeEventListener('message', handleMessage);
-    };
-    window.addEventListener('message', handleMessage);
-    setTimeout(sendData, 500);
-    setTimeout(sendData, 1500);
-  });
+      const latestConfig = getConfig();
+      if (!latestConfig || !latestConfig.templateId) {
+        notify('プラグイン設定でテンプレを選んでください', 'error');
+        closePdfWindow(pdfWindow);
+        isSaving = false;
+        return;
+      }
+      if (!latestConfig.enableSaveButton) {
+        notify('保存ボタンが無効です', 'error');
+        closePdfWindow(pdfWindow);
+        isSaving = false;
+        return;
+      }
+      if (!latestConfig.attachmentFieldCode) {
+        notify('添付フィールドコードが未設定です', 'error');
+        closePdfWindow(pdfWindow);
+        isSaving = false;
+        return;
+      }
+      const record = (window as any).kintone?.app?.record?.get()?.record;
+      if (!record) {
+        notify('レコード情報を取得できません');
+        closePdfWindow(pdfWindow);
+        isSaving = false;
+        return;
+      }
 
-  toolbar.appendChild(printButton);
+      const recordId = record.$id?.value;
+      if (!recordId) {
+        notify('レコードIDが取得できません');
+        closePdfWindow(pdfWindow);
+        isSaving = false;
+        return;
+      }
+
+      const templateOk = await checkTemplateAvailability(latestConfig, {
+        allowInactiveFallback: false,
+        onError: (message) => notify(message, 'error'),
+      });
+      if (!templateOk) {
+        closePdfWindow(pdfWindow);
+        isSaving = false;
+        return;
+      }
+
+      const templateData = buildTemplateDataFromKintoneRecord(record);
+      setButtonLoading(saveButton, true);
+      try {
+        const pdfBlob = await callRenderApi(latestConfig, recordId, templateData);
+        const url = URL.createObjectURL(pdfBlob);
+        const fileKey = await uploadFile(pdfBlob);
+        await updateRecordAttachment(recordId, latestConfig.attachmentFieldCode, fileKey);
+        notify('PDFを添付フィールドに保存しました', 'success');
+        pdfWindow.location.href = url;
+        location.reload();
+      } catch (error) {
+        console.error(error);
+        closePdfWindow(pdfWindow);
+        notify(error instanceof Error ? error.message : 'PDF生成に失敗しました', 'error');
+      } finally {
+        setButtonLoading(saveButton, false);
+        isSaving = false;
+      }
+    });
+
+    root.appendChild(saveButton);
+  }
+
+  toolbar.appendChild(root);
 };
 
 const setupRecordDetailButton = () => {
@@ -517,12 +646,11 @@ const setupRecordDetailButton = () => {
   if (!config || !isConfigComplete(config)) {
     console.warn('PlugBits: プラグインが未設定です');
     showConfigWarning('PlugBits PDF: プラグインの設定が完了していません');
-    return;
   }
 
   const events = ['app.record.detail.show'];
   (window as any).kintone?.events?.on(events, (event: any) => {
-    addButton(config);
+    addButton(getConfig());
     return event;
   });
 };

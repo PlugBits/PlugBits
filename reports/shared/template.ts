@@ -51,6 +51,7 @@ export interface BaseElement {
   y: number;
   width?: number;
   height?: number;
+  alignX?: 'left' | 'center' | 'right';
   region?: 'header' | 'body' | 'footer';
   repeatOnEveryPage?: boolean;
   footerRepeatMode?: 'all' | 'last';

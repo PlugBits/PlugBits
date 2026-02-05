@@ -34,6 +34,7 @@ type ResizeState = {
 };
 
 const GRID_SIZE = 5;
+const ALIGN_PADDING = 12;
 
 const getTableWidth = (element: TemplateElement) => {
   if (element.type === 'table') {
@@ -64,9 +65,21 @@ const getElementHeightValue = (element: TemplateElement) => {
   return element.height ?? 32;
 };
 
+const resolveAlignedX = (element: TemplateElement, width: number) => {
+  const alignX = (element as any).alignX as 'left' | 'center' | 'right' | undefined;
+  if (!alignX) return element.x;
+  const safeWidth = Number.isFinite(width) ? width : 0;
+  if (safeWidth <= 0) return element.x;
+  if (alignX === 'left') return ALIGN_PADDING;
+  if (alignX === 'center') return (CANVAS_WIDTH - safeWidth) / 2;
+  if (alignX === 'right') return CANVAS_WIDTH - safeWidth - ALIGN_PADDING;
+  return element.x;
+};
+
 const getElementStyle = (element: TemplateElement): CSSProperties => {
+  const widthValue = getElementWidthValue(element);
   const base: CSSProperties = {
-    left: `${element.x}px`,
+    left: `${resolveAlignedX(element, widthValue)}px`,
     bottom: `${element.y}px`,
   };
 
@@ -218,9 +231,10 @@ const TemplateCanvas = ({
       ? template.elements.filter((el) => {
           const width = getElementWidthValue(el);
           const height = getElementHeightValue(el);
+          const left = resolveAlignedX(el, width);
           return (
-            point.x >= el.x &&
-            point.x <= el.x + width &&
+            point.x >= left &&
+            point.x <= left + width &&
             point.y >= el.y &&
             point.y <= el.y + height
           );
@@ -291,14 +305,15 @@ const TemplateCanvas = ({
     ? (() => {
         const width = getElementWidthValue(selectedElement);
         const height = getElementHeightValue(selectedElement);
-        const badgeLeft = Math.min(selectedElement.x + width + 12, CANVAS_WIDTH - 80);
+        const alignedX = resolveAlignedX(selectedElement, width);
+        const badgeLeft = Math.min(alignedX + width + 12, CANVAS_WIDTH - 80);
         const badgeBottom = Math.min(selectedElement.y + height + 12, CANVAS_HEIGHT - 24);
         return (
           <>
             <div className="canvas-guide horizontal" style={{ bottom: `${selectedElement.y}px` }} />
-            <div className="canvas-guide vertical" style={{ left: `${selectedElement.x}px` }} />
+            <div className="canvas-guide vertical" style={{ left: `${alignedX}px` }} />
             <div className="canvas-coord-badge" style={{ left: `${badgeLeft}px`, bottom: `${badgeBottom}px` }}>
-              {selectedElement.x}px / {selectedElement.y}px
+              {Math.round(alignedX)}px / {selectedElement.y}px
             </div>
           </>
         );

@@ -8,9 +8,49 @@
   <body>
     <div class="kb-root kb-page">
       <div class="kb-container">
-        <div id="plugbits-plugin-config" class="kb-card">読込中...</div>
+        <div id="plugbits-plugin-config" class="kb-card pb-card">読込中...</div>
       </div>
     </div>
+    <style>
+      #plugbits-plugin-config.pb-card {
+        color-scheme: light;
+        --kb-bg: #f6f7f9;
+        --kb-surface: #ffffff;
+        --kb-text: #111827;
+        --kb-sub: #374151;
+        --kb-line: #e5e7eb;
+        --kb-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+        --kb-primary: #2563eb;
+        --kb-primary-hover: #1d4ed8;
+        --kb-primary-ink: #ffffff;
+        --kb-focus: #2563eb;
+        background: #fff !important;
+        color: #111827 !important;
+        border: 1px solid #e5e7eb !important;
+      }
+      #plugbits-plugin-config.pb-card * {
+        color: inherit;
+      }
+      #plugbits-plugin-config.pb-card input,
+      #plugbits-plugin-config.pb-card select {
+        background: #fff !important;
+        color: #111827 !important;
+        border: 1px solid #d1d5db !important;
+      }
+      #plugbits-plugin-config.pb-card label {
+        color: #111827 !important;
+      }
+      #plugbits-plugin-config.pb-card .kb-btn {
+        background: #ffffff !important;
+        color: #111827 !important;
+        border: 1px solid #d1d5db !important;
+      }
+      #plugbits-plugin-config.pb-card .kb-btn.kb-primary {
+        background: #2563eb !important;
+        color: #ffffff !important;
+        border-color: #2563eb !important;
+      }
+    </style>
     <script src="../js/config.js"></script>
   </body>
 </html>
