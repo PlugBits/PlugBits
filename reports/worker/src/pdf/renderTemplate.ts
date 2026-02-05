@@ -700,8 +700,8 @@ export async function renderTemplateToPdf(
   pdfDoc.registerFontkit(fontkit);
 
   const [pageWidth, pageHeight] = getPageSize(template);
-  const fontScale = resolveFontScale(template.settings?.fontScalePreset);
-  const pagePadding = resolvePagePadding(template.settings?.pagePaddingPreset);
+  const resolveAdjust = (element: TemplateElement) =>
+    resolveEasyAdjustForElement(element, template);
   let renderData = data ? structuredClone(data) : undefined;
   const imageMap = await preloadImages(pdfDoc, template, renderData, previewMode, warn);
 
@@ -765,9 +765,10 @@ export async function renderTemplateToPdf(
     if (allFooterElems.length === 0) return 0;
 
     // ラベル／テキストだけ対象にする
-    const textFooterElems = allFooterElems.filter(
-      (el) => (el.type === "label" || el.type === "text") && !(el as any).hidden,
-    );
+    const textFooterElems = allFooterElems.filter((el) => {
+      if (el.type !== 'label' && el.type !== 'text') return false;
+      return !resolveAdjust(el).hidden;
+    });
     if (textFooterElems.length === 0) return 0;
 
     // Y座標でソート（UI座標のままでOK）
@@ -779,7 +780,7 @@ export async function renderTemplateToPdf(
     const ROW_THRESHOLD = 5; // この差以内なら同じ行とみなす
 
     for (const el of sorted) {
-      const fontSize = ((el as any).fontSize ?? 12) * fontScale;
+      const fontSize = ((el as any).fontSize ?? 12) * resolveAdjust(el).fontScale;
       if (rows.length === 0) {
         rows.push({ y: el.y, maxFontSize: fontSize });
         continue;
@@ -859,8 +860,7 @@ export async function renderTemplateToPdf(
     jpFont,
     latinFont,
     imageMap,
-    fontScale,
-    pagePadding,
+    resolveAdjust,
     warn,
   );
 
@@ -883,8 +883,7 @@ export async function renderTemplateToPdf(
       repeatingHeaderElements,
       footerReserveHeight,
       imageMap,
-      fontScale,
-      pagePadding,
+      resolveAdjust,
       warn,
       cardListVariant,
     );
@@ -903,8 +902,7 @@ export async function renderTemplateToPdf(
       repeatingHeaderElements,
       footerReserveHeight,
       imageMap,
-      fontScale,
-      pagePadding,
+      resolveAdjust,
       warn,
     );
   }
@@ -933,8 +931,7 @@ export async function renderTemplateToPdf(
       jpFont,
       latinFont,
       imageMap,
-      fontScale,
-      pagePadding,
+      resolveAdjust,
       warn,
     );
 
@@ -989,6 +986,61 @@ const resolvePagePadding = (preset?: 'Narrow' | 'Normal' | 'Wide') => {
   if (preset === 'Narrow') return 8;
   if (preset === 'Wide') return 24;
   return 16;
+};
+
+type EasyAdjustGroup = 'title' | 'header' | 'body' | 'footer';
+
+const resolveEasyAdjustGroup = (
+  element: TemplateElement,
+  template: TemplateDefinition,
+): EasyAdjustGroup => {
+  const slotId = (element as any).slotId as string | undefined;
+  if (slotId === 'doc_title' || element.id === 'doc_title' || element.id === 'title') {
+    return 'title';
+  }
+  if (element.region === 'header') return 'header';
+  if (element.region === 'footer') return 'footer';
+  if (element.region === 'body') return 'body';
+
+  const headerSlots = new Set(template.slotSchema?.header?.map((slot) => slot.slotId) ?? []);
+  const footerSlots = new Set(template.slotSchema?.footer?.map((slot) => slot.slotId) ?? []);
+  if (slotId) {
+    if (headerSlots.has(slotId)) return 'header';
+    if (footerSlots.has(slotId)) return 'footer';
+    if (slotId.startsWith('header')) return 'header';
+    if (slotId.startsWith('footer')) return 'footer';
+  }
+  if (element.id.startsWith('header')) return 'header';
+  if (element.id.startsWith('footer')) return 'footer';
+  return 'body';
+};
+
+const normalizeEasyAdjustGroupSettings = (
+  template: TemplateDefinition,
+  group: EasyAdjustGroup,
+) => {
+  const legacyFontPreset = template.settings?.fontScalePreset ?? 'M';
+  const legacyPaddingPreset = template.settings?.pagePaddingPreset ?? 'Normal';
+  const easyAdjust = template.settings?.easyAdjust ?? {};
+  const groupSettings = (easyAdjust as Record<string, any>)[group] ?? {};
+  return {
+    fontPreset: groupSettings.fontPreset ?? legacyFontPreset,
+    paddingPreset: groupSettings.paddingPreset ?? legacyPaddingPreset,
+    hiddenLabelIds: Array.isArray(groupSettings.hiddenLabelIds) ? groupSettings.hiddenLabelIds : [],
+  };
+};
+
+const resolveEasyAdjustForElement = (
+  element: TemplateElement,
+  template: TemplateDefinition,
+) => {
+  const group = resolveEasyAdjustGroup(element, template);
+  const settings = normalizeEasyAdjustGroupSettings(template, group);
+  return {
+    fontScale: resolveFontScale(settings.fontPreset),
+    pagePadding: resolvePagePadding(settings.paddingPreset),
+    hidden: (element as any).hidden === true || settings.hiddenLabelIds.includes(element.id),
+  };
 };
 
 const resolveAlignedX = (
@@ -1108,15 +1160,23 @@ function drawHeaderElements(
   jpFont: PDFFont,
   latinFont: PDFFont,
   imageMap: Map<string, PDFImage>,
-  fontScale: number,
-  pagePadding: number,
+  resolveAdjust: (element: TemplateElement) => { fontScale: number; pagePadding: number; hidden: boolean },
   warn: WarnFn,
 ) {
   for (const element of headerElements) {
-    if ((element as any).hidden) continue;
+    const adjust = resolveAdjust(element);
+    if (adjust.hidden) continue;
     switch (element.type) {
       case 'label':
-        drawLabel(page, element as LabelElement, jpFont, pageWidth, pageHeight, fontScale, pagePadding);
+        drawLabel(
+          page,
+          element as LabelElement,
+          jpFont,
+          pageWidth,
+          pageHeight,
+          adjust.fontScale,
+          adjust.pagePadding,
+        );
         break;
 
       case 'text':
@@ -1129,8 +1189,8 @@ function drawHeaderElements(
           pageHeight,
           data,
           previewMode,
-          fontScale,
-          pagePadding,
+          adjust.fontScale,
+          adjust.pagePadding,
           warn,
         );
         break;
@@ -1143,7 +1203,7 @@ function drawHeaderElements(
           pageHeight,
           data,
           previewMode,
-          pagePadding,
+          adjust.pagePadding,
           imageMap,
           warn,
         );
@@ -1177,15 +1237,23 @@ function drawFooterElements(
   jpFont: PDFFont,
   latinFont: PDFFont,
   imageMap: Map<string, PDFImage>,
-  fontScale: number,
-  pagePadding: number,
+  resolveAdjust: (element: TemplateElement) => { fontScale: number; pagePadding: number; hidden: boolean },
   warn: WarnFn,
 ) {
   for (const element of footerElements) {
-    if ((element as any).hidden) continue;
+    const adjust = resolveAdjust(element);
+    if (adjust.hidden) continue;
     switch (element.type) {
       case 'label':
-        drawLabel(page, element as LabelElement, jpFont, pageWidth, pageHeight, fontScale, pagePadding);
+        drawLabel(
+          page,
+          element as LabelElement,
+          jpFont,
+          pageWidth,
+          pageHeight,
+          adjust.fontScale,
+          adjust.pagePadding,
+        );
         break;
 
       case 'text':
@@ -1198,8 +1266,8 @@ function drawFooterElements(
           pageHeight,
           data,
           previewMode,
-          fontScale,
-          pagePadding,
+          adjust.fontScale,
+          adjust.pagePadding,
           warn,
         );
         break;
@@ -1212,7 +1280,7 @@ function drawFooterElements(
           pageHeight,
           data,
           previewMode,
-          pagePadding,
+          adjust.pagePadding,
           imageMap,
           warn,
         );
@@ -1713,8 +1781,7 @@ function drawTable(
   headerElements: TemplateElement[],
   footerReserveHeight: number,
   imageMap: Map<string, PDFImage>,
-  fontScale: number,
-  pagePadding: number,
+  resolveAdjust: (element: TemplateElement) => { fontScale: number; pagePadding: number; hidden: boolean },
   warn: WarnFn,
 ): PDFPage {
   const rowHeight = element.rowHeight ?? 18;
@@ -1852,8 +1919,7 @@ function drawTable(
       jpFont,
       latinFont,
       imageMap,
-      fontScale,
-      pagePadding,
+      resolveAdjust,
       warn,
     );
 
@@ -2066,8 +2132,7 @@ function drawTable(
       jpFont,
       latinFont,
       imageMap,
-      fontScale,
-      pagePadding,
+      resolveAdjust,
       warn,
     );
 
@@ -2243,8 +2308,7 @@ function drawTable(
           jpFont,
           latinFont,
           imageMap,
-          fontScale,
-          pagePadding,
+          resolveAdjust,
           warn,
         );
 
@@ -2282,8 +2346,7 @@ function drawTable(
         jpFont,
         latinFont,
         imageMap,
-        fontScale,
-        pagePadding,
+        resolveAdjust,
         warn,
       );
 
@@ -2556,8 +2619,7 @@ function drawCardList(
   headerElements: TemplateElement[],
   footerReserveHeight: number,
   imageMap: Map<string, PDFImage>,
-  fontScale: number,
-  pagePadding: number,
+  resolveAdjust: (element: TemplateElement) => { fontScale: number; pagePadding: number; hidden: boolean },
   warn: WarnFn,
   layoutVariant?: "compact_v2",
 ): PDFPage {
@@ -2575,6 +2637,7 @@ function drawCardList(
     return page;
   }
 
+  const { pagePadding } = resolveAdjust(element);
   const cardWidthBase = element.width ?? 520;
   const cardWidth = isCompactV2 ? 430 : cardWidthBase;
   const originX = isCompactV2
@@ -2751,8 +2814,7 @@ function drawCardList(
       jpFont,
       latinFont,
       imageMap,
-      fontScale,
-      pagePadding,
+      resolveAdjust,
       warn,
     );
     cardTopY = startTopY;

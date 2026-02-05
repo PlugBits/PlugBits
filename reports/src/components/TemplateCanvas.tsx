@@ -2,6 +2,13 @@ import { useEffect, useRef, useState } from 'react';
 import type { CSSProperties, MouseEvent as ReactMouseEvent } from 'react';
 import type { TemplateDefinition, TemplateElement, DataSource } from '@shared/template';
 import { CANVAS_WIDTH, CANVAS_HEIGHT, REGION_BOUNDS, getRegionOf, clampYToRegion } from '../utils/regionBounds';
+import {
+  isElementHiddenByEasyAdjust,
+  normalizeEasyAdjustGroupSettings,
+  resolveElementGroup,
+  resolveFontScalePreset,
+  resolvePagePaddingPreset,
+} from '../utils/easyAdjust';
 
 
 type CanvasProps = {
@@ -36,17 +43,8 @@ type ResizeState = {
 const GRID_SIZE = 5;
 const ALIGN_PADDING = 12;
 
-const resolvePagePadding = (preset?: 'Narrow' | 'Normal' | 'Wide') => {
-  if (preset === 'Narrow') return 8;
-  if (preset === 'Wide') return 24;
-  return 16;
-};
-
-const resolveFontScale = (preset?: 'S' | 'M' | 'L') => {
-  if (preset === 'S') return 0.9;
-  if (preset === 'L') return 1.1;
-  return 1.0;
-};
+const resolvePagePadding = resolvePagePaddingPreset;
+const resolveFontScale = resolveFontScalePreset;
 
 const getTableWidth = (element: TemplateElement) => {
   if (element.type === 'table') {
@@ -167,9 +165,17 @@ const TemplateCanvas = ({
   slotLabels,
 }: CanvasProps) => {
   const isAdvanced = !!template.advancedLayoutEditing;
-  const pagePadding = resolvePagePadding(template.settings?.pagePaddingPreset);
-  const fontScale = resolveFontScale(template.settings?.fontScalePreset);
-  const visibleElements = template.elements.filter((el) => !(el as any).hidden);
+  const getElementSettings = (element: TemplateElement) => {
+    const group = resolveElementGroup(element, template);
+    const settings = normalizeEasyAdjustGroupSettings(template, group);
+    return {
+      fontScale: resolveFontScale(settings.fontPreset),
+      pagePadding: resolvePagePadding(settings.paddingPreset),
+    };
+  };
+  const visibleElements = template.elements.filter(
+    (el) => !isElementHiddenByEasyAdjust(el, template),
+  );
 
   const canvasRef = useRef<HTMLDivElement | null>(null);
   const [dragState, setDragState] = useState<DragState | null>(null);
@@ -256,6 +262,7 @@ const TemplateCanvas = ({
       ? visibleElements.filter((el) => {
           const width = getElementWidthValue(el);
           const height = getElementHeightValue(el);
+          const { pagePadding } = getElementSettings(el);
           const left = resolveAlignedX(el, width, pagePadding);
           return (
             point.x >= left &&
@@ -330,6 +337,7 @@ const TemplateCanvas = ({
     ? (() => {
         const width = getElementWidthValue(selectedElement);
         const height = getElementHeightValue(selectedElement);
+        const { pagePadding } = getElementSettings(selectedElement);
         const alignedX = resolveAlignedX(selectedElement, width, pagePadding);
         const badgeLeft = Math.min(alignedX + width + 12, CANVAS_WIDTH - 80);
         const badgeBottom = Math.min(selectedElement.y + height + 12, CANVAS_HEIGHT - 24);
@@ -356,7 +364,7 @@ const TemplateCanvas = ({
             highlightedElementIds?.has(element.id) ? 'highlighted' : '',
           ].filter(Boolean).join(' ')}
           style={{
-            ...getElementStyle(element, pagePadding),
+            ...getElementStyle(element, getElementSettings(element).pagePadding),
             zIndex: selectedElementId === element.id ? 50 : highlightedElementIds?.has(element.id) ? 40 : undefined,
           }}
           onMouseDown={(event) => handleElementMouseDown(event, element)}
@@ -416,7 +424,9 @@ const TemplateCanvas = ({
               >
                 {slotLabels?.[(element as any).slotId] ?? element.type}
               </strong>
-              <span style={{ fontSize: `${0.85 * fontScale}rem` }}>{describeDataSource(element)}</span>
+              <span style={{ fontSize: `${0.85 * getElementSettings(element).fontScale}rem` }}>
+                {describeDataSource(element)}
+              </span>
             </>
           )}
           {isAdvanced && element.type !== 'table' && element.type !== 'cardList' && (

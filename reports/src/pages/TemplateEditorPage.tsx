@@ -9,6 +9,11 @@ import { selectTemplateById, useTemplateStore } from '../store/templateStore';
 import { useTemplateListStore } from '../store/templateListStore';
 import MappingPage from '../editor/Mapping/MappingPage';
 import LabelEditorPanel from '../editor/Label/LabelEditorPanel';
+import {
+  extractStaticLabelText,
+  normalizeEasyAdjustGroupSettings,
+  resolveElementGroup,
+} from '../utils/easyAdjust';
 import { getAdapter } from '../editor/Mapping/adapters/getAdapter';
 import { useEditorSession } from '../hooks/useEditorSession';
 
@@ -63,13 +68,18 @@ const TemplateEditorPage = () => {
     ['cards_v1', 'cards_v2', 'card_v1', 'multiTable_v1'].includes(
       template?.baseTemplateId ?? '',
     );
-  const quickSettings = template?.settings ?? {};
-  const fontScalePreset = quickSettings.fontScalePreset ?? 'M';
-  const pagePaddingPreset = quickSettings.pagePaddingPreset ?? 'Normal';
-  const labelElements = useMemo(
-    () => (template?.elements ?? []).filter((el) => el.type === 'label'),
-    [template?.elements],
-  );
+  const [easyAdjustGroup, setEasyAdjustGroup] = useState<'title' | 'header' | 'body' | 'footer'>('title');
+  const groupSettings = template
+    ? normalizeEasyAdjustGroupSettings(template, easyAdjustGroup)
+    : { fontPreset: 'M', paddingPreset: 'Normal', hiddenLabelIds: [] };
+  const labelElements = useMemo(() => {
+    if (!template) return [];
+    return template.elements.filter((el) => {
+      if (el.type === 'table' || el.type === 'cardList') return false;
+      if (resolveElementGroup(el, template) !== easyAdjustGroup) return false;
+      return extractStaticLabelText(el) !== '';
+    });
+  }, [template, easyAdjustGroup]);
   const sheetSettings = template?.sheetSettings;
   const isLabelConfigInvalid =
     isLabelTemplate &&
@@ -131,6 +141,17 @@ const TemplateEditorPage = () => {
         ...patch,
       },
     });
+  };
+
+  const updateEasyAdjustGroupSettings = (
+    group: 'title' | 'header' | 'body' | 'footer',
+    patch: Record<string, unknown>,
+  ) => {
+    if (!template) return;
+    const easyAdjust = { ...(template.settings?.easyAdjust ?? {}) } as Record<string, any>;
+    const current = easyAdjust[group] ?? {};
+    easyAdjust[group] = { ...current, ...patch };
+    updateTemplateSettings({ easyAdjust });
   };
 
 
@@ -863,17 +884,46 @@ const TemplateEditorPage = () => {
                   <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 8, color: '#101828' }}>
                     かんたん調整
                   </div>
+                  <div style={{ display: 'flex', gap: 6, marginBottom: 10 }}>
+                    {([
+                      { key: 'title', label: 'タイトル' },
+                      { key: 'header', label: 'ヘッダー' },
+                      { key: 'body', label: '本文' },
+                      { key: 'footer', label: 'フッター' },
+                    ] as const).map((item) => {
+                      const active = easyAdjustGroup === item.key;
+                      return (
+                        <button
+                          key={item.key}
+                          type="button"
+                          onClick={() => setEasyAdjustGroup(item.key)}
+                          style={{
+                            padding: '4px 10px',
+                            borderRadius: 999,
+                            border: `1px solid ${active ? '#2563eb' : '#d0d5dd'}`,
+                            background: active ? '#eff6ff' : '#fff',
+                            color: active ? '#1d4ed8' : '#344054',
+                            fontSize: '0.78rem',
+                            fontWeight: 600,
+                            cursor: 'pointer',
+                          }}
+                        >
+                          {item.label}
+                        </button>
+                      );
+                    })}
+                  </div>
                   <div style={{ fontSize: 12, color: '#475467', marginBottom: 6, fontWeight: 600 }}>
                     フォントサイズ
                   </div>
                   <div style={{ display: 'flex', gap: 6, marginBottom: 10 }}>
                     {(['S', 'M', 'L'] as const).map((value) => {
-                      const active = fontScalePreset === value;
+                      const active = groupSettings.fontPreset === value;
                       return (
                         <button
                           key={value}
                           type="button"
-                          onClick={() => updateTemplateSettings({ fontScalePreset: value })}
+                          onClick={() => updateEasyAdjustGroupSettings(easyAdjustGroup, { fontPreset: value })}
                           style={{
                             padding: '4px 10px',
                             borderRadius: 6,
@@ -899,12 +949,12 @@ const TemplateEditorPage = () => {
                       { key: 'Normal', label: '標準' },
                       { key: 'Wide', label: '広い' },
                     ] as const).map((item) => {
-                      const active = pagePaddingPreset === item.key;
+                      const active = groupSettings.paddingPreset === item.key;
                       return (
                         <button
                           key={item.key}
                           type="button"
-                          onClick={() => updateTemplateSettings({ pagePaddingPreset: item.key })}
+                          onClick={() => updateEasyAdjustGroupSettings(easyAdjustGroup, { paddingPreset: item.key })}
                           style={{
                             padding: '4px 10px',
                             borderRadius: 6,
@@ -933,9 +983,9 @@ const TemplateEditorPage = () => {
                           const slotId = (el as any).slotId as string | undefined;
                           const label =
                             (slotId && slotLabelMap[slotId]) ||
-                            (el as any).text ||
+                            extractStaticLabelText(el) ||
                             el.id;
-                          const isVisible = !(el as any).hidden;
+                          const isVisible = !groupSettings.hiddenLabelIds.includes(el.id);
                           return (
                             <label
                               key={el.id}
@@ -945,7 +995,18 @@ const TemplateEditorPage = () => {
                                 type="checkbox"
                                 checked={isVisible}
                                 onChange={(event) => {
-                                  updateElement(template.id, el.id, { hidden: !event.target.checked });
+                                  const nextHidden = new Set(groupSettings.hiddenLabelIds);
+                                  if (event.target.checked) {
+                                    nextHidden.delete(el.id);
+                                    if ((el as any).hidden) {
+                                      updateElement(template.id, el.id, { hidden: false });
+                                    }
+                                  } else {
+                                    nextHidden.add(el.id);
+                                  }
+                                  updateEasyAdjustGroupSettings(easyAdjustGroup, {
+                                    hiddenLabelIds: Array.from(nextHidden),
+                                  });
                                 }}
                               />
                               <span>{label}</span>

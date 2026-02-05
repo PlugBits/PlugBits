@@ -12,7 +12,16 @@ export type TemplateMapping = unknown;
 export type FontScalePreset = 'S' | 'M' | 'L';
 export type PagePaddingPreset = 'Narrow' | 'Normal' | 'Wide';
 
+export type EasyAdjustGroup = 'title' | 'header' | 'body' | 'footer';
+export type EasyAdjustGroupSettings = {
+  fontPreset?: FontScalePreset;
+  paddingPreset?: PagePaddingPreset;
+  hiddenLabelIds?: string[];
+};
+export type EasyAdjustSettings = Partial<Record<EasyAdjustGroup, EasyAdjustGroupSettings>>;
+
 export type TemplateSettings = {
+  easyAdjust?: EasyAdjustSettings;
   fontScalePreset?: FontScalePreset;
   pagePaddingPreset?: PagePaddingPreset;
 };
