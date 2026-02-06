@@ -9,11 +9,7 @@ import { selectTemplateById, useTemplateStore } from '../store/templateStore';
 import { useTemplateListStore } from '../store/templateListStore';
 import MappingPage from '../editor/Mapping/MappingPage';
 import LabelEditorPanel from '../editor/Label/LabelEditorPanel';
-import {
-  extractStaticLabelText,
-  normalizeEasyAdjustGroupSettings,
-  resolveElementGroup,
-} from '../utils/easyAdjust';
+import { normalizeEasyAdjustGroupSettings } from '../utils/easyAdjust';
 import { getAdapter } from '../editor/Mapping/adapters/getAdapter';
 import { useEditorSession } from '../hooks/useEditorSession';
 
@@ -48,7 +44,7 @@ const TemplateEditorPage = () => {
   const [snapEnabled, setSnapEnabled] = useState(true);
   const [guideVisible, setGuideVisible] = useState(true);
   const [advancedLayoutEditing, setAdvancedLayoutEditing] = useState(!!template?.advancedLayoutEditing);
-  const [activeTab, setActiveTab] = useState<'layout' | 'mapping'>('layout');
+  const [activeTab, setActiveTab] = useState<'adjust' | 'mapping'>('mapping');
   const LS_KEY = 'pb_reports_controls_open';
   const [controlsOpen, setControlsOpen] = useState<boolean>(() => {
     const v = localStorage.getItem(LS_KEY);
@@ -68,18 +64,12 @@ const TemplateEditorPage = () => {
     ['cards_v1', 'cards_v2', 'card_v1', 'multiTable_v1'].includes(
       template?.baseTemplateId ?? '',
     );
-  const [easyAdjustGroup, setEasyAdjustGroup] = useState<'title' | 'header' | 'body' | 'footer'>('title');
-  const groupSettings = template
-    ? normalizeEasyAdjustGroupSettings(template, easyAdjustGroup)
-    : { fontPreset: 'M', paddingPreset: 'Normal', hiddenLabelIds: [] };
-  const labelElements = useMemo(() => {
-    if (!template) return [];
-    return template.elements.filter((el) => {
-      if (el.type === 'table' || el.type === 'cardList') return false;
-      if (resolveElementGroup(el, template) !== easyAdjustGroup) return false;
-      return extractStaticLabelText(el) !== '';
-    });
-  }, [template, easyAdjustGroup]);
+  const EASY_ADJUST_GROUPS = [
+    { key: 'title', label: 'タイトル' },
+    { key: 'header', label: 'ヘッダー' },
+    { key: 'body', label: 'ボディ' },
+    { key: 'footer', label: 'フッター' },
+  ] as const;
   const sheetSettings = template?.sheetSettings;
   const isLabelConfigInvalid =
     isLabelTemplate &&
@@ -151,6 +141,15 @@ const TemplateEditorPage = () => {
     const easyAdjust = { ...(template.settings?.easyAdjust ?? {}) } as Record<string, any>;
     const current = easyAdjust[group] ?? {};
     easyAdjust[group] = { ...current, ...patch };
+    updateTemplateSettings({ easyAdjust });
+  };
+
+  const resetEasyAdjustGroupSettings = (
+    group: 'title' | 'header' | 'body' | 'footer',
+  ) => {
+    if (!template) return;
+    const easyAdjust = { ...(template.settings?.easyAdjust ?? {}) } as Record<string, any>;
+    delete easyAdjust[group];
     updateTemplateSettings({ easyAdjust });
   };
 
@@ -388,8 +387,8 @@ const TemplateEditorPage = () => {
     const ds = el.dataSource;
     if (!ds) return '';
     if (ds.type === 'static') return ds.value ?? '';
-    if (ds.type === 'kintone') return `{{${ds.fieldCode}}}`;
-    if (ds.type === 'kintoneSubtable') return `{{${ds.fieldCode}}}`;
+    if (ds.type === 'kintone') return ds.fieldCode ?? '';
+    if (ds.type === 'kintoneSubtable') return ds.fieldCode ?? '';
     return '';
   };
 
@@ -705,38 +704,24 @@ const TemplateEditorPage = () => {
             </p>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.35rem' }}>
-            <div className="button-row">
-              <button
-                className="secondary"
-                onClick={() => { void previewPdf(template); }}
-              >
-                PDFプレビュー
-              </button>
-              <button
-                className="ghost"
-                onClick={() => { void handleSave(); }}
-                disabled={saveStatus === 'saving' || isLabelConfigInvalid}
-              >
-                {saveStatus === 'saving' ? '保存中...' : '保存'}
-              </button>
-              <button
-                className="ghost"
-                onClick={() => {
-                  if (isDirty && !window.confirm('未保存の変更があります。一覧へ戻りますか？')) {
-                    return;
-                  }
-                  navigate(`/${preservedQuery}`);
-                }}
-              >
-                一覧
-              </button>
-              {!isLabelTemplate && (
-                <button className="ghost" onClick={toggleControls}>
-                  設定 {controlsOpen ? '▲' : '▼'}
+            {isLabelTemplate && (
+              <div className="button-row">
+                <button
+                  className="secondary"
+                  onClick={() => { void previewPdf(template); }}
+                >
+                  PDFプレビュー
                 </button>
-              )}
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: 6 }}>
+                <button
+                  className="ghost"
+                  onClick={() => { void handleSave(); }}
+                  disabled={saveStatus === 'saving' || isLabelConfigInvalid}
+                >
+                  {saveStatus === 'saving' ? '保存中...' : '保存'}
+                </button>
+              </div>
+            )}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               {saveStatus === 'success' && <span className="status-pill success">保存しました</span>}
               {saveStatus === 'error' && <span className="status-pill error">{saveError}</span>}
               {isLabelConfigInvalid && (
@@ -745,12 +730,12 @@ const TemplateEditorPage = () => {
             </div>
           </div>
         </div>
-        {controlsOpen && !isLabelTemplate && (
-          <div
-            style={{
-              padding: '0.5rem 0.75rem 0.75rem',
-              borderTop: '1px solid #e4e7ec',
-              background: '#fff',
+      {controlsOpen && !isLabelTemplate && (
+        <div
+          style={{
+            padding: '0.5rem 0.75rem 0.75rem',
+            borderTop: '1px solid #e4e7ec',
+            background: '#fff',
             }}
           >
             <div className="button-row" style={{ marginBottom: '0.6rem' }}>
@@ -765,14 +750,6 @@ const TemplateEditorPage = () => {
               </button>
               <button className="ghost" onClick={handleAddImage} disabled={!template.advancedLayoutEditing}>
                 + 画像
-              </button>
-            </div>
-            <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.6rem' }}>
-              <button className={activeTab === 'layout' ? 'secondary' : 'ghost'} onClick={() => setActiveTab('layout')}>
-                レイアウト
-              </button>
-              <button className={activeTab === 'mapping' ? 'secondary' : 'ghost'} onClick={() => setActiveTab('mapping')}>
-                フィールド割当
               </button>
             </div>
             <div
@@ -875,157 +852,58 @@ const TemplateEditorPage = () => {
               {!isLabelTemplate && !isCardTemplate && template && (
                 <div
                   style={{
-                    marginBottom: 12,
-                    border: '1px solid #e4e7ec',
-                    borderRadius: 12,
-                    padding: 10,
+                    position: 'sticky',
+                    top: 0,
+                    zIndex: 5,
+                    background: '#fff',
+                    borderBottom: '1px solid #e4e7ec',
+                    padding: '10px 12px',
+                    margin: '-10px -12px 12px',
                   }}
                 >
-                  <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 8, color: '#101828' }}>
-                    かんたん調整
-                  </div>
-                  <div style={{ display: 'flex', gap: 6, marginBottom: 10 }}>
-                    {([
-                      { key: 'title', label: 'タイトル' },
-                      { key: 'header', label: 'ヘッダー' },
-                      { key: 'body', label: '本文' },
-                      { key: 'footer', label: 'フッター' },
-                    ] as const).map((item) => {
-                      const active = easyAdjustGroup === item.key;
-                      return (
-                        <button
-                          key={item.key}
-                          type="button"
-                          onClick={() => setEasyAdjustGroup(item.key)}
-                          style={{
-                            padding: '4px 10px',
-                            borderRadius: 999,
-                            border: `1px solid ${active ? '#2563eb' : '#d0d5dd'}`,
-                            background: active ? '#eff6ff' : '#fff',
-                            color: active ? '#1d4ed8' : '#344054',
-                            fontSize: '0.78rem',
-                            fontWeight: 600,
-                            cursor: 'pointer',
-                          }}
-                        >
-                          {item.label}
-                        </button>
-                      );
-                    })}
-                  </div>
-                  <div style={{ fontSize: 12, color: '#475467', marginBottom: 6, fontWeight: 600 }}>
-                    フォントサイズ
-                  </div>
-                  <div style={{ display: 'flex', gap: 6, marginBottom: 10 }}>
-                    {(['S', 'M', 'L'] as const).map((value) => {
-                      const active = groupSettings.fontPreset === value;
-                      return (
-                        <button
-                          key={value}
-                          type="button"
-                          onClick={() => updateEasyAdjustGroupSettings(easyAdjustGroup, { fontPreset: value })}
-                          style={{
-                            padding: '4px 10px',
-                            borderRadius: 6,
-                            border: `1px solid ${active ? '#2563eb' : '#d0d5dd'}`,
-                            background: active ? '#eff6ff' : '#fff',
-                            color: active ? '#1d4ed8' : '#344054',
-                            fontSize: '0.8rem',
-                            fontWeight: 600,
-                            cursor: 'pointer',
-                          }}
-                        >
-                          {value === 'S' ? '小' : value === 'M' ? '標準' : '大'}
-                        </button>
-                      );
-                    })}
-                  </div>
-                  <div style={{ fontSize: 12, color: '#475467', marginBottom: 6, fontWeight: 600 }}>
-                    余白
-                  </div>
-                  <div style={{ display: 'flex', gap: 6, marginBottom: 10 }}>
-                    {([
-                      { key: 'Narrow', label: '狭い' },
-                      { key: 'Normal', label: '標準' },
-                      { key: 'Wide', label: '広い' },
-                    ] as const).map((item) => {
-                      const active = groupSettings.paddingPreset === item.key;
-                      return (
-                        <button
-                          key={item.key}
-                          type="button"
-                          onClick={() => updateEasyAdjustGroupSettings(easyAdjustGroup, { paddingPreset: item.key })}
-                          style={{
-                            padding: '4px 10px',
-                            borderRadius: 6,
-                            border: `1px solid ${active ? '#2563eb' : '#d0d5dd'}`,
-                            background: active ? '#eff6ff' : '#fff',
-                            color: active ? '#1d4ed8' : '#344054',
-                            fontSize: '0.8rem',
-                            fontWeight: 600,
-                            cursor: 'pointer',
-                          }}
-                        >
-                          {item.label}
-                        </button>
-                      );
-                    })}
-                  </div>
-                  <details>
-                    <summary style={{ cursor: 'pointer', fontSize: 12, color: '#2563eb', fontWeight: 600 }}>
-                      ラベル表示/非表示
-                    </summary>
-                    <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 6 }}>
-                      {labelElements.length === 0 ? (
-                        <div style={{ fontSize: 12, color: '#667085' }}>固定ラベルがありません</div>
-                      ) : (
-                        labelElements.map((el) => {
-                          const slotId = (el as any).slotId as string | undefined;
-                          const label =
-                            (slotId && slotLabelMap[slotId]) ||
-                            extractStaticLabelText(el) ||
-                            el.id;
-                          const isVisible = !groupSettings.hiddenLabelIds.includes(el.id);
-                          return (
-                            <label
-                              key={el.id}
-                              style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: '#344054' }}
-                            >
-                              <input
-                                type="checkbox"
-                                checked={isVisible}
-                                onChange={(event) => {
-                                  const nextHidden = new Set(groupSettings.hiddenLabelIds);
-                                  if (event.target.checked) {
-                                    nextHidden.delete(el.id);
-                                    if ((el as any).hidden) {
-                                      updateElement(template.id, el.id, { hidden: false });
-                                    }
-                                  } else {
-                                    nextHidden.add(el.id);
-                                  }
-                                  updateEasyAdjustGroupSettings(easyAdjustGroup, {
-                                    hiddenLabelIds: Array.from(nextHidden),
-                                  });
-                                }}
-                              />
-                              <span>{label}</span>
-                            </label>
-                          );
-                        })
-                      )}
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+                    <div style={{ minWidth: 0 }}>
+                      <div
+                        style={{
+                          fontWeight: 700,
+                          fontSize: 14,
+                          color: '#101828',
+                          whiteSpace: 'nowrap',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          maxWidth: 180,
+                        }}
+                        title={template.name}
+                      >
+                        {template.name}
+                      </div>
+                      <div style={{ fontSize: 11, color: '#667085', marginTop: 2 }}>
+                        {isDirty ? '未保存' : '保存済'}
+                      </div>
                     </div>
-                  </details>
+                    <div style={{ display: 'flex', gap: 6 }}>
+                      <button className="secondary" onClick={() => { void previewPdf(template); }}>
+                        PDFプレビュー
+                      </button>
+                      <button
+                        className="ghost"
+                        onClick={() => { void handleSave(); }}
+                        disabled={saveStatus === 'saving' || isLabelConfigInvalid}
+                      >
+                        {saveStatus === 'saving' ? '保存中...' : '保存'}
+                      </button>
+                    </div>
+                  </div>
                 </div>
               )}
               {/* 右ペイン切替ボタン（ここに移動） */}
               <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
                 <button
-                  className={activeTab === 'layout' ? 'secondary' : 'ghost'}
-                  onClick={() => setActiveTab('layout')}
+                  className={activeTab === 'adjust' ? 'secondary' : 'ghost'}
+                  onClick={() => setActiveTab('adjust')}
                   type="button"
                 >
-                  要素
+                  かんたん調整
                 </button>
                 <button
                   className={activeTab === 'mapping' ? 'secondary' : 'ghost'}
@@ -1035,84 +913,202 @@ const TemplateEditorPage = () => {
                   割当
                 </button>
               </div>
-              <div
-                style={{
-                  marginBottom: 12,
-                  border: '1px solid #e4e7ec',
-                  borderRadius: 12,
-                  padding: 10,
-                  maxHeight: 240,
-                  overflowY: 'auto',
-                }}
-              >
-                <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 8, color: '#101828' }}>
-                  要素一覧（クリックで選択）
-                </div>
-
-                {(['header', 'body', 'footer'] as const).map((region) => {
-                  const items = sortedByRegion(template.elements ?? [], region);
-                  if (items.length === 0) return null;
-
-                  const regionLabel = region === 'header' ? 'Header' : region === 'body' ? 'Body' : 'Footer';
-                  return (
-                    <div key={region} style={{ marginBottom: 10 }}>
-                      <div style={{ fontSize: 12, color: '#475467', marginBottom: 6, fontWeight: 600 }}>
-                        {regionLabel}
-                      </div>
-
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                        {items.map((el: any) => {
-                          const isSelected = selectedElementId === el.id;
-                          const typeLabel = typeLabelForList(el.type);
-                          const title = el.slotId && slotLabelMap[el.slotId]
-                            ? slotLabelMap[el.slotId]
-                            : el.type === 'label' && el.text
-                            ? el.text
-                            : typeLabel;
-                          const subtitle = typeLabel;
-                          const desc = describeElementForList(el);
-
-                          return (
-                            <button
-                              key={el.id}
-                              type="button"
-                              onClick={() => setSelectedElementId(el.id)}
-                              className={isSelected ? 'secondary' : 'ghost'}
-                              style={{
-                                textAlign: 'left',
-                                padding: '8px 10px',
-                                borderRadius: 10,
-                                border: '1px solid #e4e7ec',
-                                background: isSelected ? '#f0f9ff' : '#fff',
-                              }}
-                            >
-                              <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
-                                <div style={{ fontWeight: 700, fontSize: 12, color: '#101828' }}>
-                                  {title}
-                                </div>
-                                <div style={{ fontSize: 11, color: '#667085' }}>{subtitle}</div>
-                              </div>
-                              {desc && <div style={{ fontSize: 12, color: '#475467', marginTop: 4 }}>{desc}</div>}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-
-              {activeTab === 'layout' ? (
-                <ElementInspector templateId={template.id} element={selectedElement} />
-              ) : (
-                <MappingPage
-                  template={template}
-                  updateTemplate={updateTemplate}
-                  onFocusFieldRef={(ref) => {
-                    setHighlightRef(ref);
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12 }}>
+                <button
+                  className="ghost"
+                  onClick={() => {
+                    if (isDirty && !window.confirm('未保存の変更があります。一覧へ戻りますか？')) {
+                      return;
+                    }
+                    navigate(`/${preservedQuery}`);
                   }}
-                  onClearFocus={() => setHighlightRef(null)}
-                />
+                  type="button"
+                >
+                  一覧へ戻る
+                </button>
+                {!isLabelTemplate && (
+                  <button className="ghost" onClick={toggleControls} type="button">
+                    詳細設定 {controlsOpen ? '▲' : '▼'}
+                  </button>
+                )}
+              </div>
+              {activeTab === 'adjust' && template && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                  {EASY_ADJUST_GROUPS.map((group) => {
+                    const settings = normalizeEasyAdjustGroupSettings(template, group.key);
+                    return (
+                      <div
+                        key={group.key}
+                        style={{
+                          border: '1px solid #e4e7ec',
+                          borderRadius: 12,
+                          padding: 10,
+                          background: '#fff',
+                        }}
+                      >
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                          <div style={{ fontWeight: 700, fontSize: 13, color: '#101828' }}>{group.label}</div>
+                          <button
+                            type="button"
+                            className="ghost"
+                            onClick={() => resetEasyAdjustGroupSettings(group.key)}
+                            style={{ fontSize: 11, padding: '4px 8px' }}
+                          >
+                            リセット
+                          </button>
+                        </div>
+                        <div style={{ fontSize: 12, color: '#475467', marginBottom: 6, fontWeight: 600 }}>
+                          フォントサイズ
+                        </div>
+                        <div style={{ display: 'flex', gap: 6, marginBottom: 10 }}>
+                          {(['S', 'M', 'L'] as const).map((value) => {
+                            const active = settings.fontPreset === value;
+                            return (
+                              <button
+                                key={value}
+                                type="button"
+                                onClick={() => updateEasyAdjustGroupSettings(group.key, { fontPreset: value })}
+                                style={{
+                                  padding: '4px 10px',
+                                  borderRadius: 6,
+                                  border: `1px solid ${active ? '#2563eb' : '#d0d5dd'}`,
+                                  background: active ? '#eff6ff' : '#fff',
+                                  color: active ? '#1d4ed8' : '#344054',
+                                  fontSize: '0.8rem',
+                                  fontWeight: 600,
+                                  cursor: 'pointer',
+                                }}
+                              >
+                                {value === 'S' ? '小' : value === 'M' ? '標準' : '大'}
+                              </button>
+                            );
+                          })}
+                        </div>
+                        <div style={{ fontSize: 12, color: '#475467', marginBottom: 6, fontWeight: 600 }}>
+                          余白
+                        </div>
+                        <div style={{ display: 'flex', gap: 6 }}>
+                          {([
+                            { key: 'Narrow', label: '狭い' },
+                            { key: 'Normal', label: '標準' },
+                            { key: 'Wide', label: '広い' },
+                          ] as const).map((item) => {
+                            const active = settings.paddingPreset === item.key;
+                            return (
+                              <button
+                                key={item.key}
+                                type="button"
+                                onClick={() => updateEasyAdjustGroupSettings(group.key, { paddingPreset: item.key })}
+                                style={{
+                                  padding: '4px 10px',
+                                  borderRadius: 6,
+                                  border: `1px solid ${active ? '#2563eb' : '#d0d5dd'}`,
+                                  background: active ? '#eff6ff' : '#fff',
+                                  color: active ? '#1d4ed8' : '#344054',
+                                  fontSize: '0.8rem',
+                                  fontWeight: 600,
+                                  cursor: 'pointer',
+                                }}
+                              >
+                                {item.label}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              {activeTab === 'mapping' && template && (
+                <>
+                  <div
+                    style={{
+                      marginBottom: 12,
+                      border: '1px solid #e4e7ec',
+                      borderRadius: 12,
+                      padding: 10,
+                      maxHeight: 240,
+                      overflowY: 'auto',
+                    }}
+                  >
+                    <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 8, color: '#101828' }}>
+                      要素一覧（クリックで選択）
+                    </div>
+
+                    {(['header', 'body', 'footer'] as const).map((region) => {
+                      const items = sortedByRegion(template.elements ?? [], region);
+                      if (items.length === 0) return null;
+
+                      const regionLabel = region === 'header' ? 'Header' : region === 'body' ? 'Body' : 'Footer';
+                      return (
+                        <div key={region} style={{ marginBottom: 10 }}>
+                          <div style={{ fontSize: 12, color: '#475467', marginBottom: 6, fontWeight: 600 }}>
+                            {regionLabel}
+                          </div>
+
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                            {items.map((el: any) => {
+                              const isSelected = selectedElementId === el.id;
+                              const title = el.slotId && slotLabelMap[el.slotId]
+                                ? slotLabelMap[el.slotId]
+                                : el.type === 'label' && el.text
+                                ? el.text
+                                : typeLabelForList(el.type);
+                              const desc = describeElementForList(el);
+
+                              return (
+                                <button
+                                  key={el.id}
+                                  type="button"
+                                  onClick={() => setSelectedElementId(el.id)}
+                                  className={isSelected ? 'secondary' : 'ghost'}
+                                  style={{
+                                    textAlign: 'left',
+                                    padding: '8px 10px',
+                                    borderRadius: 10,
+                                    border: '1px solid #e4e7ec',
+                                    background: isSelected ? '#f0f9ff' : '#fff',
+                                  }}
+                                >
+                                  <div style={{ fontWeight: 700, fontSize: 12, color: '#101828' }}>
+                                    {title}
+                                  </div>
+                                  {desc && (
+                                    <div style={{ fontSize: 11, color: '#667085', marginTop: 3 }}>
+                                      {desc}
+                                    </div>
+                                  )}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  <div
+                    style={{
+                      border: '1px solid #e4e7ec',
+                      borderRadius: 12,
+                      padding: 10,
+                      marginBottom: 12,
+                    }}
+                  >
+                    <ElementInspector templateId={template.id} element={selectedElement} />
+                  </div>
+
+                  <MappingPage
+                    template={template}
+                    updateTemplate={updateTemplate}
+                    onFocusFieldRef={(ref) => {
+                      setHighlightRef(ref);
+                    }}
+                    onClearFocus={() => setHighlightRef(null)}
+                  />
+                </>
               )}
             </div>
           </div>

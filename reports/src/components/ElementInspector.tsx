@@ -356,69 +356,67 @@ const ElementInspector = ({ templateId, element }: ElementInspectorProps) => {
       </label>
     )}
     
-      <label>
-        X 座標
-        <input
-          inputMode="numeric"
-          value={xDraft}
-          onChange={(e) => setXDraft(e.target.value)}
-          onBlur={() => commitNumber(element.id,'x', xDraft)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') (e.currentTarget as HTMLInputElement).blur();
-          }}
-          disabled={!canEditLayoutForElement}
-        />
-
-      </label>
-      <label>
-        Y 座標
-        <input
-          inputMode="numeric"
-          value={yDraft}
-          onChange={(e) => setYDraft(e.target.value)}
-          onBlur={() => commitNumber(element.id,'y', yDraft)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') (e.currentTarget as HTMLInputElement).blur();
-          }}
-          disabled={!canEditLayoutForElement}
-        />
-
-      </label>
-      {!canEditLayout && (
-        <p style={{ margin: '0.25rem 0 0', color: '#667085', fontSize: '0.8rem' }}>
-          レイアウト（X/Y）の編集は「テンプレ設定 → 上級者モード」をONにすると有効になります。
-        </p>
-      )}
-
-
-      {element.type !== 'table' && element.type !== 'cardList' && (
+      {isAdvanced && (
         <>
           <label>
-            幅
+            X 座標
             <input
               inputMode="numeric"
-              value={wDraft}
-              onChange={(e) => setWDraft(e.target.value)}
-              onBlur={() => commitNumber(element.id,'width', wDraft)}
+              value={xDraft}
+              onChange={(e) => setXDraft(e.target.value)}
+              onBlur={() => commitNumber(element.id,'x', xDraft)}
               onKeyDown={(e) => {
                 if (e.key === 'Enter') (e.currentTarget as HTMLInputElement).blur();
               }}
               disabled={!canEditLayoutForElement}
             />
+
           </label>
           <label>
-            高さ
+            Y 座標
             <input
               inputMode="numeric"
-              value={hDraft}
-              onChange={(e) => setHDraft(e.target.value)}
-              onBlur={() => commitNumber(element.id,'height', hDraft)}
+              value={yDraft}
+              onChange={(e) => setYDraft(e.target.value)}
+              onBlur={() => commitNumber(element.id,'y', yDraft)}
               onKeyDown={(e) => {
                 if (e.key === 'Enter') (e.currentTarget as HTMLInputElement).blur();
               }}
               disabled={!canEditLayoutForElement}
             />
+
           </label>
+
+          {element.type !== 'table' && element.type !== 'cardList' && (
+            <>
+              <label>
+                幅
+                <input
+                  inputMode="numeric"
+                  value={wDraft}
+                  onChange={(e) => setWDraft(e.target.value)}
+                  onBlur={() => commitNumber(element.id,'width', wDraft)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') (e.currentTarget as HTMLInputElement).blur();
+                  }}
+                  disabled={!canEditLayoutForElement}
+                />
+              </label>
+              <label>
+                高さ
+                <input
+                  inputMode="numeric"
+                  value={hDraft}
+                  onChange={(e) => setHDraft(e.target.value)}
+                  onBlur={() => commitNumber(element.id,'height', hDraft)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') (e.currentTarget as HTMLInputElement).blur();
+                  }}
+                  disabled={!canEditLayoutForElement}
+                />
+              </label>
+            </>
+          )}
         </>
       )}
 
