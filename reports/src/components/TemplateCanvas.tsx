@@ -436,6 +436,7 @@ const TemplateCanvas = ({
           ) : (
             <>
               <strong
+                className="canvas-element-label"
                 style={{
                   display: 'block',
                   fontSize: '0.7rem',
@@ -446,6 +447,7 @@ const TemplateCanvas = ({
                 {slotLabels?.[(element as any).slotId] ?? element.type}
               </strong>
               <span
+                className="canvas-element-value"
                 style={{
                   fontSize: `${0.85 * getElementSettings(element).fontScale}rem`,
                   ...(metaTextStyle ?? {}),

@@ -157,14 +157,24 @@ button:disabled {
 
 .canvas-element {
   position: absolute;
-  padding: 4px 6px;
+  padding: 4px 6px 6px;
   border-radius: 6px;
   border: 1px solid transparent;
   background: rgba(255, 255, 255, 0.85);
   color: #0f172a;
   font-size: 0.85rem;
+  line-height: 1.3;
+  overflow: visible;
   cursor: pointer;
   transition: border-color 0.2s ease;
+}
+
+.canvas-element-label,
+.canvas-element-value {
+  line-height: 1.3;
+  padding: 0 4px 2px 4px;
+  overflow: visible;
+  white-space: nowrap;
 }
 
 .canvas-element.selected {
