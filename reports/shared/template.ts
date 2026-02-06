@@ -12,10 +12,19 @@ export type TemplateMapping = unknown;
 export type FontScalePreset = 'S' | 'M' | 'L';
 export type PagePaddingPreset = 'Narrow' | 'Normal' | 'Wide';
 
-export type EasyAdjustGroup = 'title' | 'header' | 'body' | 'footer';
+export type EasyAdjustGroup =
+  | 'title'
+  | 'documentMeta'
+  | 'customer'
+  | 'header'
+  | 'body'
+  | 'footer';
 export type EasyAdjustGroupSettings = {
   fontPreset?: FontScalePreset;
   paddingPreset?: PagePaddingPreset;
+  spacingPreset?: 'tight' | 'normal' | 'loose';
+  labelMode?: 'labelValue' | 'valueOnly';
+  honorific?: 'sama' | 'onchu' | 'none';
   hiddenLabelIds?: string[];
 };
 export type EasyAdjustSettings = Partial<Record<EasyAdjustGroup, EasyAdjustGroupSettings>>;

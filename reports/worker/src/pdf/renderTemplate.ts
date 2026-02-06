@@ -988,15 +988,27 @@ const resolvePagePadding = (preset?: 'Narrow' | 'Normal' | 'Wide') => {
   return 16;
 };
 
-type EasyAdjustGroup = 'title' | 'header' | 'body' | 'footer';
+type EasyAdjustBlock = 'title' | 'documentMeta' | 'customer' | 'header' | 'body' | 'footer';
 
-const resolveEasyAdjustGroup = (
+const resolveEasyAdjustBlock = (
   element: TemplateElement,
   template: TemplateDefinition,
-): EasyAdjustGroup => {
+): EasyAdjustBlock => {
   const slotId = (element as any).slotId as string | undefined;
   if (slotId === 'doc_title' || element.id === 'doc_title' || element.id === 'title') {
     return 'title';
+  }
+  if (slotId === 'doc_no' || slotId === 'date_label' || slotId === 'issue_date') {
+    return 'documentMeta';
+  }
+  if (element.id === 'doc_no_label') {
+    return 'documentMeta';
+  }
+  if (slotId === 'to_name' || element.id === 'to_name') {
+    return 'customer';
+  }
+  if (element.id === 'to_label' || element.id === 'to_honorific') {
+    return 'customer';
   }
   if (element.region === 'header') return 'header';
   if (element.region === 'footer') return 'footer';
@@ -1015,17 +1027,20 @@ const resolveEasyAdjustGroup = (
   return 'body';
 };
 
-const normalizeEasyAdjustGroupSettings = (
+const normalizeEasyAdjustBlockSettings = (
   template: TemplateDefinition,
-  group: EasyAdjustGroup,
+  block: EasyAdjustBlock,
 ) => {
   const legacyFontPreset = template.settings?.fontScalePreset ?? 'M';
   const legacyPaddingPreset = template.settings?.pagePaddingPreset ?? 'Normal';
   const easyAdjust = template.settings?.easyAdjust ?? {};
-  const groupSettings = (easyAdjust as Record<string, any>)[group] ?? {};
+  const groupSettings = (easyAdjust as Record<string, any>)[block] ?? {};
   return {
     fontPreset: groupSettings.fontPreset ?? legacyFontPreset,
     paddingPreset: groupSettings.paddingPreset ?? legacyPaddingPreset,
+    spacingPreset: groupSettings.spacingPreset ?? 'normal',
+    labelMode: groupSettings.labelMode ?? 'labelValue',
+    honorific: groupSettings.honorific ?? 'sama',
     hiddenLabelIds: Array.isArray(groupSettings.hiddenLabelIds) ? groupSettings.hiddenLabelIds : [],
   };
 };
@@ -1034,12 +1049,23 @@ const resolveEasyAdjustForElement = (
   element: TemplateElement,
   template: TemplateDefinition,
 ) => {
-  const group = resolveEasyAdjustGroup(element, template);
-  const settings = normalizeEasyAdjustGroupSettings(template, group);
+  const block = resolveEasyAdjustBlock(element, template);
+  const settings = normalizeEasyAdjustBlockSettings(template, block);
+  const slotId = (element as any).slotId as string | undefined;
+  let hidden = (element as any).hidden === true || settings.hiddenLabelIds.includes(element.id);
+  if (!hidden && block === 'documentMeta' && settings.labelMode === 'valueOnly') {
+    if (element.id === 'doc_no_label' || slotId === 'date_label') hidden = true;
+  }
+  if (!hidden && block === 'customer' && settings.labelMode === 'valueOnly') {
+    if (element.id === 'to_label') hidden = true;
+  }
+  if (!hidden && block === 'customer' && element.id === 'to_honorific' && settings.honorific === 'none') {
+    hidden = true;
+  }
   return {
     fontScale: resolveFontScale(settings.fontPreset),
     pagePadding: resolvePagePadding(settings.paddingPreset),
-    hidden: (element as any).hidden === true || settings.hiddenLabelIds.includes(element.id),
+    hidden,
   };
 };
 

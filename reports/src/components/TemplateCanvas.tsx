@@ -4,8 +4,8 @@ import type { TemplateDefinition, TemplateElement, DataSource } from '@shared/te
 import { CANVAS_WIDTH, CANVAS_HEIGHT, REGION_BOUNDS, getRegionOf, clampYToRegion } from '../utils/regionBounds';
 import {
   isElementHiddenByEasyAdjust,
-  normalizeEasyAdjustGroupSettings,
-  resolveElementGroup,
+  normalizeEasyAdjustBlockSettings,
+  resolveElementBlock,
   resolveFontScalePreset,
   resolvePagePaddingPreset,
 } from '../utils/easyAdjust';
@@ -166,8 +166,8 @@ const TemplateCanvas = ({
 }: CanvasProps) => {
   const isAdvanced = !!template.advancedLayoutEditing;
   const getElementSettings = (element: TemplateElement) => {
-    const group = resolveElementGroup(element, template);
-    const settings = normalizeEasyAdjustGroupSettings(template, group);
+    const block = resolveElementBlock(element, template);
+    const settings = normalizeEasyAdjustBlockSettings(template, block);
     return {
       fontScale: resolveFontScale(settings.fontPreset),
       pagePadding: resolvePagePadding(settings.paddingPreset),
