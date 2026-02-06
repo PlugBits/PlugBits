@@ -374,95 +374,106 @@ const TemplateCanvas = ({
               textOverflow: 'ellipsis',
             }
           : undefined;
+        const elementStyle = getElementStyle(element, getElementSettings(element).pagePadding);
+        const hasWidth = elementStyle.width !== undefined;
+        const hasHeight = elementStyle.height !== undefined;
         return (
-        <div
-          key={element.id}
-          className={[
-            'canvas-element',
-            selectedElementId === element.id ? 'selected' : '',
-            highlightedElementIds?.has(element.id) ? 'highlighted' : '',
-          ].filter(Boolean).join(' ')}
-          style={{
-            ...getElementStyle(element, getElementSettings(element).pagePadding),
-            ...(isDocMeta ? { overflow: 'hidden' } : null),
-            zIndex: selectedElementId === element.id ? 50 : highlightedElementIds?.has(element.id) ? 40 : undefined,
-          }}
-          onMouseDown={(event) => handleElementMouseDown(event, element)}
-        >
-          {element.type === 'cardList' ? (
-            <>
-              <div
-                style={{
-                  position: 'absolute',
-                  top: 4,
-                  left: 6,
-                  fontSize: '0.65rem',
-                  fontWeight: 700,
-                  color: '#344054',
-                  background: 'rgba(255,255,255,0.8)',
-                  padding: '1px 6px',
-                  borderRadius: 999,
-                }}
-              >
-                カード枠
+          <div
+            key={element.id}
+            className="canvas-element-wrapper"
+            style={{
+              ...elementStyle,
+              zIndex: selectedElementId === element.id ? 50 : highlightedElementIds?.has(element.id) ? 40 : undefined,
+            }}
+            onMouseDown={(event) => handleElementMouseDown(event, element)}
+          >
+            <div
+              className={[
+                'canvas-element',
+                selectedElementId === element.id ? 'selected' : '',
+                highlightedElementIds?.has(element.id) ? 'highlighted' : '',
+              ].filter(Boolean).join(' ')}
+              style={{
+                ...(hasWidth ? { width: '100%' } : null),
+                ...(hasHeight ? { height: '100%' } : null),
+                ...(isDocMeta ? { overflow: 'hidden' } : null),
+              }}
+            >
+              {element.type === 'cardList' ? (
+                <>
+                  <div
+                    style={{
+                      position: 'absolute',
+                      top: 4,
+                      left: 6,
+                      fontSize: '0.65rem',
+                      fontWeight: 700,
+                      color: '#344054',
+                      background: 'rgba(255,255,255,0.8)',
+                      padding: '1px 6px',
+                      borderRadius: 999,
+                    }}
+                  >
+                    カード枠
+                  </div>
+                  <div
+                    style={{
+                      position: 'absolute',
+                      top: 22,
+                      left: 6,
+                      right: 6,
+                      bottom: 6,
+                      border: '1px solid #cbd5e1',
+                      borderRadius: 8,
+                      background: '#f8fafc',
+                      display: 'grid',
+                      gridTemplateColumns: '62% 38%',
+                      gridTemplateRows: '45% 30% 25%',
+                      gap: 4,
+                      padding: 6,
+                      fontSize: '0.7rem',
+                      color: '#475467',
+                    }}
+                  >
+                    <div style={{ fontWeight: 600, color: '#101828' }}>Field A</div>
+                    <div style={{ textAlign: 'right' }}>Field B</div>
+                    <div>Field C</div>
+                    <div style={{ textAlign: 'right' }}>Field D</div>
+                    <div>Field E</div>
+                    <div style={{ textAlign: 'right' }}>Field F</div>
+                  </div>
+                </>
+              ) : null}
+              {isAdvanced && element.type !== 'table' && element.type !== 'cardList' && (
+                <div className="resize-handle" onMouseDown={(event) => handleResizeMouseDown(event, element)} />
+              )}
+            </div>
+            {element.type !== 'cardList' && (
+              <div className="canvas-element-overlay">
+                <strong
+                  className="canvas-element-label"
+                  style={{
+                    display: 'block',
+                    fontSize: '0.7rem',
+                    color: slotLabels?.[(element as any).slotId] ? '#344054' : '#475467',
+                    ...(metaTextStyle ?? {}),
+                  }}
+                >
+                  {slotLabels?.[(element as any).slotId] ?? element.type}
+                </strong>
+                <span
+                  className="canvas-element-value"
+                  style={{
+                    fontSize: `${0.85 * getElementSettings(element).fontScale}rem`,
+                    ...(metaTextStyle ?? {}),
+                  }}
+                >
+                  {describeDataSource(element)}
+                </span>
               </div>
-              <div
-                style={{
-                  position: 'absolute',
-                  top: 22,
-                  left: 6,
-                  right: 6,
-                  bottom: 6,
-                  border: '1px solid #cbd5e1',
-                  borderRadius: 8,
-                  background: '#f8fafc',
-                  display: 'grid',
-                  gridTemplateColumns: '62% 38%',
-                  gridTemplateRows: '45% 30% 25%',
-                  gap: 4,
-                  padding: 6,
-                  fontSize: '0.7rem',
-                  color: '#475467',
-                }}
-              >
-                <div style={{ fontWeight: 600, color: '#101828' }}>Field A</div>
-                <div style={{ textAlign: 'right' }}>Field B</div>
-                <div>Field C</div>
-                <div style={{ textAlign: 'right' }}>Field D</div>
-                <div>Field E</div>
-                <div style={{ textAlign: 'right' }}>Field F</div>
-              </div>
-            </>
-          ) : (
-            <>
-              <strong
-                className="canvas-element-label"
-                style={{
-                  display: 'block',
-                  fontSize: '0.7rem',
-                  color: slotLabels?.[(element as any).slotId] ? '#344054' : '#475467',
-                  ...(metaTextStyle ?? {}),
-                }}
-              >
-                {slotLabels?.[(element as any).slotId] ?? element.type}
-              </strong>
-              <span
-                className="canvas-element-value"
-                style={{
-                  fontSize: `${0.85 * getElementSettings(element).fontScale}rem`,
-                  ...(metaTextStyle ?? {}),
-                }}
-              >
-                {describeDataSource(element)}
-              </span>
-            </>
-          )}
-          {isAdvanced && element.type !== 'table' && element.type !== 'cardList' && (
-            <div className="resize-handle" onMouseDown={(event) => handleResizeMouseDown(event, element)} />
-          )}
-
-        </div>
-      );
+            )}
+          </div>
+        );
       })}
       {guideElements}
       {hint && (

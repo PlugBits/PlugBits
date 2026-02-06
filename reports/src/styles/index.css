@@ -155,8 +155,12 @@ button:disabled {
   overflow: hidden;
 }
 
-.canvas-element {
+.canvas-element-wrapper {
   position: absolute;
+  overflow: visible;
+}
+
+.canvas-element {
   padding: 4px 6px 6px;
   border-radius: 6px;
   border: 1px solid transparent;
@@ -165,8 +169,19 @@ button:disabled {
   font-size: 0.85rem;
   line-height: 1.3;
   overflow: visible;
+  box-sizing: border-box;
   cursor: pointer;
   transition: border-color 0.2s ease;
+}
+
+.canvas-element-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  padding: 4px 6px 6px;
+  pointer-events: none;
+  overflow: visible;
 }
 
 .canvas-element-label,
