@@ -280,7 +280,7 @@ const ElementInspector = ({ templateId, element }: ElementInspectorProps) => {
         </label>
       )}
 
-      {element.type !== 'table' && currentSlotId === 'doc_title' && (
+      {isAdvanced && element.type !== 'table' && currentSlotId === 'doc_title' && (
         <div style={{ marginTop: 6 }}>
           <div style={{ fontWeight: 600, color: '#101828', marginBottom: 6 }}>位置（簡易）</div>
           <div style={{ display: 'flex', gap: 6 }}>
@@ -318,14 +318,20 @@ const ElementInspector = ({ templateId, element }: ElementInspectorProps) => {
           type="button"
           className="ghost"
           style={{
-            color: isSlotElement ? '#98a2b3' : '#b42318',
-            borderColor: isSlotElement ? '#e4e7ec' : '#fda29b',
-            cursor: isSlotElement ? 'not-allowed' : 'pointer',
+            color: isSlotElement || !isAdvanced ? '#98a2b3' : '#b42318',
+            borderColor: isSlotElement || !isAdvanced ? '#e4e7ec' : '#fda29b',
+            cursor: isSlotElement || !isAdvanced ? 'not-allowed' : 'pointer',
           }}
-          disabled={isSlotElement}
-          title={isSlotElement ? 'この要素はテンプレ構造上必須のため削除できません' : undefined}
+          disabled={isSlotElement || !isAdvanced}
+          title={
+            isSlotElement
+              ? 'この要素はテンプレ構造上必須のため削除できません'
+              : !isAdvanced
+              ? '初心者モードでは削除できません'
+              : undefined
+          }
           onClick={() => {
-            if (!isSlotElement) {
+            if (!isSlotElement && isAdvanced) {
               removeElement(templateId, element.id);
             }
           }}

@@ -69,11 +69,10 @@ const TemplateEditorPage = () => {
       template?.baseTemplateId ?? '',
     );
   const EASY_ADJUST_GROUPS = [
-    { key: 'title', label: 'タイトル' },
-    { key: 'customer', label: '宛先' },
-    { key: 'documentMeta', label: '文書番号・日付' },
-    { key: 'body', label: '本文' },
-    { key: 'footer', label: 'フッター' },
+    { key: 'header', label: 'Header' },
+    { key: 'recipient', label: 'Recipient' },
+    { key: 'body', label: 'Body' },
+    { key: 'footer', label: 'Footer' },
   ] as const;
   const sheetSettings = template?.sheetSettings;
   const isLabelConfigInvalid =
@@ -139,7 +138,7 @@ const TemplateEditorPage = () => {
   };
 
   const updateEasyAdjustGroupSettings = (
-    group: 'title' | 'customer' | 'documentMeta' | 'body' | 'footer' | 'header',
+    group: 'header' | 'recipient' | 'body' | 'footer' | 'documentMeta',
     patch: Record<string, unknown>,
   ) => {
     if (!template) return;
@@ -150,7 +149,7 @@ const TemplateEditorPage = () => {
   };
 
   const resetEasyAdjustGroupSettings = (
-    group: 'title' | 'customer' | 'documentMeta' | 'body' | 'footer' | 'header',
+    group: 'header' | 'recipient' | 'body' | 'footer' | 'documentMeta',
   ) => {
     if (!template) return;
     const easyAdjust = { ...(template.settings?.easyAdjust ?? {}) } as Record<string, any>;
@@ -316,9 +315,7 @@ const TemplateEditorPage = () => {
     if (template.structureType === 'label_v1') return;
     if (template.advancedLayoutEditing) return;
 
-    const easyAdjust = template.settings?.easyAdjust ?? {};
     const docMetaSettings = normalizeEasyAdjustBlockSettings(template, 'documentMeta');
-    const customerSettings = normalizeEasyAdjustBlockSettings(template, 'customer');
 
     const elements = template.elements ?? [];
     const nextElements = [...elements];
@@ -364,86 +361,176 @@ const TemplateEditorPage = () => {
         | undefined;
 
     const logo = findBySlotOrId('logo') as ImageElement | undefined;
-    const blockRightBase = CANVAS_WIDTH - 60;
-    const logoLeft = logo && Number.isFinite(logo.x) ? (logo.x as number) : undefined;
-    const blockRight =
-      logoLeft && logoLeft > 80 ? Math.min(blockRightBase, logoLeft - 12) : blockRightBase;
+    const logoX = Number.isFinite(logo?.x) ? (logo?.x as number) : 450;
+    const logoY = Number.isFinite(logo?.y) ? (logo?.y as number) : 752;
+    const logoW = Number.isFinite(logo?.width) ? (logo?.width as number) : 120;
+    const logoH = Number.isFinite(logo?.height) ? (logo?.height as number) : 60;
 
-    const metaLabelWidth = 60;
-    const metaValueWidth = 140;
     const metaGap = 6;
-    const metaBlockWidth = metaLabelWidth + metaGap + metaValueWidth;
     const metaLineGap =
       docMetaSettings.spacingPreset === 'tight'
         ? 16
         : docMetaSettings.spacingPreset === 'loose'
         ? 26
         : 20;
-    const metaLine1Y = clampYToRegion(752, 'header');
-    const metaLine2Y = clampYToRegion(metaLine1Y - metaLineGap, 'header');
-    const metaValueWidthFinal =
-      docMetaSettings.labelMode === 'labelValue' ? metaValueWidth : metaBlockWidth;
-    const metaValueX = Math.max(40, blockRight - metaValueWidthFinal);
-    const metaLabelX = Math.max(40, blockRight - metaValueWidth - metaGap - metaLabelWidth);
+
+    const metaBlockLeftRaw =
+      docMetaSettings.metaPosition === 'rightOfLogo' ? logoX + logoW + 12 : logoX;
+    const metaBlockLeft = Math.min(Math.max(40, metaBlockLeftRaw), CANVAS_WIDTH - 80);
+    const metaBlockWidthRaw =
+      docMetaSettings.metaPosition === 'rightOfLogo'
+        ? Math.max(160, CANVAS_WIDTH - 60 - metaBlockLeft)
+        : logoW;
+    const metaBlockWidth = Math.min(metaBlockWidthRaw, CANVAS_WIDTH - 60 - metaBlockLeft);
+    const metaTopYRaw =
+      docMetaSettings.metaPosition === 'rightOfLogo' ? logoY + logoH - 10 : logoY - 12;
+    const metaTopY = clampYToRegion(metaTopYRaw, 'header');
 
     const docNo = findBySlotOrId('doc_no') as TextElement | undefined;
     const dateLabel = findBySlotOrId('date_label') as TextElement | undefined;
     const issueDate = findBySlotOrId('issue_date') as TextElement | undefined;
 
     if (docNo || dateLabel || issueDate) {
-      if (docMetaSettings.labelMode === 'labelValue') {
+      const metaLabelWidth = Math.min(56, Math.max(40, metaBlockWidth * 0.35));
+      const metaValueWidth = Math.max(80, metaBlockWidth - metaLabelWidth - metaGap);
+
+      const ensureDocNoLabel = () => {
         const docNoLabel = ensureTextElement('doc_no_label', {
           id: 'doc_no_label',
           type: 'text',
           region: 'header',
-          x: metaLabelX,
-          y: metaLine1Y,
+          x: metaBlockLeft,
+          y: metaTopY,
           width: metaLabelWidth,
           height: 16,
           fontSize: 9,
           repeatOnEveryPage: true,
           dataSource: { type: 'static', value: '文書番号' },
         });
-        updateElement(docNoLabel, {
+        const labelSource = (docNoLabel as any).dataSource as { type?: string; value?: string } | undefined;
+        const labelPatch: Partial<TextElement> = {
           region: 'header',
-          x: metaLabelX,
-          y: metaLine1Y,
+          x: metaBlockLeft,
+          y: metaTopY,
           width: metaLabelWidth,
           height: 16,
+          fontSize: 9,
           repeatOnEveryPage: true,
-        });
-      }
+        };
+        if (labelSource?.type !== 'static' || !labelSource.value) {
+          labelPatch.dataSource = { type: 'static', value: '文書番号' };
+        }
+        updateElement(docNoLabel, labelPatch);
+      };
 
-      if (docNo) {
-        updateElement(docNo, {
-          region: 'header',
-          x: metaValueX,
-          y: metaLine1Y,
-          width: metaValueWidthFinal,
-          height: 16,
-          repeatOnEveryPage: true,
-        });
-      }
+      if (docMetaSettings.metaLayout === 'horizontal' && docMetaSettings.docNoVisible && docMetaSettings.dateVisible) {
+        const segmentGap = 8;
+        const segmentWidth = Math.max(60, (metaBlockWidth - segmentGap) / 2);
+        const labelWidth = Math.min(56, Math.max(40, segmentWidth * 0.35));
+        const valueWidth = Math.max(60, segmentWidth - labelWidth - metaGap);
+        const leftX = metaBlockLeft;
+        const rightX = metaBlockLeft + segmentWidth + segmentGap;
 
-      if (dateLabel) {
-        updateElement(dateLabel, {
-          region: 'header',
-          x: metaLabelX,
-          y: metaLine2Y,
-          width: metaLabelWidth,
-          height: 16,
-          repeatOnEveryPage: true,
-        });
-      }
+        if (docMetaSettings.docNoVisible) {
+          ensureDocNoLabel();
+          if (docNo) {
+            updateElement(docNo, {
+              region: 'header',
+              x: leftX + labelWidth + metaGap,
+              y: metaTopY,
+              width: valueWidth,
+              height: 16,
+              repeatOnEveryPage: true,
+            });
+          }
+          updateElement(ensureTextElement('doc_no_label', {
+            id: 'doc_no_label',
+            type: 'text',
+            region: 'header',
+            x: leftX,
+            y: metaTopY,
+            width: labelWidth,
+            height: 16,
+            fontSize: 9,
+            repeatOnEveryPage: true,
+            dataSource: { type: 'static', value: '文書番号' },
+          }), {
+            region: 'header',
+            x: leftX,
+            y: metaTopY,
+            width: labelWidth,
+            height: 16,
+            fontSize: 9,
+            repeatOnEveryPage: true,
+          });
+        }
 
-      if (issueDate) {
-        updateElement(issueDate, {
-          region: 'header',
-          x: metaValueX,
-          y: metaLine2Y,
-          width: metaValueWidthFinal,
-          height: 16,
-          repeatOnEveryPage: true,
+        if (docMetaSettings.dateVisible) {
+          if (dateLabel) {
+            updateElement(dateLabel, {
+              region: 'header',
+              x: rightX,
+              y: metaTopY,
+              width: labelWidth,
+              height: 16,
+              fontSize: 9,
+              repeatOnEveryPage: true,
+            });
+          }
+          if (issueDate) {
+            updateElement(issueDate, {
+              region: 'header',
+              x: rightX + labelWidth + metaGap,
+              y: metaTopY,
+              width: valueWidth,
+              height: 16,
+              repeatOnEveryPage: true,
+            });
+          }
+        }
+      } else {
+        const lineItems: Array<'docNo' | 'date'> = [];
+        if (docMetaSettings.docNoVisible) lineItems.push('docNo');
+        if (docMetaSettings.dateVisible) lineItems.push('date');
+        const baseY = metaTopY;
+        lineItems.forEach((item, idx) => {
+          const lineY = clampYToRegion(baseY - idx * metaLineGap, 'header');
+          if (item === 'docNo') {
+            ensureDocNoLabel();
+            if (docNo) {
+              updateElement(docNo, {
+                region: 'header',
+                x: metaBlockLeft + metaLabelWidth + metaGap,
+                y: lineY,
+                width: metaValueWidth,
+                height: 16,
+                repeatOnEveryPage: true,
+              });
+            }
+          }
+          if (item === 'date') {
+            if (dateLabel) {
+              updateElement(dateLabel, {
+                region: 'header',
+                x: metaBlockLeft,
+                y: lineY,
+                width: metaLabelWidth,
+                height: 16,
+                fontSize: 9,
+                repeatOnEveryPage: true,
+              });
+            }
+            if (issueDate) {
+              updateElement(issueDate, {
+                region: 'header',
+                x: metaBlockLeft + metaLabelWidth + metaGap,
+                y: lineY,
+                width: metaValueWidth,
+                height: 16,
+                repeatOnEveryPage: true,
+              });
+            }
+          }
         });
       }
     }
@@ -462,59 +549,47 @@ const TemplateEditorPage = () => {
       let nameX = 60;
       let nameWidth = baseWidth;
 
-      if (customerSettings.labelMode === 'labelValue') {
-        const toLabel = ensureTextElement('to_label', {
-          id: 'to_label',
-          type: 'text',
-          region: 'header',
-          x: nameX,
-          y: baseY,
-          width: labelWidth,
-          height: baseHeight,
-          fontSize: 9,
-          repeatOnEveryPage: true,
-          dataSource: { type: 'static', value: '宛先' },
-        });
-        updateElement(toLabel, {
-          region: 'header',
-          x: nameX,
-          y: baseY,
-          width: labelWidth,
-          height: baseHeight,
-          repeatOnEveryPage: true,
-        });
-        nameX = nameX + labelWidth + gap;
-        nameWidth = Math.max(120, baseWidth - labelWidth - gap);
+      const toLabel = ensureTextElement('to_label', {
+        id: 'to_label',
+        type: 'text',
+        region: 'header',
+        x: nameX,
+        y: baseY,
+        width: labelWidth,
+        height: baseHeight,
+        fontSize: 9,
+        repeatOnEveryPage: true,
+        dataSource: { type: 'static', value: '宛先' },
+      });
+      const toLabelSource = (toLabel as any).dataSource as { type?: string; value?: string } | undefined;
+      const toLabelPatch: Partial<TextElement> = {
+        region: 'header',
+        x: nameX,
+        y: baseY,
+        width: labelWidth,
+        height: baseHeight,
+        fontSize: 9,
+        repeatOnEveryPage: true,
+      };
+      if (toLabelSource?.type !== 'static' || !toLabelSource.value) {
+        toLabelPatch.dataSource = { type: 'static', value: '宛先' };
       }
+      updateElement(toLabel, toLabelPatch);
+      nameX = nameX + labelWidth + gap;
+      nameWidth = Math.max(120, baseWidth - labelWidth - gap);
 
-      if (customerSettings.honorific !== 'none') {
+      const honorific = findBySlotOrId('to_honorific') as TextElement | undefined;
+      if (honorific) {
         nameWidth = Math.max(120, nameWidth - honorificWidth - gap);
-        const honorificText = customerSettings.honorific === 'onchu' ? '御中' : '様';
-        const honorific = ensureTextElement('to_honorific', {
-          id: 'to_honorific',
-          type: 'text',
+        updateElement(honorific, {
           region: 'header',
           x: nameX + nameWidth + gap,
           y: baseY,
           width: honorificWidth,
           height: baseHeight,
+          repeatOnEveryPage: true,
           fontSize: 9,
-          repeatOnEveryPage: true,
-          dataSource: { type: 'static', value: honorificText },
         });
-        const honorificSource = (honorific as any).dataSource as { type?: string; value?: string } | undefined;
-        const honorificPatch: Partial<TextElement> = {
-          region: 'header',
-          x: nameX + nameWidth + gap,
-          y: baseY,
-          width: honorificWidth,
-          height: baseHeight,
-          repeatOnEveryPage: true,
-        };
-        if (honorificSource?.type !== 'static' || honorificSource.value !== honorificText) {
-          honorificPatch.dataSource = { type: 'static', value: honorificText };
-        }
-        updateElement(honorific, honorificPatch);
       }
 
       updateElement(toName, {
@@ -540,12 +615,11 @@ const TemplateEditorPage = () => {
 
   const blockLabelMap = useMemo(
     () => ({
-      title: 'タイトル',
-      customer: '宛先',
-      documentMeta: '文書番号・日付',
-      header: 'ヘッダー',
-      body: '本文',
-      footer: 'フッター',
+      header: 'Header',
+      recipient: 'Recipient',
+      documentMeta: '文書情報',
+      body: 'Body',
+      footer: 'Footer',
     }),
     [],
   );
@@ -1180,6 +1254,126 @@ const TemplateEditorPage = () => {
               </div>
               {activeTab === 'adjust' && template && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                  {(() => {
+                    const docMeta = normalizeEasyAdjustBlockSettings(template, 'documentMeta');
+                    return (
+                      <div
+                        style={{
+                          border: '1px solid #e4e7ec',
+                          borderRadius: 12,
+                          padding: 10,
+                          background: '#fff',
+                        }}
+                      >
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                          <div style={{ fontWeight: 700, fontSize: 13, color: '#101828' }}>文書情報</div>
+                          <button
+                            type="button"
+                            className="ghost"
+                            onClick={() => resetEasyAdjustGroupSettings('documentMeta')}
+                            style={{ fontSize: 11, padding: '4px 8px' }}
+                          >
+                            リセット
+                          </button>
+                        </div>
+                        <div style={{ fontSize: 12, color: '#475467', marginBottom: 6, fontWeight: 600 }}>
+                          表示
+                        </div>
+                        <div style={{ display: 'flex', gap: 6, marginBottom: 10 }}>
+                          {([
+                            { key: 'docNoVisible', label: '文書番号', active: docMeta.docNoVisible },
+                            { key: 'dateVisible', label: '日付', active: docMeta.dateVisible },
+                          ] as const).map((item) => (
+                            <button
+                              key={item.key}
+                              type="button"
+                              onClick={() =>
+                                updateEasyAdjustGroupSettings('documentMeta', {
+                                  [item.key]: !item.active,
+                                })
+                              }
+                              style={{
+                                padding: '4px 10px',
+                                borderRadius: 6,
+                                border: `1px solid ${item.active ? '#2563eb' : '#d0d5dd'}`,
+                                background: item.active ? '#eff6ff' : '#fff',
+                                color: item.active ? '#1d4ed8' : '#344054',
+                                fontSize: '0.8rem',
+                                fontWeight: 600,
+                                cursor: 'pointer',
+                              }}
+                            >
+                              {item.label}
+                            </button>
+                          ))}
+                        </div>
+                        <div style={{ fontSize: 12, color: '#475467', marginBottom: 6, fontWeight: 600 }}>
+                          並び
+                        </div>
+                        <div style={{ display: 'flex', gap: 6, marginBottom: 10 }}>
+                          {([
+                            { key: 'vertical', label: '縦' },
+                            { key: 'horizontal', label: '横' },
+                          ] as const).map((item) => {
+                            const active = docMeta.metaLayout === item.key;
+                            return (
+                              <button
+                                key={item.key}
+                                type="button"
+                                onClick={() =>
+                                  updateEasyAdjustGroupSettings('documentMeta', { metaLayout: item.key })
+                                }
+                                style={{
+                                  padding: '4px 10px',
+                                  borderRadius: 6,
+                                  border: `1px solid ${active ? '#2563eb' : '#d0d5dd'}`,
+                                  background: active ? '#eff6ff' : '#fff',
+                                  color: active ? '#1d4ed8' : '#344054',
+                                  fontSize: '0.8rem',
+                                  fontWeight: 600,
+                                  cursor: 'pointer',
+                                }}
+                              >
+                                {item.label}
+                              </button>
+                            );
+                          })}
+                        </div>
+                        <div style={{ fontSize: 12, color: '#475467', marginBottom: 6, fontWeight: 600 }}>
+                          位置
+                        </div>
+                        <div style={{ display: 'flex', gap: 6 }}>
+                          {([
+                            { key: 'underLogo', label: 'ロゴ下' },
+                            { key: 'rightOfLogo', label: 'ロゴ右' },
+                          ] as const).map((item) => {
+                            const active = docMeta.metaPosition === item.key;
+                            return (
+                              <button
+                                key={item.key}
+                                type="button"
+                                onClick={() =>
+                                  updateEasyAdjustGroupSettings('documentMeta', { metaPosition: item.key })
+                                }
+                                style={{
+                                  padding: '4px 10px',
+                                  borderRadius: 6,
+                                  border: `1px solid ${active ? '#2563eb' : '#d0d5dd'}`,
+                                  background: active ? '#eff6ff' : '#fff',
+                                  color: active ? '#1d4ed8' : '#344054',
+                                  fontSize: '0.8rem',
+                                  fontWeight: 600,
+                                  cursor: 'pointer',
+                                }}
+                              >
+                                {item.label}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    );
+                  })()}
                   {EASY_ADJUST_GROUPS.map((group) => {
                     const settings = normalizeEasyAdjustBlockSettings(template, group.key);
                     return (
@@ -1191,7 +1385,7 @@ const TemplateEditorPage = () => {
                           padding: 10,
                           background: '#fff',
                         }}
-                      >
+                        >
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
                           <div style={{ fontWeight: 700, fontSize: 13, color: '#101828' }}>{group.label}</div>
                           <button
@@ -1202,6 +1396,36 @@ const TemplateEditorPage = () => {
                           >
                             リセット
                           </button>
+                        </div>
+                        <div style={{ fontSize: 12, color: '#475467', marginBottom: 6, fontWeight: 600 }}>
+                          ブロック
+                        </div>
+                        <div style={{ display: 'flex', gap: 6, marginBottom: 10 }}>
+                          {([
+                            { key: true, label: '表示' },
+                            { key: false, label: '非表示' },
+                          ] as const).map((item) => {
+                            const active = settings.enabled === item.key;
+                            return (
+                              <button
+                                key={String(item.key)}
+                                type="button"
+                                onClick={() => updateEasyAdjustGroupSettings(group.key, { enabled: item.key })}
+                                style={{
+                                  padding: '4px 10px',
+                                  borderRadius: 6,
+                                  border: `1px solid ${active ? '#2563eb' : '#d0d5dd'}`,
+                                  background: active ? '#eff6ff' : '#fff',
+                                  color: active ? '#1d4ed8' : '#344054',
+                                  fontSize: '0.8rem',
+                                  fontWeight: 600,
+                                  cursor: 'pointer',
+                                }}
+                              >
+                                {item.label}
+                              </button>
+                            );
+                          })}
                         </div>
                         <div style={{ fontSize: 12, color: '#475467', marginBottom: 6, fontWeight: 600 }}>
                           フォントサイズ
@@ -1261,110 +1485,6 @@ const TemplateEditorPage = () => {
                             );
                           })}
                         </div>
-                        {(group.key === 'documentMeta' || group.key === 'customer') && (
-                          <>
-                            <div style={{ fontSize: 12, color: '#475467', margin: '10px 0 6px', fontWeight: 600 }}>
-                              表示形式
-                            </div>
-                            <div style={{ display: 'flex', gap: 6 }}>
-                              {([
-                                { key: 'labelValue', label: 'ラベル+値' },
-                                { key: 'valueOnly', label: '値のみ' },
-                              ] as const).map((item) => {
-                                const active = settings.labelMode === item.key;
-                                return (
-                                  <button
-                                    key={item.key}
-                                    type="button"
-                                    onClick={() => updateEasyAdjustGroupSettings(group.key, { labelMode: item.key })}
-                                    style={{
-                                      padding: '4px 10px',
-                                      borderRadius: 6,
-                                      border: `1px solid ${active ? '#2563eb' : '#d0d5dd'}`,
-                                      background: active ? '#eff6ff' : '#fff',
-                                      color: active ? '#1d4ed8' : '#344054',
-                                      fontSize: '0.8rem',
-                                      fontWeight: 600,
-                                      cursor: 'pointer',
-                                    }}
-                                  >
-                                    {item.label}
-                                  </button>
-                                );
-                              })}
-                            </div>
-                          </>
-                        )}
-                        {group.key === 'documentMeta' && (
-                          <>
-                            <div style={{ fontSize: 12, color: '#475467', margin: '10px 0 6px', fontWeight: 600 }}>
-                              行間
-                            </div>
-                            <div style={{ display: 'flex', gap: 6 }}>
-                              {([
-                                { key: 'tight', label: '詰める' },
-                                { key: 'normal', label: '標準' },
-                                { key: 'loose', label: '広い' },
-                              ] as const).map((item) => {
-                                const active = settings.spacingPreset === item.key;
-                                return (
-                                  <button
-                                    key={item.key}
-                                    type="button"
-                                    onClick={() => updateEasyAdjustGroupSettings(group.key, { spacingPreset: item.key })}
-                                    style={{
-                                      padding: '4px 10px',
-                                      borderRadius: 6,
-                                      border: `1px solid ${active ? '#2563eb' : '#d0d5dd'}`,
-                                      background: active ? '#eff6ff' : '#fff',
-                                      color: active ? '#1d4ed8' : '#344054',
-                                      fontSize: '0.8rem',
-                                      fontWeight: 600,
-                                      cursor: 'pointer',
-                                    }}
-                                  >
-                                    {item.label}
-                                  </button>
-                                );
-                              })}
-                            </div>
-                          </>
-                        )}
-                        {group.key === 'customer' && (
-                          <>
-                            <div style={{ fontSize: 12, color: '#475467', margin: '10px 0 6px', fontWeight: 600 }}>
-                              敬称
-                            </div>
-                            <div style={{ display: 'flex', gap: 6 }}>
-                              {([
-                                { key: 'sama', label: '様' },
-                                { key: 'onchu', label: '御中' },
-                                { key: 'none', label: 'なし' },
-                              ] as const).map((item) => {
-                                const active = settings.honorific === item.key;
-                                return (
-                                  <button
-                                    key={item.key}
-                                    type="button"
-                                    onClick={() => updateEasyAdjustGroupSettings(group.key, { honorific: item.key })}
-                                    style={{
-                                      padding: '4px 10px',
-                                      borderRadius: 6,
-                                      border: `1px solid ${active ? '#2563eb' : '#d0d5dd'}`,
-                                      background: active ? '#eff6ff' : '#fff',
-                                      color: active ? '#1d4ed8' : '#344054',
-                                      fontSize: '0.8rem',
-                                      fontWeight: 600,
-                                      cursor: 'pointer',
-                                    }}
-                                  >
-                                    {item.label}
-                                  </button>
-                                );
-                              })}
-                            </div>
-                          </>
-                        )}
                       </div>
                     );
                   })}

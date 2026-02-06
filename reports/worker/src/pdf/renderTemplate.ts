@@ -988,16 +988,13 @@ const resolvePagePadding = (preset?: 'Narrow' | 'Normal' | 'Wide') => {
   return 16;
 };
 
-type EasyAdjustBlock = 'title' | 'documentMeta' | 'customer' | 'header' | 'body' | 'footer';
+type EasyAdjustBlock = 'header' | 'recipient' | 'body' | 'footer' | 'documentMeta';
 
 const resolveEasyAdjustBlock = (
   element: TemplateElement,
   template: TemplateDefinition,
 ): EasyAdjustBlock => {
   const slotId = (element as any).slotId as string | undefined;
-  if (slotId === 'doc_title' || element.id === 'doc_title' || element.id === 'title') {
-    return 'title';
-  }
   if (slotId === 'doc_no' || slotId === 'date_label' || slotId === 'issue_date') {
     return 'documentMeta';
   }
@@ -1005,10 +1002,10 @@ const resolveEasyAdjustBlock = (
     return 'documentMeta';
   }
   if (slotId === 'to_name' || element.id === 'to_name') {
-    return 'customer';
+    return 'recipient';
   }
   if (element.id === 'to_label' || element.id === 'to_honorific') {
-    return 'customer';
+    return 'recipient';
   }
   if (element.region === 'header') return 'header';
   if (element.region === 'footer') return 'footer';
@@ -1035,12 +1032,25 @@ const normalizeEasyAdjustBlockSettings = (
   const legacyPaddingPreset = template.settings?.pagePaddingPreset ?? 'Normal';
   const easyAdjust = template.settings?.easyAdjust ?? {};
   const groupSettings = (easyAdjust as Record<string, any>)[block] ?? {};
+  const legacyTitle = (easyAdjust as Record<string, any>).title ?? {};
+  const legacyCustomer = (easyAdjust as Record<string, any>).customer ?? {};
   return {
-    fontPreset: groupSettings.fontPreset ?? legacyFontPreset,
-    paddingPreset: groupSettings.paddingPreset ?? legacyPaddingPreset,
+    fontPreset:
+      groupSettings.fontPreset ??
+      (block === 'header' ? legacyTitle.fontPreset : undefined) ??
+      (block === 'recipient' ? legacyCustomer.fontPreset : undefined) ??
+      legacyFontPreset,
+    paddingPreset:
+      groupSettings.paddingPreset ??
+      (block === 'header' ? legacyTitle.paddingPreset : undefined) ??
+      (block === 'recipient' ? legacyCustomer.paddingPreset : undefined) ??
+      legacyPaddingPreset,
+    enabled: groupSettings.enabled !== false,
     spacingPreset: groupSettings.spacingPreset ?? 'normal',
-    labelMode: groupSettings.labelMode ?? 'labelValue',
-    honorific: groupSettings.honorific ?? 'sama',
+    docNoVisible: groupSettings.docNoVisible !== false,
+    dateVisible: groupSettings.dateVisible !== false,
+    metaLayout: groupSettings.metaLayout ?? 'vertical',
+    metaPosition: groupSettings.metaPosition ?? 'underLogo',
     hiddenLabelIds: Array.isArray(groupSettings.hiddenLabelIds) ? groupSettings.hiddenLabelIds : [],
   };
 };
@@ -1052,15 +1062,21 @@ const resolveEasyAdjustForElement = (
   const block = resolveEasyAdjustBlock(element, template);
   const settings = normalizeEasyAdjustBlockSettings(template, block);
   const slotId = (element as any).slotId as string | undefined;
-  let hidden = (element as any).hidden === true || settings.hiddenLabelIds.includes(element.id);
-  if (!hidden && block === 'documentMeta' && settings.labelMode === 'valueOnly') {
-    if (element.id === 'doc_no_label' || slotId === 'date_label') hidden = true;
-  }
-  if (!hidden && block === 'customer' && settings.labelMode === 'valueOnly') {
-    if (element.id === 'to_label') hidden = true;
-  }
-  if (!hidden && block === 'customer' && element.id === 'to_honorific' && settings.honorific === 'none') {
+  let hidden = (element as any).hidden === true;
+  if (!hidden && block !== 'documentMeta' && settings.enabled === false) {
     hidden = true;
+  }
+  if (!hidden && block === 'documentMeta') {
+    const headerSettings = normalizeEasyAdjustBlockSettings(template, 'header');
+    if (headerSettings.enabled === false) {
+      hidden = true;
+    }
+    if (!settings.docNoVisible && (slotId === 'doc_no' || element.id === 'doc_no_label')) {
+      hidden = true;
+    }
+    if (!settings.dateVisible && (slotId === 'date_label' || slotId === 'issue_date')) {
+      hidden = true;
+    }
   }
   return {
     fontScale: resolveFontScale(settings.fontPreset),
@@ -1157,6 +1173,13 @@ function drawText(
   let yStart = toPdfYFromBottom(element.y, pageHeight);
   yStart = clampPdfY(yStart, pageHeight - fontSize - 2);
   const fontToUse = pickFontForText(text, jpFont, latinFont);
+  const slotId = (element as any).slotId as string | undefined;
+  const isLabelText =
+    element.id.endsWith('_label') ||
+    (slotId ? slotId.endsWith('_label') : false) ||
+    slotId === 'date_label' ||
+    element.id === 'to_label';
+  const textColor = isLabelText ? rgb(0.35, 0.35, 0.35) : rgb(0, 0, 0);
 
   const lines = wrapTextToLines(text, fontToUse, fontSize, maxWidth);
   const x = resolveAlignedX(element, pageWidth, maxWidth, pagePadding);
@@ -1167,7 +1190,7 @@ function drawText(
     yStart,
     fontToUse,
     fontSize,
-    rgb(0, 0, 0),
+    textColor,
     maxLines,
   );
 }

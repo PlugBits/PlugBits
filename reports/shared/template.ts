@@ -13,18 +13,22 @@ export type FontScalePreset = 'S' | 'M' | 'L';
 export type PagePaddingPreset = 'Narrow' | 'Normal' | 'Wide';
 
 export type EasyAdjustGroup =
-  | 'title'
-  | 'documentMeta'
-  | 'customer'
   | 'header'
+  | 'recipient'
   | 'body'
-  | 'footer';
+  | 'footer'
+  | 'documentMeta'
+  | 'title'
+  | 'customer';
 export type EasyAdjustGroupSettings = {
   fontPreset?: FontScalePreset;
   paddingPreset?: PagePaddingPreset;
+  enabled?: boolean;
   spacingPreset?: 'tight' | 'normal' | 'loose';
-  labelMode?: 'labelValue' | 'valueOnly';
-  honorific?: 'sama' | 'onchu' | 'none';
+  docNoVisible?: boolean;
+  dateVisible?: boolean;
+  metaLayout?: 'vertical' | 'horizontal';
+  metaPosition?: 'underLogo' | 'rightOfLogo';
   hiddenLabelIds?: string[];
 };
 export type EasyAdjustSettings = Partial<Record<EasyAdjustGroup, EasyAdjustGroupSettings>>;
