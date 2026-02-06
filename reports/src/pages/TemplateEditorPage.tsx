@@ -313,7 +313,6 @@ const TemplateEditorPage = () => {
   useEffect(() => {
     if (!template) return;
     if (template.structureType === 'label_v1') return;
-    if (template.advancedLayoutEditing) return;
 
     const docMetaSettings = normalizeEasyAdjustBlockSettings(template, 'documentMeta');
 
@@ -607,11 +606,32 @@ const TemplateEditorPage = () => {
     }
   }, [template, updateTemplate]);
 
+  const isDocumentMetaElement = (element: TemplateElement | null | undefined) => {
+    if (!element) return false;
+    const slotId = (element as any).slotId as string | undefined;
+    return (
+      slotId === 'doc_no' ||
+      slotId === 'date_label' ||
+      slotId === 'issue_date' ||
+      element.id === 'doc_no_label'
+    );
+  };
+
 
   const selectedElement = useMemo<TemplateElement | null>(() => {
     if (!template || !selectedElementId) return null;
     return template.elements.find((element) => element.id === selectedElementId) ?? null;
   }, [template, selectedElementId]);
+
+  useEffect(() => {
+    if (!template || !selectedElementId) return;
+    if (!selectedElement) return;
+    if (!isDocumentMetaElement(selectedElement)) return;
+    const fallback = template.elements.find((el) => !isDocumentMetaElement(el))?.id ?? null;
+    if (fallback !== selectedElementId) {
+      setSelectedElementId(fallback);
+    }
+  }, [template, selectedElementId, selectedElement]);
 
   const blockLabelMap = useMemo(
     () => ({
@@ -1144,7 +1164,16 @@ const TemplateEditorPage = () => {
             <TemplateCanvas
               template={template}
               selectedElementId={selectedElementId}
-              onSelect={(element) => setSelectedElementId(element?.id ?? null)}
+              onSelect={(element) => {
+                if (!element) {
+                  setSelectedElementId(null);
+                  return;
+                }
+                if (isDocumentMetaElement(element)) {
+                  return;
+                }
+                setSelectedElementId(element.id);
+              }}
               onUpdateElement={(elementId, updates) => updateElement(template.id, elementId, updates)}
               showGrid={gridVisible}
               snapEnabled={snapEnabled}
@@ -1508,7 +1537,9 @@ const TemplateEditorPage = () => {
                     </div>
 
                     {(['header', 'body', 'footer'] as const).map((region) => {
-                      const items = sortedByRegion(template.elements ?? [], region);
+                      const items = sortedByRegion(template.elements ?? [], region).filter(
+                        (el) => !isDocumentMetaElement(el),
+                      );
                       if (items.length === 0) return null;
 
                       const regionLabel = region === 'header' ? 'Header' : region === 'body' ? 'Body' : 'Footer';
