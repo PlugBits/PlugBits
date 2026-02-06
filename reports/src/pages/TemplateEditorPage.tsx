@@ -13,7 +13,9 @@ import {
   normalizeEasyAdjustBlockSettings,
   resolveElementBlock,
 } from '../utils/easyAdjust';
-import { CANVAS_WIDTH, clamp, clampYToRegion } from '../utils/regionBounds';
+import { CANVAS_WIDTH, clampYToRegion } from '../utils/regionBounds';
+import { computeDocumentMetaLayout } from '@shared/documentMetaLayout';
+import { resolveFontScalePreset } from '../utils/easyAdjust';
 import { getAdapter } from '../editor/Mapping/adapters/getAdapter';
 import { useEditorSession } from '../hooks/useEditorSession';
 
@@ -365,46 +367,26 @@ const TemplateEditorPage = () => {
     const logoW = Number.isFinite(logo?.width) ? (logo?.width as number) : 120;
     const logoH = Number.isFinite(logo?.height) ? (logo?.height as number) : 60;
 
-    const metaGap = 6;
-    const metaRowGap =
-      docMetaSettings.spacingPreset === 'tight'
-        ? 4
-        : docMetaSettings.spacingPreset === 'loose'
-        ? 8
-        : 6;
-    const metaLineHeight = 16;
-    const metaLineGap = metaLineHeight + metaRowGap;
-
-    const isMetaRight = docMetaSettings.metaLayout === 'horizontal';
-    const metaBlockLeftRaw = isMetaRight ? logoX + logoW + 12 : logoX;
-    const metaMinWidth = isMetaRight ? 240 : 200;
-    const metaMaxWidth = 320;
-    const maxLeftForMin = CANVAS_WIDTH - 60 - metaMinWidth;
-    const metaBlockLeft = clamp(metaBlockLeftRaw, 40, Math.max(40, maxLeftForMin));
-    const availableWidth = CANVAS_WIDTH - 60 - metaBlockLeft;
-    const metaBlockWidthRaw = isMetaRight ? availableWidth : Math.max(logoW, metaMinWidth);
-    const metaBlockWidth = Math.min(
-      Math.max(metaBlockWidthRaw, metaMinWidth),
-      Math.min(metaMaxWidth, availableWidth),
-    );
-    const metaTopYRaw = isMetaRight ? logoY + logoH - metaLineHeight : logoY - 8;
-    const metaTopY = clampYToRegion(metaTopYRaw, 'header');
-
     const docNo = findBySlotOrId('doc_no') as TextElement | undefined;
     const issueDate = findBySlotOrId('issue_date') as TextElement | undefined;
 
-    if (docNo || dateLabel || issueDate) {
-      const metaLabelWidth = Math.min(72, Math.max(56, Math.round(metaBlockWidth * 0.3)));
-      const metaValueWidth = Math.max(80, metaBlockWidth - metaLabelWidth - metaGap);
+    if (docNo || issueDate) {
+      const headerSettings = normalizeEasyAdjustBlockSettings(template, 'header');
+      const headerFontScale = resolveFontScalePreset(headerSettings.fontPreset);
+      const docNoFontSize = (docNo?.fontSize ?? 10) * headerFontScale;
+      const dateFontSize = (issueDate?.fontSize ?? 10) * headerFontScale;
+      const labelFontSize = 9 * headerFontScale;
+      const fallbackLabelWidth = Math.min(56, logoW);
+      const fallbackTopY = logoY - 12;
 
       const ensureDocNoLabel = () => {
         const docNoLabel = ensureTextElement('doc_no_label', {
           id: 'doc_no_label',
           type: 'text',
           region: 'header',
-          x: metaBlockLeft,
-          y: metaTopY,
-          width: metaLabelWidth,
+          x: logoX,
+          y: fallbackTopY,
+          width: fallbackLabelWidth,
           height: 16,
           fontSize: 9,
           repeatOnEveryPage: true,
@@ -413,9 +395,9 @@ const TemplateEditorPage = () => {
         const labelSource = (docNoLabel as any).dataSource as { type?: string; value?: string } | undefined;
         const labelPatch: Partial<TextElement> = {
           region: 'header',
-          x: metaBlockLeft,
-          y: metaTopY,
-          width: metaLabelWidth,
+          x: logoX,
+          y: fallbackTopY,
+          width: fallbackLabelWidth,
           height: 16,
           fontSize: 9,
           repeatOnEveryPage: true,
@@ -431,7 +413,7 @@ const TemplateEditorPage = () => {
           const ds = (existing as any).dataSource as { type?: string; value?: string } | undefined;
           const patch: Partial<TextElement> = {
             region: 'header',
-            width: metaLabelWidth,
+            width: existing.width ?? 56,
             height: 16,
             fontSize: 9,
             repeatOnEveryPage: true,
@@ -447,9 +429,9 @@ const TemplateEditorPage = () => {
           slotId: 'date_label',
           type: 'text',
           region: 'header',
-          x: metaBlockLeft,
-          y: metaTopY,
-          width: metaLabelWidth,
+          x: logoX,
+          y: logoY - 12,
+          width: 56,
           height: 16,
           fontSize: 9,
           repeatOnEveryPage: true,
@@ -458,112 +440,81 @@ const TemplateEditorPage = () => {
         return next;
       };
 
-      if (docMetaSettings.metaLayout === 'horizontal' && docMetaSettings.docNoVisible && docMetaSettings.dateVisible) {
-        const segmentGap = 8;
-        const segmentWidth = Math.max(120, (metaBlockWidth - segmentGap) / 2);
-        const labelWidth = 56;
-        const valueWidth = Math.max(60, segmentWidth - labelWidth - metaGap);
-        const leftX = metaBlockLeft;
-        const rightX = metaBlockLeft + segmentWidth + segmentGap;
+      if (docMetaSettings.docNoVisible) {
+        ensureDocNoLabel();
+      }
+      if (docMetaSettings.dateVisible) {
+        ensureDateLabel();
+      }
 
-        if (docMetaSettings.docNoVisible) {
-          ensureDocNoLabel();
-          if (docNo) {
-            updateElement(docNo, {
-              region: 'header',
-              x: leftX + labelWidth + metaGap,
-              y: metaTopY,
-              width: valueWidth,
-              height: 16,
-              repeatOnEveryPage: true,
-            });
-          }
-          updateElement(ensureTextElement('doc_no_label', {
-            id: 'doc_no_label',
-            type: 'text',
-            region: 'header',
-            x: leftX,
-            y: metaTopY,
-            width: labelWidth,
-            height: 16,
-            fontSize: 9,
-            repeatOnEveryPage: true,
-            dataSource: { type: 'static', value: '文書番号' },
-          }), {
-            region: 'header',
-            x: leftX,
-            y: metaTopY,
-            width: labelWidth,
-            height: 16,
-            fontSize: 9,
-            repeatOnEveryPage: true,
-          });
-        }
+      const layout = computeDocumentMetaLayout({
+        logoX,
+        logoY,
+        logoWidth: logoW,
+        logoHeight: logoH,
+        gap: 12,
+        labelWidth: 56,
+        columnGap: 8,
+        rowGap: 6,
+        minValueWidth: 80,
+        docNoVisible: docMetaSettings.docNoVisible,
+        dateVisible: docMetaSettings.dateVisible,
+        fontSizes: {
+          docNoLabel: labelFontSize,
+          docNoValue: docNoFontSize,
+          dateLabel: labelFontSize,
+          dateValue: dateFontSize,
+        },
+        heights: {
+          docNoLabel: (findBySlotOrId('doc_no_label') as TextElement | undefined)?.height,
+          docNoValue: docNo?.height,
+          dateLabel: (findBySlotOrId('date_label') as TextElement | undefined)?.height,
+          dateValue: issueDate?.height,
+        },
+      });
 
-        if (docMetaSettings.dateVisible) {
-          const dateEl = ensureDateLabel();
-          updateElement(dateEl, {
-            region: 'header',
-            x: rightX,
-            y: metaTopY,
-            width: labelWidth,
-            height: 16,
-            fontSize: 9,
-            repeatOnEveryPage: true,
-          });
-          if (issueDate) {
-            updateElement(issueDate, {
-              region: 'header',
-              x: rightX + labelWidth + metaGap,
-              y: metaTopY,
-              width: valueWidth,
-              height: 16,
-              repeatOnEveryPage: true,
-            });
-          }
-        }
-      } else {
-        const lineItems: Array<'docNo' | 'date'> = [];
-        if (docMetaSettings.docNoVisible) lineItems.push('docNo');
-        if (docMetaSettings.dateVisible) lineItems.push('date');
-        const baseY = metaTopY;
-        lineItems.forEach((item, idx) => {
-          const lineY = clampYToRegion(baseY - idx * metaLineGap, 'header');
-          if (item === 'docNo') {
-            ensureDocNoLabel();
-            if (docNo) {
-              updateElement(docNo, {
-                region: 'header',
-                x: metaBlockLeft + metaLabelWidth + metaGap,
-                y: lineY,
-                width: metaValueWidth,
-                height: 16,
-                repeatOnEveryPage: true,
-              });
-            }
-          }
-          if (item === 'date') {
-            const dateEl = ensureDateLabel();
-            updateElement(dateEl, {
-              region: 'header',
-              x: metaBlockLeft,
-              y: lineY,
-              width: metaLabelWidth,
-              height: 16,
-              fontSize: 9,
-              repeatOnEveryPage: true,
-            });
-            if (issueDate) {
-              updateElement(issueDate, {
-                region: 'header',
-                x: metaBlockLeft + metaLabelWidth + metaGap,
-                y: lineY,
-                width: metaValueWidth,
-                height: 16,
-                repeatOnEveryPage: true,
-              });
-            }
-          }
+      const docNoLabelEl = findBySlotOrId('doc_no_label') as TextElement | undefined;
+      if (docNoLabelEl && layout.docNoLabel) {
+        updateElement(docNoLabelEl, {
+          region: 'header',
+          x: layout.docNoLabel.x,
+          y: layout.docNoLabel.y,
+          width: layout.docNoLabel.width,
+          height: layout.docNoLabel.height,
+          fontSize: 9,
+          repeatOnEveryPage: true,
+        });
+      }
+      if (docNo && layout.docNoValue) {
+        updateElement(docNo, {
+          region: 'header',
+          x: layout.docNoValue.x,
+          y: layout.docNoValue.y,
+          width: layout.docNoValue.width,
+          height: layout.docNoValue.height,
+          repeatOnEveryPage: true,
+        });
+      }
+      const dateLabelEl = findBySlotOrId('date_label') as TextElement | undefined;
+      if (dateLabelEl && layout.dateLabel) {
+        updateElement(dateLabelEl, {
+          region: 'header',
+          x: layout.dateLabel.x,
+          y: layout.dateLabel.y,
+          width: layout.dateLabel.width,
+          height: layout.dateLabel.height,
+          fontSize: 9,
+          repeatOnEveryPage: true,
+        });
+      }
+      if (issueDate && layout.dateValue) {
+        updateElement(issueDate, {
+          region: 'header',
+          x: layout.dateValue.x,
+          y: layout.dateValue.y,
+          width: layout.dateValue.width,
+          height: layout.dateValue.height,
+          repeatOnEveryPage: true,
         });
       }
     }
@@ -1369,38 +1320,6 @@ const TemplateEditorPage = () => {
                               {item.label}
                             </button>
                           ))}
-                        </div>
-                        <div style={{ fontSize: 12, color: '#475467', marginBottom: 6, fontWeight: 600 }}>
-                          並び
-                        </div>
-                        <div style={{ display: 'flex', gap: 6, marginBottom: 10 }}>
-                          {([
-                            { key: 'vertical', label: '縦' },
-                            { key: 'horizontal', label: '横' },
-                          ] as const).map((item) => {
-                            const active = docMeta.metaLayout === item.key;
-                            return (
-                              <button
-                                key={item.key}
-                                type="button"
-                                onClick={() =>
-                                  updateEasyAdjustGroupSettings('documentMeta', { metaLayout: item.key })
-                                }
-                                style={{
-                                  padding: '4px 10px',
-                                  borderRadius: 6,
-                                  border: `1px solid ${active ? '#2563eb' : '#d0d5dd'}`,
-                                  background: active ? '#eff6ff' : '#fff',
-                                  color: active ? '#1d4ed8' : '#344054',
-                                  fontSize: '0.8rem',
-                                  fontWeight: 600,
-                                  cursor: 'pointer',
-                                }}
-                              >
-                                {item.label}
-                              </button>
-                            );
-                          })}
                         </div>
                       </div>
                     );

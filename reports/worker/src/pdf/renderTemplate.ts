@@ -17,6 +17,7 @@ import {
   type LabelSheetSettings,
   type LabelMapping,
 } from '../../../shared/template.js';
+import { computeDocumentMetaLayout, applyFrameToTextElement } from '../../../shared/documentMetaLayout.js';
 import type { PDFImage } from 'pdf-lib'; // 先頭の import に追加
 
 const isHttpUrl = (value: string) => /^https?:\/\//i.test(value);
@@ -735,8 +736,11 @@ export async function renderTemplateToPdf(
   );
 
   // それ以外（region 未指定 or 'header' 'body'）はヘッダー候補として扱う
-  const headerCandidates = nonBodyElements.filter(
-    (e) => e.region !== 'footer',
+  const headerCandidates = applyDocumentMetaLayout(
+    nonBodyElements.filter(
+      (e) => e.region !== 'footer',
+    ),
+    template,
   );
 
   // ヘッダー：毎ページ出すもの（デフォルト）
@@ -1046,11 +1050,8 @@ const normalizeEasyAdjustBlockSettings = (
       (block === 'recipient' ? legacyCustomer.paddingPreset : undefined) ??
       legacyPaddingPreset,
     enabled: groupSettings.enabled !== false,
-    spacingPreset: groupSettings.spacingPreset ?? 'normal',
     docNoVisible: groupSettings.docNoVisible !== false,
     dateVisible: groupSettings.dateVisible !== false,
-    metaLayout: groupSettings.metaLayout ?? 'vertical',
-    metaPosition: groupSettings.metaPosition ?? 'underLogo',
     hiddenLabelIds: Array.isArray(groupSettings.hiddenLabelIds) ? groupSettings.hiddenLabelIds : [],
   };
 };
@@ -1102,6 +1103,104 @@ const resolveAlignedX = (
   if (alignX === 'center') return (pageWidth - safeWidth) / 2;
   if (alignX === 'right') return pageWidth - safeWidth - padding;
   return element.x;
+};
+
+const applyDocumentMetaLayout = (
+  elements: TemplateElement[],
+  template: TemplateDefinition,
+): TemplateElement[] => {
+  const docMetaSettings = normalizeEasyAdjustBlockSettings(template, 'documentMeta');
+  if (!docMetaSettings.docNoVisible && !docMetaSettings.dateVisible) return elements;
+
+  const logo = elements.find(
+    (el) => el.type === 'image' && ((el as any).slotId === 'logo' || el.id === 'logo'),
+  ) as ImageElement | undefined;
+  const logoX = Number.isFinite(logo?.x) ? (logo?.x as number) : 450;
+  const logoY = Number.isFinite(logo?.y) ? (logo?.y as number) : 752;
+  const logoW = Number.isFinite(logo?.width) ? (logo?.width as number) : 120;
+  const logoH = Number.isFinite(logo?.height) ? (logo?.height as number) : 60;
+
+  const docNoLabelEl = elements.find((el) => el.id === 'doc_no_label') as TextElement | undefined;
+  const docNoEl = elements.find((el) => (el as any).slotId === 'doc_no') as TextElement | undefined;
+  const dateLabelEl = elements.find((el) => (el as any).slotId === 'date_label') as TextElement | undefined;
+  const issueDateEl = elements.find((el) => (el as any).slotId === 'issue_date') as TextElement | undefined;
+
+  const headerSettings = normalizeEasyAdjustBlockSettings(template, 'header');
+  const headerFontScale = resolveFontScale(headerSettings.fontPreset);
+
+  const layout = computeDocumentMetaLayout({
+    logoX,
+    logoY,
+    logoWidth: logoW,
+    logoHeight: logoH,
+    gap: 12,
+    labelWidth: 56,
+    columnGap: 8,
+    rowGap: 6,
+    minValueWidth: 80,
+    docNoVisible: docMetaSettings.docNoVisible,
+    dateVisible: docMetaSettings.dateVisible,
+    fontSizes: {
+      docNoLabel: (docNoLabelEl?.fontSize ?? 9) * headerFontScale,
+      docNoValue: (docNoEl?.fontSize ?? 10) * headerFontScale,
+      dateLabel: (dateLabelEl?.fontSize ?? 9) * headerFontScale,
+      dateValue: (issueDateEl?.fontSize ?? 10) * headerFontScale,
+    },
+    heights: {
+      docNoLabel: docNoLabelEl?.height,
+      docNoValue: docNoEl?.height,
+      dateLabel: dateLabelEl?.height,
+      dateValue: issueDateEl?.height,
+    },
+  });
+
+  const nextElements = elements.map((el) => {
+    if (el.id === 'doc_no_label' && layout.docNoLabel && el.type === 'text') {
+      return applyFrameToTextElement(el, layout.docNoLabel);
+    }
+    if ((el as any).slotId === 'doc_no' && layout.docNoValue && el.type === 'text') {
+      return applyFrameToTextElement(el, layout.docNoValue);
+    }
+    if ((el as any).slotId === 'date_label' && layout.dateLabel && el.type === 'text') {
+      return applyFrameToTextElement(el, layout.dateLabel);
+    }
+    if ((el as any).slotId === 'issue_date' && layout.dateValue && el.type === 'text') {
+      return applyFrameToTextElement(el, layout.dateValue);
+    }
+    return el;
+  });
+
+  if (docMetaSettings.docNoVisible && !docNoLabelEl && layout.docNoLabel) {
+    nextElements.push({
+      id: 'doc_no_label',
+      type: 'text',
+      region: 'header',
+      x: layout.docNoLabel.x,
+      y: layout.docNoLabel.y,
+      width: layout.docNoLabel.width,
+      height: layout.docNoLabel.height,
+      fontSize: 9,
+      repeatOnEveryPage: true,
+      dataSource: { type: 'static', value: '文書番号' },
+    } as TextElement);
+  }
+  if (docMetaSettings.dateVisible && !dateLabelEl && layout.dateLabel) {
+    nextElements.push({
+      id: 'date_label',
+      slotId: 'date_label',
+      type: 'text',
+      region: 'header',
+      x: layout.dateLabel.x,
+      y: layout.dateLabel.y,
+      width: layout.dateLabel.width,
+      height: layout.dateLabel.height,
+      fontSize: 9,
+      repeatOnEveryPage: true,
+      dataSource: { type: 'static', value: '日付' },
+    } as TextElement);
+  }
+
+  return nextElements;
 };
 
 // ============================
@@ -1181,8 +1280,27 @@ function drawText(
     element.id === 'to_label';
   const textColor = isLabelText ? rgb(0.35, 0.35, 0.35) : rgb(0, 0, 0);
 
-  const lines = wrapTextToLines(text, fontToUse, fontSize, maxWidth);
+  const isDocMeta =
+    element.id === 'doc_no_label' ||
+    slotId === 'doc_no' ||
+    slotId === 'date_label' ||
+    slotId === 'issue_date';
   const x = resolveAlignedX(element, pageWidth, maxWidth, pagePadding);
+  if (isDocMeta) {
+    const line = ellipsisTextToWidth(text, fontToUse, fontSize, maxWidth);
+    if (line) {
+      page.drawText(line, {
+        x,
+        y: yStart,
+        size: fontSize,
+        font: fontToUse,
+        color: textColor,
+      });
+    }
+    return;
+  }
+
+  const lines = wrapTextToLines(text, fontToUse, fontSize, maxWidth);
   drawMultilineText(
     page,
     lines,

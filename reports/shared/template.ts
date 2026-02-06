@@ -24,11 +24,8 @@ export type EasyAdjustGroupSettings = {
   fontPreset?: FontScalePreset;
   paddingPreset?: PagePaddingPreset;
   enabled?: boolean;
-  spacingPreset?: 'tight' | 'normal' | 'loose';
   docNoVisible?: boolean;
   dateVisible?: boolean;
-  metaLayout?: 'vertical' | 'horizontal';
-  metaPosition?: 'underLogo' | 'rightOfLogo';
   hiddenLabelIds?: string[];
 };
 export type EasyAdjustSettings = Partial<Record<EasyAdjustGroup, EasyAdjustGroupSettings>>;

@@ -11,11 +11,8 @@ export type EasyAdjustBlockSettings = {
   fontPreset: 'S' | 'M' | 'L';
   paddingPreset: 'Narrow' | 'Normal' | 'Wide';
   enabled: boolean;
-  spacingPreset: 'tight' | 'normal' | 'loose';
   docNoVisible: boolean;
   dateVisible: boolean;
-  metaLayout: 'vertical' | 'horizontal';
-  metaPosition: 'underLogo' | 'rightOfLogo';
   hiddenLabelIds: string[];
 };
 
@@ -75,11 +72,8 @@ export const normalizeEasyAdjustBlockSettings = (
     paddingPreset:
       (blockSettings.paddingPreset ?? (block === 'header' ? legacyTitle.paddingPreset : undefined) ?? (block === 'recipient' ? legacyCustomer.paddingPreset : undefined) ?? legacyPaddingPreset) as EasyAdjustBlockSettings['paddingPreset'],
     enabled: blockSettings.enabled !== false,
-    spacingPreset: (blockSettings.spacingPreset ?? 'normal') as EasyAdjustBlockSettings['spacingPreset'],
     docNoVisible: blockSettings.docNoVisible !== false,
     dateVisible: blockSettings.dateVisible !== false,
-    metaLayout: (blockSettings.metaLayout ?? 'vertical') as EasyAdjustBlockSettings['metaLayout'],
-    metaPosition: (blockSettings.metaPosition ?? 'underLogo') as EasyAdjustBlockSettings['metaPosition'],
     hiddenLabelIds: Array.isArray(blockSettings.hiddenLabelIds) ? blockSettings.hiddenLabelIds : [],
   };
 };
