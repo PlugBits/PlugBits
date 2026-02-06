@@ -13,7 +13,7 @@ import {
   normalizeEasyAdjustBlockSettings,
   resolveElementBlock,
 } from '../utils/easyAdjust';
-import { CANVAS_WIDTH, clampYToRegion } from '../utils/regionBounds';
+import { CANVAS_WIDTH, clamp, clampYToRegion } from '../utils/regionBounds';
 import { getAdapter } from '../editor/Mapping/adapters/getAdapter';
 import { useEditorSession } from '../hooks/useEditorSession';
 
@@ -366,31 +366,35 @@ const TemplateEditorPage = () => {
     const logoH = Number.isFinite(logo?.height) ? (logo?.height as number) : 60;
 
     const metaGap = 6;
-    const metaLineGap =
+    const metaRowGap =
       docMetaSettings.spacingPreset === 'tight'
-        ? 16
+        ? 4
         : docMetaSettings.spacingPreset === 'loose'
-        ? 26
-        : 20;
+        ? 8
+        : 6;
+    const metaLineHeight = 16;
+    const metaLineGap = metaLineHeight + metaRowGap;
 
-    const metaBlockLeftRaw =
-      docMetaSettings.metaPosition === 'rightOfLogo' ? logoX + logoW + 12 : logoX;
-    const metaBlockLeft = Math.min(Math.max(40, metaBlockLeftRaw), CANVAS_WIDTH - 80);
-    const metaBlockWidthRaw =
-      docMetaSettings.metaPosition === 'rightOfLogo'
-        ? Math.max(160, CANVAS_WIDTH - 60 - metaBlockLeft)
-        : logoW;
-    const metaBlockWidth = Math.min(metaBlockWidthRaw, CANVAS_WIDTH - 60 - metaBlockLeft);
-    const metaTopYRaw =
-      docMetaSettings.metaPosition === 'rightOfLogo' ? logoY + logoH - 10 : logoY - 12;
+    const isMetaRight = docMetaSettings.metaLayout === 'horizontal';
+    const metaBlockLeftRaw = isMetaRight ? logoX + logoW + 12 : logoX;
+    const metaMinWidth = isMetaRight ? 240 : 200;
+    const metaMaxWidth = 320;
+    const maxLeftForMin = CANVAS_WIDTH - 60 - metaMinWidth;
+    const metaBlockLeft = clamp(metaBlockLeftRaw, 40, Math.max(40, maxLeftForMin));
+    const availableWidth = CANVAS_WIDTH - 60 - metaBlockLeft;
+    const metaBlockWidthRaw = isMetaRight ? availableWidth : Math.max(logoW, metaMinWidth);
+    const metaBlockWidth = Math.min(
+      Math.max(metaBlockWidthRaw, metaMinWidth),
+      Math.min(metaMaxWidth, availableWidth),
+    );
+    const metaTopYRaw = isMetaRight ? logoY + logoH - metaLineHeight : logoY - 8;
     const metaTopY = clampYToRegion(metaTopYRaw, 'header');
 
     const docNo = findBySlotOrId('doc_no') as TextElement | undefined;
-    const dateLabel = findBySlotOrId('date_label') as TextElement | undefined;
     const issueDate = findBySlotOrId('issue_date') as TextElement | undefined;
 
     if (docNo || dateLabel || issueDate) {
-      const metaLabelWidth = Math.min(56, Math.max(40, metaBlockWidth * 0.35));
+      const metaLabelWidth = Math.min(72, Math.max(56, Math.round(metaBlockWidth * 0.3)));
       const metaValueWidth = Math.max(80, metaBlockWidth - metaLabelWidth - metaGap);
 
       const ensureDocNoLabel = () => {
@@ -421,11 +425,43 @@ const TemplateEditorPage = () => {
         }
         updateElement(docNoLabel, labelPatch);
       };
+      const ensureDateLabel = () => {
+        const existing = findBySlotOrId('date_label') as TextElement | undefined;
+        if (existing) {
+          const ds = (existing as any).dataSource as { type?: string; value?: string } | undefined;
+          const patch: Partial<TextElement> = {
+            region: 'header',
+            width: metaLabelWidth,
+            height: 16,
+            fontSize: 9,
+            repeatOnEveryPage: true,
+          };
+          if (!ds || ds.type !== 'static' || !ds.value) {
+            patch.dataSource = { type: 'static', value: '日付' };
+          }
+          updateElement(existing, patch);
+          return existing;
+        }
+        const next = ensureTextElement('date_label', {
+          id: 'date_label',
+          slotId: 'date_label',
+          type: 'text',
+          region: 'header',
+          x: metaBlockLeft,
+          y: metaTopY,
+          width: metaLabelWidth,
+          height: 16,
+          fontSize: 9,
+          repeatOnEveryPage: true,
+          dataSource: { type: 'static', value: '日付' },
+        });
+        return next;
+      };
 
       if (docMetaSettings.metaLayout === 'horizontal' && docMetaSettings.docNoVisible && docMetaSettings.dateVisible) {
         const segmentGap = 8;
-        const segmentWidth = Math.max(60, (metaBlockWidth - segmentGap) / 2);
-        const labelWidth = Math.min(56, Math.max(40, segmentWidth * 0.35));
+        const segmentWidth = Math.max(120, (metaBlockWidth - segmentGap) / 2);
+        const labelWidth = 56;
         const valueWidth = Math.max(60, segmentWidth - labelWidth - metaGap);
         const leftX = metaBlockLeft;
         const rightX = metaBlockLeft + segmentWidth + segmentGap;
@@ -465,17 +501,16 @@ const TemplateEditorPage = () => {
         }
 
         if (docMetaSettings.dateVisible) {
-          if (dateLabel) {
-            updateElement(dateLabel, {
-              region: 'header',
-              x: rightX,
-              y: metaTopY,
-              width: labelWidth,
-              height: 16,
-              fontSize: 9,
-              repeatOnEveryPage: true,
-            });
-          }
+          const dateEl = ensureDateLabel();
+          updateElement(dateEl, {
+            region: 'header',
+            x: rightX,
+            y: metaTopY,
+            width: labelWidth,
+            height: 16,
+            fontSize: 9,
+            repeatOnEveryPage: true,
+          });
           if (issueDate) {
             updateElement(issueDate, {
               region: 'header',
@@ -508,17 +543,16 @@ const TemplateEditorPage = () => {
             }
           }
           if (item === 'date') {
-            if (dateLabel) {
-              updateElement(dateLabel, {
-                region: 'header',
-                x: metaBlockLeft,
-                y: lineY,
-                width: metaLabelWidth,
-                height: 16,
-                fontSize: 9,
-                repeatOnEveryPage: true,
-              });
-            }
+            const dateEl = ensureDateLabel();
+            updateElement(dateEl, {
+              region: 'header',
+              x: metaBlockLeft,
+              y: lineY,
+              width: metaLabelWidth,
+              height: 16,
+              fontSize: 9,
+              repeatOnEveryPage: true,
+            });
             if (issueDate) {
               updateElement(issueDate, {
                 region: 'header',
@@ -1351,38 +1385,6 @@ const TemplateEditorPage = () => {
                                 type="button"
                                 onClick={() =>
                                   updateEasyAdjustGroupSettings('documentMeta', { metaLayout: item.key })
-                                }
-                                style={{
-                                  padding: '4px 10px',
-                                  borderRadius: 6,
-                                  border: `1px solid ${active ? '#2563eb' : '#d0d5dd'}`,
-                                  background: active ? '#eff6ff' : '#fff',
-                                  color: active ? '#1d4ed8' : '#344054',
-                                  fontSize: '0.8rem',
-                                  fontWeight: 600,
-                                  cursor: 'pointer',
-                                }}
-                              >
-                                {item.label}
-                              </button>
-                            );
-                          })}
-                        </div>
-                        <div style={{ fontSize: 12, color: '#475467', marginBottom: 6, fontWeight: 600 }}>
-                          位置
-                        </div>
-                        <div style={{ display: 'flex', gap: 6 }}>
-                          {([
-                            { key: 'underLogo', label: 'ロゴ下' },
-                            { key: 'rightOfLogo', label: 'ロゴ右' },
-                          ] as const).map((item) => {
-                            const active = docMeta.metaPosition === item.key;
-                            return (
-                              <button
-                                key={item.key}
-                                type="button"
-                                onClick={() =>
-                                  updateEasyAdjustGroupSettings('documentMeta', { metaPosition: item.key })
                                 }
                                 style={{
                                   padding: '4px 10px',

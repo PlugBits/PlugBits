@@ -165,6 +165,15 @@ const TemplateCanvas = ({
   slotLabels,
 }: CanvasProps) => {
   const isAdvanced = !!template.advancedLayoutEditing;
+  const isDocumentMetaElement = (element: TemplateElement) => {
+    const slotId = (element as any).slotId as string | undefined;
+    return (
+      slotId === 'doc_no' ||
+      slotId === 'date_label' ||
+      slotId === 'issue_date' ||
+      element.id === 'doc_no_label'
+    );
+  };
   const getElementSettings = (element: TemplateElement) => {
     const block = resolveElementBlock(element, template);
     const settings = normalizeEasyAdjustBlockSettings(template, block);
@@ -355,7 +364,17 @@ const TemplateCanvas = ({
 
   return (
     <div className="template-canvas" style={canvasStyle} onMouseDown={handleCanvasMouseDown} ref={canvasRef}>
-      {visibleElements.map((element) => (
+      {visibleElements.map((element) => {
+        const isDocMeta = isDocumentMetaElement(element);
+        const metaTextStyle = isDocMeta
+          ? {
+              whiteSpace: 'nowrap',
+              wordBreak: 'keep-all',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+            }
+          : undefined;
+        return (
         <div
           key={element.id}
           className={[
@@ -365,6 +384,7 @@ const TemplateCanvas = ({
           ].filter(Boolean).join(' ')}
           style={{
             ...getElementStyle(element, getElementSettings(element).pagePadding),
+            ...(isDocMeta ? { overflow: 'hidden' } : null),
             zIndex: selectedElementId === element.id ? 50 : highlightedElementIds?.has(element.id) ? 40 : undefined,
           }}
           onMouseDown={(event) => handleElementMouseDown(event, element)}
@@ -420,11 +440,17 @@ const TemplateCanvas = ({
                   display: 'block',
                   fontSize: '0.7rem',
                   color: slotLabels?.[(element as any).slotId] ? '#344054' : '#475467',
+                  ...(metaTextStyle ?? {}),
                 }}
               >
                 {slotLabels?.[(element as any).slotId] ?? element.type}
               </strong>
-              <span style={{ fontSize: `${0.85 * getElementSettings(element).fontScale}rem` }}>
+              <span
+                style={{
+                  fontSize: `${0.85 * getElementSettings(element).fontScale}rem`,
+                  ...(metaTextStyle ?? {}),
+                }}
+              >
                 {describeDataSource(element)}
               </span>
             </>
@@ -434,7 +460,8 @@ const TemplateCanvas = ({
           )}
 
         </div>
-      ))}
+      );
+      })}
       {guideElements}
       {hint && (
         <div
