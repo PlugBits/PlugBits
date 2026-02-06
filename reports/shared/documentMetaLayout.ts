@@ -5,6 +5,8 @@ export type DocumentMetaLayoutInput = {
   logoY: number;
   logoWidth: number;
   logoHeight: number;
+  blockX?: number;
+  blockWidth?: number;
   gap: number;
   labelWidth: number;
   columnGap: number;
@@ -98,8 +100,10 @@ export const computeDocumentMetaLayout = (
     return {};
   }
 
-  const blockX = logoX;
-  const blockW = Math.max(0, logoWidth);
+  const resolvedBlockX = Number.isFinite(input.blockX) ? (input.blockX as number) : logoX;
+  const resolvedBlockW = Number.isFinite(input.blockWidth) ? (input.blockWidth as number) : logoWidth;
+  const blockX = resolvedBlockX;
+  const blockW = Math.max(0, resolvedBlockW);
   const labelW = Math.min(labelWidth, blockW);
   let rowTop = logoY - gap;
   const result: DocumentMetaLayoutResult = {};

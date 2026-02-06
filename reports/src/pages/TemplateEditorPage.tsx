@@ -12,10 +12,11 @@ import LabelEditorPanel from '../editor/Label/LabelEditorPanel';
 import {
   normalizeEasyAdjustBlockSettings,
   resolveElementBlock,
+  resolvePagePaddingPreset,
+  resolveFontScalePreset,
 } from '../utils/easyAdjust';
 import { CANVAS_WIDTH, clampYToRegion } from '../utils/regionBounds';
 import { computeDocumentMetaLayout } from '@shared/documentMetaLayout';
-import { resolveFontScalePreset } from '../utils/easyAdjust';
 import { getAdapter } from '../editor/Mapping/adapters/getAdapter';
 import { useEditorSession } from '../hooks/useEditorSession';
 
@@ -317,6 +318,23 @@ const TemplateEditorPage = () => {
     if (template.structureType === 'label_v1') return;
 
     const docMetaSettings = normalizeEasyAdjustBlockSettings(template, 'documentMeta');
+    let normalizedSettings = template.settings ?? {};
+    let settingsChanged = false;
+    const rawEasyAdjust = (template.settings?.easyAdjust ?? {}) as Record<string, any>;
+    const rawDocMeta = rawEasyAdjust.documentMeta;
+    if (rawDocMeta && typeof rawDocMeta === 'object') {
+      const { layoutMode, metaLayout, metaPosition, ...rest } = rawDocMeta as Record<string, unknown>;
+      if ('layoutMode' in rawDocMeta || 'metaLayout' in rawDocMeta || 'metaPosition' in rawDocMeta) {
+        normalizedSettings = {
+          ...(template.settings ?? {}),
+          easyAdjust: {
+            ...rawEasyAdjust,
+            documentMeta: rest,
+          },
+        };
+        settingsChanged = true;
+      }
+    }
 
     const elements = template.elements ?? [];
     const nextElements = [...elements];
@@ -327,7 +345,7 @@ const TemplateEditorPage = () => {
     const applyPatch = <T extends TemplateElement>(el: T, patch: Partial<T>) => {
       let hasDiff = false;
       for (const [key, value] of Object.entries(patch)) {
-        if ((el as any)[key] !== value) {
+        if (!Object.is((el as any)[key], value)) {
           hasDiff = true;
           break;
         }
@@ -373,10 +391,14 @@ const TemplateEditorPage = () => {
     if (docNo || issueDate) {
       const headerSettings = normalizeEasyAdjustBlockSettings(template, 'header');
       const headerFontScale = resolveFontScalePreset(headerSettings.fontPreset);
+      const headerPadding = resolvePagePaddingPreset(headerSettings.paddingPreset);
       const docNoFontSize = (docNo?.fontSize ?? 10) * headerFontScale;
       const dateFontSize = (issueDate?.fontSize ?? 10) * headerFontScale;
       const labelFontSize = 9 * headerFontScale;
-      const fallbackLabelWidth = Math.min(56, logoW);
+      const blockWidth = Math.min(280, Math.max(200, logoW));
+      const blockRight = CANVAS_WIDTH - headerPadding;
+      const blockX = Math.max(headerPadding, blockRight - blockWidth);
+      const fallbackLabelWidth = Math.min(56, blockWidth);
       const fallbackTopY = logoY - 12;
 
       const ensureDocNoLabel = () => {
@@ -384,7 +406,7 @@ const TemplateEditorPage = () => {
           id: 'doc_no_label',
           type: 'text',
           region: 'header',
-          x: logoX,
+          x: blockX,
           y: fallbackTopY,
           width: fallbackLabelWidth,
           height: 16,
@@ -395,10 +417,6 @@ const TemplateEditorPage = () => {
         const labelSource = (docNoLabel as any).dataSource as { type?: string; value?: string } | undefined;
         const labelPatch: Partial<TextElement> = {
           region: 'header',
-          x: logoX,
-          y: fallbackTopY,
-          width: fallbackLabelWidth,
-          height: 16,
           fontSize: 9,
           repeatOnEveryPage: true,
         };
@@ -413,8 +431,6 @@ const TemplateEditorPage = () => {
           const ds = (existing as any).dataSource as { type?: string; value?: string } | undefined;
           const patch: Partial<TextElement> = {
             region: 'header',
-            width: existing.width ?? 56,
-            height: 16,
             fontSize: 9,
             repeatOnEveryPage: true,
           };
@@ -429,9 +445,9 @@ const TemplateEditorPage = () => {
           slotId: 'date_label',
           type: 'text',
           region: 'header',
-          x: logoX,
+          x: blockX,
           y: logoY - 12,
-          width: 56,
+          width: fallbackLabelWidth,
           height: 16,
           fontSize: 9,
           repeatOnEveryPage: true,
@@ -452,6 +468,8 @@ const TemplateEditorPage = () => {
         logoY,
         logoWidth: logoW,
         logoHeight: logoH,
+        blockX,
+        blockWidth,
         gap: 12,
         labelWidth: 56,
         columnGap: 8,
@@ -586,8 +604,11 @@ const TemplateEditorPage = () => {
       });
     }
 
-    if (changed) {
-      updateTemplate({ ...template, elements: nextElements });
+    if (changed || settingsChanged) {
+      const nextTemplate = settingsChanged
+        ? { ...template, elements: nextElements, settings: normalizedSettings }
+        : { ...template, elements: nextElements };
+      updateTemplate(nextTemplate);
     }
   }, [template, updateTemplate]);
 

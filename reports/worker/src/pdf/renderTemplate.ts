@@ -741,6 +741,7 @@ export async function renderTemplateToPdf(
       (e) => e.region !== 'footer',
     ),
     template,
+    pageWidth,
   );
 
   // ヘッダー：毎ページ出すもの（デフォルト）
@@ -1108,6 +1109,7 @@ const resolveAlignedX = (
 const applyDocumentMetaLayout = (
   elements: TemplateElement[],
   template: TemplateDefinition,
+  pageWidth: number,
 ): TemplateElement[] => {
   const docMetaSettings = normalizeEasyAdjustBlockSettings(template, 'documentMeta');
   if (!docMetaSettings.docNoVisible && !docMetaSettings.dateVisible) return elements;
@@ -1127,12 +1129,18 @@ const applyDocumentMetaLayout = (
 
   const headerSettings = normalizeEasyAdjustBlockSettings(template, 'header');
   const headerFontScale = resolveFontScale(headerSettings.fontPreset);
+  const headerPadding = resolvePagePadding(headerSettings.paddingPreset);
+  const blockWidth = Math.min(280, Math.max(200, logoW));
+  const blockRight = pageWidth - headerPadding;
+  const blockX = Math.max(headerPadding, blockRight - blockWidth);
 
   const layout = computeDocumentMetaLayout({
     logoX,
     logoY,
     logoWidth: logoW,
     logoHeight: logoH,
+    blockX,
+    blockWidth,
     gap: 12,
     labelWidth: 56,
     columnGap: 8,
