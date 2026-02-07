@@ -182,9 +182,21 @@ const TemplateCanvas = ({
       pagePadding: resolvePagePadding(settings.paddingPreset),
     };
   };
-  const visibleElements = template.elements.filter(
-    (el) => !isElementHiddenByEasyAdjust(el, template),
-  );
+  const docNoLabelElement = template.elements.find(
+    (el) => el.id === 'doc_no_label',
+  ) as TextElement | undefined;
+  const dateLabelElement = template.elements.find((el) => {
+    const slotId = (el as any).slotId as string | undefined;
+    return slotId === 'date_label' || el.id === 'date_label';
+  }) as TextElement | undefined;
+
+  const visibleElements = template.elements.filter((el) => {
+    if (isElementHiddenByEasyAdjust(el, template)) return false;
+    const slotId = (el as any).slotId as string | undefined;
+    if (el.id === 'doc_no_label') return false;
+    if (slotId === 'date_label' || el.id === 'date_label') return false;
+    return true;
+  });
 
   const canvasRef = useRef<HTMLDivElement | null>(null);
   const [dragState, setDragState] = useState<DragState | null>(null);
@@ -365,7 +377,39 @@ const TemplateCanvas = ({
   return (
     <div className="template-canvas" style={canvasStyle} onMouseDown={handleCanvasMouseDown} ref={canvasRef}>
       {visibleElements.map((element) => {
+        const slotId = (element as any).slotId as string | undefined;
         const isDocMeta = isDocumentMetaElement(element);
+        const isDocMetaValue = slotId === 'doc_no' || slotId === 'issue_date';
+        const docMetaLabelEl = slotId === 'doc_no' ? docNoLabelElement : slotId === 'issue_date' ? dateLabelElement : undefined;
+        const docMetaLabelText = (() => {
+          const ds = (docMetaLabelEl as any)?.dataSource as DataSource | undefined;
+          if (ds?.type === 'static' && ds.value) return String(ds.value);
+          if ((docMetaLabelEl as any)?.text) return String((docMetaLabelEl as any).text);
+          if (slotId === 'doc_no') return '文書番号';
+          if (slotId === 'issue_date') return '日付';
+          return '';
+        })();
+        const docMetaLabelWidth = Number.isFinite(docMetaLabelEl?.width)
+          ? (docMetaLabelEl?.width as number)
+          : 56;
+        const resolveDocMetaBounds = () => {
+          if (!docMetaLabelEl || !('width' in element) || !element.width) return null;
+          const labelX = Number.isFinite(docMetaLabelEl.x) ? (docMetaLabelEl.x as number) : element.x;
+          const labelY = Number.isFinite(docMetaLabelEl.y) ? (docMetaLabelEl.y as number) : element.y;
+          const labelW = Number.isFinite(docMetaLabelEl.width) ? (docMetaLabelEl.width as number) : docMetaLabelWidth;
+          const valueX = Number.isFinite(element.x) ? element.x : labelX;
+          const valueW = Number.isFinite(element.width) ? (element.width as number) : 0;
+          const left = Math.min(labelX, valueX);
+          const right = Math.max(labelX + labelW, valueX + valueW);
+          const bottom = Math.min(labelY, element.y);
+          const height = Math.max(docMetaLabelEl.height ?? 0, element.height ?? 0);
+          return {
+            x: left,
+            y: bottom,
+            width: Math.max(0, right - left),
+            height,
+          };
+        };
         const metaTextStyle = isDocMeta
           ? {
               whiteSpace: 'nowrap',
@@ -375,14 +419,24 @@ const TemplateCanvas = ({
             }
           : undefined;
         const elementStyle = getElementStyle(element, getElementSettings(element).pagePadding);
-        const hasWidth = elementStyle.width !== undefined;
-        const hasHeight = elementStyle.height !== undefined;
+        const docMetaBounds = isDocMetaValue ? resolveDocMetaBounds() : null;
+        const mergedStyle = docMetaBounds
+          ? {
+              ...elementStyle,
+              left: `${docMetaBounds.x}px`,
+              bottom: `${docMetaBounds.y}px`,
+              width: `${docMetaBounds.width}px`,
+              height: `${docMetaBounds.height}px`,
+            }
+          : elementStyle;
+        const hasWidth = mergedStyle.width !== undefined;
+        const hasHeight = mergedStyle.height !== undefined;
         return (
           <div
             key={element.id}
             className="canvas-element-wrapper"
             style={{
-              ...elementStyle,
+              ...mergedStyle,
               zIndex: selectedElementId === element.id ? 50 : highlightedElementIds?.has(element.id) ? 40 : undefined,
             }}
             onMouseDown={(event) => handleElementMouseDown(event, element)}
@@ -449,27 +503,67 @@ const TemplateCanvas = ({
               )}
             </div>
             {element.type !== 'cardList' && (
-              <div className="canvas-element-overlay">
-                <strong
-                  className="canvas-element-label"
-                  style={{
-                    display: 'block',
-                    fontSize: '0.7rem',
-                    color: slotLabels?.[(element as any).slotId] ? '#344054' : '#475467',
-                    ...(metaTextStyle ?? {}),
-                  }}
-                >
-                  {slotLabels?.[(element as any).slotId] ?? element.type}
-                </strong>
-                <span
-                  className="canvas-element-value"
-                  style={{
-                    fontSize: `${0.85 * getElementSettings(element).fontScale}rem`,
-                    ...(metaTextStyle ?? {}),
-                  }}
-                >
-                  {describeDataSource(element)}
-                </span>
+              <div
+                className="canvas-element-overlay"
+                style={
+                  isDocMetaValue
+                    ? {
+                        display: 'grid',
+                        gridTemplateColumns: docMetaLabelText ? `${docMetaLabelWidth}px 1fr` : '1fr',
+                        columnGap: 8,
+                        alignItems: 'center',
+                      }
+                    : undefined
+                }
+              >
+                {isDocMetaValue ? (
+                  <>
+                    {docMetaLabelText ? (
+                      <span
+                        className="canvas-element-label"
+                        style={{
+                          fontSize: '0.7rem',
+                          color: '#475467',
+                          ...(metaTextStyle ?? {}),
+                        }}
+                      >
+                        {docMetaLabelText}
+                      </span>
+                    ) : null}
+                    <span
+                      className="canvas-element-value"
+                      style={{
+                        fontSize: `${0.85 * getElementSettings(element).fontScale}rem`,
+                        ...(metaTextStyle ?? {}),
+                      }}
+                    >
+                      {describeDataSource(element)}
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    <strong
+                      className="canvas-element-label"
+                      style={{
+                        display: 'block',
+                        fontSize: '0.7rem',
+                        color: slotLabels?.[(element as any).slotId] ? '#344054' : '#475467',
+                        ...(metaTextStyle ?? {}),
+                      }}
+                    >
+                      {slotLabels?.[(element as any).slotId] ?? element.type}
+                    </strong>
+                    <span
+                      className="canvas-element-value"
+                      style={{
+                        fontSize: `${0.85 * getElementSettings(element).fontScale}rem`,
+                        ...(metaTextStyle ?? {}),
+                      }}
+                    >
+                      {describeDataSource(element)}
+                    </span>
+                  </>
+                )}
               </div>
             )}
           </div>
