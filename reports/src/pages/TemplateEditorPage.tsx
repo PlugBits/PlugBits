@@ -156,7 +156,13 @@ const TemplateEditorPage = () => {
   ) => {
     if (!template) return;
     const easyAdjust = { ...(template.settings?.easyAdjust ?? {}) } as Record<string, any>;
-    delete easyAdjust[group];
+    const current = easyAdjust[group] ?? {};
+    const { fontPreset, paddingPreset, ...rest } = current as Record<string, unknown>;
+    if (Object.keys(rest).length === 0) {
+      delete easyAdjust[group];
+    } else {
+      easyAdjust[group] = rest;
+    }
     updateTemplateSettings({ easyAdjust });
   };
 
@@ -716,6 +722,22 @@ const TemplateEditorPage = () => {
     }
     return map;
   }, [template?.structureType]);
+
+  const selectedSlotLabel = useMemo(() => {
+    if (!selectedElement) return '';
+    const slotId = (selectedElement as any).slotId as string | undefined;
+    if (slotId && slotLabelMap[slotId]) return slotLabelMap[slotId];
+    if (selectedElement.type === 'label' && (selectedElement as any).text) {
+      return (selectedElement as any).text as string;
+    }
+    if (selectedElement.type === 'text') return 'テキスト';
+    if (selectedElement.type === 'image') return '画像';
+    if (selectedElement.type === 'table') return 'テーブル';
+    if (selectedElement.type === 'cardList') return 'カード枠';
+    return '要素';
+  }, [selectedElement, slotLabelMap]);
+  const isTitleSelected =
+    !!selectedElement && (selectedElement as any).slotId === 'doc_title';
 
   const describeElementForList = (el: any) => {
     if (el.type === 'table') {
@@ -1289,6 +1311,81 @@ const TemplateEditorPage = () => {
               </div>
               {activeTab === 'adjust' && template && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                  <div
+                    style={{
+                      border: '1px solid #e4e7ec',
+                      borderRadius: 12,
+                      padding: 10,
+                      background: '#fff',
+                    }}
+                  >
+                    <div style={{ fontWeight: 700, fontSize: 13, color: '#101828', marginBottom: 6 }}>
+                      {selectedElement ? `選択中: ${selectedSlotLabel}` : '要素を選択してください'}
+                    </div>
+                    <div style={{ fontSize: 12, color: '#475467', marginBottom: 6, fontWeight: 600 }}>
+                      タイトル位置
+                    </div>
+                    <div style={{ display: 'flex', gap: 6 }}>
+                      {(['left', 'center', 'right'] as const).map((value) => {
+                        const active = (selectedElement as any)?.alignX === value;
+                        const disabled = !isTitleSelected;
+                        return (
+                          <button
+                            key={value}
+                            type="button"
+                            disabled={disabled}
+                            onClick={() => {
+                              if (!template || !selectedElement || disabled) return;
+                              updateElement(template.id, selectedElement.id, {
+                                alignX: value,
+                              });
+                            }}
+                            style={{
+                              padding: '4px 10px',
+                              borderRadius: 6,
+                              border: `1px solid ${active ? '#2563eb' : '#d0d5dd'}`,
+                              background: active ? '#eff6ff' : '#fff',
+                              color: active ? '#1d4ed8' : '#344054',
+                              fontSize: '0.8rem',
+                              fontWeight: 600,
+                              cursor: disabled ? 'not-allowed' : 'pointer',
+                              opacity: disabled ? 0.5 : 1,
+                            }}
+                          >
+                            {value === 'left' ? '左' : value === 'center' ? '中央' : '右'}
+                          </button>
+                        );
+                      })}
+                      <button
+                        type="button"
+                        disabled={!isTitleSelected}
+                        onClick={() => {
+                          if (!template || !selectedElement || !isTitleSelected) return;
+                          updateElement(template.id, selectedElement.id, {
+                            alignX: undefined,
+                          });
+                        }}
+                        style={{
+                          padding: '4px 10px',
+                          borderRadius: 6,
+                          border: '1px solid #d0d5dd',
+                          background: '#fff',
+                          color: '#344054',
+                          fontSize: '0.8rem',
+                          fontWeight: 600,
+                          cursor: !isTitleSelected ? 'not-allowed' : 'pointer',
+                          opacity: !isTitleSelected ? 0.5 : 1,
+                        }}
+                      >
+                        元に戻す
+                      </button>
+                    </div>
+                    {!isTitleSelected && (
+                      <div style={{ marginTop: 6, fontSize: 11, color: '#667085' }}>
+                        タイトル選択時のみ調整できます。
+                      </div>
+                    )}
+                  </div>
                   {EASY_ADJUST_GROUPS.map((group) => {
                     const settings = normalizeEasyAdjustBlockSettings(template, group.key);
                     return (
@@ -1309,11 +1406,11 @@ const TemplateEditorPage = () => {
                             onClick={() => resetEasyAdjustGroupSettings(group.key)}
                             style={{ fontSize: 11, padding: '4px 8px' }}
                           >
-                            リセット
+                            元に戻す
                           </button>
                         </div>
                         <div style={{ fontSize: 12, color: '#475467', marginBottom: 6, fontWeight: 600 }}>
-                          フォントサイズ
+                          文字サイズ
                         </div>
                         <div style={{ display: 'flex', gap: 6, marginBottom: 10 }}>
                           {(['S', 'M', 'L'] as const).map((value) => {
@@ -1369,6 +1466,9 @@ const TemplateEditorPage = () => {
                               </button>
                             );
                           })}
+                        </div>
+                        <div style={{ marginTop: 6, fontSize: 11, color: '#667085' }}>
+                          全体の調整（ブロック単位）
                         </div>
                       </div>
                     );
