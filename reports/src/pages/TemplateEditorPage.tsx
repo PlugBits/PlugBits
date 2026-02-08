@@ -1,7 +1,7 @@
 import { previewPdf } from '../api/previewPdf';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import type { TemplateElement, TextElement, TableElement, LabelElement, ImageElement, PageSize } from '@shared/template';
+import type { TemplateDefinition, TemplateElement, TextElement, TableElement, LabelElement, ImageElement, PageSize } from '@shared/template';
 import TemplateCanvas from '../components/TemplateCanvas';
 import ElementInspector from '../components/ElementInspector';
 import Toast from '../components/Toast';
@@ -9,6 +9,8 @@ import { selectTemplateById, useTemplateStore } from '../store/templateStore';
 import { useTemplateListStore } from '../store/templateListStore';
 import MappingPage from '../editor/Mapping/MappingPage';
 import LabelEditorPanel from '../editor/Label/LabelEditorPanel';
+import type { ListV1Mapping } from '../editor/Mapping/adapters/list_v1';
+import { createTemplateRemote } from '../services/templateService';
 import {
   normalizeEasyAdjustBlockSettings,
   resolveElementBlock,
@@ -62,6 +64,9 @@ const TemplateEditorPage = () => {
   const [advancedLayoutEditing, setAdvancedLayoutEditing] = useState(!!template?.advancedLayoutEditing);
   const [activeTab, setActiveTab] = useState<'adjust' | 'mapping'>('mapping');
   const [issuesOpen, setIssuesOpen] = useState(false);
+  const [cloneModalOpen, setCloneModalOpen] = useState(false);
+  const [clonePresetId, setClonePresetId] = useState<'estimate_v1' | 'invoice_v1'>('invoice_v1');
+  const [isCloning, setIsCloning] = useState(false);
   const LS_KEY = 'pb_reports_controls_open';
   const [controlsOpen, setControlsOpen] = useState<boolean>(() => {
     const v = localStorage.getItem(LS_KEY);
@@ -94,6 +99,43 @@ const TemplateEditorPage = () => {
     });
   }, [template, preset]);
   const issueSummary = useMemo(() => summarizeIssues(issues), [issues]);
+
+  const getPresetDisplayLabel = (id: 'estimate_v1' | 'invoice_v1') =>
+    id === 'invoice_v1' ? '請求書' : '見積書';
+
+  const buildPresetFixedText = (id: 'estimate_v1' | 'invoice_v1') => {
+    if (id === 'invoice_v1') {
+      return {
+        doc_title: '請求書',
+        date_label: '請求日',
+        total_label: '合計',
+      };
+    }
+    return {
+      doc_title: '御見積書',
+      date_label: '見積日',
+      total_label: '合計',
+    };
+  };
+
+  const applyPresetFixedText = (
+    mapping: Partial<ListV1Mapping> | null | undefined,
+    id: 'estimate_v1' | 'invoice_v1',
+  ) => {
+    const fixed = buildPresetFixedText(id);
+    const next = structuredClone(mapping ?? {}) as Partial<ListV1Mapping>;
+    next.header = { ...(next.header ?? {}) };
+    next.footer = { ...(next.footer ?? {}) };
+    next.header.doc_title = { kind: 'staticText', text: fixed.doc_title };
+    next.header.date_label = { kind: 'staticText', text: fixed.date_label };
+    next.footer.total_label = { kind: 'staticText', text: fixed.total_label };
+    return next;
+  };
+
+  const generateUserTemplateId = () =>
+    typeof crypto !== 'undefined' && 'randomUUID' in crypto
+      ? `tpl_${crypto.randomUUID()}`
+      : `tpl_${Date.now()}`;
   const EASY_ADJUST_GROUPS = [
     { key: 'header', label: 'タイトル/ヘッダー' },
     { key: 'recipient', label: '宛先' },
@@ -773,6 +815,84 @@ const TemplateEditorPage = () => {
       return;
     }
     void previewPdf(template);
+  };
+
+  const openCloneModal = () => {
+    if (!template) return;
+    const nextPreset = presetId === 'invoice_v1' ? 'estimate_v1' : 'invoice_v1';
+    setClonePresetId(nextPreset);
+    setCloneModalOpen(true);
+  };
+
+  const handleCloneTemplate = async () => {
+    if (!template || isCloning) return;
+    setIsCloning(true);
+    try {
+      const baseTemplateId = template.baseTemplateId ?? 'list_v1';
+      const newId = generateUserTemplateId();
+      const targetLabel = getPresetDisplayLabel(clonePresetId);
+      const nextName = `${template.name}（${targetLabel}）`;
+
+      const nextSettings = {
+        ...(template.settings ?? {}),
+        presetId: clonePresetId,
+      };
+      const nextMapping = applyPresetFixedText(
+        template.mapping as Partial<ListV1Mapping> | null | undefined,
+        clonePresetId,
+      );
+
+      let nextTemplate: TemplateDefinition = {
+        ...structuredClone(template),
+        id: newId,
+        name: nextName,
+        baseTemplateId,
+        settings: nextSettings,
+        mapping: nextMapping,
+      };
+
+      const structureType = nextTemplate.structureType ?? 'list_v1';
+      if (structureType === 'list_v1') {
+        const adapter = getAdapter(structureType);
+        const mapping = nextTemplate.mapping ?? adapter.createDefaultMapping();
+        const applied = adapter.applyMappingToTemplate(
+          { ...nextTemplate, structureType, mapping },
+          mapping,
+        );
+        nextTemplate = {
+          ...applied,
+          id: newId,
+          name: nextName,
+          baseTemplateId,
+          settings: nextSettings,
+        };
+      }
+
+      const saved = await createTemplateRemote(nextTemplate);
+      updateTemplate({
+        ...nextTemplate,
+        baseTemplateId: saved.baseTemplateId ?? baseTemplateId,
+      });
+
+      setCloneModalOpen(false);
+      setToast({
+        type: 'success',
+        message: `${targetLabel}に複製しました。`,
+        subMessage:
+          clonePresetId === 'invoice_v1'
+            ? '支払期限が必須です。未設定の場合は出力できません。'
+            : '必要な項目を確認して設定してください。',
+      });
+      navigate(`/templates/${newId}/edit${preservedQuery}`);
+    } catch (error) {
+      setToast({
+        type: 'error',
+        message: '複製に失敗しました',
+        subMessage: error instanceof Error ? error.message : undefined,
+      });
+    } finally {
+      setIsCloning(false);
+    }
   };
 
   const focusIssue = (issue: Issue) => {
@@ -1491,11 +1611,18 @@ const TemplateEditorPage = () => {
                 >
                   一覧へ戻る
                 </button>
-                {!isLabelTemplate && (
-                  <button className="ghost" onClick={toggleControls} type="button">
-                    詳細設定 {controlsOpen ? '▲' : '▼'}
-                  </button>
-                )}
+                <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                  {!isLabelTemplate && !isCardTemplate && template?.structureType === 'list_v1' && (
+                    <button className="ghost" onClick={openCloneModal} type="button">
+                      別用途として複製
+                    </button>
+                  )}
+                  {!isLabelTemplate && (
+                    <button className="ghost" onClick={toggleControls} type="button">
+                      詳細設定 {controlsOpen ? '▲' : '▼'}
+                    </button>
+                  )}
+                </div>
               </div>
               {activeTab === 'adjust' && template && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -1806,6 +1933,72 @@ const TemplateEditorPage = () => {
       {toast && (
         <div className="toast-container">
           <Toast type={toast.type} message={toast.message} subMessage={toast.subMessage} onClose={() => setToast(null)} />
+        </div>
+      )}
+
+      {cloneModalOpen && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(15, 23, 42, 0.35)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 50,
+          }}
+        >
+          <div
+            style={{
+              width: 'min(420px, 90vw)',
+              background: '#fff',
+              borderRadius: 12,
+              border: '1px solid #e4e7ec',
+              padding: 16,
+              boxShadow: '0 18px 40px rgba(15, 23, 42, 0.18)',
+            }}
+          >
+            <div style={{ fontWeight: 700, fontSize: 14, color: '#101828', marginBottom: 6 }}>
+              別用途として複製
+            </div>
+            <div style={{ fontSize: 12, color: '#475467', marginBottom: 12 }}>
+              新しいテンプレートを作成します。元のテンプレートは変更されません。
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 16 }}>
+              {(['estimate_v1', 'invoice_v1'] as const).map((id) => (
+                <label key={id} style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                  <input
+                    type="radio"
+                    name="clonePreset"
+                    value={id}
+                    checked={clonePresetId === id}
+                    onChange={() => setClonePresetId(id)}
+                  />
+                  <span style={{ fontSize: 13, color: '#101828', fontWeight: 600 }}>
+                    {getPresetDisplayLabel(id)}
+                  </span>
+                </label>
+              ))}
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+              <button
+                type="button"
+                className="ghost"
+                onClick={() => setCloneModalOpen(false)}
+                disabled={isCloning}
+              >
+                キャンセル
+              </button>
+              <button
+                type="button"
+                className="secondary"
+                onClick={handleCloneTemplate}
+                disabled={isCloning}
+              >
+                {isCloning ? '複製中...' : '複製する'}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </section>
