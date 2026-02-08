@@ -14,11 +14,20 @@ import {
   resolveElementBlock,
   resolvePagePaddingPreset,
   resolveFontScalePreset,
+  isElementHiddenByEasyAdjust,
 } from '../utils/easyAdjust';
 import { CANVAS_WIDTH, clampYToRegion } from '../utils/regionBounds';
 import { computeDocumentMetaLayout } from '@shared/documentMetaLayout';
 import { getAdapter } from '../editor/Mapping/adapters/getAdapter';
 import { useEditorSession } from '../hooks/useEditorSession';
+import {
+  collectIssues,
+  summarizeIssues,
+  resolvePresetId,
+  getPresetDefinition,
+  ISSUE_GROUP_ORDER,
+  type Issue,
+} from '../editor/editorIssues';
 
 const AUTOSAVE_DELAY = 4000;
 
@@ -52,6 +61,7 @@ const TemplateEditorPage = () => {
   const [guideVisible, setGuideVisible] = useState(true);
   const [advancedLayoutEditing, setAdvancedLayoutEditing] = useState(!!template?.advancedLayoutEditing);
   const [activeTab, setActiveTab] = useState<'adjust' | 'mapping'>('mapping');
+  const [issuesOpen, setIssuesOpen] = useState(false);
   const LS_KEY = 'pb_reports_controls_open';
   const [controlsOpen, setControlsOpen] = useState<boolean>(() => {
     const v = localStorage.getItem(LS_KEY);
@@ -71,6 +81,19 @@ const TemplateEditorPage = () => {
     ['cards_v1', 'cards_v2', 'card_v1', 'multiTable_v1'].includes(
       template?.baseTemplateId ?? '',
     );
+  const presetId = useMemo(
+    () => resolvePresetId(template),
+    [template?.settings?.presetId, template?.id],
+  );
+  const preset = useMemo(() => getPresetDefinition(presetId), [presetId]);
+  const issues = useMemo(() => {
+    if (!template) return [];
+    return collectIssues({
+      preset,
+      template,
+    });
+  }, [template, preset]);
+  const issueSummary = useMemo(() => summarizeIssues(issues), [issues]);
   const EASY_ADJUST_GROUPS = [
     { key: 'header', label: 'タイトル/ヘッダー' },
     { key: 'recipient', label: '宛先' },
@@ -738,6 +761,48 @@ const TemplateEditorPage = () => {
   }, [selectedElement, slotLabelMap]);
   const isTitleSelected =
     !!selectedElement && (selectedElement as any).slotId === 'doc_title';
+  const handlePreviewClick = () => {
+    if (!template) return;
+    if (issueSummary.errorCount > 0) {
+      setIssuesOpen(true);
+      setToast({
+        type: 'error',
+        message: '必須項目を設定してください',
+        subMessage: 'エラー一覧から未設定の項目を確認できます。',
+      });
+      return;
+    }
+    void previewPdf(template);
+  };
+
+  const focusIssue = (issue: Issue) => {
+    if (!template) return;
+    setActiveTab('mapping');
+    setIssuesOpen(false);
+    const elements = template.elements ?? [];
+    let target = null as TemplateElement | null;
+    if (issue.slotId) {
+      target = elements.find((el) => (el as any).slotId === issue.slotId) ?? null;
+    }
+    if (!target && issue.tableId) {
+      target = elements.find((el) => el.id === issue.tableId) ?? null;
+      if (!target) {
+        target = elements.find((el) => el.type === 'table') ?? null;
+      }
+    }
+    if (!target && issue.colSlotId) {
+      target = elements.find((el) => el.type === 'table') ?? null;
+    }
+    if (target) {
+      setSelectedElementId(target.id);
+    }
+    window.setTimeout(() => {
+      const scrollKey = issue.slotId ?? issue.tableId ?? issue.colSlotId;
+      if (!scrollKey) return;
+      const node = document.getElementById(`slot-item-${scrollKey}`);
+      if (node) node.scrollIntoView({ block: 'nearest' });
+    }, 0);
+  };
 
   const describeElementForList = (el: any) => {
     if (el.type === 'table') {
@@ -1073,7 +1138,7 @@ const TemplateEditorPage = () => {
               <div className="button-row">
                 <button
                   className="secondary"
-                  onClick={() => { void previewPdf(template); }}
+                  onClick={handlePreviewClick}
                 >
                   PDFプレビュー
                 </button>
@@ -1259,7 +1324,7 @@ const TemplateEditorPage = () => {
                       </div>
                     </div>
                     <div style={{ display: 'flex', gap: 6 }}>
-                      <button className="secondary" onClick={() => { void previewPdf(template); }}>
+                      <button className="secondary" onClick={handlePreviewClick}>
                         PDFプレビュー
                       </button>
                       <button
@@ -1272,6 +1337,129 @@ const TemplateEditorPage = () => {
                     </div>
                   </div>
                 </div>
+              )}
+              {!isLabelTemplate && !isCardTemplate && template?.structureType === 'list_v1' && (
+                <>
+                  {issueSummary.errorCount > 0 && (
+                    <div
+                      style={{
+                        padding: '10px 12px',
+                        borderRadius: 10,
+                        border: '1px solid #fda29b',
+                        background: '#fef3f2',
+                        color: '#b42318',
+                        fontSize: 13,
+                        fontWeight: 600,
+                        marginBottom: 10,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        gap: 8,
+                      }}
+                    >
+                      <span>必須項目が未設定です（{issueSummary.errorCount}件）</span>
+                      <button
+                        type="button"
+                        className="ghost"
+                        onClick={() => setIssuesOpen(true)}
+                        style={{ fontSize: 12, padding: '4px 8px' }}
+                      >
+                        一覧を見る
+                      </button>
+                    </div>
+                  )}
+                  {issueSummary.errorCount === 0 && issueSummary.warnCount > 0 && (
+                    <div
+                      style={{
+                        padding: '10px 12px',
+                        borderRadius: 10,
+                        border: '1px solid #fcd34d',
+                        background: '#fffbeb',
+                        color: '#92400e',
+                        fontSize: 13,
+                        fontWeight: 600,
+                        marginBottom: 10,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        gap: 8,
+                      }}
+                    >
+                      <span>
+                        推奨項目が未入力です（{issueSummary.warnCount}件）— 出力は可能です
+                      </span>
+                      <button
+                        type="button"
+                        className="ghost"
+                        onClick={() => setIssuesOpen(true)}
+                        style={{ fontSize: 12, padding: '4px 8px' }}
+                      >
+                        一覧を見る
+                      </button>
+                    </div>
+                  )}
+                  {issuesOpen && issueSummary.errorCount + issueSummary.warnCount > 0 && (
+                    <div
+                      style={{
+                        border: '1px solid #e4e7ec',
+                        borderRadius: 12,
+                        padding: 12,
+                        background: '#fff',
+                        marginBottom: 12,
+                      }}
+                    >
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                        <div style={{ fontWeight: 700, fontSize: 13, color: '#101828' }}>エラー一覧</div>
+                        <button
+                          type="button"
+                          className="ghost"
+                          onClick={() => setIssuesOpen(false)}
+                          style={{ fontSize: 11, padding: '4px 8px' }}
+                        >
+                          閉じる
+                        </button>
+                      </div>
+                      {ISSUE_GROUP_ORDER.map((group) => {
+                        const groupIssues = issueSummary.byGroup.get(group) ?? [];
+                        if (groupIssues.length === 0) return null;
+                        return (
+                          <div key={group} style={{ marginBottom: 10 }}>
+                            <div style={{ fontSize: 12, fontWeight: 700, color: '#344054', marginBottom: 6 }}>
+                              {group}
+                            </div>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                              {groupIssues.map((issue, idx) => (
+                                <div
+                                  key={`${issue.code}-${issue.label}-${idx}`}
+                                  style={{
+                                    border: '1px solid #e4e7ec',
+                                    borderRadius: 10,
+                                    padding: '8px 10px',
+                                    background: issue.severity === 'error' ? '#fef3f2' : '#fffbeb',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'space-between',
+                                    gap: 8,
+                                  }}
+                                >
+                                  <div style={{ fontSize: 12, color: '#101828' }}>{issue.message}</div>
+                                  <button
+                                    type="button"
+                                    className="ghost"
+                                    onClick={() => focusIssue(issue)}
+                                    style={{ fontSize: 11, padding: '4px 8px' }}
+                                  >
+                                    設定する
+                                  </button>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </>
               )}
               {/* 右ペイン切替ボタン（ここに移動） */}
               <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
@@ -1514,6 +1702,16 @@ const TemplateEditorPage = () => {
                                 ? el.text
                                 : typeLabelForList(el.type);
                               const desc = describeElementForList(el);
+                              const isHidden = isElementHiddenByEasyAdjust(el, template);
+                              const elementIssues =
+                                el.type === 'table'
+                                  ? issues.filter((issue) => issue.tableId === el.id || issue.group === '明細')
+                                  : el.slotId
+                                  ? issueSummary.bySlot.get(el.slotId) ?? []
+                                  : [];
+                              const hasError = !isHidden && elementIssues.some((issue) => issue.severity === 'error');
+                              const hasWarn = !isHidden && !hasError && elementIssues.some((issue) => issue.severity === 'warn');
+                              const slotKey = el.slotId ?? el.id;
 
                               return (
                                 <button
@@ -1528,9 +1726,40 @@ const TemplateEditorPage = () => {
                                     border: '1px solid #e4e7ec',
                                     background: isSelected ? '#f0f9ff' : '#fff',
                                   }}
+                                  id={`slot-item-${slotKey}`}
                                 >
                                   <div style={{ fontWeight: 700, fontSize: 12, color: '#101828' }}>
                                     {title}
+                                    {hasError && (
+                                      <span
+                                        style={{
+                                          marginLeft: 8,
+                                          fontSize: 10,
+                                          fontWeight: 700,
+                                          padding: '2px 6px',
+                                          borderRadius: 999,
+                                          background: '#fecaca',
+                                          color: '#7f1d1d',
+                                        }}
+                                      >
+                                        必須
+                                      </span>
+                                    )}
+                                    {!hasError && hasWarn && (
+                                      <span
+                                        style={{
+                                          marginLeft: 8,
+                                          fontSize: 10,
+                                          fontWeight: 700,
+                                          padding: '2px 6px',
+                                          borderRadius: 999,
+                                          background: '#fde68a',
+                                          color: '#92400e',
+                                        }}
+                                      >
+                                        推奨
+                                      </span>
+                                    )}
                                   </div>
                                   {desc && (
                                     <div style={{ fontSize: 11, color: '#667085', marginTop: 3 }}>
