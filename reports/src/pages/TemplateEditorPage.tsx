@@ -72,10 +72,10 @@ const TemplateEditorPage = () => {
       template?.baseTemplateId ?? '',
     );
   const EASY_ADJUST_GROUPS = [
-    { key: 'header', label: 'Header' },
-    { key: 'recipient', label: 'Recipient' },
-    { key: 'body', label: 'Body' },
-    { key: 'footer', label: 'Footer' },
+    { key: 'header', label: 'タイトル/ヘッダー' },
+    { key: 'recipient', label: '宛先' },
+    { key: 'body', label: '本文' },
+    { key: 'footer', label: 'フッター' },
   ] as const;
   const sheetSettings = template?.sheetSettings;
   const isLabelConfigInvalid =
@@ -641,11 +641,11 @@ const TemplateEditorPage = () => {
 
   const blockLabelMap = useMemo(
     () => ({
-      header: 'Header',
-      recipient: 'Recipient',
+      header: 'タイトル/ヘッダー',
+      recipient: '宛先',
       documentMeta: '文書情報',
-      body: 'Body',
-      footer: 'Footer',
+      body: '本文',
+      footer: 'フッター',
     }),
     [],
   );
@@ -1289,62 +1289,6 @@ const TemplateEditorPage = () => {
               </div>
               {activeTab === 'adjust' && template && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                  {(() => {
-                    const docMeta = normalizeEasyAdjustBlockSettings(template, 'documentMeta');
-                    return (
-                      <div
-                        style={{
-                          border: '1px solid #e4e7ec',
-                          borderRadius: 12,
-                          padding: 10,
-                          background: '#fff',
-                        }}
-                      >
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                          <div style={{ fontWeight: 700, fontSize: 13, color: '#101828' }}>文書情報</div>
-                          <button
-                            type="button"
-                            className="ghost"
-                            onClick={() => resetEasyAdjustGroupSettings('documentMeta')}
-                            style={{ fontSize: 11, padding: '4px 8px' }}
-                          >
-                            リセット
-                          </button>
-                        </div>
-                        <div style={{ fontSize: 12, color: '#475467', marginBottom: 6, fontWeight: 600 }}>
-                          表示
-                        </div>
-                        <div style={{ display: 'flex', gap: 6, marginBottom: 10 }}>
-                          {([
-                            { key: 'docNoVisible', label: '文書番号', active: docMeta.docNoVisible },
-                            { key: 'dateVisible', label: '日付', active: docMeta.dateVisible },
-                          ] as const).map((item) => (
-                            <button
-                              key={item.key}
-                              type="button"
-                              onClick={() =>
-                                updateEasyAdjustGroupSettings('documentMeta', {
-                                  [item.key]: !item.active,
-                                })
-                              }
-                              style={{
-                                padding: '4px 10px',
-                                borderRadius: 6,
-                                border: `1px solid ${item.active ? '#2563eb' : '#d0d5dd'}`,
-                                background: item.active ? '#eff6ff' : '#fff',
-                                color: item.active ? '#1d4ed8' : '#344054',
-                                fontSize: '0.8rem',
-                                fontWeight: 600,
-                                cursor: 'pointer',
-                              }}
-                            >
-                              {item.label}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    );
-                  })()}
                   {EASY_ADJUST_GROUPS.map((group) => {
                     const settings = normalizeEasyAdjustBlockSettings(template, group.key);
                     return (
@@ -1367,36 +1311,6 @@ const TemplateEditorPage = () => {
                           >
                             リセット
                           </button>
-                        </div>
-                        <div style={{ fontSize: 12, color: '#475467', marginBottom: 6, fontWeight: 600 }}>
-                          ブロック
-                        </div>
-                        <div style={{ display: 'flex', gap: 6, marginBottom: 10 }}>
-                          {([
-                            { key: true, label: '表示' },
-                            { key: false, label: '非表示' },
-                          ] as const).map((item) => {
-                            const active = settings.enabled === item.key;
-                            return (
-                              <button
-                                key={String(item.key)}
-                                type="button"
-                                onClick={() => updateEasyAdjustGroupSettings(group.key, { enabled: item.key })}
-                                style={{
-                                  padding: '4px 10px',
-                                  borderRadius: 6,
-                                  border: `1px solid ${active ? '#2563eb' : '#d0d5dd'}`,
-                                  background: active ? '#eff6ff' : '#fff',
-                                  color: active ? '#1d4ed8' : '#344054',
-                                  fontSize: '0.8rem',
-                                  fontWeight: 600,
-                                  cursor: 'pointer',
-                                }}
-                              >
-                                {item.label}
-                              </button>
-                            );
-                          })}
                         </div>
                         <div style={{ fontSize: 12, color: '#475467', marginBottom: 6, fontWeight: 600 }}>
                           フォントサイズ

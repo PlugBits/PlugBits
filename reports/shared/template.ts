@@ -34,6 +34,7 @@ export type TemplateSettings = {
   easyAdjust?: EasyAdjustSettings;
   fontScalePreset?: FontScalePreset;
   pagePaddingPreset?: PagePaddingPreset;
+  presetId?: string;
 };
 
 export type LabelSheetSettings = {
