@@ -1406,34 +1406,36 @@ const TemplateEditorPage = () => {
               maxHeight: '100%',
               height: '100%',
               minHeight: 0,
+              display: 'flex',
+              flexDirection: 'column',
               overflow: 'hidden',
             }}
           >
-            <div style={{ maxHeight: '100%', height: '100%', minHeight: 0, overflowY: 'auto' }}>
-              <div
-                style={{
-                  border: '1px solid #e4e7ec',
-                  borderRadius: 10,
-                  padding: '8px 10px',
-                  marginBottom: 10,
-                  background: '#fff',
-                }}
-              >
-                <div style={{ fontSize: 11, color: '#667085', marginBottom: 6, fontWeight: 600 }}>
-                  用紙サイズ
-                </div>
-                <select
-                  value={template.pageSize ?? 'A4'}
-                  onChange={(event) => {
-                    const next = event.target.value as PageSize;
-                    updateTemplate({ ...template, pageSize: next });
-                  }}
-                  style={{ fontSize: 12, width: '100%' }}
-                >
-                  <option value="A4">A4</option>
-                  <option value="Letter">Letter</option>
-                </select>
+            <div
+              style={{
+                border: '1px solid #e4e7ec',
+                borderRadius: 10,
+                padding: '8px 10px',
+                marginBottom: 10,
+                background: '#fff',
+              }}
+            >
+              <div style={{ fontSize: 11, color: '#667085', marginBottom: 6, fontWeight: 600 }}>
+                用紙サイズ
               </div>
+              <select
+                value={template.pageSize ?? 'A4'}
+                onChange={(event) => {
+                  const next = event.target.value as PageSize;
+                  updateTemplate({ ...template, pageSize: next });
+                }}
+                style={{ fontSize: 12, width: '100%' }}
+              >
+                <option value="A4">A4</option>
+                <option value="Letter">Letter</option>
+              </select>
+            </div>
+            <div style={{ maxHeight: '100%', height: '100%', minHeight: 0, overflowY: 'auto' }}>
               {!isLabelTemplate && !isCardTemplate && template?.structureType === 'list_v1' && (
                 <>
                   {issueSummary.errorCount > 0 && (
