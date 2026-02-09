@@ -240,6 +240,50 @@ const LabelEditorPanel: React.FC<Props> = ({ template, onChange }) => {
       <div style={{ display: 'flex', flexDirection: 'column', minHeight: 0 }}>
         <div style={{ display: 'grid', gap: '1rem', flex: 1, minHeight: 0, overflowY: 'auto' }}>
         <div className="mapping-card" style={{ padding: '1rem' }}>
+          <div className="mapping-card-title">面付けプレビュー</div>
+          <div
+            style={{
+              width: previewScale.width,
+              height: previewScale.height,
+              border: '1px solid #e4e7ec',
+              borderRadius: 8,
+              background: '#fff',
+              position: 'relative',
+              overflow: 'auto',
+            }}
+          >
+            {!isInvalid && previewCount > 0 && labelW > 0 && labelH > 0 && (
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: `repeat(${calcResult.cols}, ${labelW * previewScale.scale}px)`,
+                  gridTemplateRows: `repeat(${calcResult.rows}, ${labelH * previewScale.scale}px)`,
+                  columnGap: `${sheet.gapMm * previewScale.scale}px`,
+                  rowGap: `${sheet.gapMm * previewScale.scale}px`,
+                  paddingLeft: `${sheet.marginMm * previewScale.scale}px`,
+                  paddingTop: `${sheet.marginMm * previewScale.scale}px`,
+                }}
+              >
+                {Array.from({ length: previewCount }).map((_, idx) => (
+                  <div
+                    key={`label-preview-${idx}`}
+                    style={{
+                      border: '1px solid #cbd5e1',
+                      borderRadius: 4,
+                      background: idx === 0 ? '#e0f2fe' : '#f8fafc',
+                    }}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+          {previewCount < calcResult.total && !isInvalid && (
+            <div style={{ marginTop: 6, fontSize: '0.8rem', color: '#667085' }}>
+              先頭 {previewCount} 面のみ表示しています。
+            </div>
+          )}
+        </div>
+        <div className="mapping-card" style={{ padding: '1rem' }}>
           <div className="mapping-card-title">用紙・面付け</div>
           <div style={{ display: 'grid', gap: '0.75rem' }}>
             <label>
@@ -391,51 +435,6 @@ const LabelEditorPanel: React.FC<Props> = ({ template, onChange }) => {
             </button>
             <p className="mapping-help">校正PDFでズレを確認し、X/Y補正を調整してください。</p>
           </div>
-        </div>
-
-        <div className="mapping-card" style={{ padding: '1rem' }}>
-          <div className="mapping-card-title">面付けプレビュー</div>
-          <div
-            style={{
-              width: previewScale.width,
-              height: previewScale.height,
-              border: '1px solid #e4e7ec',
-              borderRadius: 8,
-              background: '#fff',
-              position: 'relative',
-              overflow: 'auto',
-            }}
-          >
-            {!isInvalid && previewCount > 0 && labelW > 0 && labelH > 0 && (
-              <div
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: `repeat(${calcResult.cols}, ${labelW * previewScale.scale}px)`,
-                  gridTemplateRows: `repeat(${calcResult.rows}, ${labelH * previewScale.scale}px)`,
-                  columnGap: `${sheet.gapMm * previewScale.scale}px`,
-                  rowGap: `${sheet.gapMm * previewScale.scale}px`,
-                  paddingLeft: `${sheet.marginMm * previewScale.scale}px`,
-                  paddingTop: `${sheet.marginMm * previewScale.scale}px`,
-                }}
-              >
-                {Array.from({ length: previewCount }).map((_, idx) => (
-                  <div
-                    key={`label-preview-${idx}`}
-                    style={{
-                      border: '1px solid #cbd5e1',
-                      borderRadius: 4,
-                      background: idx === 0 ? '#e0f2fe' : '#f8fafc',
-                    }}
-                  />
-                ))}
-              </div>
-            )}
-          </div>
-          {previewCount < calcResult.total && !isInvalid && (
-            <div style={{ marginTop: 6, fontSize: '0.8rem', color: '#667085' }}>
-              先頭 {previewCount} 面のみ表示しています。
-            </div>
-          )}
         </div>
 
         <div className="mapping-card" style={{ padding: '1rem' }}>
