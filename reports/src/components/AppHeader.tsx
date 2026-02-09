@@ -32,19 +32,21 @@ const AppHeader = () => {
     window.location.href = '/#/';
   };
 
+  const isEditorRoute =
+    /^\/templates\/[^/]+(\/edit|\/preview)?$/.test(location.pathname);
+  if (isEditorRoute) return null;
+
   return (
     <header className="app-header">
-      <div>
+      <div className="app-header-left">
         <button
           type="button"
           className="ghost app-back-button"
           onClick={handleBack}
-          style={{ marginBottom: '0.6rem', display: 'inline-flex', alignItems: 'center' }}
         >
           ← 設定に戻る
         </button>
         <p className="app-title">PlugBits 帳票デザイナー</p>
-        <span className="app-subtitle">テンプレート管理と PDF プレビュー</span>
       </div>
       <nav className="app-nav">
         <a href="https://plugbits.com" target="_blank" rel="noreferrer">

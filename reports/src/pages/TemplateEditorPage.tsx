@@ -13,7 +13,6 @@ import type { ListV1Mapping } from '../editor/Mapping/adapters/list_v1';
 import { createTemplateRemote } from '../services/templateService';
 import {
   normalizeEasyAdjustBlockSettings,
-  resolveElementBlock,
   resolvePagePaddingPreset,
   resolveFontScalePreset,
   isElementHiddenByEasyAdjust,
@@ -79,6 +78,17 @@ const TemplateEditorPage = () => {
     const qs = params.toString();
     return qs ? `?${qs}` : '';
   }, [params]);
+  const rawReturnOrigin = params.get('returnOrigin') ?? '';
+  const safeReturnOrigin = useMemo(() => {
+    if (!rawReturnOrigin) return '';
+    try {
+      const url = new URL(rawReturnOrigin);
+      if (url.protocol !== 'http:' && url.protocol !== 'https:') return '';
+      return url.toString();
+    } catch {
+      return '';
+    }
+  }, [rawReturnOrigin]);
   const headerTemplateId = template?.id ?? templateId ?? '';
   const isLabelTemplate = template?.structureType === 'label_v1';
   const isCardTemplate =
@@ -710,22 +720,6 @@ const TemplateEditorPage = () => {
     }
   }, [template, selectedElementId, selectedElement]);
 
-  const blockLabelMap = useMemo(
-    () => ({
-      header: 'タイトル/ヘッダー',
-      recipient: '宛先',
-      documentMeta: '文書情報',
-      body: '本文',
-      footer: 'フッター',
-    }),
-    [],
-  );
-  const currentBlockLabel = useMemo(() => {
-    if (!template || !selectedElement) return '未選択';
-    const block = resolveElementBlock(selectedElement, template);
-    return blockLabelMap[block] ?? '未選択';
-  }, [template, selectedElement, blockLabelMap]);
-
   const highlightedElementIds = useMemo(() => {
     const set = new Set<string>();
     if (!template || !highlightRef) return set;
@@ -820,6 +814,18 @@ const TemplateEditorPage = () => {
       const message = error instanceof Error ? error.message : 'PDFプレビューに失敗しました';
       setToast({ type: 'error', message });
     }
+  };
+
+  const handleBackToSettings = () => {
+    if (safeReturnOrigin) {
+      window.location.href = safeReturnOrigin;
+      return;
+    }
+    if (window.history.length > 1) {
+      window.history.back();
+      return;
+    }
+    window.location.href = '/#/';
   };
 
   const openCloneModal = () => {
@@ -1185,114 +1191,123 @@ const TemplateEditorPage = () => {
 
       {authState === 'authorized' && template && (
       <>
-        <div className="card" style={{ marginBottom: '1.5rem' }}>
         <div
           style={{
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center',
-            padding: '0.75rem 0.75rem 0.5rem',
-            gap: '0.75rem',
+            gap: 12,
+            padding: '0.5rem 0.75rem',
+            background: '#fff',
+            border: '1px solid #e4e7ec',
+            borderRadius: 12,
+            marginBottom: '0.75rem',
           }}
         >
-          <div>
-            {headerTemplateId && (
-              <span
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
+            <button className="ghost" onClick={handleBackToSettings} type="button">
+              ← 設定に戻る
+            </button>
+            <div style={{ minWidth: 0 }}>
+              <input
+                type="text"
+                value={nameDraft}
+                onChange={(event) => setNameDraft(event.target.value)}
+                onCompositionStart={() => {
+                  isComposingRef.current = true;
+                }}
+                onCompositionEnd={() => {
+                  isComposingRef.current = false;
+                  imeJustEndedRef.current = true;
+                  window.setTimeout(() => {
+                    imeJustEndedRef.current = false;
+                  }, 0);
+                }}
+                onFocus={() => {
+                  isEditingNameRef.current = true;
+                }}
+                onBlur={() => {
+                  isEditingNameRef.current = false;
+                  persistTemplateName();
+                }}
+                onKeyDown={(event) => {
+                  const nativeEvent = event.nativeEvent as any;
+                  if (nativeEvent?.isComposing) return;
+                  if (isComposingRef.current) return;
+                  if (imeJustEndedRef.current) return;
+                  if (nativeEvent?.keyCode === 229) return;
+                  if (event.key === 'Enter') {
+                    event.currentTarget.blur();
+                  }
+                }}
                 style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  padding: '2px 10px',
-                  borderRadius: 999,
-                  border: '1px solid #e4e7ec',
-                  background: '#f2f4f7',
-                  color: '#344054',
-                  fontSize: '0.85rem',
-                  marginBottom: '0.6rem',
+                  fontSize: '1.05rem',
+                  fontWeight: 600,
+                  border: '1px solid #d0d5dd',
+                  borderRadius: '0.5rem',
+                  padding: '0.3rem 0.6rem',
+                  width: 'min(320px, 36vw)',
+                }}
+              />
+              <div
+                style={{
+                  marginTop: 4,
+                  fontSize: 11,
+                  color: '#667085',
+                  display: 'flex',
+                  gap: 12,
+                  flexWrap: 'wrap',
                 }}
               >
-                選択中テンプレ: {headerTemplateId}
-              </span>
-            )}
-            <input
-              type="text"
-              value={nameDraft}
-              onChange={(event) => setNameDraft(event.target.value)}
-              onCompositionStart={() => {
-                isComposingRef.current = true;
-              }}
-              onCompositionEnd={() => {
-                isComposingRef.current = false;
-                imeJustEndedRef.current = true;
-                window.setTimeout(() => {
-                  imeJustEndedRef.current = false;
-                }, 0);
-              }}
-              onFocus={() => {
-                isEditingNameRef.current = true;
-              }}
-              onBlur={() => {
-                isEditingNameRef.current = false;
-                persistTemplateName();
-              }}
-              onKeyDown={(event) => {
-                const nativeEvent = event.nativeEvent as any;
-                if (nativeEvent?.isComposing) return;
-                if (isComposingRef.current) return;
-                if (imeJustEndedRef.current) return;
-                if (nativeEvent?.keyCode === 229) return;
-                if (event.key === 'Enter') {
-                  event.currentTarget.blur();
-                }
-              }}
-              style={{
-                fontSize: '1.2rem',
-                fontWeight: 600,
-                border: '1px solid #d0d5dd',
-                borderRadius: '0.6rem',
-                padding: '0.4rem 0.8rem',
-                width: 'min(420px, 60vw)',
-              }}
-            />
-            <p style={{ margin: 0, color: '#475467' }}>要素数: {template.elements.length}</p>
-            <p style={{ margin: 0, color: '#98a2b3', fontSize: '0.85rem' }}>
-              保存先: {tenantContext?.workerBaseUrl ?? '未設定'}
-            </p>
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.35rem' }}>
-            {isLabelTemplate && (
-              <div className="button-row">
-                <button
-                  className="secondary"
-                  onClick={handlePreviewClick}
-                >
-                  PDFプレビュー
-                </button>
-                <button
-                  className="ghost"
-                  onClick={() => { void handleSave(); }}
-                  disabled={saveStatus === 'saving' || isLabelConfigInvalid}
-                >
-                  {saveStatus === 'saving' ? '保存中...' : '保存'}
-                </button>
+                {headerTemplateId && <span>ID: {headerTemplateId}</span>}
+                <span>要素数: {template.elements.length}</span>
+                <span>保存先: {tenantContext?.workerBaseUrl ?? '未設定'}</span>
               </div>
-            )}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              {saveStatus === 'success' && <span className="status-pill success">保存しました</span>}
-              {saveStatus === 'error' && <span className="status-pill error">{saveError}</span>}
-              {isLabelConfigInvalid && (
-                <span className="status-pill error">面付けが成立しません</span>
-              )}
             </div>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+            <button
+              className="ghost"
+              onClick={() => {
+                if (isDirty && !window.confirm('未保存の変更があります。一覧へ戻りますか？')) {
+                  return;
+                }
+                navigate(`/${preservedQuery}`);
+              }}
+              type="button"
+            >
+              一覧へ戻る
+            </button>
+            {!isLabelTemplate && !isCardTemplate && template?.structureType === 'list_v1' && (
+              <button className="ghost" onClick={openCloneModal} type="button">
+                別用途として複製
+              </button>
+            )}
+            {!isLabelTemplate && (
+              <button className="ghost" onClick={toggleControls} type="button">
+                詳細設定 {controlsOpen ? '▲' : '▼'}
+              </button>
+            )}
+            <button
+              className="secondary"
+              onClick={() => { void handleSave(); }}
+              disabled={saveStatus === 'saving' || isLabelConfigInvalid}
+            >
+              {saveStatus === 'saving' ? '保存中...' : '保存'}
+            </button>
+            <button className="primary" onClick={handlePreviewClick}>
+              PDFプレビュー
+            </button>
           </div>
         </div>
       {controlsOpen && !isLabelTemplate && (
         <div
+          className="card"
           style={{
             padding: '0.5rem 0.75rem 0.75rem',
-            borderTop: '1px solid #e4e7ec',
-            background: '#fff',
-            }}
-          >
+            marginBottom: '0.75rem',
+          }}
+        >
             <div className="button-row" style={{ marginBottom: '0.6rem' }}>
               <button className="ghost" onClick={handleAddLabel} disabled={!template.advancedLayoutEditing}>
                 + ラベル
@@ -1352,7 +1367,6 @@ const TemplateEditorPage = () => {
             </div>
           </div>
         )}
-      </div>
       {isCardTemplate ? (
         <div className="card" style={{ padding: '1rem' }}>
           <h3 style={{ marginTop: 0 }}>Card テンプレートは非推奨です</h3>
@@ -1413,56 +1427,6 @@ const TemplateEditorPage = () => {
             }}
           >
             <div style={{ maxHeight: '100%', height: '100%', minHeight: 0, overflowY: 'auto' }}>
-              {!isLabelTemplate && !isCardTemplate && template && (
-                <div
-                  style={{
-                    position: 'sticky',
-                    top: 0,
-                    zIndex: 5,
-                    background: '#fff',
-                    borderBottom: '1px solid #e4e7ec',
-                    padding: '10px 12px',
-                    margin: '-10px -12px 12px',
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-                    <div style={{ minWidth: 0 }}>
-                      <div
-                        style={{
-                          fontWeight: 700,
-                          fontSize: 14,
-                          color: '#101828',
-                          whiteSpace: 'nowrap',
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          maxWidth: 180,
-                        }}
-                        title={template.name}
-                      >
-                        {template.name}
-                      </div>
-                      <div style={{ fontSize: 12, color: '#344054', marginTop: 2, fontWeight: 600 }}>
-                        編集対象: {currentBlockLabel}
-                      </div>
-                      <div style={{ fontSize: 11, color: '#667085', marginTop: 2 }}>
-                        {isDirty ? '未保存' : '保存済'}
-                      </div>
-                    </div>
-                    <div style={{ display: 'flex', gap: 6 }}>
-                      <button className="secondary" onClick={handlePreviewClick}>
-                        PDFプレビュー
-                      </button>
-                      <button
-                        className="ghost"
-                        onClick={() => { void handleSave(); }}
-                        disabled={saveStatus === 'saving' || isLabelConfigInvalid}
-                      >
-                        {saveStatus === 'saving' ? '保存中...' : '保存'}
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              )}
               {!isLabelTemplate && !isCardTemplate && template?.structureType === 'list_v1' && (
                 <>
                   {issueSummary.errorCount > 0 && (
@@ -1602,32 +1566,6 @@ const TemplateEditorPage = () => {
                 >
                   割当
                 </button>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12 }}>
-                <button
-                  className="ghost"
-                  onClick={() => {
-                    if (isDirty && !window.confirm('未保存の変更があります。一覧へ戻りますか？')) {
-                      return;
-                    }
-                    navigate(`/${preservedQuery}`);
-                  }}
-                  type="button"
-                >
-                  一覧へ戻る
-                </button>
-                <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-                  {!isLabelTemplate && !isCardTemplate && template?.structureType === 'list_v1' && (
-                    <button className="ghost" onClick={openCloneModal} type="button">
-                      別用途として複製
-                    </button>
-                  )}
-                  {!isLabelTemplate && (
-                    <button className="ghost" onClick={toggleControls} type="button">
-                      詳細設定 {controlsOpen ? '▲' : '▼'}
-                    </button>
-                  )}
-                </div>
               </div>
               {activeTab === 'adjust' && template && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
