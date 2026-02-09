@@ -1418,9 +1418,14 @@ const TemplateEditorPage = () => {
                 padding: '8px 10px',
                 marginBottom: 10,
                 background: '#fff',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: 8,
+                flexWrap: 'wrap',
               }}
             >
-              <div style={{ fontSize: 11, color: '#667085', marginBottom: 6, fontWeight: 600 }}>
+              <div style={{ fontSize: 11, color: '#667085', fontWeight: 600 }}>
                 用紙サイズ
               </div>
               <select
@@ -1429,7 +1434,7 @@ const TemplateEditorPage = () => {
                   const next = event.target.value as PageSize;
                   updateTemplate({ ...template, pageSize: next });
                 }}
-                style={{ fontSize: 12, width: '100%' }}
+                style={{ fontSize: 12, width: 200, maxWidth: 220 }}
               >
                 <option value="A4">A4</option>
                 <option value="Letter">Letter</option>
