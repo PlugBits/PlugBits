@@ -3,7 +3,6 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import type { TemplateDefinition, TemplateElement, TextElement, TableElement, LabelElement, ImageElement, PageSize } from '@shared/template';
 import TemplateCanvas from '../components/TemplateCanvas';
-import ElementInspector from '../components/ElementInspector';
 import Toast from '../components/Toast';
 import { selectTemplateById, useTemplateStore } from '../store/templateStore';
 import { useTemplateListStore } from '../store/templateListStore';
@@ -1845,15 +1844,8 @@ const TemplateEditorPage = () => {
                     })}
                   </div>
 
-                  <div
-                    style={{
-                      border: '1px solid #e4e7ec',
-                      borderRadius: 12,
-                      padding: 10,
-                      marginBottom: 12,
-                    }}
-                  >
-                    <ElementInspector templateId={template.id} element={selectedElement} />
+                  <div style={{ fontSize: 12, color: '#475467', marginBottom: 8 }}>
+                    {selectedElement ? `選択中: ${selectedSlotLabel}` : '要素を選択してください'}
                   </div>
 
                   <MappingPage

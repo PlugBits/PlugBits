@@ -32,10 +32,6 @@ const AppHeader = () => {
     window.location.href = '/#/';
   };
 
-  const isEditorRoute =
-    /^\/templates\/[^/]+(\/edit|\/preview)?$/.test(location.pathname);
-  if (isEditorRoute) return null;
-
   return (
     <header className="app-header">
       <div className="app-header-left">
