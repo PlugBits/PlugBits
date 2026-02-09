@@ -1204,9 +1204,6 @@ const TemplateEditorPage = () => {
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
-            <button className="ghost" onClick={handleBackToSettings} type="button">
-              ← 設定に戻る
-            </button>
             <div style={{ minWidth: 0 }}>
               <input
                 type="text"
@@ -1350,19 +1347,6 @@ const TemplateEditorPage = () => {
                 />
                 上級者モード（レイアウトXY編集・自己責任）
               </label>
-              <label style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                用紙サイズ
-                <select
-                  value={template.pageSize ?? 'A4'}
-                  onChange={(event) => {
-                    const next = event.target.value as PageSize;
-                    updateTemplate({ ...template, pageSize: next });
-                  }}
-                >
-                  <option value="A4">A4</option>
-                  <option value="Letter">Letter</option>
-                </select>
-              </label>
             </div>
           </div>
         )}
@@ -1426,6 +1410,29 @@ const TemplateEditorPage = () => {
             }}
           >
             <div style={{ maxHeight: '100%', height: '100%', minHeight: 0, overflowY: 'auto' }}>
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  marginBottom: 10,
+                  fontSize: 12,
+                  color: '#475467',
+                }}
+              >
+                <span style={{ fontWeight: 600, color: '#101828' }}>用紙サイズ</span>
+                <select
+                  value={template.pageSize ?? 'A4'}
+                  onChange={(event) => {
+                    const next = event.target.value as PageSize;
+                    updateTemplate({ ...template, pageSize: next });
+                  }}
+                  style={{ fontSize: 12 }}
+                >
+                  <option value="A4">A4</option>
+                  <option value="Letter">Letter</option>
+                </select>
+              </div>
               {!isLabelTemplate && !isCardTemplate && template?.structureType === 'list_v1' && (
                 <>
                   {issueSummary.errorCount > 0 && (
