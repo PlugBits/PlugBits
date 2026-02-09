@@ -803,18 +803,23 @@ const TemplateEditorPage = () => {
   }, [selectedElement, slotLabelMap]);
   const isTitleSelected =
     !!selectedElement && (selectedElement as any).slotId === 'doc_title';
-  const handlePreviewClick = () => {
+  const handlePreviewClick = async () => {
     if (!template) return;
     if (issueSummary.errorCount > 0) {
       setIssuesOpen(true);
       setToast({
         type: 'error',
-        message: '必須項目を設定してください',
-        subMessage: 'エラー一覧から未設定の項目を確認できます。',
+        message: '必須項目が未設定です',
       });
       return;
     }
-    void previewPdf(template);
+    try {
+      await previewPdf(template);
+      setToast({ type: 'success', message: 'PDFプレビューを開きました' });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'PDFプレビューに失敗しました';
+      setToast({ type: 'error', message });
+    }
   };
 
   const openCloneModal = () => {
@@ -1110,8 +1115,8 @@ const TemplateEditorPage = () => {
       setSaveStatus('success');
       setToast({
         type: 'success',
-        message: 'テンプレートを保存しました',
-        subMessage: isAutosave ? '自動保存が完了しました' : undefined,
+        message: '保存しました',
+        subMessage: isAutosave ? '自動保存' : undefined,
       });
     } catch (error) {
       const message = error instanceof Error ? error.message : '保存に失敗しました';
@@ -1506,7 +1511,7 @@ const TemplateEditorPage = () => {
                       }}
                     >
                       <span>
-                        推奨項目が未入力です（{issueSummary.warnCount}件）— 出力は可能です
+                        推奨項目が未入力です（{issueSummary.warnCount}件）・出力は可能です
                       </span>
                       <button
                         type="button"
@@ -1529,7 +1534,7 @@ const TemplateEditorPage = () => {
                       }}
                     >
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                        <div style={{ fontWeight: 700, fontSize: 13, color: '#101828' }}>エラー一覧</div>
+                        <div style={{ fontWeight: 700, fontSize: 13, color: '#101828' }}>未設定一覧</div>
                         <button
                           type="button"
                           className="ghost"

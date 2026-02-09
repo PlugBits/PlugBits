@@ -128,7 +128,7 @@ const ElementInspector = ({ templateId, element }: ElementInspectorProps) => {
   }, [element, slotLabelMap, typeLabel]);
 
   if (!element) {
-    return <p style={{ color: '#475467' }}>編集する要素をキャンバスから選択してください。</p>;
+    return <p style={{ color: '#475467' }}>要素を選択してください。</p>;
   }
 
   const isTable = element.type === 'table';
