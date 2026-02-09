@@ -1,8 +1,8 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import App from './App.tsx';
+import App from './App';
 import './styles/index.css';
-import { pingWorker } from './api/workerClient.ts';
+import { pingWorker } from './api/workerClient';
 
 ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
   <React.StrictMode>

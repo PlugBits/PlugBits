@@ -29,6 +29,8 @@ export type FlatKintoneField = {
   subtableCode?: string;
 };
 
+const isNonNull = <T>(value: T | null | undefined): value is T => value != null;
+
 export function buildSchemaFromKintoneProperties(
   properties?: Record<string, KintoneFormField>,
 ): SchemaFromSample {
@@ -50,7 +52,7 @@ export function buildSchemaFromKintoneProperties(
           if (!subCode) return null;
           return { code: subCode, label: f.label ?? subCode, type: f.type };
         })
-        .filter((f): f is RecordFieldOption => !!f);
+        .filter(isNonNull);
       subtables.push({ code, label, fields, type: prop.type });
       continue;
     }

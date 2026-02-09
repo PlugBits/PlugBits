@@ -42,6 +42,7 @@ type ResizeState = {
 
 const GRID_SIZE = 5;
 const ALIGN_PADDING = 12;
+type TextElement = Extract<TemplateElement, { type: 'text' }>;
 
 const resolvePagePadding = resolvePagePaddingPreset;
 const resolveFontScale = resolveFontScalePreset;
@@ -183,12 +184,12 @@ const TemplateCanvas = ({
     };
   };
   const docNoLabelElement = template.elements.find(
-    (el) => el.id === 'doc_no_label',
-  ) as TextElement | undefined;
-  const dateLabelElement = template.elements.find((el) => {
+    (el): el is TextElement => el.id === 'doc_no_label' && el.type === 'text',
+  );
+  const dateLabelElement = template.elements.find((el): el is TextElement => {
     const slotId = (el as any).slotId as string | undefined;
-    return slotId === 'date_label' || el.id === 'date_label';
-  }) as TextElement | undefined;
+    return el.type === 'text' && (slotId === 'date_label' || el.id === 'date_label');
+  });
 
   const visibleElements = template.elements.filter((el) => {
     if (isElementHiddenByEasyAdjust(el, template)) return false;
@@ -410,7 +411,7 @@ const TemplateCanvas = ({
             height,
           };
         };
-        const metaTextStyle = isDocMeta
+        const metaTextStyle: CSSProperties | undefined = isDocMeta
           ? {
               whiteSpace: 'nowrap',
               wordBreak: 'keep-all',

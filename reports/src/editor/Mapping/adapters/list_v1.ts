@@ -1,6 +1,6 @@
 // src/editor/Mapping/adapters/list_v1.ts
 import type { StructureAdapter, ValidationResult } from "./StructureAdapter";
-import type { TemplateDefinition, TemplateElement, TableElement, TableColumn as PdfTableColumn } from "@shared/template";
+import type { TemplateDefinition, TemplateElement, TableElement, TableColumn as PdfTableColumn, TableSummary } from "@shared/template";
 import { clampYToRegion } from "../../../utils/regionBounds";
 
 const ok = (): ValidationResult => ({ ok: true, errors: [] });
@@ -479,29 +479,34 @@ export const listV1Adapter: StructureAdapter = {
 
     const summary =
       summaryMode !== "none" && summaryFieldCode && summaryColumnId
-        ? {
-            mode:
+        ? (() => {
+            const mode: TableSummary["mode"] =
               summaryMode === "everyPageSubtotal+lastTotal"
                 ? "everyPageSubtotal+lastTotal"
-                : "lastPageOnly",
-            rows: [
-              {
-                op: "sum",
-                fieldCode: summaryFieldCode,
-                columnId: summaryColumnId,
-                kind: summaryMode === "everyPageSubtotal+lastTotal" ? "both" : "total",
-                label: "合計",
-                labelSubtotal: "小計",
-                labelTotal: "合計",
+                : "lastPageOnly";
+            const kind: TableSummary["rows"][number]["kind"] =
+              summaryMode === "everyPageSubtotal+lastTotal" ? "both" : "total";
+            return {
+              mode,
+              rows: [
+                {
+                  op: "sum" as const,
+                  fieldCode: summaryFieldCode,
+                  columnId: summaryColumnId,
+                  kind,
+                  label: "合計",
+                  labelSubtotal: "小計",
+                  labelTotal: "合計",
+                },
+              ],
+              style: {
+                subtotalFillGray: 0.96,
+                totalFillGray: 0.92,
+                totalTopBorderWidth: 1.5,
+                borderColorGray: 0.85,
               },
-            ],
-            style: {
-              subtotalFillGray: 0.96,
-              totalFillGray: 0.92,
-              totalTopBorderWidth: 1.5,
-              borderColorGray: 0.85,
-            },
-          }
+            };
+          })()
         : undefined;
 
     const tableEl: TableElement = {

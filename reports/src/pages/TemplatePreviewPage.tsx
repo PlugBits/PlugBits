@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { SAMPLE_DATA, type TemplateDataRecord } from '@shared/template';
-import { requestPreviewPdf } from '../services/renderService.ts';
-import { selectTemplateById, useTemplateStore } from '../store/templateStore.ts';
+import { requestPreviewPdf } from '../services/renderService';
+import { selectTemplateById, useTemplateStore } from '../store/templateStore';
 import { useEditorSession } from '../hooks/useEditorSession';
 
 const TemplatePreviewPage = () => {

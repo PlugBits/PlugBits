@@ -1,8 +1,8 @@
 import { HashRouter, Navigate, Route, Routes } from 'react-router-dom';
 import AppHeader from './components/AppHeader';
-import TemplateEditorPage from './pages/TemplateEditorPage.tsx';
-import TemplateListPage from './pages/TemplateListPage.tsx';
-import TemplatePreviewPage from './pages/TemplatePreviewPage.tsx';
+import TemplateEditorPage from './pages/TemplateEditorPage';
+import TemplateListPage from './pages/TemplateListPage';
+import TemplatePreviewPage from './pages/TemplatePreviewPage';
 
 const App = () => {
   return (

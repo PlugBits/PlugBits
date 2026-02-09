@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { TemplateMeta, TemplateStatus } from '@shared/template';
-import Toast from '../components/Toast.tsx';
-import { createUserTemplateFromBase, type TemplateCatalogItem } from '../services/templateService.ts';
-import { useTemplateStore } from '../store/templateStore.ts';
-import { useTemplateListStore } from '../store/templateListStore.ts';
+import Toast from '../components/Toast';
+import { createUserTemplateFromBase, type TemplateCatalogItem } from '../services/templateService';
+import { useTemplateStore } from '../store/templateStore';
+import { useTemplateListStore } from '../store/templateListStore';
 import { useEditorSession } from '../hooks/useEditorSession';
 
 const buildListKey = (status: TemplateStatus, baseTemplateId?: string) =>

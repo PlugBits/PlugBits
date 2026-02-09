@@ -162,11 +162,6 @@ export const applySlotDataOverrides = (
     const region = normalizeSlotRegion(next, slotId);
     const base = idx >= 0 ? (elements[idx] as any) : null;
 
-    const dataSource =
-      override.kind === 'recordField'
-        ? { type: 'kintone', fieldCode: override.fieldCode }
-        : { type: 'static', value: override.kind === 'imageUrl' ? override.url ?? '' : override.text ?? '' };
-
     const layoutBase = {
       id: base?.id ?? slotId,
       slotId,
@@ -181,8 +176,13 @@ export const applySlotDataOverrides = (
 
     const nextElement: TemplateElement =
       override.kind === 'imageUrl'
-        ? ensureImageElement(layoutBase, dataSource)
-        : ensureTextElement(layoutBase, dataSource);
+        ? ensureImageElement(layoutBase, { type: 'static', value: override.url ?? '' })
+        : ensureTextElement(
+            layoutBase,
+            override.kind === 'recordField'
+              ? { type: 'kintone', fieldCode: override.fieldCode }
+              : { type: 'static', value: override.text ?? '' },
+          );
 
     if (idx >= 0) {
       elements[idx] = nextElement;
