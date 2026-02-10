@@ -27,11 +27,13 @@ export const useEditorSession = () => {
   const setTenantContext = useTenantStore((state) => state.setTenantContext);
   const clearTenantContext = useTenantStore((state) => state.clearTenantContext);
   const [authState, setAuthState] = useState<EditorAuthState>('checking');
+  const [sessionError, setSessionError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!sessionToken || !workerBaseUrl || !kintoneBaseUrl || !appId) {
       clearTenantContext();
       setAuthState('unauthorized');
+      setSessionError(null);
       return;
     }
 
@@ -44,6 +46,7 @@ export const useEditorSession = () => {
       tenantContext.editorToken
     ) {
       setAuthState('authorized');
+      setSessionError(null);
       return;
     }
 
@@ -102,6 +105,7 @@ export const useEditorSession = () => {
         setTenantContext(nextContext);
         console.log('[editor session] exchange ok', { editorToken: editorToken.slice(0, 8) });
         setAuthState('authorized');
+        setSessionError(null);
       } catch (error) {
         if (controller.signal.aborted) return;
         console.log('[editor session] auth failed', error);
@@ -123,5 +127,45 @@ export const useEditorSession = () => {
     clearTenantContext,
   ]);
 
-  return { authState, tenantContext, params, sessionToken };
+  useEffect(() => {
+    if (authState !== 'authorized' || !sessionToken || !workerBaseUrl) return;
+
+    const normalizedWorkerBaseUrl = workerBaseUrl.replace(/\/$/, '');
+    let isStopped = false;
+
+    const refresh = async () => {
+      try {
+        const res = await fetch(`${normalizedWorkerBaseUrl}/session/refresh`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${sessionToken}`,
+          },
+          body: JSON.stringify({ sessionToken }),
+          cache: 'no-store',
+        });
+        if (res.ok) return;
+        const data = (await res.json().catch(() => ({}))) as { error_code?: string };
+        if (res.status === 401 && data?.error_code === 'INVALID_SESSION_TOKEN') {
+          if (isStopped) return;
+          setSessionError('セッションが切れました。プラグイン設定画面から開き直してください。');
+          clearTenantContext();
+          setAuthState('unauthorized');
+        }
+      } catch (error) {
+        if (isStopped) return;
+        console.log('[editor session] refresh failed', error);
+      }
+    };
+
+    const interval = window.setInterval(refresh, 5 * 60 * 1000);
+    void refresh();
+
+    return () => {
+      isStopped = true;
+      window.clearInterval(interval);
+    };
+  }, [authState, sessionToken, workerBaseUrl, clearTenantContext, setAuthState, setSessionError]);
+
+  return { authState, tenantContext, params, sessionToken, sessionError };
 };

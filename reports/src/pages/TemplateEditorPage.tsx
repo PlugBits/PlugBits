@@ -72,7 +72,7 @@ const TemplateEditorPage = () => {
   });
 
   const [highlightRef, setHighlightRef] = useState<any>(null);
-  const { authState, tenantContext, params } = useEditorSession();
+  const { authState, tenantContext, params, sessionError } = useEditorSession();
   const preservedQuery = useMemo(() => {
     const qs = params.toString();
     return qs ? `?${qs}` : '';
@@ -1170,7 +1170,7 @@ const TemplateEditorPage = () => {
       {authState === 'unauthorized' && (
         <div className="card" style={{ marginBottom: '1rem' }}>
           <p style={{ margin: 0, color: '#475467' }}>
-            プラグインから起動してください（短命トークンが必要です）。
+            {sessionError ?? 'プラグインから起動してください（短命トークンが必要です）。'}
           </p>
         </div>
       )}

@@ -23,7 +23,7 @@ const TemplatePreviewPage = () => {
   const [sampleDataError, setSampleDataError] = useState<string | null>(null);
   const [sampleDataInfo, setSampleDataInfo] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const [sampleDataSaving, setSampleDataSaving] = useState(false);
-  const { authState, params } = useEditorSession();
+  const { authState, params, sessionError } = useEditorSession();
   const preservedQuery = useMemo(() => {
     const qs = params.toString();
     return qs ? `?${qs}` : '';
@@ -182,7 +182,7 @@ const TemplatePreviewPage = () => {
     return (
       <div className="card">
         <p style={{ margin: 0, color: '#475467' }}>
-          プラグインから起動してください（短命トークンが必要です）。
+          {sessionError ?? 'プラグインから起動してください（短命トークンが必要です）。'}
         </p>
       </div>
     );

@@ -40,7 +40,7 @@ const TemplateListPage = () => {
   const [sortMode, setSortMode] = useState<'updated' | 'name' | 'created'>('updated');
   const [creating, setCreating] = useState(false);
   const [toast, setToast] = useState<{ type: 'success' | 'error' | 'info'; message: string } | null>(null);
-  const { authState, tenantContext, params: pickerParams } = useEditorSession();
+  const { authState, tenantContext, params: pickerParams, sessionError } = useEditorSession();
   const isPickerMode = pickerParams.get('mode') === 'picker' || pickerParams.has('returnOrigin');
   const returnOrigin = pickerParams.get('returnOrigin') ?? '';
   const [selectedTemplateId, setSelectedTemplateId] = useState(
@@ -414,7 +414,7 @@ const TemplateListPage = () => {
         <div className="card" style={{ marginBottom: '1rem' }}>
           <h3 style={{ marginTop: 0 }}>プラグインから起動してください</h3>
           <p style={{ margin: 0, color: '#475467' }}>
-            エディタはプラグインが発行する短命トークンで起動します。
+            {sessionError ?? 'エディタはプラグインが発行する短命トークンで起動します。'}
           </p>
         </div>
       )}

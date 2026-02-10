@@ -71,6 +71,8 @@ const CORS_HEADERS: Record<string, string> = {
   "Access-Control-Max-Age": "86400",
 };
 
+const SESSION_TTL_SECONDS = 60 * 60;
+
 const truncateHeaderValue = (value: string, maxLength = 200) =>
   value.length > maxLength ? value.slice(0, maxLength) : value;
 
@@ -640,7 +642,7 @@ export default {
           typeof crypto !== "undefined" && "randomUUID" in crypto
             ? `st_${crypto.randomUUID()}`
             : `st_${Date.now()}`;
-        const expiresAt = Date.now() + 5 * 60 * 1000;
+        const expiresAt = Date.now() + SESSION_TTL_SECONDS * 1000;
         const key = `editor_session:${sessionToken}`;
         const value = JSON.stringify({
           kintoneBaseUrl,
@@ -648,7 +650,7 @@ export default {
           expiresAt,
           kintoneApiToken: payload.kintoneApiToken,
         });
-        await env.SESSIONS_KV.put(key, value, { expirationTtl: 300 });
+        await env.SESSIONS_KV.put(key, value, { expirationTtl: SESSION_TTL_SECONDS });
 
         console.info("[editor/session] issued", { sessionToken: sessionToken.slice(0, 8) });
 
@@ -789,6 +791,76 @@ export default {
         );
       }
 
+      if (url.pathname === "/session/refresh") {
+        if (request.method !== "POST") {
+          return new Response("Method Not Allowed", {
+            status: 405,
+            headers: CORS_HEADERS,
+          });
+        }
+
+        const authHeader = request.headers.get("Authorization") ?? "";
+        const headerToken = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : "";
+        const queryToken = url.searchParams.get("sessionToken") ?? "";
+        let payload: { sessionToken?: string } | undefined;
+        try {
+          payload = (await request.json()) as { sessionToken?: string };
+        } catch {
+          payload = undefined;
+        }
+        const sessionToken = headerToken || payload?.sessionToken || queryToken;
+        const jsonResponse = (status: number, body: Record<string, unknown>) =>
+          new Response(JSON.stringify(body), {
+            status,
+            headers: {
+              ...CORS_HEADERS,
+              "Content-Type": "application/json",
+              "Cache-Control": "no-store",
+            },
+          });
+
+        if (!sessionToken) {
+          return jsonResponse(401, {
+            ok: false,
+            error_code: "INVALID_SESSION_TOKEN",
+            message: "Missing session token",
+          });
+        }
+
+        const loaded = await loadEditorSession(env, sessionToken);
+        if ("error" in loaded) {
+          return jsonResponse(401, {
+            ok: false,
+            error_code: "INVALID_SESSION_TOKEN",
+            message: "Invalid session token",
+          });
+        }
+
+        const session = loaded.session;
+        const expiresAt = Date.now() + SESSION_TTL_SECONDS * 1000;
+        const key = `editor_session:${sessionToken}`;
+        await env.SESSIONS_KV.put(
+          key,
+          JSON.stringify({
+            kintoneBaseUrl: session.kintoneBaseUrl,
+            appId: session.appId,
+            expiresAt,
+            kintoneApiToken: session.kintoneApiToken,
+          }),
+          { expirationTtl: SESSION_TTL_SECONDS },
+        );
+
+        const fieldsKey = buildSessionFieldsKey(sessionToken);
+        const fieldsRaw = await env.SESSIONS_KV.get(fieldsKey);
+        if (fieldsRaw) {
+          await env.SESSIONS_KV.put(fieldsKey, fieldsRaw, {
+            expirationTtl: SESSION_TTL_SECONDS,
+          });
+        }
+
+        return jsonResponse(200, { ok: true, expiresAt });
+      }
+
       if (url.pathname === "/session/fields" || url.pathname === "/editor/session/fields") {
         const authHeader = request.headers.get("Authorization") ?? "";
         const headerToken = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : "";
@@ -869,8 +941,6 @@ export default {
           }
 
           const fields = Array.isArray(payload?.fields) ? payload?.fields : [];
-          const expiresInMs = session.expiresAt - Date.now();
-          const ttlSeconds = Math.max(60, Math.min(1800, Math.floor(expiresInMs / 1000)));
           const key = buildSessionFieldsKey(sessionToken);
           const resultErrorCode = payload?.errorCode ?? null;
           await env.SESSIONS_KV.put(
@@ -885,7 +955,7 @@ export default {
               message: payload?.message ?? null,
               pluginId: payload?.pluginId ?? null,
             }),
-            { expirationTtl: ttlSeconds },
+            { expirationTtl: SESSION_TTL_SECONDS },
           );
 
           console.log(
