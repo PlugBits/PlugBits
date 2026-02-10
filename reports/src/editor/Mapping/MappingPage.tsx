@@ -136,7 +136,9 @@ const MappingPage: React.FC<Props> = ({ template, updateTemplate, onFocusFieldRe
           }}
         >
           <div>{error}</div>
-          {errorCode === 'MISSING_KINTONE_API_TOKEN' && (
+          {(errorCode === 'MISSING_KINTONE_API_TOKEN' ||
+            errorCode === 'MISSING_SESSION_FIELDS' ||
+            errorCode === 'KINTONE_PERMISSION') && (
             <button
               type="button"
               className="ghost"

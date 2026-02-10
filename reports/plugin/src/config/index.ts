@@ -370,6 +370,89 @@ const renderForm = () => {
     }
   };
 
+  const buildFieldsFromProperties = (properties: Record<string, any>) => {
+    const fields: Array<{
+      code: string;
+      label: string;
+      type: string;
+      isSubtable: boolean;
+      subtableCode?: string;
+    }> = [];
+
+    Object.entries(properties).forEach(([propertyKey, propertyValue]) => {
+      if (!propertyValue || typeof propertyValue !== 'object') return;
+      const code = String((propertyValue as any).code ?? propertyKey);
+      const label = String((propertyValue as any).label ?? code);
+      const type = String((propertyValue as any).type ?? 'UNKNOWN');
+
+      if (type === 'SUBTABLE') {
+        fields.push({ code, label, type: 'SUBTABLE', isSubtable: true });
+        const inner = (propertyValue as any).fields ?? {};
+        Object.entries(inner).forEach(([innerKey, innerValue]) => {
+          if (!innerValue || typeof innerValue !== 'object') return;
+          const innerCode = String((innerValue as any).code ?? innerKey);
+          const innerLabel = String((innerValue as any).label ?? innerCode);
+          const innerType = String((innerValue as any).type ?? 'UNKNOWN');
+          fields.push({
+            code: innerCode,
+            label: innerLabel,
+            type: innerType,
+            isSubtable: true,
+            subtableCode: code,
+          });
+        });
+        return;
+      }
+
+      fields.push({ code, label, type, isSubtable: false });
+    });
+
+    return fields;
+  };
+
+  const syncSessionFields = async (
+    workerBaseUrl: string,
+    sessionToken: string,
+    kintoneBaseUrl: string,
+    appId: string,
+  ) => {
+    if (!sessionToken) return;
+    const api = (kintone as any)?.api;
+    if (!api) return;
+    const endpoint = '/k/v1/app/form/fields.json';
+    try {
+      const payload = (await api(endpoint, 'GET', { app: appId })) as { properties?: Record<string, any> };
+      const properties = payload?.properties ?? {};
+      const fields = buildFieldsFromProperties(properties);
+      await fetch(`${workerBaseUrl}/session/fields`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sessionToken,
+          kintoneBaseUrl,
+          appId: String(appId),
+          fields,
+        }),
+      });
+    } catch (error) {
+      const message = 'アプリ管理権限が必要です。';
+      await fetch(`${workerBaseUrl}/session/fields`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sessionToken,
+          kintoneBaseUrl,
+          appId: String(appId),
+          fields: [],
+          errorCode: 'KINTONE_PERMISSION',
+          message,
+        }),
+      });
+      alert(message);
+      console.warn('[PlugBits][config] fields sync failed', error);
+    }
+  };
+
   const exchangeEditorToken = async (
     workerBaseUrl: string,
     sessionToken: string,
@@ -613,6 +696,8 @@ const renderForm = () => {
       return;
     }
 
+    await syncSessionFields(workerBaseUrl, sessionToken, kintoneBaseUrl, String(appId));
+
     const url = buildPickerUrl({
       kintoneBaseUrl,
       appId: String(appId),
@@ -643,6 +728,8 @@ const renderForm = () => {
       alert('sessionToken が取得できません');
       return;
     }
+
+    await syncSessionFields(workerBaseUrl, sessionToken, kintoneBaseUrl, String(appId));
 
     const url = buildEditUrl({
       templateId,

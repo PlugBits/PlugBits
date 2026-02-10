@@ -556,7 +556,9 @@ const LabelEditorPanel: React.FC<Props> = ({ template, onChange }) => {
           {error && (
             <div style={{ marginTop: '0.8rem', color: '#b42318', fontSize: '0.85rem' }}>
               <div>{error}</div>
-              {errorCode === 'MISSING_KINTONE_API_TOKEN' && (
+              {(errorCode === 'MISSING_KINTONE_API_TOKEN' ||
+                errorCode === 'MISSING_SESSION_FIELDS' ||
+                errorCode === 'KINTONE_PERMISSION') && (
                 <button
                   type="button"
                   className="ghost"

@@ -194,6 +194,8 @@ const loadEditorSession = async (
   };
 };
 
+const buildSessionFieldsKey = (token: string) => `editor_session_fields:${token}`;
+
 const getTenantContext = (
   url: URL,
 ): { baseUrl: string; appId: string; tenantKey: string } | { error: Response } => {
@@ -785,6 +787,111 @@ export default {
             },
           },
         );
+      }
+
+      if (url.pathname === "/session/fields") {
+        if (request.method === "POST") {
+          let payload: {
+            sessionToken?: string;
+            kintoneBaseUrl?: string;
+            appId?: string;
+            fields?: unknown;
+            errorCode?: string;
+            message?: string;
+          };
+          try {
+            payload = (await request.json()) as {
+              sessionToken?: string;
+              kintoneBaseUrl?: string;
+              appId?: string;
+              fields?: unknown;
+              errorCode?: string;
+              message?: string;
+            };
+          } catch {
+            return new Response("Invalid JSON body", {
+              status: 400,
+              headers: CORS_HEADERS,
+            });
+          }
+
+          const sessionToken = payload?.sessionToken ?? "";
+          const loaded = await loadEditorSession(env, sessionToken);
+          if ("error" in loaded) return loaded.error;
+          const session = loaded.session;
+
+          const expectedBaseUrl = session.kintoneBaseUrl;
+          const expectedAppId = session.appId;
+          const payloadBaseUrl = payload?.kintoneBaseUrl ?? expectedBaseUrl;
+          const payloadAppId = payload?.appId ?? expectedAppId;
+          if (payloadBaseUrl !== expectedBaseUrl || String(payloadAppId) !== String(expectedAppId)) {
+            return new Response("Session does not match app context", {
+              status: 400,
+              headers: CORS_HEADERS,
+            });
+          }
+
+          const fields = Array.isArray(payload?.fields) ? payload?.fields : [];
+          const expiresInMs = session.expiresAt - Date.now();
+          const ttlSeconds = Math.max(60, Math.floor(expiresInMs / 1000));
+          const key = buildSessionFieldsKey(sessionToken);
+          await env.SESSIONS_KV.put(
+            key,
+            JSON.stringify({
+              fields,
+              error_code: payload?.errorCode ?? null,
+              message: payload?.message ?? null,
+            }),
+            { expirationTtl: ttlSeconds },
+          );
+
+          return new Response(JSON.stringify({ ok: true }), {
+            status: 200,
+            headers: {
+              ...CORS_HEADERS,
+              "Content-Type": "application/json",
+              "Cache-Control": "no-store",
+            },
+          });
+        }
+
+        if (request.method === "GET") {
+          const sessionToken = url.searchParams.get("sessionToken") ?? "";
+          const loaded = await loadEditorSession(env, sessionToken);
+          if ("error" in loaded) return loaded.error;
+
+          const key = buildSessionFieldsKey(sessionToken);
+          const raw = await env.SESSIONS_KV.get(key);
+          if (!raw) {
+            return new Response(
+              JSON.stringify({
+                error_code: "MISSING_SESSION_FIELDS",
+                message: "Missing session fields",
+              }),
+              {
+                status: 404,
+                headers: {
+                  ...CORS_HEADERS,
+                  "Content-Type": "application/json",
+                },
+              },
+            );
+          }
+
+          return new Response(raw, {
+            status: 200,
+            headers: {
+              ...CORS_HEADERS,
+              "Content-Type": "application/json",
+              "Cache-Control": "no-store",
+            },
+          });
+        }
+
+        return new Response("Method Not Allowed", {
+          status: 405,
+          headers: CORS_HEADERS,
+        });
       }
 
       if (url.pathname === "/tenants/register") {
