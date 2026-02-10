@@ -437,21 +437,22 @@ const LabelEditorPanel: React.FC<Props> = ({ template, onChange }) => {
           </div>
         </div>
 
-        <div className="mapping-card" style={{ padding: '1rem' }}>
-          <div className="mapping-card-title">印刷枚数</div>
-          <label>
-            copies フィールド
-            <KintoneFieldSelect
-              value={mapping.copiesFieldCode ?? ''}
-              onChange={updateCopies}
-              fields={recordOptions}
-              allowTypes={NUMBER_TYPES}
-              placeholder="（未指定なら 1 枚）"
-            />
-          </label>
-          <p className="mapping-help">未指定/0/空は1枚扱い。上限1000。</p>
         </div>
-        </div>
+      </div>
+
+      <div className="mapping-card" style={{ padding: '1rem' }}>
+        <div className="mapping-card-title">印刷枚数</div>
+        <label>
+          copies フィールド
+          <KintoneFieldSelect
+            value={mapping.copiesFieldCode ?? ''}
+            onChange={updateCopies}
+            fields={recordOptions}
+            allowTypes={NUMBER_TYPES}
+            placeholder="（未指定なら 1 枚）"
+          />
+        </label>
+        <p className="mapping-help">未指定/0/空は1枚扱い。上限1000。</p>
       </div>
 
       <div className="mapping-card" style={{ padding: '1rem' }}>
