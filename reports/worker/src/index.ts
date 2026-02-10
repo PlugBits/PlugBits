@@ -748,10 +748,11 @@ export default {
               headers: CORS_HEADERS,
             });
           }
-        } else if (session.kintoneApiToken && !record.kintoneApiToken) {
+        } else if (session.kintoneApiToken) {
           const updated = await upsertTenantApiToken(
             env.USER_TEMPLATES_KV,
             record.tenantId,
+            canonicalAppId,
             session.kintoneApiToken,
           );
           if (updated) record = updated;
@@ -917,17 +918,58 @@ export default {
           }
         }
 
-        const token = auth.record.kintoneApiToken;
-        if (!token) {
-          return new Response("Missing kintoneApiToken for tenant", {
-            status: 400,
-            headers: CORS_HEADERS,
-          });
+        let tenantRecord = auth.record;
+        if (!tenantRecord.tokensByAppId && tenantRecord.kintoneApiToken && tenantRecord.appId) {
+          const migrated = {
+            ...tenantRecord,
+            tokensByAppId: {
+              [tenantRecord.appId]: tenantRecord.kintoneApiToken,
+            },
+            updatedAt: new Date().toISOString(),
+          };
+          await env.USER_TEMPLATES_KV.put(
+            `tenant:${tenantRecord.tenantId}`,
+            JSON.stringify(migrated),
+          );
+          tenantRecord = migrated;
         }
 
-        const baseUrl = auth.record.kintoneBaseUrl.replace(/\/$/, "");
+        const resolvedAppId = canonicalizeAppId(queryAppId ?? tenantRecord.appId);
+        const token =
+          tenantRecord.tokensByAppId?.[resolvedAppId] ??
+          (tenantRecord.appId === resolvedAppId ? tenantRecord.kintoneApiToken : undefined) ??
+          tenantRecord.kintoneApiToken;
+        if (!token) {
+          console.info("[kintone/fields] missing token", {
+            tenantId: auth.tenantId,
+            appId: resolvedAppId,
+            hasToken: false,
+          });
+          return new Response(
+            JSON.stringify({
+              error_code: "MISSING_KINTONE_API_TOKEN",
+              message: "Missing kintoneApiToken for app",
+              appId: resolvedAppId,
+            }),
+            {
+              status: 400,
+              headers: {
+                ...CORS_HEADERS,
+                "Content-Type": "application/json",
+              },
+            },
+          );
+        }
+
+        console.info("[kintone/fields] fetch", {
+          tenantId: auth.tenantId,
+          appId: resolvedAppId,
+          hasToken: true,
+        });
+
+        const baseUrl = tenantRecord.kintoneBaseUrl.replace(/\/$/, "");
         const endpoint = `${baseUrl}/k/v1/app/form/fields.json?app=${encodeURIComponent(
-          auth.record.appId,
+          resolvedAppId,
         )}`;
 
         let kintoneResponse: Response;

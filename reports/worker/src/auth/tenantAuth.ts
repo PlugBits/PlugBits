@@ -7,6 +7,7 @@ export type TenantRecord = {
   kintoneBaseUrl: string;
   appId: string;
   kintoneApiToken?: string;
+  tokensByAppId?: Record<string, string>;
   createdAt: string;
   updatedAt?: string;
 };
@@ -96,14 +97,22 @@ export const registerTenant = async (
   const existing = await getTenantRecord(kv, tenantId);
 
   if (existing) {
-    if (payload.kintoneApiToken && payload.kintoneApiToken !== existing.kintoneApiToken) {
-      const updated: TenantRecord = {
-        ...existing,
-        kintoneApiToken: payload.kintoneApiToken,
-        updatedAt: new Date().toISOString(),
-      };
-      await kv.put(buildTenantRecordKey(tenantId), JSON.stringify(updated));
-      return updated;
+    if (payload.kintoneApiToken) {
+      const currentToken =
+        existing.tokensByAppId?.[normalizedAppId] ?? existing.kintoneApiToken;
+      if (payload.kintoneApiToken !== currentToken || !existing.tokensByAppId) {
+        const updated: TenantRecord = {
+          ...existing,
+          kintoneApiToken: payload.kintoneApiToken,
+          tokensByAppId: {
+            ...(existing.tokensByAppId ?? {}),
+            [normalizedAppId]: payload.kintoneApiToken,
+          },
+          updatedAt: new Date().toISOString(),
+        };
+        await kv.put(buildTenantRecordKey(tenantId), JSON.stringify(updated));
+        return updated;
+      }
     }
     return existing;
   }
@@ -118,6 +127,9 @@ export const registerTenant = async (
     kintoneBaseUrl: normalizedBaseUrl,
     appId: normalizedAppId,
     kintoneApiToken: payload.kintoneApiToken,
+    tokensByAppId: payload.kintoneApiToken
+      ? { [normalizedAppId]: payload.kintoneApiToken }
+      : undefined,
     createdAt: now,
   };
 
@@ -128,15 +140,24 @@ export const registerTenant = async (
 export const upsertTenantApiToken = async (
   kv: KVNamespace,
   tenantId: string,
+  appId: string,
   kintoneApiToken?: string,
 ): Promise<TenantRecord | null> => {
   if (!kintoneApiToken) return null;
   const existing = await getTenantRecord(kv, tenantId);
-  if (!existing || existing.kintoneApiToken) return existing;
+  if (!existing) return null;
+
+  const normalizedAppId = canonicalizeAppId(appId);
+  const nextTokensByAppId = {
+    ...(existing.tokensByAppId ?? {}),
+    [normalizedAppId]: kintoneApiToken,
+  };
 
   const updated: TenantRecord = {
     ...existing,
-    kintoneApiToken,
+    kintoneApiToken:
+      existing.kintoneApiToken ?? (existing.appId === normalizedAppId ? kintoneApiToken : undefined),
+    tokensByAppId: nextTokensByAppId,
     updatedAt: new Date().toISOString(),
   };
   await kv.put(buildTenantRecordKey(tenantId), JSON.stringify(updated));

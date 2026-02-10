@@ -18,12 +18,14 @@ export const useKintoneFields = () => {
   const [fields, setFields] = useState<KintoneFieldItem[] | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [errorCode, setErrorCode] = useState<string | null>(null);
 
   useEffect(() => {
     if (!workerBaseUrl || !editorToken) {
       setFields([]);
       setLoading(false);
       setError(null);
+      setErrorCode(null);
       return;
     }
 
@@ -31,6 +33,7 @@ export const useKintoneFields = () => {
     const fetchFields = async () => {
       setLoading(true);
       setError(null);
+      setErrorCode(null);
       try {
         const query = new URLSearchParams();
         if (kintoneBaseUrl) query.set('kintoneBaseUrl', kintoneBaseUrl);
@@ -44,12 +47,32 @@ export const useKintoneFields = () => {
           signal: controller.signal,
         });
         if (!res.ok) {
-          const text = await res.text();
+          let message = '';
+          let code: string | null = null;
+          const contentType = res.headers.get('content-type') ?? '';
+          if (contentType.includes('application/json')) {
+            try {
+              const payload = (await res.json()) as { error_code?: string; message?: string };
+              code = payload?.error_code ?? null;
+              message = payload?.message ?? '';
+            } catch {
+              message = '';
+            }
+          }
+          if (!message) {
+            message = await res.text();
+          }
+
+          if (code === 'MISSING_KINTONE_API_TOKEN') {
+            setErrorCode(code);
+            throw new Error('このアプリのAPIトークンが未設定です。プラグイン設定で設定してください。');
+          }
+
           const tokenStatuses = new Set([400, 401, 403, 502]);
-          const message = tokenStatuses.has(res.status)
+          const fallback = tokenStatuses.has(res.status)
             ? 'kintone APIトークンが未設定、または権限不足のためフィールド一覧を取得できませんでした。'
-            : text || 'Failed to fetch kintone fields';
-          throw new Error(message);
+            : 'Failed to fetch kintone fields';
+          throw new Error(message || fallback);
         }
         const data = (await res.json()) as { fields?: KintoneFieldItem[] };
         setFields(Array.isArray(data.fields) ? data.fields : []);
@@ -70,6 +93,7 @@ export const useKintoneFields = () => {
     fields,
     loading,
     error,
+    errorCode,
     kintoneBaseUrl,
     appId,
     hasToken: !!editorToken,

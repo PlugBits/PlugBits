@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import type { LabelMapping, LabelSheetSettings, TemplateDefinition } from '@shared/template';
 import KintoneFieldSelect from '../../components/KintoneFieldSelect';
 import { useKintoneFields } from '../../hooks/useKintoneFields';
 import { useTenantStore } from '../../store/tenantStore';
+import { getQueryParams } from '../../utils/urlParams';
 
 type Props = {
   template: TemplateDefinition;
@@ -126,7 +128,36 @@ const LabelEditorPanel: React.FC<Props> = ({ template, onChange }) => {
   const mapping = useMemo(() => normalizeMapping(template.mapping), [template.mapping]);
   const [widthStr, setWidthStr] = useState(() => String(sheet.paperWidthMm));
   const [heightStr, setHeightStr] = useState(() => String(sheet.paperHeightMm));
-  const { fields, loading, error } = useKintoneFields();
+  const { fields, loading, error, errorCode } = useKintoneFields();
+  const location = useLocation();
+  const params = useMemo(
+    () => getQueryParams(location.search, location.hash),
+    [location.search, location.hash],
+  );
+  const returnOrigin = params.get('returnOrigin') ?? '';
+  const resolveReturnOrigin = () => {
+    if (!returnOrigin) return '';
+    try {
+      new URL(returnOrigin);
+      return returnOrigin;
+    } catch {
+      return '';
+    }
+  };
+  const handleReturnToSettings = () => {
+    const origin = resolveReturnOrigin();
+    if (origin) {
+      window.location.href = origin;
+      return;
+    }
+    const before = window.location.href;
+    window.history.back();
+    window.setTimeout(() => {
+      if (window.location.href === before) {
+        window.location.href = '/';
+      }
+    }, 200);
+  };
   const tenantContext = useTenantStore((state) => state.tenantContext);
   const recordOptions = useMemo(
     () =>
@@ -524,7 +555,17 @@ const LabelEditorPanel: React.FC<Props> = ({ template, onChange }) => {
           )}
           {error && (
             <div style={{ marginTop: '0.8rem', color: '#b42318', fontSize: '0.85rem' }}>
-              {error}
+              <div>{error}</div>
+              {errorCode === 'MISSING_KINTONE_API_TOKEN' && (
+                <button
+                  type="button"
+                  className="ghost"
+                  style={{ marginTop: 6 }}
+                  onClick={handleReturnToSettings}
+                >
+                  プラグイン設定に戻る
+                </button>
+              )}
             </div>
           )}
         </div>

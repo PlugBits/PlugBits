@@ -1,10 +1,12 @@
 // src/editor/Mapping/MappingPage.tsx
 import React, { useEffect, useMemo } from 'react';
+import { useLocation } from 'react-router-dom';
 import type { TemplateDefinition } from '@shared/template';
 import { getAdapter } from './adapters/getAdapter';
 import RegionMappingPanel from './components/RegionMappingPanel';
 import { buildSchemaFromFlatFields, type SchemaFromSample } from './mappingUtils';
 import { useKintoneFields } from '../../hooks/useKintoneFields';
+import { getQueryParams } from '../../utils/urlParams';
 
 
 type Props = {
@@ -17,7 +19,36 @@ type Props = {
 const MappingPage: React.FC<Props> = ({ template, updateTemplate, onFocusFieldRef, onClearFocus }) => {
   const structureType = template.structureType ?? 'list_v1';
   const adapter = useMemo(() => getAdapter(structureType), [structureType]);
-  const { fields: kintoneFields, loading, error } = useKintoneFields();
+  const { fields: kintoneFields, loading, error, errorCode } = useKintoneFields();
+  const location = useLocation();
+  const params = useMemo(
+    () => getQueryParams(location.search, location.hash),
+    [location.search, location.hash],
+  );
+  const returnOrigin = params.get('returnOrigin') ?? '';
+  const resolveReturnOrigin = () => {
+    if (!returnOrigin) return '';
+    try {
+      new URL(returnOrigin);
+      return returnOrigin;
+    } catch {
+      return '';
+    }
+  };
+  const handleReturnToSettings = () => {
+    const origin = resolveReturnOrigin();
+    if (origin) {
+      window.location.href = origin;
+      return;
+    }
+    const before = window.location.href;
+    window.history.back();
+    window.setTimeout(() => {
+      if (window.location.href === before) {
+        window.location.href = '/';
+      }
+    }, 200);
+  };
 
   useEffect(() => {
     if (!import.meta.env.DEV) return;
@@ -104,7 +135,17 @@ const MappingPage: React.FC<Props> = ({ template, updateTemplate, onFocusFieldRe
             fontSize: '0.9rem',
           }}
         >
-          {error}
+          <div>{error}</div>
+          {errorCode === 'MISSING_KINTONE_API_TOKEN' && (
+            <button
+              type="button"
+              className="ghost"
+              style={{ marginTop: 8 }}
+              onClick={handleReturnToSettings}
+            >
+              プラグイン設定に戻る
+            </button>
+          )}
         </div>
       )}
 
