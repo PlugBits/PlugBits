@@ -440,92 +440,94 @@ const LabelEditorPanel: React.FC<Props> = ({ template, onChange }) => {
         </div>
       </div>
 
-      <div className="mapping-card" style={{ padding: '1rem' }}>
-        <div className="mapping-card-title">印刷枚数</div>
-        <label>
-          copies フィールド
-          <KintoneFieldSelect
-            value={mapping.copiesFieldCode ?? ''}
-            onChange={updateCopies}
-            fields={recordOptions}
-            allowTypes={NUMBER_TYPES}
-            placeholder="（未指定なら 1 枚）"
-          />
-        </label>
-        <p className="mapping-help">未指定/0/空は1枚扱い。上限1000。</p>
-      </div>
-
-      <div className="mapping-card" style={{ padding: '1rem' }}>
-        <div className="mapping-card-title">ラベル項目の割り当て</div>
-        <div style={{ display: 'grid', gap: '0.8rem' }}>
+      <div style={{ display: 'grid', gap: '1rem', alignContent: 'start' }}>
+        <div className="mapping-card" style={{ padding: '1rem' }}>
+          <div className="mapping-card-title">印刷枚数</div>
           <label>
-            タイトル（2行）
+            copies フィールド
             <KintoneFieldSelect
-              value={mapping.slots.title ?? ''}
-              onChange={(value) => updateSlot('title', value)}
-              fields={recordOptions}
-              allowTypes={TEXT_TYPES}
-              placeholder="（選択してください）"
-            />
-          </label>
-          <label>
-            コード
-            <KintoneFieldSelect
-              value={mapping.slots.code ?? ''}
-              onChange={(value) => updateSlot('code', value)}
-              fields={recordOptions}
-              allowTypes={TEXT_OR_NUMBER_TYPES}
-              placeholder="（選択してください）"
-            />
-          </label>
-          <label>
-            数量
-            <KintoneFieldSelect
-              value={mapping.slots.qty ?? ''}
-              onChange={(value) => updateSlot('qty', value)}
+              value={mapping.copiesFieldCode ?? ''}
+              onChange={updateCopies}
               fields={recordOptions}
               allowTypes={NUMBER_TYPES}
-              placeholder="（選択してください）"
+              placeholder="（未指定なら 1 枚）"
             />
           </label>
-          <label>
-            QR（必須）
-            <KintoneFieldSelect
-              value={mapping.slots.qr ?? ''}
-              onChange={(value) => updateSlot('qr', value)}
-              fields={recordOptions}
-              allowTypes={TEXT_OR_NUMBER_TYPES}
-              placeholder="（選択してください）"
-            />
-          </label>
-          <label>
-            補足（任意）
-            <KintoneFieldSelect
-              value={mapping.slots.extra ?? ''}
-              onChange={(value) => updateSlot('extra', value)}
-              fields={recordOptions}
-              allowTypes={TEXT_TYPES}
-              placeholder="（任意）"
-            />
-          </label>
+          <p className="mapping-help">未指定/0/空は1枚扱い。上限1000。</p>
         </div>
 
-        {missingQr && (
-          <div style={{ marginTop: '0.8rem', color: '#b42318', fontSize: '0.9rem' }}>
-            QR の割り当てが未設定です（必須）。
+        <div className="mapping-card" style={{ padding: '1rem' }}>
+          <div className="mapping-card-title">ラベル項目の割り当て</div>
+          <div style={{ display: 'grid', gap: '0.8rem' }}>
+            <label>
+              タイトル（2行）
+              <KintoneFieldSelect
+                value={mapping.slots.title ?? ''}
+                onChange={(value) => updateSlot('title', value)}
+                fields={recordOptions}
+                allowTypes={TEXT_TYPES}
+                placeholder="（選択してください）"
+              />
+            </label>
+            <label>
+              コード
+              <KintoneFieldSelect
+                value={mapping.slots.code ?? ''}
+                onChange={(value) => updateSlot('code', value)}
+                fields={recordOptions}
+                allowTypes={TEXT_OR_NUMBER_TYPES}
+                placeholder="（選択してください）"
+              />
+            </label>
+            <label>
+              数量
+              <KintoneFieldSelect
+                value={mapping.slots.qty ?? ''}
+                onChange={(value) => updateSlot('qty', value)}
+                fields={recordOptions}
+                allowTypes={NUMBER_TYPES}
+                placeholder="（選択してください）"
+              />
+            </label>
+            <label>
+              QR（必須）
+              <KintoneFieldSelect
+                value={mapping.slots.qr ?? ''}
+                onChange={(value) => updateSlot('qr', value)}
+                fields={recordOptions}
+                allowTypes={TEXT_OR_NUMBER_TYPES}
+                placeholder="（選択してください）"
+              />
+            </label>
+            <label>
+              補足（任意）
+              <KintoneFieldSelect
+                value={mapping.slots.extra ?? ''}
+                onChange={(value) => updateSlot('extra', value)}
+                fields={recordOptions}
+                allowTypes={TEXT_TYPES}
+                placeholder="（任意）"
+              />
+            </label>
           </div>
-        )}
 
-        {loading && (
-          <div style={{ marginTop: '0.8rem', color: '#475467', fontSize: '0.85rem' }}>
-            フィールド一覧を取得しています...
-          </div>
-        )}
-        {error && (
-          <div style={{ marginTop: '0.8rem', color: '#b42318', fontSize: '0.85rem' }}>
-            {error}
-          </div>
-        )}
+          {missingQr && (
+            <div style={{ marginTop: '0.8rem', color: '#b42318', fontSize: '0.9rem' }}>
+              QR の割り当てが未設定です（必須）。
+            </div>
+          )}
+
+          {loading && (
+            <div style={{ marginTop: '0.8rem', color: '#475467', fontSize: '0.85rem' }}>
+              フィールド一覧を取得しています...
+            </div>
+          )}
+          {error && (
+            <div style={{ marginTop: '0.8rem', color: '#b42318', fontSize: '0.85rem' }}>
+              {error}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
