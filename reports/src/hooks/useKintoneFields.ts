@@ -25,8 +25,8 @@ export const useKintoneFields = () => {
     if (!workerBaseUrl || !sessionToken) {
       setFields([]);
       setLoading(false);
-      setError(null);
-      setErrorCode(null);
+      setError('セッション期限切れです。プラグイン設定から開き直してください。');
+      setErrorCode('INVALID_SESSION_TOKEN');
       return;
     }
 
@@ -36,44 +36,54 @@ export const useKintoneFields = () => {
       setError(null);
       setErrorCode(null);
       try {
-        const sessionUrl = `${workerBaseUrl.replace(/\/$/, '')}/session/fields?sessionToken=${encodeURIComponent(
-          sessionToken,
-        )}`;
+        const sessionUrl = `${workerBaseUrl.replace(/\/$/, '')}/session/fields`;
         const sessionRes = await fetch(sessionUrl, {
           method: 'GET',
+          headers: {
+            Authorization: `Bearer ${sessionToken}`,
+          },
           signal: controller.signal,
         });
-        if (sessionRes.ok) {
-          const payload = (await sessionRes.json()) as {
+        let payload: {
+          ok?: boolean;
+          fields?: KintoneFieldItem[];
+          error_code?: string | null;
+          message?: string | null;
+        } = {};
+        if (sessionRes.headers.get('content-type')?.includes('application/json')) {
+          payload = (await sessionRes.json()) as {
+            ok?: boolean;
             fields?: KintoneFieldItem[];
             error_code?: string | null;
             message?: string | null;
           };
-          if (payload?.error_code === 'KINTONE_PERMISSION') {
-            setErrorCode(payload.error_code);
-            throw new Error(payload.message || 'アプリ管理権限が必要です。');
-          }
+        }
+        if (sessionRes.ok && payload.ok !== false) {
           const list = Array.isArray(payload.fields) ? payload.fields : [];
           setFields(list);
           setLoading(false);
           return;
         }
 
-        let sessionMessage = '';
-        let sessionCode: string | null = null;
-        const sessionType = sessionRes.headers.get('content-type') ?? '';
-        if (sessionType.includes('application/json')) {
-          try {
-            const payload = (await sessionRes.json()) as { error_code?: string; message?: string };
-            sessionCode = payload?.error_code ?? null;
-            sessionMessage = payload?.message ?? '';
-          } catch {
-            sessionMessage = '';
-          }
+        const sessionCode = payload?.error_code ?? null;
+        const sessionMessage = payload?.message ?? '';
+        if (sessionCode === 'KINTONE_PERMISSION_DENIED') {
+          setErrorCode(sessionCode);
+          throw new Error(
+            sessionMessage ||
+              'このアプリでフィールド取得権限がありません。kintoneのアプリ権限/API権限を確認してください。',
+          );
+        }
+        if (sessionCode === 'INVALID_SESSION_TOKEN') {
+          setErrorCode(sessionCode);
+          throw new Error(sessionMessage || 'セッション期限切れです。プラグイン設定から開き直してください。');
         }
         if (sessionCode === 'MISSING_SESSION_FIELDS') {
           setErrorCode(sessionCode);
-          throw new Error('フィールド情報が未同期です。プラグイン設定から開いてください。');
+          throw new Error(
+            sessionMessage ||
+              'フィールド同期が未完了です。プラグイン設定から再度「テンプレを選ぶ」を押してください。',
+          );
         }
 
         if (editorToken) {
@@ -122,7 +132,7 @@ export const useKintoneFields = () => {
           return;
         }
 
-        throw new Error(sessionMessage || 'Failed to fetch session fields');
+        throw new Error('フィールド取得に失敗しました。');
       } catch (err) {
         if (controller.signal.aborted) return;
         setFields([]);

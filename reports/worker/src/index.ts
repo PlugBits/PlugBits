@@ -789,7 +789,21 @@ export default {
         );
       }
 
-      if (url.pathname === "/session/fields") {
+      if (url.pathname === "/session/fields" || url.pathname === "/editor/session/fields") {
+        const authHeader = request.headers.get("Authorization") ?? "";
+        const headerToken = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : "";
+        const queryToken = url.searchParams.get("sessionToken") ?? "";
+
+        const jsonResponse = (status: number, body: Record<string, unknown>) =>
+          new Response(JSON.stringify(body), {
+            status,
+            headers: {
+              ...CORS_HEADERS,
+              "Content-Type": "application/json",
+              "Cache-Control": "no-store",
+            },
+          });
+
         if (request.method === "POST") {
           let payload: {
             sessionToken?: string;
@@ -798,6 +812,8 @@ export default {
             fields?: unknown;
             errorCode?: string;
             message?: string;
+            fetchedAt?: string;
+            pluginId?: string;
           };
           try {
             payload = (await request.json()) as {
@@ -807,90 +823,155 @@ export default {
               fields?: unknown;
               errorCode?: string;
               message?: string;
+              fetchedAt?: string;
+              pluginId?: string;
             };
           } catch {
-            return new Response("Invalid JSON body", {
-              status: 400,
-              headers: CORS_HEADERS,
+            return jsonResponse(400, {
+              ok: false,
+              error_code: "INVALID_SESSION_TOKEN",
+              message: "Invalid JSON body",
             });
           }
 
-          const sessionToken = payload?.sessionToken ?? "";
-          const loaded = await loadEditorSession(env, sessionToken);
-          if ("error" in loaded) return loaded.error;
-          const session = loaded.session;
+          const sessionToken = headerToken || payload?.sessionToken || queryToken;
+          if (!sessionToken) {
+            console.log("[session/fields]", "POST", "", payload?.appId ?? "", payload?.kintoneBaseUrl ?? "", "INVALID_SESSION_TOKEN");
+            return jsonResponse(401, {
+              ok: false,
+              error_code: "INVALID_SESSION_TOKEN",
+              message: "Missing session token",
+            });
+          }
 
+          const loaded = await loadEditorSession(env, sessionToken);
+          if ("error" in loaded) {
+            console.log("[session/fields]", "POST", sessionToken.slice(0, 8), payload?.appId ?? "", payload?.kintoneBaseUrl ?? "", "INVALID_SESSION_TOKEN");
+            return jsonResponse(401, {
+              ok: false,
+              error_code: "INVALID_SESSION_TOKEN",
+              message: "Invalid session token",
+            });
+          }
+
+          const session = loaded.session;
           const expectedBaseUrl = session.kintoneBaseUrl;
           const expectedAppId = session.appId;
           const payloadBaseUrl = payload?.kintoneBaseUrl ?? expectedBaseUrl;
           const payloadAppId = payload?.appId ?? expectedAppId;
           if (payloadBaseUrl !== expectedBaseUrl || String(payloadAppId) !== String(expectedAppId)) {
-            return new Response("Session does not match app context", {
-              status: 400,
-              headers: CORS_HEADERS,
+            console.log("[session/fields]", "POST", sessionToken.slice(0, 8), payloadAppId, payloadBaseUrl, "INVALID_SESSION_TOKEN");
+            return jsonResponse(400, {
+              ok: false,
+              error_code: "INVALID_SESSION_TOKEN",
+              message: "Session does not match app context",
             });
           }
 
           const fields = Array.isArray(payload?.fields) ? payload?.fields : [];
           const expiresInMs = session.expiresAt - Date.now();
-          const ttlSeconds = Math.max(60, Math.floor(expiresInMs / 1000));
+          const ttlSeconds = Math.max(60, Math.min(1800, Math.floor(expiresInMs / 1000)));
           const key = buildSessionFieldsKey(sessionToken);
+          const resultErrorCode = payload?.errorCode ?? null;
           await env.SESSIONS_KV.put(
             key,
             JSON.stringify({
+              ok: resultErrorCode ? false : true,
               fields,
-              error_code: payload?.errorCode ?? null,
+              kintoneBaseUrl: expectedBaseUrl,
+              appId: expectedAppId,
+              fetchedAt: payload?.fetchedAt ?? new Date().toISOString(),
+              error_code: resultErrorCode,
               message: payload?.message ?? null,
+              pluginId: payload?.pluginId ?? null,
             }),
             { expirationTtl: ttlSeconds },
           );
 
-          return new Response(JSON.stringify({ ok: true }), {
-            status: 200,
-            headers: {
-              ...CORS_HEADERS,
-              "Content-Type": "application/json",
-              "Cache-Control": "no-store",
-            },
-          });
+          console.log(
+            "[session/fields]",
+            "POST",
+            sessionToken.slice(0, 8),
+            expectedAppId,
+            expectedBaseUrl,
+            resultErrorCode ?? "OK",
+          );
+
+          return jsonResponse(200, { ok: true });
         }
 
         if (request.method === "GET") {
-          const sessionToken = url.searchParams.get("sessionToken") ?? "";
+          const sessionToken = headerToken || queryToken;
+          if (!sessionToken) {
+            console.log("[session/fields]", "GET", "", "", "", "INVALID_SESSION_TOKEN");
+            return jsonResponse(401, {
+              ok: false,
+              error_code: "INVALID_SESSION_TOKEN",
+              message: "Missing session token",
+            });
+          }
+
           const loaded = await loadEditorSession(env, sessionToken);
-          if ("error" in loaded) return loaded.error;
+          if ("error" in loaded) {
+            console.log("[session/fields]", "GET", sessionToken.slice(0, 8), "", "", "INVALID_SESSION_TOKEN");
+            return jsonResponse(401, {
+              ok: false,
+              error_code: "INVALID_SESSION_TOKEN",
+              message: "Invalid session token",
+            });
+          }
 
           const key = buildSessionFieldsKey(sessionToken);
           const raw = await env.SESSIONS_KV.get(key);
           if (!raw) {
-            return new Response(
-              JSON.stringify({
-                error_code: "MISSING_SESSION_FIELDS",
-                message: "Missing session fields",
-              }),
-              {
-                status: 404,
-                headers: {
-                  ...CORS_HEADERS,
-                  "Content-Type": "application/json",
-                },
-              },
+            console.log(
+              "[session/fields]",
+              "GET",
+              sessionToken.slice(0, 8),
+              loaded.session.appId,
+              loaded.session.kintoneBaseUrl,
+              "MISSING_SESSION_FIELDS",
             );
+            return jsonResponse(404, {
+              ok: false,
+              error_code: "MISSING_SESSION_FIELDS",
+              message: "Missing session fields",
+            });
           }
 
-          return new Response(raw, {
-            status: 200,
-            headers: {
-              ...CORS_HEADERS,
-              "Content-Type": "application/json",
-              "Cache-Control": "no-store",
-            },
+          let payload: Record<string, unknown>;
+          try {
+            payload = JSON.parse(raw) as Record<string, unknown>;
+          } catch {
+            payload = {};
+          }
+
+          const resultCode =
+            (payload?.error_code as string | null | undefined) ?? "OK";
+          console.log(
+            "[session/fields]",
+            "GET",
+            sessionToken.slice(0, 8),
+            payload?.appId ?? loaded.session.appId,
+            payload?.kintoneBaseUrl ?? loaded.session.kintoneBaseUrl,
+            resultCode,
+          );
+
+          return jsonResponse(200, {
+            ok: payload?.ok !== false,
+            fields: payload?.fields ?? [],
+            kintoneBaseUrl: payload?.kintoneBaseUrl ?? loaded.session.kintoneBaseUrl,
+            appId: payload?.appId ?? loaded.session.appId,
+            fetchedAt: payload?.fetchedAt ?? null,
+            error_code: payload?.error_code ?? null,
+            message: payload?.message ?? null,
           });
         }
 
-        return new Response("Method Not Allowed", {
-          status: 405,
-          headers: CORS_HEADERS,
+        return jsonResponse(405, {
+          ok: false,
+          error_code: "INVALID_SESSION_TOKEN",
+          message: "Method Not Allowed",
         });
       }
 

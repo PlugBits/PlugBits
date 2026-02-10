@@ -426,29 +426,39 @@ const renderForm = () => {
       const fields = buildFieldsFromProperties(properties);
       await fetch(`${workerBaseUrl}/session/fields`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${sessionToken}`,
+        },
         body: JSON.stringify({
           sessionToken,
           kintoneBaseUrl,
           appId: String(appId),
           fields,
+          fetchedAt: new Date().toISOString(),
+          pluginId: PLUGIN_ID,
         }),
       });
     } catch (error) {
       const message = 'アプリ管理権限が必要です。';
       await fetch(`${workerBaseUrl}/session/fields`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${sessionToken}`,
+        },
         body: JSON.stringify({
           sessionToken,
           kintoneBaseUrl,
           appId: String(appId),
           fields: [],
-          errorCode: 'KINTONE_PERMISSION',
+          errorCode: 'KINTONE_PERMISSION_DENIED',
           message,
+          fetchedAt: new Date().toISOString(),
+          pluginId: PLUGIN_ID,
         }),
       });
-      alert(message);
+      alert(`${message} (KINTONE_PERMISSION_DENIED)`);
       console.warn('[PlugBits][config] fields sync failed', error);
     }
   };
