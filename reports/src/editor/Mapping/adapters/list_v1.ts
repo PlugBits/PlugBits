@@ -126,15 +126,15 @@ export const listV1Adapter: StructureAdapter = {
     const issueDate = m.header?.["issue_date"];
 
     if (!toName || toName.kind !== "recordField") {
-      errors.push({ path: "header.to_name", message: "宛先名（レコードフィールド）が必須です" });
+      errors.push({ path: "header.to_name", message: "宛先名（レコードフィールド）を選択してください" });
     }
     if (!issueDate || issueDate.kind !== "recordField") {
-      errors.push({ path: "header.issue_date", message: "発行日（レコードフィールド）が必須です" });
+      errors.push({ path: "header.issue_date", message: "発行日（レコードフィールド）を選択してください" });
     }
 
     const source = m.table?.source;
     if (!source || source.kind !== "subtable" || !source.fieldCode) {
-      errors.push({ path: "table.source", message: "明細サブテーブルの指定が必須です" });
+      errors.push({ path: "table.source", message: "明細サブテーブルを選択してください" });
     }
 
     const cols = m.table?.columns ?? [];

@@ -460,7 +460,7 @@ const TemplateListPage = () => {
                   {items.map((meta) => (
                     <div className="card" key={meta.templateId}>
                       <div>
-                        <h3>{meta.name || '名称未設定'}</h3>
+                        <h3>{meta.name || '名称未入力'}</h3>
                         <p style={{ color: '#475467' }}>
                           更新: {new Date(meta.updatedAt).toLocaleString()}
                         </p>

@@ -117,7 +117,7 @@ const RegionMappingPanel: React.FC<Props> = ({
                   </div>
 
                   <div className={`mapping-row-right ${isEmpty ? 'empty' : 'filled'}`}>
-                    {valueLabel || '未設定'}
+                    {valueLabel || '未選択'}
                   </div>
                 </button>
 
@@ -207,7 +207,7 @@ const RegionMappingPanel: React.FC<Props> = ({
                   </div>
 
                   <div className={`mapping-row-right ${isEmpty ? 'empty' : 'filled'}`}>
-                    {isEmpty ? '未設定' : `サブテーブル: ${currentSubtableCode}`}
+                    {isEmpty ? '未選択' : `サブテーブル: ${currentSubtableCode}`}
                   </div>
                 </button>
 
@@ -268,7 +268,7 @@ const RegionMappingPanel: React.FC<Props> = ({
                   </div>
 
                   <div className={`mapping-row-right ${isEmpty ? 'empty' : 'filled'}`}>
-                    {describeFieldRef(fieldValue) || '未設定'}
+                    {describeFieldRef(fieldValue) || '未選択'}
                   </div>
                 </button>
 
@@ -390,7 +390,7 @@ const RegionMappingPanel: React.FC<Props> = ({
                 </div>
 
                 <div className={`mapping-row-right ${isEmpty ? 'empty' : 'filled'}`}>
-                  {isEmpty ? '未設定' : `サブテーブル: ${currentSubtableCode}`}
+                  {isEmpty ? '未選択' : `サブテーブル: ${currentSubtableCode}`}
                 </div>
               </button>
 
@@ -531,7 +531,7 @@ const RegionMappingPanel: React.FC<Props> = ({
                 </div>
 
                 <div className={`mapping-row-right ${isEmpty ? 'empty' : 'filled'}`}>
-                  {isEmpty ? '未設定' : summaryMode}
+                  {isEmpty ? '未選択' : summaryMode}
                 </div>
               </button>
 

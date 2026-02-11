@@ -125,11 +125,11 @@ const describeDataSource = (element: TemplateElement) => {
   // table
   if (element.type === 'table') {
     const ds = element.dataSource;
-    return ds ? `サブテーブル: ${ds.fieldCode}` : 'サブテーブル: (未設定)';
+    return ds ? `サブテーブル: ${ds.fieldCode}` : 'サブテーブル: (未選択)';
   }
   if (element.type === 'cardList') {
     const ds = element.dataSource;
-    return ds ? `サブテーブル: ${ds.fieldCode}` : 'サブテーブル: (未設定)';
+    return ds ? `サブテーブル: ${ds.fieldCode}` : 'サブテーブル: (未選択)';
   }
 
   // label

@@ -207,7 +207,7 @@ const TemplatePreviewPage = () => {
     <section className="editor-panel" style={{ padding: '1.5rem' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
         <div>
-          <h2 style={{ margin: 0 }}>{template.name || '名称未設定'} プレビュー</h2>
+          <h2 style={{ margin: 0 }}>{template.name || '名称未入力'} プレビュー</h2>
           <p style={{ margin: 0, color: '#475467', fontSize: '0.9rem' }}>サンプルデータで PDF を生成します</p>
         </div>
         <div className="button-row">

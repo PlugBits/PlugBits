@@ -89,20 +89,20 @@ export const cardsV1Adapter: StructureAdapter = {
     const issueDate = m.header?.["issue_date"];
 
     if (!toName || toName.kind !== "recordField") {
-      errors.push({ path: "header.to_name", message: "宛先名（レコードフィールド）が必須です" });
+      errors.push({ path: "header.to_name", message: "宛先名（レコードフィールド）を選択してください" });
     }
     if (!issueDate || issueDate.kind !== "recordField") {
-      errors.push({ path: "header.issue_date", message: "発行日（レコードフィールド）が必須です" });
+      errors.push({ path: "header.issue_date", message: "発行日（レコードフィールド）を選択してください" });
     }
 
     const source = m.cardList?.source;
     if (!source || source.kind !== "subtable" || !source.fieldCode) {
-      errors.push({ path: "cardList.source", message: "カード用サブテーブルの指定が必須です" });
+      errors.push({ path: "cardList.source", message: "カード用サブテーブルを選択してください" });
     }
 
     const fieldA = m.cardList?.fields?.fieldA;
     if (!fieldA || fieldA.kind !== "subtableField") {
-      errors.push({ path: "cardList.fields.fieldA", message: "Field A の設定が必須です" });
+      errors.push({ path: "cardList.fields.fieldA", message: "Field A を選択してください" });
     }
 
     return errors.length > 0 ? ng(errors) : ok();

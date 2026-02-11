@@ -820,17 +820,16 @@ const TemplateEditorPage = () => {
     if (issueSummary.errorCount > 0) {
       setIssuesOpen(true);
       setToast({
-        type: 'error',
-        message: '必須項目が未設定です',
+        type: 'info',
+        message: '未選択の項目があります',
       });
       return;
     }
     try {
       await previewPdf(template);
-      setToast({ type: 'success', message: 'PDFプレビューを開きました' });
+      setToast({ type: 'success', message: 'PDFを出力しました' });
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'PDFプレビューに失敗しました';
-      setToast({ type: 'error', message });
+      setToast({ type: 'error', message: '処理に失敗しました。もう一度お試しください。' });
     }
   };
 
@@ -909,15 +908,14 @@ const TemplateEditorPage = () => {
         message: `${targetLabel}に複製しました。`,
         subMessage:
           clonePresetId === 'invoice_v1'
-            ? '支払期限が必須です。未設定の場合は出力できません。'
-            : '必要な項目を確認して設定してください。',
+            ? '支払期限は未選択だと出力できません。'
+            : '必要な項目を確認してください。',
       });
       navigate(`/templates/${newId}/edit${preservedQuery}`);
     } catch (error) {
       setToast({
         type: 'error',
-        message: '複製に失敗しました',
-        subMessage: error instanceof Error ? error.message : undefined,
+        message: '処理に失敗しました。もう一度お試しください。',
       });
     } finally {
       setIsCloning(false);
@@ -956,11 +954,11 @@ const TemplateEditorPage = () => {
   const describeElementForList = (el: any) => {
     if (el.type === 'table') {
       const ds = el.dataSource;
-      return ds?.fieldCode ? `サブテーブル: ${ds.fieldCode}` : 'サブテーブル: (未設定)';
+      return ds?.fieldCode ? `サブテーブル: ${ds.fieldCode}` : 'サブテーブル: (未選択)';
     }
     if (el.type === 'cardList') {
       const ds = el.dataSource;
-      return ds?.fieldCode ? `サブテーブル: ${ds.fieldCode}` : 'サブテーブル: (未設定)';
+      return ds?.fieldCode ? `サブテーブル: ${ds.fieldCode}` : 'サブテーブル: (未選択)';
     }
     if (el.type === 'label') return el.text ?? '';
     const ds = el.dataSource;
@@ -1031,7 +1029,7 @@ const TemplateEditorPage = () => {
 
   const persistTemplateName = () => {
     if (!template) return '';
-    const normalized = nameDraft.trim() || template.name || '名称未設定';
+    const normalized = nameDraft.trim() || template.name || '名称未入力';
     if (normalized !== nameDraft) {
       setNameDraft(normalized);
     }
@@ -1129,13 +1127,14 @@ const TemplateEditorPage = () => {
       lastSavedTemplateId.current = template.id;
       lastSavedSignature.current = buildTemplateSignature(updatedTemplate);
       setSaveStatus('success');
-      setToast({
-        type: 'success',
-        message: '保存しました',
-        subMessage: isAutosave ? '自動保存' : undefined,
-      });
+      if (!isAutosave) {
+        setToast({
+          type: 'success',
+          message: '保存しました',
+        });
+      }
     } catch (error) {
-      const message = error instanceof Error ? error.message : '保存に失敗しました';
+      const message = '処理に失敗しました。もう一度お試しください。';
       setSaveStatus('error');
       setSaveError(message);
       setToast({ type: 'error', message });
@@ -1268,7 +1267,7 @@ const TemplateEditorPage = () => {
               >
                 {headerTemplateId && <span>ID: {headerTemplateId}</span>}
                 <span>要素数: {template.elements.length}</span>
-                <span>保存先: {tenantContext?.workerBaseUrl ?? '未設定'}</span>
+                <span>保存先: {tenantContext?.workerBaseUrl ?? '未選択'}</span>
               </div>
             </div>
           </div>
@@ -1463,9 +1462,9 @@ const TemplateEditorPage = () => {
                       style={{
                         padding: '10px 12px',
                         borderRadius: 10,
-                        border: '1px solid #fda29b',
-                        background: '#fef3f2',
-                        color: '#b42318',
+                        border: '1px solid #e4e7ec',
+                        background: '#f8fafc',
+                        color: '#344054',
                         fontSize: 13,
                         fontWeight: 600,
                         marginBottom: 10,
@@ -1475,7 +1474,7 @@ const TemplateEditorPage = () => {
                         gap: 8,
                       }}
                     >
-                      <span>必須項目が未設定です（{issueSummary.errorCount}件）</span>
+                      <span>未選択の項目があります（{issueSummary.errorCount}件）</span>
                       <button
                         type="button"
                         className="ghost"
@@ -1491,9 +1490,9 @@ const TemplateEditorPage = () => {
                       style={{
                         padding: '10px 12px',
                         borderRadius: 10,
-                        border: '1px solid #fcd34d',
-                        background: '#fffbeb',
-                        color: '#92400e',
+                        border: '1px solid #e4e7ec',
+                        background: '#f8fafc',
+                        color: '#344054',
                         fontSize: 13,
                         fontWeight: 600,
                         marginBottom: 10,
@@ -1504,7 +1503,7 @@ const TemplateEditorPage = () => {
                       }}
                     >
                       <span>
-                        推奨項目が未入力です（{issueSummary.warnCount}件）・出力は可能です
+                        確認しておきたい項目があります（{issueSummary.warnCount}件）
                       </span>
                       <button
                         type="button"
@@ -1527,7 +1526,7 @@ const TemplateEditorPage = () => {
                       }}
                     >
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                        <div style={{ fontWeight: 700, fontSize: 13, color: '#101828' }}>未設定一覧</div>
+                        <div style={{ fontWeight: 700, fontSize: 13, color: '#101828' }}>未選択一覧</div>
                         <button
                           type="button"
                           className="ghost"
@@ -1553,7 +1552,7 @@ const TemplateEditorPage = () => {
                                     border: '1px solid #e4e7ec',
                                     borderRadius: 10,
                                     padding: '8px 10px',
-                                    background: issue.severity === 'error' ? '#fef3f2' : '#fffbeb',
+                                    background: '#f8fafc',
                                     display: 'flex',
                                     alignItems: 'center',
                                     justifyContent: 'space-between',

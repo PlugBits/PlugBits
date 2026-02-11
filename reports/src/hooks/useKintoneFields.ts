@@ -25,7 +25,7 @@ export const useKintoneFields = () => {
     if (!workerBaseUrl || !sessionToken) {
       setFields([]);
       setLoading(false);
-      setError('セッション期限切れです。プラグイン設定から開き直してください。');
+      setError('設定画面から開き直してください。');
       setErrorCode('INVALID_SESSION_TOKEN');
       return;
     }
@@ -71,18 +71,18 @@ export const useKintoneFields = () => {
           setErrorCode(sessionCode);
           throw new Error(
             sessionMessage ||
-              'このアプリでフィールド取得権限がありません。kintoneのアプリ権限/API権限を確認してください。',
+              'このアプリでフィールド一覧を取得できません。権限設定を確認してください。',
           );
         }
         if (sessionCode === 'INVALID_SESSION_TOKEN') {
           setErrorCode(sessionCode);
-          throw new Error(sessionMessage || 'セッション期限切れです。プラグイン設定から開き直してください。');
+          throw new Error(sessionMessage || '設定画面から開き直してください。');
         }
         if (sessionCode === 'MISSING_SESSION_FIELDS') {
           setErrorCode(sessionCode);
           throw new Error(
             sessionMessage ||
-              'フィールド同期が未完了です。プラグイン設定から再度「テンプレを選ぶ」を押してください。',
+              'フィールド同期が未完了です。設定画面から再度「テンプレを選ぶ」を押してください。',
           );
         }
 
@@ -117,12 +117,12 @@ export const useKintoneFields = () => {
 
             if (code === 'MISSING_KINTONE_API_TOKEN') {
               setErrorCode(code);
-              throw new Error('このアプリのAPIトークンが未設定です。プラグイン設定で設定してください。');
+              throw new Error('このアプリのAPIトークンが未選択です。設定画面で設定してください。');
             }
 
             const tokenStatuses = new Set([400, 401, 403, 502]);
             const fallback = tokenStatuses.has(res.status)
-              ? 'kintone APIトークンが未設定、または権限不足のためフィールド一覧を取得できませんでした。'
+              ? 'フィールド一覧を取得できませんでした。権限設定を確認してください。'
               : 'Failed to fetch kintone fields';
             throw new Error(message || fallback);
           }
@@ -132,12 +132,12 @@ export const useKintoneFields = () => {
           return;
         }
 
-        throw new Error('フィールド取得に失敗しました。');
+        throw new Error('フィールド一覧を取得できませんでした。');
       } catch (err) {
         if (controller.signal.aborted) return;
         setFields([]);
         setLoading(false);
-        setError(err instanceof Error ? err.message : 'Failed to fetch kintone fields');
+        setError(err instanceof Error ? err.message : 'フィールド一覧を取得できませんでした。');
       }
     };
 

@@ -148,7 +148,7 @@ export const useEditorSession = () => {
         const data = (await res.json().catch(() => ({}))) as { error_code?: string };
         if (res.status === 401 && data?.error_code === 'INVALID_SESSION_TOKEN') {
           if (isStopped) return;
-          setSessionError('セッションが切れました。プラグイン設定画面から開き直してください。');
+          setSessionError('設定画面から開き直してください。');
           clearTenantContext();
           setAuthState('unauthorized');
         }

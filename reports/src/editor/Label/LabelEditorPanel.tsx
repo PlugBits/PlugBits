@@ -102,7 +102,7 @@ const computeColsRows = (
     rows,
     total: cols * rows,
     invalid,
-    warning: invalid ? '列/行の設定が不正です。' : undefined,
+    warning: invalid ? '列/行の値を確認してください。' : undefined,
   };
 };
 
@@ -457,7 +457,7 @@ const LabelEditorPanel: React.FC<Props> = ({ template, onChange }) => {
               </label>
             </div>
 
-            <div style={{ fontSize: '0.9rem', color: isInvalid ? '#b42318' : '#475467' }}>
+            <div style={{ fontSize: '0.9rem', color: '#475467' }}>
               {isInvalid ? calcResult.warning : `この設定だと ${computedSummary}`}
             </div>
 
@@ -543,8 +543,8 @@ const LabelEditorPanel: React.FC<Props> = ({ template, onChange }) => {
           </div>
 
           {missingQr && (
-            <div style={{ marginTop: '0.8rem', color: '#b42318', fontSize: '0.9rem' }}>
-              QR の割り当てが未設定です（必須）。
+            <div style={{ marginTop: '0.8rem', color: '#667085', fontSize: '0.9rem' }}>
+              QR の割り当てはまだ選択されていません。
             </div>
           )}
 
@@ -554,7 +554,7 @@ const LabelEditorPanel: React.FC<Props> = ({ template, onChange }) => {
             </div>
           )}
           {error && (
-            <div style={{ marginTop: '0.8rem', color: '#b42318', fontSize: '0.85rem' }}>
+            <div style={{ marginTop: '0.8rem', color: '#475467', fontSize: '0.85rem' }}>
               <div>{error}</div>
               {(errorCode === 'MISSING_KINTONE_API_TOKEN' ||
                 errorCode === 'MISSING_SESSION_FIELDS' ||

@@ -175,7 +175,7 @@ const buildRequiredIssue = (rule: SlotRule, severity: IssueSeverity): Issue => (
   slotId: rule.slotId,
   group: rule.group,
   label: rule.label,
-  message: `『${rule.label}』が未設定です。`,
+  message: `『${rule.label}』が未選択です。`,
 });
 
 const buildEmptyValueIssue = (rule: SlotRule, severity: IssueSeverity): Issue => ({
@@ -184,7 +184,7 @@ const buildEmptyValueIssue = (rule: SlotRule, severity: IssueSeverity): Issue =>
   slotId: rule.slotId,
   group: rule.group,
   label: rule.label,
-  message: `『${rule.label}』が空です。`,
+  message: `『${rule.label}』に値が入っていません。`,
 });
 
 const buildTableRequiredIssue = (table: TableRule): Issue => ({
@@ -193,7 +193,7 @@ const buildTableRequiredIssue = (table: TableRule): Issue => ({
   tableId: table.tableId,
   group: table.group,
   label: table.label,
-  message: `『${table.label}』が未設定です。`,
+  message: `『${table.label}』が未選択です。`,
 });
 
 const buildTableEmptyIssue = (table: TableRule): Issue => ({
@@ -202,7 +202,7 @@ const buildTableEmptyIssue = (table: TableRule): Issue => ({
   tableId: table.tableId,
   group: table.group,
   label: table.label,
-  message: '明細が0件です。',
+  message: '明細に行がありません。',
 });
 
 const buildColumnRequiredIssue = (table: TableRule, column: ColumnRule, severity: IssueSeverity): Issue => ({
@@ -212,7 +212,7 @@ const buildColumnRequiredIssue = (table: TableRule, column: ColumnRule, severity
   colSlotId: column.columnId,
   group: table.group,
   label: column.label,
-  message: `『${column.label}』が未設定です。`,
+  message: `『${column.label}』が未選択です。`,
 });
 
 const buildColumnEmptyIssue = (table: TableRule, column: ColumnRule): Issue => ({
@@ -222,7 +222,7 @@ const buildColumnEmptyIssue = (table: TableRule, column: ColumnRule): Issue => (
   colSlotId: column.columnId,
   group: table.group,
   label: column.label,
-  message: `明細の『${column.label}』が空の行があります。`,
+  message: `明細の『${column.label}』に値が入っていない行があります。`,
 });
 
 export const resolvePresetId = (template?: TemplateDefinition): PresetDefinition['id'] => {

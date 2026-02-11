@@ -106,7 +106,9 @@ const MappingPage: React.FC<Props> = ({ template, updateTemplate, onFocusFieldRe
           </div>
 
           <div className={validation.ok ? 'mapping-status ok' : 'mapping-status ng'}>
-            {validation.ok ? '✅ 必須項目OK' : `❌ 未完了 ${validation.errors.length}`}
+            {validation.ok
+              ? '必須項目: すべて選択済み'
+              : `必須項目: 未選択 ${validation.errors.length}`}
           </div>
         </div>
 
@@ -129,9 +131,9 @@ const MappingPage: React.FC<Props> = ({ template, updateTemplate, onFocusFieldRe
             marginTop: 12,
             padding: '10px 12px',
             borderRadius: 10,
-            border: '1px solid #fecaca',
-            background: '#fef2f2',
-            color: '#b42318',
+            border: '1px solid #e4e7ec',
+            background: '#f8fafc',
+            color: '#344054',
             fontSize: '0.9rem',
           }}
         >

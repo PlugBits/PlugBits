@@ -20,7 +20,7 @@ export async function pingWorker() {
   const res = await fetch(buildUrl('/'));
 
   if (!res.ok) {
-    throw new Error(`Worker error: ${res.status}`);
+    throw new Error('処理に失敗しました。もう一度お試しください。');
   }
 
   // ★ JSON縛りはやめる（あなたのWorker "/" は text を返す）

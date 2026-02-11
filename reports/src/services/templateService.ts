@@ -29,7 +29,7 @@ export type TemplateCatalogItem = {
 const getTenantContext = () => {
   const ctx = getTenantContextFromStore();
   if (!ctx) {
-    throw new Error('Missing tenant context. Launch from plugin.');
+    throw new Error('設定画面から開き直してください。');
   }
   return ctx;
 };
@@ -53,7 +53,7 @@ const buildHeaders = (includeContentType = true, requireEditorToken = false) => 
   if (editorToken) {
     headers.Authorization = `Bearer ${editorToken}`;
   } else if (requireEditorToken) {
-    throw new Error('Missing editorToken');
+    throw new Error('設定画面から開き直してください。');
   }
   return headers;
 };

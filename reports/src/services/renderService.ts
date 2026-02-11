@@ -18,7 +18,7 @@ export async function requestPreviewPdf(
 ): Promise<Blob> {
   const tenantContext = getTenantContext();
   if (!tenantContext?.workerBaseUrl) {
-    throw new Error('Missing tenant context. Launch from plugin.');
+    throw new Error('設定画面から開き直してください。');
   }
 
   const res = await fetch(`${tenantContext.workerBaseUrl.replace(/\/$/, '')}/render-preview`, {
@@ -35,7 +35,7 @@ export async function requestPreviewPdf(
   if (!res.ok) {
     const text = await res.text();
     console.error("requestPreviewPdf error:", res.status, text);
-    throw new Error(text || "Failed to render preview");
+    throw new Error('処理に失敗しました。もう一度お試しください。');
   }
 
   return await res.blob();

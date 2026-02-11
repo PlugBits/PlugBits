@@ -4,7 +4,7 @@ import { getTenantContext } from '../store/tenantStore';
 export async function previewPdf(template: TemplateDefinition) {
   const tenantContext = getTenantContext();
   if (!tenantContext?.workerBaseUrl) {
-    throw new Error('Missing tenant context. Launch from plugin.');
+    throw new Error('設定画面から開き直してください。');
   }
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
@@ -23,8 +23,7 @@ export async function previewPdf(template: TemplateDefinition) {
   });
 
   if (!res.ok) {
-    const text = await res.text().catch(() => '');
-    throw new Error(`Render failed: ${res.status} ${text}`);
+    throw new Error('処理に失敗しました。もう一度お試しください。');
   }
 
   const blob = await res.blob();
