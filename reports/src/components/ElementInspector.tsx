@@ -9,7 +9,7 @@ import type {
 import { useTemplateStore } from '../store/templateStore';
 import { selectTemplateById } from '../store/templateStore';
 import { clampYToRegion } from '../utils/regionBounds';
-import { getAdapter } from '../editor/Mapping/adapters/getAdapter';
+import { getAdapterOrNull } from '../editor/Mapping/adapters/getAdapter';
 
 
 
@@ -72,7 +72,8 @@ const ElementInspector = ({ templateId, element }: ElementInspectorProps) => {
   const slotLabelMap = useMemo(() => {
     if (!template) return {};
     const structureType = template.structureType ?? 'list_v1';
-    const adapter = getAdapter(structureType);
+    const adapter = getAdapterOrNull(structureType);
+    if (!adapter) return {};
     const map: Record<string, string> = {};
     for (const region of adapter.regions) {
       if (region.kind !== 'slots') continue;
@@ -86,7 +87,8 @@ const ElementInspector = ({ templateId, element }: ElementInspectorProps) => {
   const slotDefs = useMemo(() => {
     if (!template) return [];
     const structureType = template.structureType ?? 'list_v1';
-    const adapter = getAdapter(structureType);
+    const adapter = getAdapterOrNull(structureType);
+    if (!adapter) return [];
     const defs: Array<{
       slotId: string;
       label: string;

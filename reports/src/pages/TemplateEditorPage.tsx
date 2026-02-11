@@ -18,7 +18,7 @@ import {
 } from '../utils/easyAdjust';
 import { CANVAS_WIDTH, clampYToRegion } from '../utils/regionBounds';
 import { computeDocumentMetaLayout } from '@shared/documentMetaLayout';
-import { getAdapter } from '../editor/Mapping/adapters/getAdapter';
+import { getAdapter, getAdapterOrNull } from '../editor/Mapping/adapters/getAdapter';
 import { useEditorSession } from '../hooks/useEditorSession';
 import {
   collectIssues,
@@ -95,6 +95,20 @@ const TemplateEditorPage = () => {
     ['cards_v1', 'cards_v2', 'card_v1', 'multiTable_v1'].includes(
       template?.baseTemplateId ?? '',
     );
+  const structureType = template?.structureType ?? 'list_v1';
+  const adapterForTemplate = useMemo(() => {
+    if (!template || isLabelTemplate) return null;
+    const adapter = getAdapterOrNull(structureType);
+    if (!adapter && import.meta.env.DEV) {
+      console.error('[templateEditor] unsupported structureType', {
+        structureType,
+        templateId: template.id,
+      });
+    }
+    return adapter;
+  }, [template?.id, structureType, isLabelTemplate]);
+  const isUnsupportedStructure =
+    !!template && !isLabelTemplate && !isCardTemplate && !adapterForTemplate;
   const presetId = useMemo(
     () => resolvePresetId(template),
     [template?.settings?.presetId, template?.id],
@@ -108,8 +122,15 @@ const TemplateEditorPage = () => {
     });
   }, [template, preset]);
   const requiredIssueMeta = useMemo(() => {
-    const structureType = template?.structureType ?? 'list_v1';
-    const adapter = getAdapter(structureType);
+    if (!adapterForTemplate) {
+      return {
+        requiredSlots: new Set<string>(),
+        requiredColumns: new Set<string>(),
+        tableRequired: false,
+        hasRequiredMeta: false,
+      };
+    }
+    const adapter = adapterForTemplate;
     const requiredSlots = new Set<string>();
     const requiredColumns = new Set<string>();
     let tableRequired = false;
@@ -138,17 +159,16 @@ const TemplateEditorPage = () => {
       tableRequired,
       hasRequiredMeta,
     };
-  }, [template?.structureType]);
+  }, [adapterForTemplate]);
 
   const issues = useMemo(() => {
     if (!template) return [];
     if (rawIssues.length === 0) return [];
 
     if (!requiredIssueMeta.hasRequiredMeta) {
-      const structureType = template?.structureType ?? 'list_v1';
-      const adapter = getAdapter(structureType);
-      const mapping = template.mapping ?? adapter.createDefaultMapping();
-      const validation = adapter.validate(mapping);
+      if (!adapterForTemplate) return [];
+      const mapping = template.mapping ?? adapterForTemplate.createDefaultMapping();
+      const validation = adapterForTemplate.validate(mapping);
       if (validation.ok) return [];
 
       return validation.errors.map((error): Issue => {
@@ -181,20 +201,15 @@ const TemplateEditorPage = () => {
       if (issue.tableId) return tableRequired;
       return false;
     });
-  }, [rawIssues, requiredIssueMeta, template, preset]);
+  }, [rawIssues, requiredIssueMeta, template, preset, adapterForTemplate]);
 
   const issueSummary = useMemo(() => summarizeIssues(issues), [issues]);
   const mappingValidation = useMemo(() => {
     if (!template || isLabelTemplate) return { ok: true, errors: [] };
-    const structureType = template.structureType ?? 'list_v1';
-    try {
-      const adapter = getAdapter(structureType);
-      const mapping = template.mapping ?? adapter.createDefaultMapping();
-      return adapter.validate(mapping);
-    } catch {
-      return { ok: true, errors: [] };
-    }
-  }, [template, isLabelTemplate]);
+    if (!adapterForTemplate) return { ok: true, errors: [] };
+    const mapping = template.mapping ?? adapterForTemplate.createDefaultMapping();
+    return adapterForTemplate.validate(mapping);
+  }, [template, isLabelTemplate, adapterForTemplate]);
   const missingCount = mappingValidation.errors.length;
 
   const getPresetDisplayLabel = (id: 'estimate_v1' | 'invoice_v1') =>
@@ -398,9 +413,8 @@ const TemplateEditorPage = () => {
     const isUserTemplate = template.id.startsWith('tpl_') && !!template.baseTemplateId;
     if (isUserTemplate) return;
 
-    const structureType = template.structureType ?? 'list_v1';
-    if (structureType === 'label_v1') return;
-    const adapter = getAdapter(structureType);
+    if (!adapterForTemplate) return;
+    const adapter = adapterForTemplate;
     const mapping = template.mapping ?? adapter.createDefaultMapping();
 
     const synced = adapter.applyMappingToTemplate(
@@ -496,7 +510,15 @@ const TemplateEditorPage = () => {
     if (beforeSig !== afterSig) {
       updateTemplate(synced);
     }
-  }, [template?.id, template?.mapping, template?.structureType, template?.baseTemplateId, updateTemplate]);
+  }, [
+    template?.id,
+    template?.mapping,
+    template?.structureType,
+    template?.baseTemplateId,
+    updateTemplate,
+    adapterForTemplate,
+    structureType,
+  ]);
 
   useEffect(() => {
     if (!template) return;
@@ -873,9 +895,8 @@ const TemplateEditorPage = () => {
   }, [template, highlightRef]);
 
   const slotLabelMap = useMemo(() => {
-    const structureType = template?.structureType ?? 'list_v1';
-    if (structureType === 'label_v1') return {};
-    const adapter = getAdapter(structureType);
+    if (!adapterForTemplate) return {};
+    const adapter = adapterForTemplate;
     const map: Record<string, string> = {};
     for (const region of adapter.regions) {
       if (region.kind !== 'slots') continue;
@@ -884,7 +905,7 @@ const TemplateEditorPage = () => {
       }
     }
     return map;
-  }, [template?.structureType]);
+  }, [adapterForTemplate]);
 
   const selectedSlotLabel = useMemo(() => {
     if (!selectedElement) return '';
@@ -1446,6 +1467,16 @@ const TemplateEditorPage = () => {
           }}
         >
           <LabelEditorPanel template={template} onChange={updateTemplate} />
+        </div>
+      ) : isUnsupportedStructure ? (
+        <div className="card" style={{ padding: '1rem' }}>
+          <h3 style={{ marginTop: 0 }}>このテンプレは現在のエディタでは未対応です</h3>
+          <p style={{ color: '#475467' }}>
+            structureType: {structureType}
+          </p>
+          <button className="secondary" onClick={() => navigate(`/${preservedQuery}`)}>
+            一覧へ戻る
+          </button>
         </div>
       ) : (
         <div className="editor-layout" style={{ flex: 1, minHeight: 0 }}>
