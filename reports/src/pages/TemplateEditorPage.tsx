@@ -1507,9 +1507,11 @@ const TemplateEditorPage = () => {
                   <option value="Letter">Letter</option>
                 </select>
               </div>
-              {!isLabelTemplate && mappingValidation.errors.length > 0 && (
-                <div className="mapping-summary">
-                  必須項目：未選択 {mappingValidation.errors.length}
+              {!isLabelTemplate && (
+                <div className={`mapping-summary${mappingValidation.errors.length === 0 ? ' ok' : ''}`}>
+                  {mappingValidation.errors.length === 0
+                    ? '必須項目：すべて設定済み ✓'
+                    : `必須項目：未選択 ${mappingValidation.errors.length}`}
                 </div>
               )}
             </div>

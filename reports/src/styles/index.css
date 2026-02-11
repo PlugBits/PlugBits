@@ -422,6 +422,11 @@ button:disabled {
   font-size: 12px;
   font-weight: 600;
 }
+.mapping-summary.ok{
+  border-color: #abefc6;
+  background: #ecfdf3;
+  color: #067647;
+}
 
 .mapping-card{
   border: 1px solid #e4e7ec;
