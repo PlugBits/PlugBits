@@ -102,13 +102,89 @@ const TemplateEditorPage = () => {
     [template?.settings?.presetId, template?.id],
   );
   const preset = useMemo(() => getPresetDefinition(presetId), [presetId]);
-  const issues = useMemo(() => {
+  const rawIssues = useMemo(() => {
     if (!template) return [];
     return collectIssues({
       preset,
       template,
     });
   }, [template, preset]);
+  const requiredIssueMeta = useMemo(() => {
+    const structureType = template?.structureType ?? 'list_v1';
+    const adapter = getAdapter(structureType);
+    const requiredSlots = new Set<string>();
+    const requiredColumns = new Set<string>();
+    let tableRequired = false;
+
+    for (const region of adapter.regions) {
+      if (region.kind === 'slots') {
+        for (const slot of region.slots) {
+          if (slot.required) requiredSlots.add(slot.id);
+        }
+        continue;
+      }
+      if (region.kind === 'table') {
+        if (region.sourceRequired) tableRequired = true;
+        for (const column of region.baseColumns) {
+          if (column.required) requiredColumns.add(column.id);
+        }
+      }
+    }
+
+    const hasRequiredMeta =
+      requiredSlots.size > 0 || requiredColumns.size > 0 || tableRequired;
+
+    return {
+      requiredSlots,
+      requiredColumns,
+      tableRequired,
+      hasRequiredMeta,
+    };
+  }, [template?.structureType]);
+
+  const issues = useMemo(() => {
+    if (!template) return [];
+    if (rawIssues.length === 0) return [];
+
+    if (!requiredIssueMeta.hasRequiredMeta) {
+      const structureType = template?.structureType ?? 'list_v1';
+      const adapter = getAdapter(structureType);
+      const mapping = template.mapping ?? adapter.createDefaultMapping();
+      const validation = adapter.validate(mapping);
+      if (validation.ok) return [];
+
+      return validation.errors.map((error): Issue => {
+        const path = error.path ?? '';
+        const slotId = path.startsWith('header.')
+          ? path.slice('header.'.length)
+          : path.startsWith('footer.')
+          ? path.slice('footer.'.length)
+          : undefined;
+        const slotRule = slotId
+          ? preset.slots.find((slot) => slot.slotId === slotId)
+          : undefined;
+
+        return {
+          severity: 'error',
+          code: 'E_REQUIRED_SLOT',
+          slotId,
+          tableId: path.startsWith('table.') ? preset.table.tableId : undefined,
+          group: slotRule?.group ?? preset.table.group,
+          label: slotRule?.label ?? path,
+          message: error.message,
+        };
+      });
+    }
+
+    const { requiredSlots, requiredColumns, tableRequired } = requiredIssueMeta;
+    return rawIssues.filter((issue) => {
+      if (issue.slotId) return requiredSlots.has(issue.slotId);
+      if (issue.colSlotId) return requiredColumns.has(issue.colSlotId);
+      if (issue.tableId) return tableRequired;
+      return false;
+    });
+  }, [rawIssues, requiredIssueMeta, template, preset]);
+
   const issueSummary = useMemo(() => summarizeIssues(issues), [issues]);
 
   const getPresetDisplayLabel = (id: 'estimate_v1' | 'invoice_v1') =>
