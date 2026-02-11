@@ -25,7 +25,6 @@ import {
   summarizeIssues,
   resolvePresetId,
   getPresetDefinition,
-  ISSUE_GROUP_ORDER,
   type Issue,
 } from '../editor/editorIssues';
 
@@ -63,7 +62,6 @@ const TemplateEditorPage = () => {
   const [guideVisible, setGuideVisible] = useState(true);
   const [advancedLayoutEditing, setAdvancedLayoutEditing] = useState(!!template?.advancedLayoutEditing);
   const [activeTab, setActiveTab] = useState<'adjust' | 'mapping'>('mapping');
-  const [issuesOpen, setIssuesOpen] = useState(false);
   const [cloneModalOpen, setCloneModalOpen] = useState(false);
   const [clonePresetId, setClonePresetId] = useState<'estimate_v1' | 'invoice_v1'>('invoice_v1');
   const [isCloning, setIsCloning] = useState(false);
@@ -894,11 +892,7 @@ const TemplateEditorPage = () => {
   const handlePreviewClick = async () => {
     if (!template) return;
     if (issueSummary.errorCount > 0) {
-      setIssuesOpen(true);
-      setToast({
-        type: 'info',
-        message: '未選択の項目があります',
-      });
+      setActiveTab('mapping');
       return;
     }
     try {
@@ -996,35 +990,6 @@ const TemplateEditorPage = () => {
     } finally {
       setIsCloning(false);
     }
-  };
-
-  const focusIssue = (issue: Issue) => {
-    if (!template) return;
-    setActiveTab('mapping');
-    setIssuesOpen(false);
-    const elements = template.elements ?? [];
-    let target = null as TemplateElement | null;
-    if (issue.slotId) {
-      target = elements.find((el) => (el as any).slotId === issue.slotId) ?? null;
-    }
-    if (!target && issue.tableId) {
-      target = elements.find((el) => el.id === issue.tableId) ?? null;
-      if (!target) {
-        target = elements.find((el) => el.type === 'table') ?? null;
-      }
-    }
-    if (!target && issue.colSlotId) {
-      target = elements.find((el) => el.type === 'table') ?? null;
-    }
-    if (target) {
-      setSelectedElementId(target.id);
-    }
-    window.setTimeout(() => {
-      const scrollKey = issue.slotId ?? issue.tableId ?? issue.colSlotId;
-      if (!scrollKey) return;
-      const node = document.getElementById(`slot-item-${scrollKey}`);
-      if (node) node.scrollIntoView({ block: 'nearest' });
-    }, 0);
   };
 
   const describeElementForList = (el: any) => {
@@ -1531,129 +1496,6 @@ const TemplateEditorPage = () => {
               </select>
             </div>
             <div style={{ maxHeight: '100%', height: '100%', minHeight: 0, overflowY: 'auto' }}>
-              {!isLabelTemplate && !isCardTemplate && template?.structureType === 'list_v1' && (
-                <>
-                  {issueSummary.errorCount > 0 && (
-                    <div
-                      style={{
-                        padding: '10px 12px',
-                        borderRadius: 10,
-                        border: '1px solid #e4e7ec',
-                        background: '#f8fafc',
-                        color: '#344054',
-                        fontSize: 13,
-                        fontWeight: 600,
-                        marginBottom: 10,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        gap: 8,
-                      }}
-                    >
-                      <span>未選択の項目があります（{issueSummary.errorCount}件）</span>
-                      <button
-                        type="button"
-                        className="ghost"
-                        onClick={() => setIssuesOpen(true)}
-                        style={{ fontSize: 12, padding: '4px 8px' }}
-                      >
-                        一覧を見る
-                      </button>
-                    </div>
-                  )}
-                  {issueSummary.errorCount === 0 && issueSummary.warnCount > 0 && (
-                    <div
-                      style={{
-                        padding: '10px 12px',
-                        borderRadius: 10,
-                        border: '1px solid #e4e7ec',
-                        background: '#f8fafc',
-                        color: '#344054',
-                        fontSize: 13,
-                        fontWeight: 600,
-                        marginBottom: 10,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        gap: 8,
-                      }}
-                    >
-                      <span>
-                        確認しておきたい項目があります（{issueSummary.warnCount}件）
-                      </span>
-                      <button
-                        type="button"
-                        className="ghost"
-                        onClick={() => setIssuesOpen(true)}
-                        style={{ fontSize: 12, padding: '4px 8px' }}
-                      >
-                        一覧を見る
-                      </button>
-                    </div>
-                  )}
-                  {issuesOpen && issueSummary.errorCount + issueSummary.warnCount > 0 && (
-                    <div
-                      style={{
-                        border: '1px solid #e4e7ec',
-                        borderRadius: 12,
-                        padding: 12,
-                        background: '#fff',
-                        marginBottom: 12,
-                      }}
-                    >
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                        <div style={{ fontWeight: 700, fontSize: 13, color: '#101828' }}>未選択一覧</div>
-                        <button
-                          type="button"
-                          className="ghost"
-                          onClick={() => setIssuesOpen(false)}
-                          style={{ fontSize: 11, padding: '4px 8px' }}
-                        >
-                          閉じる
-                        </button>
-                      </div>
-                      {ISSUE_GROUP_ORDER.map((group) => {
-                        const groupIssues = issueSummary.byGroup.get(group) ?? [];
-                        if (groupIssues.length === 0) return null;
-                        return (
-                          <div key={group} style={{ marginBottom: 10 }}>
-                            <div style={{ fontSize: 12, fontWeight: 700, color: '#344054', marginBottom: 6 }}>
-                              {group}
-                            </div>
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                              {groupIssues.map((issue, idx) => (
-                                <div
-                                  key={`${issue.code}-${issue.label}-${idx}`}
-                                  style={{
-                                    border: '1px solid #e4e7ec',
-                                    borderRadius: 10,
-                                    padding: '8px 10px',
-                                    background: '#f8fafc',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'space-between',
-                                    gap: 8,
-                                  }}
-                                >
-                                  <div style={{ fontSize: 12, color: '#101828' }}>{issue.message}</div>
-                                  <button
-                                    type="button"
-                                    className="ghost"
-                                    onClick={() => focusIssue(issue)}
-                                    style={{ fontSize: 11, padding: '4px 8px' }}
-                                  >
-                                    設定する
-                                  </button>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                </>
-              )}
               {/* 右ペイン切替ボタン（ここに移動） */}
               <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
                 <button

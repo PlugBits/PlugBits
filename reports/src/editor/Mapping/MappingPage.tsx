@@ -85,8 +85,6 @@ const MappingPage: React.FC<Props> = ({ template, updateTemplate, onFocusFieldRe
 
 
   const mapping = template.mapping ?? adapter.createDefaultMapping();
-  const validation = adapter.validate(mapping);
-
   const onChangeMapping = (nextMapping: any) => {  
     const next = adapter.applyMappingToTemplate(
       { ...template, structureType }, // 念のためstructureType固定
@@ -104,25 +102,7 @@ const MappingPage: React.FC<Props> = ({ template, updateTemplate, onFocusFieldRe
             <h3 style={{ margin: 0 }}>フィールド割当</h3>
             <span className="mapping-badge">{adapter.structureType}</span>
           </div>
-
-          <div className={validation.ok ? 'mapping-status ok' : 'mapping-status ng'}>
-            {validation.ok
-              ? '必須項目: すべて選択済み'
-              : `必須項目: 未選択 ${validation.errors.length}`}
-          </div>
         </div>
-
-      {!validation.ok && (
-        <div style={{ marginTop: 10 }}>
-          <ul style={{ margin: 0, paddingLeft: 18 }}>
-            {validation.errors.map((e, idx) => (
-              <li key={idx}>
-                <code>{e.path}</code>：{e.message}
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
     </div>
 
       {error && (
