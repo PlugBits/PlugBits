@@ -7,8 +7,8 @@ export const CANVAS_HEIGHT = 842;
 
 // 仮境界（必要なら後で数値調整）
 export const REGION_BOUNDS = {
-  header: { yMin: 660, yMax: CANVAS_HEIGHT },
-  body: { yMin: 180, yMax: 660 },
+  header: { yMin: 680, yMax: CANVAS_HEIGHT },
+  body: { yMin: 180, yMax: 680 },
   footer: { yMin: 0, yMax: 180 },
 } as const;
 

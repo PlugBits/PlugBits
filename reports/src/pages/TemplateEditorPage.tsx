@@ -1133,7 +1133,7 @@ const TemplateEditorPage = () => {
       id: `table_${Date.now()}`,
       type: 'table',
       x: 40,
-      y: 600,
+      y: 680,
       width: 400,
       rowHeight: 18,
       headerHeight: 24,

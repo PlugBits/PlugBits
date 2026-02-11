@@ -161,7 +161,7 @@
       "type": "table",
       "region": "body",
       "x": 60,
-      "y": 600,
+      "y": 680,
       "showGrid": true,
       "dataSource": {
         "type": "kintoneSubtable",
