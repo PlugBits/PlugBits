@@ -195,6 +195,7 @@ const TemplateEditorPage = () => {
       return { ok: true, errors: [] };
     }
   }, [template, isLabelTemplate]);
+  const missingCount = mappingValidation.errors.length;
 
   const getPresetDisplayLabel = (id: 'estimate_v1' | 'invoice_v1') =>
     id === 'invoice_v1' ? '請求書' : '見積書';
@@ -1357,9 +1358,16 @@ const TemplateEditorPage = () => {
             >
               {saveStatus === 'saving' ? '保存中...' : '保存'}
             </button>
-            <button className="primary" onClick={handlePreviewClick}>
-              PDFプレビュー
-            </button>
+            <div style={{ display: 'grid', justifyItems: 'end', gap: 4 }}>
+              <button className="primary" onClick={handlePreviewClick} disabled={missingCount > 0}>
+                PDFプレビュー
+              </button>
+              {missingCount > 0 && (
+                <div style={{ fontSize: 11, color: '#667085' }}>
+                  必須項目を設定するとプレビューできます
+                </div>
+              )}
+            </div>
           </div>
         </div>
       {controlsOpen && !isLabelTemplate && (
@@ -1508,10 +1516,10 @@ const TemplateEditorPage = () => {
                 </select>
               </div>
               {!isLabelTemplate && (
-                <div className={`mapping-summary${mappingValidation.errors.length === 0 ? ' ok' : ''}`}>
-                  {mappingValidation.errors.length === 0
+                <div className={`mapping-summary${missingCount === 0 ? ' ok' : ''}`}>
+                  {missingCount === 0
                     ? '必須項目：すべて設定済み ✓'
-                    : `必須項目：未選択 ${mappingValidation.errors.length}`}
+                    : `必須項目：未選択 ${missingCount}`}
                 </div>
               )}
             </div>
