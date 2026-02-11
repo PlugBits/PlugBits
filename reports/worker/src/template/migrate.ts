@@ -34,6 +34,14 @@ export const migrateTemplate = (template: TemplateDefinition): TemplateDefinitio
   const needsMappingNormalization = template.mapping == null;
   const needsStructureUpdate = nextStructureType !== template.structureType;
   const needsPageSizeUpdate = !template.pageSize;
+  const needsListV1TableYAdjust =
+    nextStructureType === 'list_v1' &&
+    Array.isArray(template.elements) &&
+    template.elements.some((el) => {
+      if (el.type !== 'table') return false;
+      const y = (el as TableElement).y;
+      return typeof y === 'number' && y < 680;
+    });
   const hasCardList = Array.isArray(template.elements)
     ? template.elements.some((el) => el.type === 'cardList')
     : false;
@@ -45,7 +53,8 @@ export const migrateTemplate = (template: TemplateDefinition): TemplateDefinitio
     !needsPageSizeUpdate &&
     !needsCardListMigration &&
     !needsElementsNormalization &&
-    !needsMappingNormalization
+    !needsMappingNormalization &&
+    !needsListV1TableYAdjust
   ) {
     return template;
   }
@@ -91,6 +100,16 @@ export const migrateTemplate = (template: TemplateDefinition): TemplateDefinitio
   }
 
   let nextElements = migratedElements;
+
+  if (nextStructureType === 'list_v1') {
+    nextElements = nextElements.map((element) => {
+      if (element.type !== 'table') return element;
+      const table = element as TableElement;
+      const y = table.y;
+      if (typeof y !== 'number' || y >= 680) return element;
+      return { ...table, y: 680 };
+    });
+  }
 
   if (nextStructureType === 'cards_v1') {
     const existingCardList = nextElements.find((el) => el.type === 'cardList');

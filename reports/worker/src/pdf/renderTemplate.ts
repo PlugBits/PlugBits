@@ -754,6 +754,14 @@ export async function renderTemplateToPdf(
     (e) => e.repeatOnEveryPage === false,
   );
 
+  const resolveHeaderBottomY = (elements: TemplateElement[]) => {
+    const candidates = elements.filter(
+      (el) => !resolveAdjust(el).hidden && typeof el.y === 'number',
+    );
+    if (candidates.length === 0) return null;
+    return Math.min(...candidates.map((el) => el.y as number));
+  };
+
   // フッター：全ページに出すもの（デフォルト）
   const footerAllPages = footerElements.filter(
     (e) => e.footerRepeatMode !== 'last',
@@ -893,6 +901,44 @@ export async function renderTemplateToPdf(
       cardListVariant,
     );
   } else if (tableElementToRender) {
+    const headerElementsForFirstPage = [
+      ...repeatingHeaderElements,
+      ...firstPageOnlyHeaderElements,
+    ];
+    const headerBottomY = resolveHeaderBottomY(headerElementsForFirstPage);
+    const tableY = tableElementToRender.y;
+    const tableHeaderHeight = tableElementToRender.headerHeight ?? tableElementToRender.rowHeight ?? 18;
+    const tableHeaderTopY =
+      typeof tableY === 'number' ? tableY + tableHeaderHeight : null;
+    const gap =
+      typeof tableHeaderTopY === 'number' && typeof headerBottomY === 'number'
+        ? headerBottomY - tableHeaderTopY
+        : null;
+
+    warn('debug', 'table layout positions', {
+      tableId: tableElementToRender.id,
+      tableY,
+      tableHeaderTopY,
+      headerBottomY,
+      gap,
+      pdf: {
+        tableY: typeof tableY === 'number' ? toPdfYFromBottom(tableY, pageHeight) : null,
+        headerBottomY:
+          typeof headerBottomY === 'number'
+            ? toPdfYFromBottom(headerBottomY, pageHeight)
+            : null,
+      },
+    });
+    if (debugEnabled) {
+      console.debug('[renderTemplate] table layout positions', {
+        tableId: tableElementToRender.id,
+        tableY,
+        tableHeaderTopY,
+        headerBottomY,
+        gap,
+      });
+    }
+
     // drawTable には「毎ページヘッダー」だけを渡す
     page = drawTable(
       pdfDoc,
