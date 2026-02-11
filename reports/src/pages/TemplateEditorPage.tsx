@@ -185,12 +185,16 @@ const TemplateEditorPage = () => {
 
   const issueSummary = useMemo(() => summarizeIssues(issues), [issues]);
   const mappingValidation = useMemo(() => {
-    if (!template) return { ok: true, errors: [] };
+    if (!template || isLabelTemplate) return { ok: true, errors: [] };
     const structureType = template.structureType ?? 'list_v1';
-    const adapter = getAdapter(structureType);
-    const mapping = template.mapping ?? adapter.createDefaultMapping();
-    return adapter.validate(mapping);
-  }, [template]);
+    try {
+      const adapter = getAdapter(structureType);
+      const mapping = template.mapping ?? adapter.createDefaultMapping();
+      return adapter.validate(mapping);
+    } catch {
+      return { ok: true, errors: [] };
+    }
+  }, [template, isLabelTemplate]);
 
   const getPresetDisplayLabel = (id: 'estimate_v1' | 'invoice_v1') =>
     id === 'invoice_v1' ? '請求書' : '見積書';
@@ -1483,30 +1487,32 @@ const TemplateEditorPage = () => {
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
-                gap: 8,
+                gap: 10,
                 flexWrap: 'wrap',
               }}
-          >
-            <div style={{ fontSize: 11, color: '#667085', fontWeight: 600 }}>
-              用紙サイズ
-            </div>
-              <select
-                value={template.pageSize ?? 'A4'}
-                onChange={(event) => {
-                  const next = event.target.value as PageSize;
-                  updateTemplate({ ...template, pageSize: next });
-                }}
-                style={{ fontSize: 12, width: 200, maxWidth: 220 }}
-              >
-                <option value="A4">A4</option>
-                <option value="Letter">Letter</option>
-              </select>
-            </div>
-            {!isLabelTemplate && mappingValidation.errors.length > 0 && (
-              <div className="mapping-summary">
-                必須項目：未選択 {mappingValidation.errors.length}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <div style={{ fontSize: 11, color: '#667085', fontWeight: 600 }}>
+                  用紙サイズ
+                </div>
+                <select
+                  value={template.pageSize ?? 'A4'}
+                  onChange={(event) => {
+                    const next = event.target.value as PageSize;
+                    updateTemplate({ ...template, pageSize: next });
+                  }}
+                  style={{ fontSize: 12, width: 180, minWidth: 140, maxWidth: 200 }}
+                >
+                  <option value="A4">A4</option>
+                  <option value="Letter">Letter</option>
+                </select>
               </div>
-            )}
+              {!isLabelTemplate && mappingValidation.errors.length > 0 && (
+                <div className="mapping-summary">
+                  必須項目：未選択 {mappingValidation.errors.length}
+                </div>
+              )}
+            </div>
             <div style={{ maxHeight: '100%', height: '100%', minHeight: 0, overflowY: 'auto' }}>
               {/* 右ペイン切替ボタン（ここに移動） */}
               <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>

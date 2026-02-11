@@ -146,13 +146,18 @@ const RegionMappingPanel: React.FC<Props> = ({
     ) : null;
 
   if (region.kind === 'slots') {
+    const visibleSlots =
+      isListV1 && region.id === 'header'
+        ? region.slots.filter((slot) => slot.id !== 'date_label')
+        : region.slots;
+
     return (
       <div className="mapping-card">
         <div className="mapping-card-title">{region.label}</div>
         {guideBlock}
 
         <div className="mapping-list">
-          {region.slots.map((slot) => {
+          {visibleSlots.map((slot) => {
             const slotValue: FieldRef | undefined = mapping?.[region.id]?.[slot.id];
             const isOpen = openSlotId === slot.id;
 

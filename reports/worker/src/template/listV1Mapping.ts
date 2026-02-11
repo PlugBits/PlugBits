@@ -290,21 +290,21 @@ export const applyListV1MappingToTemplate = (
     "remarks",
     "footer",
     "text",
-    { x: 50, y: yFooter(130), fontSize: 10, width: 520, height: 60 },
+    { x: 50, y: yFooter(60), fontSize: 10, width: 520, height: 60 },
     footerRef["remarks"],
   );
   ensureSlotElement(
     "total_label",
     "footer",
     "text",
-    { x: 300, y: yFooter(70), fontSize: 10, width: 80, height: 20 },
+    { x: 300, y: yFooter(130), fontSize: 10, width: 80, height: 20 },
     footerRef["total_label"],
   );
   ensureSlotElement(
     "total",
     "footer",
     "text",
-    { x: 360, y: yFooter(70), fontSize: 14, fontWeight: "bold", width: 210, height: 24 },
+    { x: 360, y: yFooter(126), fontSize: 14, fontWeight: "bold", width: 210, height: 24 },
     footerRef["total"],
   );
 
@@ -319,7 +319,7 @@ export const applyListV1MappingToTemplate = (
   const TABLE_ID = "items";
   const BASE_X = 50;
   const TOTAL_WIDTH = 520;
-  const BASE_Y = 620;
+  const BASE_Y = 560;
 
   const existingIdx = slotSyncedElements.findIndex((e) => e.id === TABLE_ID);
   const existing = existingIdx >= 0 ? (slotSyncedElements[existingIdx] as any) : null;

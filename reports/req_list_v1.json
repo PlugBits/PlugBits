@@ -8,17 +8,55 @@
   "footerReserveHeight": 140,
   "slotSchema": {
     "header": [
-      { "slotId": "doc_title", "label": "タイトル", "kind": "text" },
-      { "slotId": "to_name", "label": "宛先名", "kind": "text", "required": true },
-      { "slotId": "date_label", "label": "日付ラベル", "kind": "text" },
-      { "slotId": "issue_date", "label": "日付", "kind": "date", "required": true },
-      { "slotId": "doc_no", "label": "文書番号", "kind": "text" },
-      { "slotId": "logo", "label": "ロゴ", "kind": "image" }
+      {
+        "slotId": "doc_title",
+        "label": "タイトル",
+        "kind": "text"
+      },
+      {
+        "slotId": "to_name",
+        "label": "宛先名",
+        "kind": "text",
+        "required": true
+      },
+      {
+        "slotId": "date_label",
+        "label": "日付ラベル",
+        "kind": "text"
+      },
+      {
+        "slotId": "issue_date",
+        "label": "日付",
+        "kind": "date",
+        "required": true
+      },
+      {
+        "slotId": "doc_no",
+        "label": "文書番号",
+        "kind": "text"
+      },
+      {
+        "slotId": "logo",
+        "label": "ロゴ",
+        "kind": "image"
+      }
     ],
     "footer": [
-      { "slotId": "remarks", "label": "備考", "kind": "text" },
-      { "slotId": "total_label", "label": "合計ラベル", "kind": "text" },
-      { "slotId": "total", "label": "合計", "kind": "number" }
+      {
+        "slotId": "remarks",
+        "label": "備考",
+        "kind": "text"
+      },
+      {
+        "slotId": "total_label",
+        "label": "合計ラベル",
+        "kind": "text"
+      },
+      {
+        "slotId": "total",
+        "label": "合計",
+        "kind": "number"
+      }
     ]
   },
   "elements": [
@@ -34,7 +72,10 @@
       "fontSize": 18,
       "fontWeight": "bold",
       "repeatOnEveryPage": true,
-      "dataSource": { "type": "static", "value": "一覧表" }
+      "dataSource": {
+        "type": "static",
+        "value": "一覧表"
+      }
     },
     {
       "id": "to_name",
@@ -47,7 +88,10 @@
       "height": 18,
       "fontSize": 12,
       "repeatOnEveryPage": true,
-      "dataSource": { "type": "kintone", "fieldCode": "CustomerName" }
+      "dataSource": {
+        "type": "kintone",
+        "fieldCode": "CustomerName"
+      }
     },
     {
       "id": "date_label",
@@ -60,7 +104,10 @@
       "height": 18,
       "fontSize": 10,
       "repeatOnEveryPage": true,
-      "dataSource": { "type": "static", "value": "見積日" }
+      "dataSource": {
+        "type": "static",
+        "value": "見積日"
+      }
     },
     {
       "id": "issue_date",
@@ -73,7 +120,10 @@
       "height": 18,
       "fontSize": 10,
       "repeatOnEveryPage": true,
-      "dataSource": { "type": "kintone", "fieldCode": "EstimateDate" }
+      "dataSource": {
+        "type": "kintone",
+        "fieldCode": "EstimateDate"
+      }
     },
     {
       "id": "doc_no",
@@ -86,7 +136,10 @@
       "height": 18,
       "fontSize": 10,
       "repeatOnEveryPage": true,
-      "dataSource": { "type": "static", "value": "" }
+      "dataSource": {
+        "type": "static",
+        "value": ""
+      }
     },
     {
       "id": "logo",
@@ -98,26 +151,57 @@
       "width": 120,
       "height": 60,
       "repeatOnEveryPage": true,
-      "dataSource": { "type": "static", "value": "" }
+      "dataSource": {
+        "type": "static",
+        "value": ""
+      }
     },
     {
       "id": "items",
       "type": "table",
       "region": "body",
       "x": 60,
-      "y": 520,
+      "y": 560,
       "showGrid": true,
-      "dataSource": { "type": "kintoneSubtable", "fieldCode": "Items" },
+      "dataSource": {
+        "type": "kintoneSubtable",
+        "fieldCode": "Items"
+      },
       "columns": [
-        { "id": "c1", "title": "品名", "fieldCode": "ItemName", "width": 240 },
-        { "id": "c2", "title": "数量", "fieldCode": "Qty", "width": 60 },
-        { "id": "c3", "title": "単価", "fieldCode": "UnitPrice", "width": 110 },
-        { "id": "c4", "title": "金額", "fieldCode": "Amount", "width": 110 }
+        {
+          "id": "c1",
+          "title": "品名",
+          "fieldCode": "ItemName",
+          "width": 240
+        },
+        {
+          "id": "c2",
+          "title": "数量",
+          "fieldCode": "Qty",
+          "width": 60
+        },
+        {
+          "id": "c3",
+          "title": "単価",
+          "fieldCode": "UnitPrice",
+          "width": 110
+        },
+        {
+          "id": "c4",
+          "title": "金額",
+          "fieldCode": "Amount",
+          "width": 110
+        }
       ],
       "summary": {
         "mode": "lastPageOnly",
         "rows": [
-          { "op": "sum", "fieldCode": "Amount", "columnId": "c4", "label": "合計" }
+          {
+            "op": "sum",
+            "fieldCode": "Amount",
+            "columnId": "c4",
+            "label": "合計"
+          }
         ]
       }
     },
@@ -127,12 +211,15 @@
       "type": "text",
       "region": "footer",
       "x": 60,
-      "y": 110,
+      "y": 60,
       "width": 500,
       "height": 60,
       "fontSize": 10,
       "footerRepeatMode": "last",
-      "dataSource": { "type": "kintone", "fieldCode": "Remarks" }
+      "dataSource": {
+        "type": "kintone",
+        "fieldCode": "Remarks"
+      }
     },
     {
       "id": "total_label",
@@ -140,12 +227,15 @@
       "type": "text",
       "region": "footer",
       "x": 330,
-      "y": 70,
+      "y": 130,
       "width": 80,
       "height": 20,
       "fontSize": 10,
       "footerRepeatMode": "last",
-      "dataSource": { "type": "static", "value": "合計" }
+      "dataSource": {
+        "type": "static",
+        "value": "合計"
+      }
     },
     {
       "id": "total",
@@ -153,13 +243,16 @@
       "type": "text",
       "region": "footer",
       "x": 420,
-      "y": 66,
+      "y": 126,
       "width": 140,
       "height": 20,
       "fontSize": 14,
       "fontWeight": "bold",
       "footerRepeatMode": "last",
-      "dataSource": { "type": "kintone", "fieldCode": "TotalAmount" }
+      "dataSource": {
+        "type": "kintone",
+        "fieldCode": "TotalAmount"
+      }
     }
   ]
 }
