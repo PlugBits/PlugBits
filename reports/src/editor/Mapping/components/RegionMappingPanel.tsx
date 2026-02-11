@@ -106,6 +106,10 @@ const RegionMappingPanel: React.FC<Props> = ({
           add('明細サブテーブル');
           continue;
         }
+        if (path === `${region.id}.columns`) {
+          add('列設定');
+          continue;
+        }
         const columnsPrefix = `${region.id}.columns.`;
         if (path.startsWith(columnsPrefix)) {
           const columnId = path.slice(columnsPrefix.length);

@@ -184,6 +184,13 @@ const TemplateEditorPage = () => {
   }, [rawIssues, requiredIssueMeta, template, preset]);
 
   const issueSummary = useMemo(() => summarizeIssues(issues), [issues]);
+  const mappingValidation = useMemo(() => {
+    if (!template) return { ok: true, errors: [] };
+    const structureType = template.structureType ?? 'list_v1';
+    const adapter = getAdapter(structureType);
+    const mapping = template.mapping ?? adapter.createDefaultMapping();
+    return adapter.validate(mapping);
+  }, [template]);
 
   const getPresetDisplayLabel = (id: 'estimate_v1' | 'invoice_v1') =>
     id === 'invoice_v1' ? '請求書' : '見積書';
@@ -1479,10 +1486,10 @@ const TemplateEditorPage = () => {
                 gap: 8,
                 flexWrap: 'wrap',
               }}
-            >
-              <div style={{ fontSize: 11, color: '#667085', fontWeight: 600 }}>
-                用紙サイズ
-              </div>
+          >
+            <div style={{ fontSize: 11, color: '#667085', fontWeight: 600 }}>
+              用紙サイズ
+            </div>
               <select
                 value={template.pageSize ?? 'A4'}
                 onChange={(event) => {
@@ -1494,13 +1501,13 @@ const TemplateEditorPage = () => {
                 <option value="A4">A4</option>
                 <option value="Letter">Letter</option>
               </select>
-          </div>
-          <div style={{ maxHeight: '100%', height: '100%', minHeight: 0, overflowY: 'auto' }}>
-              {!isLabelTemplate && !isCardTemplate && template?.structureType === 'list_v1' && issueSummary.errorCount > 0 && (
-                <div className="mapping-summary">
-                  必須項目：未選択 {issueSummary.errorCount}
-                </div>
-              )}
+            </div>
+            {!isLabelTemplate && mappingValidation.errors.length > 0 && (
+              <div className="mapping-summary">
+                必須項目：未選択 {mappingValidation.errors.length}
+              </div>
+            )}
+            <div style={{ maxHeight: '100%', height: '100%', minHeight: 0, overflowY: 'auto' }}>
               {/* 右ペイン切替ボタン（ここに移動） */}
               <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
                 <button
