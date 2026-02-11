@@ -1967,6 +1967,7 @@ function drawTable(
   const paddingY = 4;
   const paddingLeft = CELL_PADDING_X;
   const paddingRight = CELL_PADDING_X;
+  const headerRowGap = Math.min(8, Math.max(4, Math.round(rowHeight * 0.3)));
 
   const originX = element.x;
   const bottomMargin = footerReserveHeight + 40; // 下から40ptは余白
@@ -2037,12 +2038,10 @@ function drawTable(
     return resolved === 'both' || resolved === kind;
   };
   const resolveSummaryLabel = (row: SummaryRow, kind: 'subtotal' | 'total') => {
-    if (row.label) return row.label;
-    if (row.op !== 'sum') return '';
-    if (kind === 'subtotal') {
-      return row.labelSubtotal ?? '小計';
-    }
-    return row.labelTotal ?? '合計';
+    if (row.op !== 'sum') return row.label ?? '';
+    return kind === 'subtotal'
+      ? row.labelSubtotal ?? row.label ?? ''
+      : row.labelTotal ?? row.label ?? '';
   };
 
   // テーブルヘッダー（列タイトル）を描画するヘルパー
@@ -2075,11 +2074,11 @@ function drawTable(
   };
 
   let currentPage = page;
-  const minHeaderY = bottomMargin + headerHeight + rowHeight;
+  const minHeaderY = bottomMargin + headerRowGap + rowHeight;
   const getHeaderY = () =>
     clampPdfY(toPdfYFromBottom(element.y, pageHeight), pageHeight - headerHeight);
   let headerY = getHeaderY();
-  let cursorY = headerY - headerHeight;
+  let cursorY = headerY - headerRowGap;
 
   if (headerY < minHeaderY) {
     currentPage = pdfDoc.addPage([pageWidth, pageHeight]);
@@ -2099,7 +2098,7 @@ function drawTable(
     );
 
     headerY = getHeaderY();
-    cursorY = headerY - headerHeight;
+    cursorY = headerY - headerRowGap;
     if (headerY < minHeaderY) {
       warn('layout', 'table header Y is too low for minimum layout', {
         id: element.id,
@@ -2312,7 +2311,7 @@ function drawTable(
     );
 
     headerY = getHeaderY();
-    cursorY = headerY - headerHeight;
+    cursorY = headerY - headerRowGap;
     if (headerY < minHeaderY) {
       warn('layout', 'table header Y is too low for minimum layout', {
         id: element.id,
@@ -2488,7 +2487,7 @@ function drawTable(
         );
 
         headerY = getHeaderY();
-        cursorY = headerY - headerHeight;
+        cursorY = headerY - headerRowGap;
         if (headerY < minHeaderY) {
           warn('layout', 'table header Y is too low for minimum layout', {
             id: element.id,
@@ -2527,7 +2526,7 @@ function drawTable(
 
       // テーブルヘッダーの位置を再計算して描画
       headerY = getHeaderY();
-      cursorY = headerY - headerHeight;
+      cursorY = headerY - headerRowGap;
 
       if (headerY < minHeaderY) {
         warn('layout', 'table header Y is too low for minimum layout', {

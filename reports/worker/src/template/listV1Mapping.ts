@@ -345,7 +345,7 @@ export const applyListV1MappingToTemplate = (
   const TABLE_ID = "items";
   const BASE_X = 50;
   const TOTAL_WIDTH = 520;
-  const BASE_Y = 560;
+  const BASE_Y = 600;
 
   const existingIdx = slotSyncedElements.findIndex((e) => e.id === TABLE_ID);
   const existing = existingIdx >= 0 ? (slotSyncedElements[existingIdx] as any) : null;

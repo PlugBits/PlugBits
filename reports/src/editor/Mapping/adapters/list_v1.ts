@@ -446,7 +446,7 @@ export const listV1Adapter: StructureAdapter = {
     const TOTAL_WIDTH = 520;
 
     // items が無い場合のデフォルト位置（header直下を狙う）
-    const BASE_Y = 560;
+    const BASE_Y = 600;
 
     // 既存 items を探して位置等を引き継ぐ
     const existingIdx = slotSyncedElements.findIndex((e) => e.id === TABLE_ID);
