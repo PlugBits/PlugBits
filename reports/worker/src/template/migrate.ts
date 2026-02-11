@@ -23,6 +23,8 @@ const isItemNameColumn = (col: TableColumn) =>
   col.id === 'item_name' || col.fieldCode === 'ItemName';
 
 export const migrateTemplate = (template: TemplateDefinition): TemplateDefinition => {
+  const MIN_TABLE_GAP = 16;
+  const MAX_TABLE_GAP = 40;
   const schemaVersion = template.schemaVersion ?? 0;
   const baseTemplateId = template.baseTemplateId ?? template.id;
   const structureTypeRaw = template.structureType as unknown as string | undefined;
@@ -34,14 +36,34 @@ export const migrateTemplate = (template: TemplateDefinition): TemplateDefinitio
   const needsMappingNormalization = template.mapping == null;
   const needsStructureUpdate = nextStructureType !== template.structureType;
   const needsPageSizeUpdate = !template.pageSize;
+  const resolveHeaderBottomY = (elements: TemplateElement[]) => {
+    const candidates = elements.filter(
+      (el) =>
+        el.type !== 'table' &&
+        el.type !== 'cardList' &&
+        el.region !== 'footer' &&
+        typeof el.y === 'number',
+    );
+    if (candidates.length === 0) return null;
+    return Math.min(...candidates.map((el) => el.y as number));
+  };
   const needsListV1TableYAdjust =
     nextStructureType === 'list_v1' &&
     Array.isArray(template.elements) &&
-    template.elements.some((el) => {
-      if (el.type !== 'table') return false;
-      const y = (el as TableElement).y;
-      return typeof y === 'number' && y < 680;
-    });
+    (() => {
+      const headerBottomY = resolveHeaderBottomY(template.elements);
+      if (headerBottomY == null) return false;
+      return template.elements.some((el) => {
+        if (el.type !== 'table') return false;
+        const table = el as TableElement;
+        const y = table.y;
+        if (typeof y !== 'number') return false;
+        const headerHeight = table.headerHeight ?? table.rowHeight ?? 18;
+        const tableHeaderTopY = y + headerHeight;
+        const gap = headerBottomY - tableHeaderTopY;
+        return gap < MIN_TABLE_GAP || gap > MAX_TABLE_GAP;
+      });
+    })();
   const hasCardList = Array.isArray(template.elements)
     ? template.elements.some((el) => el.type === 'cardList')
     : false;
@@ -102,13 +124,25 @@ export const migrateTemplate = (template: TemplateDefinition): TemplateDefinitio
   let nextElements = migratedElements;
 
   if (nextStructureType === 'list_v1') {
-    nextElements = nextElements.map((element) => {
-      if (element.type !== 'table') return element;
-      const table = element as TableElement;
-      const y = table.y;
-      if (typeof y !== 'number' || y >= 680) return element;
-      return { ...table, y: 680 };
-    });
+    const headerBottomY = resolveHeaderBottomY(nextElements);
+    if (headerBottomY != null) {
+      nextElements = nextElements.map((element) => {
+        if (element.type !== 'table') return element;
+        const table = element as TableElement;
+        const y = table.y;
+        if (typeof y !== 'number') return element;
+        const headerHeight = table.headerHeight ?? table.rowHeight ?? 18;
+        const tableHeaderTopY = y + headerHeight;
+        const gap = headerBottomY - tableHeaderTopY;
+        if (gap < MIN_TABLE_GAP) {
+          return { ...table, y: headerBottomY - MIN_TABLE_GAP - headerHeight };
+        }
+        if (gap > MAX_TABLE_GAP) {
+          return { ...table, y: headerBottomY - MAX_TABLE_GAP - headerHeight };
+        }
+        return element;
+      });
+    }
   }
 
   if (nextStructureType === 'cards_v1') {

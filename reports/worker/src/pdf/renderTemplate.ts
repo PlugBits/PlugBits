@@ -907,13 +907,27 @@ export async function renderTemplateToPdf(
     ];
     const headerBottomY = resolveHeaderBottomY(headerElementsForFirstPage);
     const tableY = tableElementToRender.y;
-    const tableHeaderHeight = tableElementToRender.headerHeight ?? tableElementToRender.rowHeight ?? 18;
+    const tableHeaderHeight =
+      tableElementToRender.headerHeight ?? tableElementToRender.rowHeight ?? 18;
     const tableHeaderTopY =
       typeof tableY === 'number' ? tableY + tableHeaderHeight : null;
     const gap =
       typeof tableHeaderTopY === 'number' && typeof headerBottomY === 'number'
         ? headerBottomY - tableHeaderTopY
         : null;
+    const minGap = 16;
+    const desiredTableY =
+      typeof headerBottomY === 'number'
+        ? headerBottomY - minGap - tableHeaderHeight
+        : null;
+    const adjustedTableY =
+      typeof gap === 'number' && gap < minGap && typeof desiredTableY === 'number'
+        ? desiredTableY
+        : null;
+    const tableElementForRender =
+      typeof adjustedTableY === 'number'
+        ? { ...tableElementToRender, y: adjustedTableY }
+        : tableElementToRender;
 
     warn('debug', 'table layout positions', {
       tableId: tableElementToRender.id,
@@ -921,6 +935,7 @@ export async function renderTemplateToPdf(
       tableHeaderTopY,
       headerBottomY,
       gap,
+      adjustedTableY,
       pdf: {
         tableY: typeof tableY === 'number' ? toPdfYFromBottom(tableY, pageHeight) : null,
         headerBottomY:
@@ -936,6 +951,7 @@ export async function renderTemplateToPdf(
         tableHeaderTopY,
         headerBottomY,
         gap,
+        adjustedTableY,
       });
     }
 
@@ -945,7 +961,7 @@ export async function renderTemplateToPdf(
       page,
       pageWidth,
       pageHeight,
-      tableElementToRender,
+      tableElementForRender,
       jpFont,
       latinFont,
       renderData,
