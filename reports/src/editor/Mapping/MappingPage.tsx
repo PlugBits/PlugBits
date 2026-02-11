@@ -85,6 +85,7 @@ const MappingPage: React.FC<Props> = ({ template, updateTemplate, onFocusFieldRe
 
 
   const mapping = template.mapping ?? adapter.createDefaultMapping();
+  const validation = useMemo(() => adapter.validate(mapping), [adapter, mapping]);
   const onChangeMapping = (nextMapping: any) => {  
     const next = adapter.applyMappingToTemplate(
       { ...template, structureType }, // 念のためstructureType固定
@@ -140,6 +141,7 @@ const MappingPage: React.FC<Props> = ({ template, updateTemplate, onFocusFieldRe
           schemaOverride={kintoneSchema}
           region={region}
           mapping={mapping}
+          validationErrors={validation.errors}
           onChangeMapping={onChangeMapping}
           onFocusFieldRef={onFocusFieldRef}
           onClearFocus={onClearFocus}

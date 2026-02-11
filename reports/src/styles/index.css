@@ -412,6 +412,17 @@ button:disabled {
 .mapping-status.ok{ color:#067647; border-color:#abefc6; background:#ecfdf3; }
 .mapping-status.ng{ color:#344054; border-color:#e4e7ec; background:#f8fafc; }
 
+.mapping-summary{
+  margin-bottom: 10px;
+  padding: 4px 8px;
+  border-radius: 8px;
+  border: 1px solid #e4e7ec;
+  background: #f8fafc;
+  color: #667085;
+  font-size: 12px;
+  font-weight: 600;
+}
+
 .mapping-card{
   border: 1px solid #e4e7ec;
   border-radius: 0.9rem;
@@ -424,6 +435,18 @@ button:disabled {
   font-weight: 700;
   margin-bottom: 8px;
   color: #101828;
+}
+
+.mapping-guide{
+  margin-bottom: 8px;
+  padding: 6px 8px;
+  border-radius: 8px;
+  border: 1px solid #e4e7ec;
+  background: #f8fafc;
+  color: #667085;
+  font-size: 12px;
+  display: grid;
+  gap: 4px;
 }
 
 .mapping-list{

@@ -1,7 +1,7 @@
 // src/editor/Mapping/components/RegionMappingPanel.tsx
 import React, { useEffect, useMemo, useState } from 'react';
 import type { TemplateDefinition } from '@shared/template';
-import type { RegionDef } from '../adapters/StructureAdapter';
+import type { RegionDef, ValidationError } from '../adapters/StructureAdapter';
 import FieldPicker, { type FieldRef } from './FieldPicker';
 import ColumnEditor, { type Column } from './ColumnEditor';
 import KintoneFieldSelect from '../../../components/KintoneFieldSelect';
@@ -12,6 +12,7 @@ type Props = {
   schemaOverride?: SchemaFromSample | null;
   region: RegionDef;
   mapping: any;
+  validationErrors?: ValidationError[];
   onChangeMapping: (nextMapping: any) => void;
   onFocusFieldRef: (ref: FieldRef | undefined) => void;
   onClearFocus: () => void;
@@ -53,6 +54,7 @@ const RegionMappingPanel: React.FC<Props> = ({
   schemaOverride,
   region,
   mapping,
+  validationErrors,
   onChangeMapping,
   onFocusFieldRef,
   onClearFocus,
@@ -80,10 +82,70 @@ const RegionMappingPanel: React.FC<Props> = ({
     onChangeMapping(next);
   }, [isListV1, listSummaryModeRaw, mapping, onChangeMapping, region.id, region.kind]);
 
+  const guideItems = useMemo(() => {
+    if (!validationErrors || validationErrors.length === 0) return [];
+    const items = new Set<string>();
+    const add = (label?: string) => {
+      if (!label) return;
+      items.add(`${label}：フィールドを選択してください`);
+    };
+
+    for (const error of validationErrors) {
+      const path = error.path ?? '';
+      if (region.kind === 'slots') {
+        const prefix = `${region.id}.`;
+        if (!path.startsWith(prefix)) continue;
+        const slotId = path.slice(prefix.length);
+        const slot = region.slots.find((s) => s.id === slotId);
+        add(slot?.label);
+        continue;
+      }
+
+      if (region.kind === 'table') {
+        if (path === `${region.id}.source`) {
+          add('明細サブテーブル');
+          continue;
+        }
+        const columnsPrefix = `${region.id}.columns.`;
+        if (path.startsWith(columnsPrefix)) {
+          const columnId = path.slice(columnsPrefix.length);
+          const column = region.baseColumns.find((c) => c.id === columnId);
+          add(column?.label);
+        }
+        continue;
+      }
+
+      if (region.kind === 'cardList') {
+        if (path === `${region.id}.source`) {
+          add('カード用サブテーブル');
+          continue;
+        }
+        const fieldPrefix = `${region.id}.fields.`;
+        if (path.startsWith(fieldPrefix)) {
+          const fieldId = path.slice(fieldPrefix.length);
+          const field = region.fields.find((f) => f.id === fieldId);
+          add(field?.label);
+        }
+      }
+    }
+
+    return Array.from(items);
+  }, [validationErrors, region]);
+
+  const guideBlock =
+    guideItems.length > 0 ? (
+      <div className="mapping-guide">
+        {guideItems.map((item) => (
+          <div key={item}>{item}</div>
+        ))}
+      </div>
+    ) : null;
+
   if (region.kind === 'slots') {
     return (
       <div className="mapping-card">
         <div className="mapping-card-title">{region.label}</div>
+        {guideBlock}
 
         <div className="mapping-list">
           {region.slots.map((slot) => {
@@ -178,6 +240,7 @@ const RegionMappingPanel: React.FC<Props> = ({
     return (
       <div className="mapping-card">
         <div className="mapping-card-title">{region.label}</div>
+        {guideBlock}
 
         <div className="mapping-list">
           {(() => {
@@ -362,6 +425,7 @@ const RegionMappingPanel: React.FC<Props> = ({
     return (
     <div className="mapping-card">
       <div className="mapping-card-title">{region.label}</div>
+      {guideBlock}
 
       <div className="mapping-list">
         {/* Row 1: サブテーブル */}

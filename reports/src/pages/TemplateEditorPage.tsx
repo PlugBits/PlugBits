@@ -1494,8 +1494,13 @@ const TemplateEditorPage = () => {
                 <option value="A4">A4</option>
                 <option value="Letter">Letter</option>
               </select>
-            </div>
-            <div style={{ maxHeight: '100%', height: '100%', minHeight: 0, overflowY: 'auto' }}>
+          </div>
+          <div style={{ maxHeight: '100%', height: '100%', minHeight: 0, overflowY: 'auto' }}>
+              {!isLabelTemplate && !isCardTemplate && template?.structureType === 'list_v1' && issueSummary.errorCount > 0 && (
+                <div className="mapping-summary">
+                  必須項目：未選択 {issueSummary.errorCount}
+                </div>
+              )}
               {/* 右ペイン切替ボタン（ここに移動） */}
               <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
                 <button
