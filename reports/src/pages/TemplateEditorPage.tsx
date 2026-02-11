@@ -56,6 +56,8 @@ const TemplateEditorPage = () => {
   const autosaveTimer = useRef<number | null>(null);
   const pendingSave = useRef(false);
   const lastSavedSignature = useRef<string>('');
+  const lastSavedTemplateId = useRef<string | null>(null);
+  const dirtyRef = useRef(false);
   const [gridVisible, setGridVisible] = useState(true);
   const [snapEnabled, setSnapEnabled] = useState(true);
   const [guideVisible, setGuideVisible] = useState(true);
@@ -185,23 +187,40 @@ const TemplateEditorPage = () => {
   }, [template?.id]);
 
 
+  const buildTemplateSignature = (value: TemplateDefinition) =>
+    JSON.stringify({
+      name: value.name,
+      elements: value.elements,
+      mapping: value.mapping ?? null,
+      structureType: value.structureType ?? null,
+      settings: value.settings ?? null,
+      sheetSettings: value.sheetSettings ?? null,
+      footerRepeatMode: value.footerRepeatMode ?? null,
+      footerReserveHeight: value.footerReserveHeight ?? null,
+      advancedLayoutEditing: !!value.advancedLayoutEditing,
+      pageSize: value.pageSize ?? 'A4',
+    });
+
   const templateSignature = useMemo(() => {
     if (!template) return '';
-      return JSON.stringify({
-        name: template.name,
-        elements: template.elements,
-        mapping: template.mapping ?? null,
-        structureType: template.structureType ?? null,
-        settings: template.settings ?? null,
-        sheetSettings: template.sheetSettings ?? null,
-        footerRepeatMode: template.footerRepeatMode ?? null,
-        footerReserveHeight: template.footerReserveHeight ?? null,
-        advancedLayoutEditing: !!template.advancedLayoutEditing,
-        pageSize: template.pageSize ?? 'A4',
-    });
+    return buildTemplateSignature(template);
   }, [template]);
 
-  const isDirty = !!templateSignature && templateSignature !== lastSavedSignature.current;
+  const isDirty =
+    !!templateSignature &&
+    lastSavedTemplateId.current === (template?.id ?? null) &&
+    templateSignature !== lastSavedSignature.current;
+
+  useEffect(() => {
+    dirtyRef.current = isDirty;
+  }, [isDirty]);
+
+  useEffect(() => {
+    if (!template) return;
+    if (lastSavedTemplateId.current === template.id) return;
+    lastSavedTemplateId.current = template.id;
+    lastSavedSignature.current = buildTemplateSignature(template);
+  }, [template?.id]);
 
   const updateTemplateSettings = (patch: Record<string, unknown>) => {
     if (!template) return;
@@ -278,7 +297,7 @@ const TemplateEditorPage = () => {
 
   useEffect(() => {
     const handleBeforeUnload = (event: BeforeUnloadEvent) => {
-      if (!isDirty) return;
+      if (!dirtyRef.current) return;
       event.preventDefault();
       event.returnValue = '';
     };
@@ -286,7 +305,7 @@ const TemplateEditorPage = () => {
     return () => {
       window.removeEventListener('beforeunload', handleBeforeUnload);
     };
-  }, [isDirty]);
+  }, []);
 
   useEffect(() => {
     if (!template) return;
@@ -1099,24 +1118,16 @@ const TemplateEditorPage = () => {
     setSaveError('');
     try {
       const normalizedName = persistTemplateName();
-      updateTemplate({ ...template, name: normalizedName });
+      const updatedTemplate = { ...template, name: normalizedName };
+      updateTemplate(updatedTemplate);
       await saveTemplate(template.id, { nameOverride: normalizedName });
       upsertMeta({
         templateId: template.id,
         name: normalizedName,
         updatedAt: new Date().toISOString(),
       });
-      lastSavedSignature.current = JSON.stringify({
-        name: normalizedName,
-        elements: template.elements,
-        mapping: template.mapping ?? null,
-        structureType: template.structureType ?? null,
-        sheetSettings: template.sheetSettings ?? null,
-        footerRepeatMode: template.footerRepeatMode ?? null,
-        footerReserveHeight: template.footerReserveHeight ?? null,
-        advancedLayoutEditing: !!template.advancedLayoutEditing,
-        pageSize: template.pageSize ?? 'A4',
-      });
+      lastSavedTemplateId.current = template.id;
+      lastSavedSignature.current = buildTemplateSignature(updatedTemplate);
       setSaveStatus('success');
       setToast({
         type: 'success',
@@ -1265,7 +1276,11 @@ const TemplateEditorPage = () => {
             <button
               className="ghost"
               onClick={() => {
-                if (isDirty && !window.confirm('未保存の変更があります。一覧へ戻りますか？')) {
+                if (saveStatus === 'saving') {
+                  setToast({ type: 'info', message: '保存中です。完了後に一覧へ戻ってください。' });
+                  return;
+                }
+                if (dirtyRef.current && !window.confirm('未保存の変更があります。一覧へ戻りますか？')) {
                   return;
                 }
                 navigate(`/${preservedQuery}`);
