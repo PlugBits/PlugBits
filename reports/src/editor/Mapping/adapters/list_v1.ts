@@ -107,6 +107,7 @@ export const listV1Adapter: StructureAdapter = {
       header: {
         doc_title: { kind: "staticText", text: "御見積書" },
         date_label: { kind: "staticText", text: "見積日" },
+        to_honorific: { kind: "staticText", text: "様" },
       },
       table: {
         columns: [],
@@ -335,6 +336,18 @@ export const listV1Adapter: StructureAdapter = {
 
     const headerRef = m?.header ?? {};
     const footerRef = m?.footer ?? {};
+    const honorificRef = headerRef["to_honorific"];
+    const honorificText =
+      honorificRef?.kind === "staticText" ? honorificRef.text ?? "" : "";
+    const shouldShowHonorific =
+      !!honorificRef &&
+      (honorificRef.kind !== "staticText" || honorificText.trim() !== "");
+    if (!shouldShowHonorific) {
+      slotSyncedElements = slotSyncedElements.filter((e) => {
+        const slotId = (e as any).slotId ?? "";
+        return e.id !== "to_honorific" && slotId !== "to_honorific";
+      });
+    }
 
     const yFooter = (fromBottomPx: number) =>
       clampYToRegion(fromBottomPx, "footer");
@@ -354,6 +367,20 @@ export const listV1Adapter: StructureAdapter = {
       { x: 50, y: 715, fontSize: 12, fontWeight: "bold", width: 300, height: 24 },
       headerRef["to_name"],
     );
+    if (shouldShowHonorific) {
+      const toNameEl = slotSyncedElements.find((e) => (e as any).slotId === "to_name" || e.id === "to_name") as any;
+      const baseX = typeof toNameEl?.x === "number" ? toNameEl.x : 50;
+      const baseY = typeof toNameEl?.y === "number" ? toNameEl.y : 715;
+      const baseWidth = typeof toNameEl?.width === "number" ? toNameEl.width : 300;
+      const baseHeight = typeof toNameEl?.height === "number" ? toNameEl.height : 24;
+      ensureSlotElement(
+        "to_honorific",
+        "header",
+        "text",
+        { x: baseX + baseWidth + 6, y: baseY, fontSize: 9, width: 24, height: baseHeight },
+        honorificRef,
+      );
+    }
     ensureSlotElement(
       "logo",
       "header",

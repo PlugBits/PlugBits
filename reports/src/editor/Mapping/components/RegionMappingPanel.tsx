@@ -82,6 +82,55 @@ const RegionMappingPanel: React.FC<Props> = ({
     onChangeMapping(next);
   }, [isListV1, listSummaryModeRaw, mapping, onChangeMapping, region.id, region.kind]);
 
+  const recordFieldLabelByCode = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const field of schema.recordFields ?? []) {
+      map.set(field.code, field.label ?? field.code);
+    }
+    return map;
+  }, [schema.recordFields]);
+
+  const subtableLabelByCode = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const table of schema.subtables ?? []) {
+      map.set(table.code, table.label ?? table.code);
+    }
+    return map;
+  }, [schema.subtables]);
+
+  const subtableFieldLabelByKey = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const table of schema.subtables ?? []) {
+      for (const field of table.fields ?? []) {
+        map.set(`${table.code}:${field.code}`, field.label ?? field.code);
+      }
+    }
+    return map;
+  }, [schema.subtables]);
+
+  const describeFieldRef = (v?: FieldRef): string => {
+    if (!v) return '';
+
+    if (v.kind === 'recordField') {
+      return recordFieldLabelByCode.get(v.fieldCode) ?? v.fieldCode;
+    }
+    if (v.kind === 'staticText') return v.text ? `固定: ${v.text}` : '固定文字';
+    if (v.kind === 'imageUrl') return v.url ? '画像URL' : '画像';
+    if (v.kind === 'subtable') {
+      const label = subtableLabelByCode.get(v.fieldCode) ?? v.fieldCode;
+      return label ? `サブテーブル: ${label}` : 'サブテーブル';
+    }
+    if (v.kind === 'subtableField') {
+      const tableLabel = subtableLabelByCode.get(v.subtableCode) ?? v.subtableCode;
+      const fieldLabel =
+        subtableFieldLabelByKey.get(`${v.subtableCode}:${v.fieldCode}`) ?? v.fieldCode;
+      if (!tableLabel) return fieldLabel ?? 'サブテーブル項目';
+      return `${tableLabel} / ${fieldLabel}`;
+    }
+
+    return '';
+  };
+
   const guideItems = useMemo(() => {
     if (!validationErrors || validationErrors.length === 0) return [];
     const items = new Set<string>();
@@ -228,6 +277,43 @@ const RegionMappingPanel: React.FC<Props> = ({
                         placeholderStaticText={slot.kind === 'date' ? '2025-12-14' : '固定文字'}
                       />
                     </div>
+                    {region.id === 'header' && slot.id === 'to_name' && (() => {
+                      const ref = mapping?.header?.to_honorific as FieldRef | undefined;
+                      const text = ref?.kind === 'staticText' ? ref.text ?? '' : '';
+                      const honorificValue = text === '御中' ? 'onchu' : text === '様' ? 'sama' : 'none';
+
+                      return (
+                        <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <div style={{ fontSize: '0.85rem', color: '#667085', minWidth: 44 }}>
+                            敬称
+                          </div>
+                          <select
+                            className="mapping-control mapping-select"
+                            value={honorificValue}
+                            onChange={(e) => {
+                              const value = e.target.value;
+                              if (value === 'none') {
+                                const next = setPath(mapping, [region.id, 'to_honorific'], undefined);
+                                onChangeMapping(next);
+                                return;
+                              }
+                              const text = value === 'onchu' ? '御中' : '様';
+                              const next = setPath(
+                                mapping,
+                                [region.id, 'to_honorific'],
+                                { kind: 'staticText', text },
+                              );
+                              onChangeMapping(next);
+                            }}
+                            style={{ width: 120 }}
+                          >
+                            <option value="none">なし</option>
+                            <option value="sama">様</option>
+                            <option value="onchu">御中</option>
+                          </select>
+                        </div>
+                      );
+                    })()}
                   </div>
                 )}
               </div>
@@ -244,6 +330,7 @@ const RegionMappingPanel: React.FC<Props> = ({
     const currentSubtableCode = currentSource?.fieldCode ?? '';
     const subtableOptions = schema.subtables;
     const currentSubtable = subtableOptions.find((s) => s.code === currentSubtableCode);
+    const currentSubtableLabel = currentSubtable?.label ?? currentSubtableCode;
     const subtableFieldOptions = currentSubtable?.fields ?? [];
 
     return (
@@ -279,7 +366,7 @@ const RegionMappingPanel: React.FC<Props> = ({
                   </div>
 
                   <div className={`mapping-row-right ${isEmpty ? 'empty' : 'filled'}`}>
-                    {isEmpty ? '未選択' : `サブテーブル: ${currentSubtableCode}`}
+                    {isEmpty ? '未選択' : `サブテーブル: ${currentSubtableLabel}`}
                   </div>
                 </button>
 
@@ -395,6 +482,7 @@ const RegionMappingPanel: React.FC<Props> = ({
   const subtableOptions = schema.subtables;
 
   const currentSubtable = subtableOptions.find((s) => s.code === currentSubtableCode);
+  const currentSubtableLabel = currentSubtable?.label ?? currentSubtableCode;
   const subtableFieldOptions = currentSubtable?.fields ?? [];
 
   const columnsRaw = (mapping?.[region.id]?.columns ?? []) as Column[];
@@ -463,7 +551,7 @@ const RegionMappingPanel: React.FC<Props> = ({
                 </div>
 
                 <div className={`mapping-row-right ${isEmpty ? 'empty' : 'filled'}`}>
-                  {isEmpty ? '未選択' : `サブテーブル: ${currentSubtableCode}`}
+                  {isEmpty ? '未選択' : `サブテーブル: ${currentSubtableLabel}`}
                 </div>
               </button>
 
@@ -675,16 +763,5 @@ const RegionMappingPanel: React.FC<Props> = ({
   );
 
 };
-function describeFieldRef(v?: FieldRef): string {
-  if (!v) return '';
-
-  if (v.kind === 'recordField') return v.fieldCode;
-  if (v.kind === 'staticText') return v.text ? `固定: ${v.text}` : '固定文字';
-  if (v.kind === 'imageUrl') return v.url ? '画像URL' : '画像';
-  if (v.kind === 'subtable') return v.fieldCode ? `サブテーブル: ${v.fieldCode}` : 'サブテーブル';
-  if (v.kind === 'subtableField') return v.fieldCode ? v.fieldCode : 'サブテーブル項目';
-
-  return '';
-}
 
 export default RegionMappingPanel;
