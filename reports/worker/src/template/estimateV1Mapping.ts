@@ -80,43 +80,45 @@ export const applyEstimateV1MappingToTemplate = (
   ): TemplateElement => {
     if (!ref) {
       if (element.type === "label") {
-        return element.text === "" ? element : { ...element, text: "" };
+        if (element.text === "" && element.hidden === true) return element;
+        return { ...element, text: "", hidden: true };
       }
       if (element.type === "text") {
         const nextSource = { type: "static", value: "" } as const;
-        if (element.dataSource?.type === "static" && element.dataSource.value === "") {
+        if (element.dataSource?.type === "static" && element.dataSource.value === "" && element.hidden === true) {
           return element;
         }
-        return { ...element, dataSource: nextSource };
+        return { ...element, dataSource: nextSource, hidden: true };
       }
       if (element.type === "image") {
         const nextSource = { type: "static", value: "" } as const;
-        if (element.dataSource?.type === "static" && element.dataSource.value === "") {
+        if (element.dataSource?.type === "static" && element.dataSource.value === "" && element.hidden === true) {
           return element;
         }
-        return { ...element, dataSource: nextSource };
+        return { ...element, dataSource: nextSource, hidden: true };
       }
-      return element;
+      return { ...element, hidden: true };
     }
 
     if (ref.kind === "recordField") {
       if (element.type !== "text") return element;
       if (element.dataSource?.type === "kintone" && element.dataSource.fieldCode === ref.fieldCode) {
-        return element;
+        return element.hidden ? { ...element, hidden: false } : element;
       }
-      return { ...element, dataSource: { type: "kintone", fieldCode: ref.fieldCode } };
+      return { ...element, dataSource: { type: "kintone", fieldCode: ref.fieldCode }, hidden: false };
     }
 
     if (ref.kind === "staticText") {
       if (element.type === "label") {
-        return element.text === ref.text ? element : { ...element, text: ref.text ?? "" };
+        if (element.text === ref.text && !element.hidden) return element;
+        return { ...element, text: ref.text ?? "", hidden: false };
       }
       if (element.type === "text") {
         const nextSource = { type: "static", value: ref.text ?? "" } as const;
-        if (element.dataSource?.type === "static" && element.dataSource.value === nextSource.value) {
+        if (element.dataSource?.type === "static" && element.dataSource.value === nextSource.value && !element.hidden) {
           return element;
         }
-        return { ...element, dataSource: nextSource };
+        return { ...element, dataSource: nextSource, hidden: false };
       }
       return element;
     }
@@ -124,10 +126,10 @@ export const applyEstimateV1MappingToTemplate = (
     if (ref.kind === "imageUrl") {
       if (element.type !== "image") return element;
       const nextSource = { type: "static", value: ref.url ?? "" } as const;
-      if (element.dataSource?.type === "static" && element.dataSource.value === nextSource.value) {
+      if (element.dataSource?.type === "static" && element.dataSource.value === nextSource.value && !element.hidden) {
         return element;
       }
-      return { ...element, dataSource: nextSource };
+      return { ...element, dataSource: nextSource, hidden: false };
     }
 
     return element;
@@ -161,6 +163,9 @@ export const applyEstimateV1MappingToTemplate = (
       fontSize?: number;
       fontWeight?: "normal" | "bold";
       alignX?: "left" | "center" | "right";
+      borderWidth?: number;
+      borderColorGray?: number;
+      fillGray?: number;
     },
     ref: FieldRef | undefined,
   ) => {
@@ -177,6 +182,7 @@ export const applyEstimateV1MappingToTemplate = (
     const idx = idxBySlot >= 0 ? idxBySlot : idxById;
 
     const safetyY = fallback.y;
+    const nextHidden = !ref;
 
     if (idx >= 0) {
       const base = slotSyncedElements[idx] as any;
@@ -188,6 +194,7 @@ export const applyEstimateV1MappingToTemplate = (
         slotId,
         region,
         type,
+        hidden: nextHidden,
         x: base.x ?? fallback.x,
         y: nextY ?? safetyY,
         width: base.width ?? fallback.width,
@@ -195,6 +202,9 @@ export const applyEstimateV1MappingToTemplate = (
         fontSize: base.fontSize ?? fallback.fontSize,
         fontWeight: base.fontWeight ?? fallback.fontWeight,
         alignX: base.alignX ?? fallback.alignX,
+        borderWidth: base.borderWidth ?? fallback.borderWidth,
+        borderColorGray: base.borderColorGray ?? fallback.borderColorGray,
+        fillGray: base.fillGray ?? fallback.fillGray,
         ...(type === "text" ? { dataSource: mkDataSource() } : {}),
         ...(type === "image" ? { dataSource: mkDataSource() } : {}),
       } as any;
@@ -214,6 +224,10 @@ export const applyEstimateV1MappingToTemplate = (
         fontSize: fallback.fontSize ?? 12,
         fontWeight: fallback.fontWeight ?? "normal",
         alignX: fallback.alignX,
+        hidden: nextHidden,
+        borderWidth: fallback.borderWidth,
+        borderColorGray: fallback.borderColorGray,
+        fillGray: fallback.fillGray,
         dataSource: mkDataSource(),
       } as any);
       return;
@@ -228,6 +242,10 @@ export const applyEstimateV1MappingToTemplate = (
       y: fallback.y,
       width: fallback.width ?? 120,
       height: fallback.height ?? 60,
+      hidden: nextHidden,
+      borderWidth: fallback.borderWidth,
+      borderColorGray: fallback.borderColorGray,
+      fillGray: fallback.fillGray,
       dataSource: mkDataSource(),
     } as any);
   };
@@ -243,20 +261,27 @@ export const applyEstimateV1MappingToTemplate = (
       height?: number;
       fontSize?: number;
       fontWeight?: "normal" | "bold";
+      borderWidth?: number;
+      borderColorGray?: number;
+      fillGray?: number;
     },
   ) => {
     const idx = slotSyncedElements.findIndex((e) => e.id === id);
+    const base = idx >= 0 ? (slotSyncedElements[idx] as any) : undefined;
     const nextElement: TemplateElement = {
       id,
       type: "label",
       region,
-      x: fallback.x,
-      y: fallback.y,
-      width: fallback.width,
-      height: fallback.height,
-      fontSize: fallback.fontSize,
-      fontWeight: fallback.fontWeight,
+      x: base?.x ?? fallback.x,
+      y: base?.y ?? fallback.y,
+      width: base?.width ?? fallback.width,
+      height: base?.height ?? fallback.height,
+      fontSize: base?.fontSize ?? fallback.fontSize,
+      fontWeight: base?.fontWeight ?? fallback.fontWeight,
       text,
+      borderWidth: base?.borderWidth ?? fallback.borderWidth,
+      borderColorGray: base?.borderColorGray ?? fallback.borderColorGray,
+      fillGray: base?.fillGray ?? fallback.fillGray,
     } as any;
     if (idx >= 0) {
       slotSyncedElements[idx] = nextElement;
@@ -301,8 +326,9 @@ export const applyEstimateV1MappingToTemplate = (
   const headerRef = m?.header ?? {};
   const footerRef = m?.footer ?? {};
 
+  const FOOTER_Y_MAX = 260;
   const yFooter = (fromBottomPx: number) =>
-    clampYToRegion(fromBottomPx, "footer");
+    Math.min(Math.max(fromBottomPx, 0), FOOTER_Y_MAX);
 
   ensureSlotElement(
     "doc_title",
@@ -315,14 +341,14 @@ export const applyEstimateV1MappingToTemplate = (
     "to_name",
     "header",
     "text",
-    { x: 50, y: 735, fontSize: 12, fontWeight: "bold", width: 220, height: 18 },
+    { x: 60, y: 720, fontSize: 12, fontWeight: "bold", width: 200, height: 18 },
     headerRef["to_name"],
   );
   ensureLabelElement(
     "to_honorific_label",
     "header",
     "御中",
-    { x: 210, y: 735, fontSize: 10, fontWeight: "normal", width: 40, height: 16 },
+    { x: 270, y: 720, fontSize: 10, fontWeight: "normal", width: 40, height: 16 },
   );
   ensureSlotElement(
     "logo",
@@ -335,74 +361,82 @@ export const applyEstimateV1MappingToTemplate = (
     "date_label",
     "header",
     "text",
-    { x: 360, y: 730, fontSize: 10, width: 56, height: 16 },
+    { x: 350, y: 720, fontSize: 10, width: 56, height: 16 },
     { kind: "staticText", text: "発行日" },
   );
   ensureSlotElement(
     "issue_date",
     "header",
     "text",
-    { x: 420, y: 730, fontSize: 10, width: 150, height: 16 },
+    { x: 410, y: 720, fontSize: 10, width: 150, height: 16 },
     headerRef["issue_date"],
   );
   ensureSlotElement(
     "doc_no",
     "header",
     "text",
-    { x: 420, y: 750, fontSize: 10, width: 150, height: 16 },
+    { x: 410, y: 738, fontSize: 10, width: 150, height: 16 },
     headerRef["doc_no"],
   );
   ensureTextLabelElement(
     "doc_no_label",
     "header",
     "見積番号",
-    { x: 360, y: 750, fontSize: 10, width: 56, height: 16 },
+    { x: 350, y: 738, fontSize: 10, width: 56, height: 16 },
+  );
+
+  ensureSlotElement(
+    "amount_box",
+    "header",
+    "text",
+    { x: 60, y: 650, fontSize: 18, fontWeight: "bold", width: 300, height: 60, borderWidth: 1, borderColorGray: 0.3 },
+    footerRef["total"],
   );
 
   ensureLabelElement(
     "subtotal_label",
     "footer",
     "小計",
-    { x: 350, y: yFooter(200), fontSize: 10, width: 60, height: 16 },
+    { x: 350, y: yFooter(250), fontSize: 10, width: 60, height: 16 },
   );
   ensureSlotElement(
     "subtotal",
     "footer",
     "text",
-    { x: 420, y: yFooter(200), fontSize: 10, width: 150, height: 16 },
+    { x: 420, y: yFooter(250), fontSize: 10, width: 150, height: 16 },
     footerRef["subtotal"],
   );
   ensureLabelElement(
     "tax_label",
     "footer",
     "消費税",
-    { x: 350, y: yFooter(180), fontSize: 10, width: 60, height: 16 },
+    { x: 350, y: yFooter(230), fontSize: 10, width: 60, height: 16 },
   );
   ensureSlotElement(
     "tax",
     "footer",
     "text",
-    { x: 420, y: yFooter(180), fontSize: 10, width: 150, height: 16 },
+    { x: 420, y: yFooter(230), fontSize: 10, width: 150, height: 16 },
     footerRef["tax"],
   );
   ensureLabelElement(
     "total_label_fixed",
     "footer",
     "合計",
-    { x: 350, y: yFooter(160), fontSize: 10, width: 60, height: 16, fontWeight: "bold" },
+    { x: 350, y: yFooter(210), fontSize: 10, width: 60, height: 16, fontWeight: "bold", fillGray: 0.93 },
   );
   ensureSlotElement(
     "total",
     "footer",
     "text",
-    { x: 420, y: yFooter(160), fontSize: 14, fontWeight: "bold", width: 150, height: 20 },
+    { x: 420, y: yFooter(210), fontSize: 14, fontWeight: "bold", width: 150, height: 20, fillGray: 0.93 },
     footerRef["total"],
   );
   ensureSlotElement(
     "remarks",
     "footer",
     "text",
-    { x: 50, y: yFooter(120), fontSize: 10, width: 520, height: 60 },
+    { x: 60, y: yFooter(120), fontSize: 10, width: 500, height: 60, borderWidth: 0.8, borderColorGray: 0.3 },
     footerRef["remarks"],
   );
 
@@ -414,9 +448,9 @@ export const applyEstimateV1MappingToTemplate = (
   }
 
   const TABLE_ID = "items";
-  const BASE_X = 50;
-  const TOTAL_WIDTH = 520;
-  const BASE_Y = 520;
+  const BASE_X = 60;
+  const TOTAL_WIDTH = 500;
+  const BASE_Y = 400;
 
   const existingIdx = slotSyncedElements.findIndex((e) => e.id === TABLE_ID);
   const existing = existingIdx >= 0 ? (slotSyncedElements[existingIdx] as any) : null;
@@ -504,7 +538,7 @@ export const applyEstimateV1MappingToTemplate = (
         })()
       : undefined;
 
-  const tableEl: TableElement = {
+  const tableEl = {
     id: TABLE_ID,
     type: "table",
     region: "body",
@@ -514,11 +548,18 @@ export const applyEstimateV1MappingToTemplate = (
     rowHeight: typeof existing?.rowHeight === "number" ? existing.rowHeight : 20,
     headerHeight: typeof existing?.headerHeight === "number" ? existing.headerHeight : 24,
     showGrid: typeof existing?.showGrid === "boolean" ? existing.showGrid : true,
-    borderColorGray: (existing as any)?.borderColorGray,
+    borderColorGray:
+      typeof (existing as any)?.borderColorGray === "number"
+        ? (existing as any).borderColorGray
+        : 0.3,
+    borderWidth:
+      typeof (existing as any)?.borderWidth === "number"
+        ? (existing as any).borderWidth
+        : 0.8,
     dataSource: { type: "kintoneSubtable", fieldCode: sourceFieldCode },
     columns: nextColumns,
     summary,
-  };
+  } as TableElement & { borderColorGray?: number; borderWidth?: number };
 
   let nextElements: TemplateElement[];
   if (existingIdx >= 0) {

@@ -2140,6 +2140,7 @@ function drawTable(
   const paddingRight = CELL_PADDING_X;
   const headerRowGap = Math.min(8, Math.max(4, Math.round(rowHeight * 0.3)));
   const gridBorderGray = (element as any).borderColorGray ?? 0.85;
+  const gridBorderWidth = (element as any).borderWidth ?? 0.5;
 
   const originX = element.x;
   const bottomMargin = footerReserveHeight + 40; // 下から40ptは余白
@@ -2229,7 +2230,7 @@ function drawTable(
         width: colWidth,
         height: headerHeight,
         borderColor: rgb(gridBorderGray, gridBorderGray, gridBorderGray),
-        borderWidth: 0.5,
+        borderWidth: gridBorderWidth,
       });
 
       // 列タイトル
@@ -2354,7 +2355,7 @@ function drawTable(
           width: colWidth,
           height: summaryRowHeight,
           borderColor: rgb(borderGray, borderGray, borderGray),
-          borderWidth: 0.5,
+          borderWidth: gridBorderWidth,
         });
       }
 
@@ -2732,7 +2733,7 @@ function drawTable(
           width: colWidth,
           height: effectiveRowHeight,
           borderColor: rgb(gridBorderGray, gridBorderGray, gridBorderGray),
-          borderWidth: 0.5,
+          borderWidth: gridBorderWidth,
         });
       }
 
