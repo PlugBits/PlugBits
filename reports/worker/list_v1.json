@@ -220,7 +220,7 @@
       "fontWeight": "bold",
       "dataSource": {
         "type": "static",
-        "value": ""
+        "value": "テスト株式会社"
       }
     },
     {

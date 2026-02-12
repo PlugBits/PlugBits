@@ -151,6 +151,10 @@ export const applySlotDataOverrides = (
     return template;
   }
 
+  if (import.meta.env.DEV) {
+    console.info('[template] slot overrides keys', { keys: Object.keys(overrides) });
+  }
+
   const next = structuredClone(template);
   const elements = [...(next.elements ?? [])];
 
