@@ -206,28 +206,44 @@
       }
     },
     {
-      "id": "remarks",
-      "slotId": "remarks",
+      "id": "subtotal",
+      "slotId": "subtotal",
       "type": "text",
       "region": "footer",
-      "x": 60,
-      "y": 60,
-      "width": 500,
-      "height": 60,
-      "fontSize": 10,
       "footerRepeatMode": "last",
       "dataSource": {
-        "type": "kintone",
-        "fieldCode": "Remarks"
-      }
+        "type": "static",
+        "value": ""
+      },
+      "x": 360,
+      "y": 150,
+      "width": 210,
+      "height": 20,
+      "fontSize": 10
+    },
+    {
+      "id": "tax",
+      "slotId": "tax",
+      "type": "text",
+      "region": "footer",
+      "footerRepeatMode": "last",
+      "dataSource": {
+        "type": "static",
+        "value": ""
+      },
+      "x": 360,
+      "y": 130,
+      "width": 210,
+      "height": 20,
+      "fontSize": 10
     },
     {
       "id": "total_label",
       "slotId": "total_label",
       "type": "text",
       "region": "footer",
-      "x": 330,
-      "y": 130,
+      "x": 300,
+      "y": 110,
       "width": 80,
       "height": 20,
       "fontSize": 10,
@@ -242,16 +258,32 @@
       "slotId": "total",
       "type": "text",
       "region": "footer",
-      "x": 420,
-      "y": 126,
-      "width": 140,
-      "height": 20,
+      "x": 360,
+      "y": 106,
+      "width": 210,
+      "height": 24,
       "fontSize": 14,
       "fontWeight": "bold",
       "footerRepeatMode": "last",
       "dataSource": {
         "type": "kintone",
         "fieldCode": "TotalAmount"
+      }
+    },
+    {
+      "id": "remarks",
+      "slotId": "remarks",
+      "type": "text",
+      "region": "footer",
+      "x": 50,
+      "y": 30,
+      "width": 520,
+      "height": 60,
+      "fontSize": 10,
+      "footerRepeatMode": "last",
+      "dataSource": {
+        "type": "kintone",
+        "fieldCode": "Remarks"
       }
     }
   ]

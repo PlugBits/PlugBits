@@ -313,25 +313,39 @@ export const applyListV1MappingToTemplate = (
   );
 
   ensureSlotElement(
-    "remarks",
+    "subtotal",
     "footer",
     "text",
-    { x: 50, y: yFooter(60), fontSize: 10, width: 520, height: 60 },
-    footerRef["remarks"],
+    { x: 360, y: yFooter(150), fontSize: 10, width: 210, height: 20 },
+    footerRef["subtotal"],
+  );
+  ensureSlotElement(
+    "tax",
+    "footer",
+    "text",
+    { x: 360, y: yFooter(130), fontSize: 10, width: 210, height: 20 },
+    footerRef["tax"],
   );
   ensureSlotElement(
     "total_label",
     "footer",
     "text",
-    { x: 300, y: yFooter(130), fontSize: 10, width: 80, height: 20 },
+    { x: 300, y: yFooter(110), fontSize: 10, width: 80, height: 20 },
     footerRef["total_label"],
   );
   ensureSlotElement(
     "total",
     "footer",
     "text",
-    { x: 360, y: yFooter(126), fontSize: 14, fontWeight: "bold", width: 210, height: 24 },
+    { x: 360, y: yFooter(106), fontSize: 14, fontWeight: "bold", width: 210, height: 24 },
     footerRef["total"],
+  );
+  ensureSlotElement(
+    "remarks",
+    "footer",
+    "text",
+    { x: 50, y: yFooter(30), fontSize: 10, width: 520, height: 60 },
+    footerRef["remarks"],
   );
 
   const sourceFieldCode =

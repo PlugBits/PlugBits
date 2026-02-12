@@ -25,6 +25,20 @@ const isItemNameColumn = (col: TableColumn) =>
 export const migrateTemplate = (template: TemplateDefinition): TemplateDefinition => {
   const MIN_TABLE_GAP = 16;
   const MAX_TABLE_GAP = 40;
+  const FOOTER_LEGACY_TOLERANCE = 20;
+  const FOOTER_TARGETS = {
+    subtotal: { x: 360, y: 150, width: 210, height: 20, fontSize: 10 },
+    tax: { x: 360, y: 130, width: 210, height: 20, fontSize: 10 },
+    total_label: { x: 300, y: 110, width: 80, height: 20, fontSize: 10 },
+    total: { x: 360, y: 106, width: 210, height: 24, fontSize: 14, fontWeight: 'bold' },
+    remarks: { x: 50, y: 30, width: 520, height: 60, fontSize: 10 },
+  } as const;
+  const FOOTER_LEGACY = {
+    remarks: { x: 50, y: 60 },
+    total_label: { x: 300, y: 130 },
+    total: { x: 360, y: 126 },
+  } as const;
+  const FOOTER_ORDER = ['subtotal', 'tax', 'total_label', 'total', 'remarks'] as const;
   const schemaVersion = template.schemaVersion ?? 0;
   const baseTemplateId = template.baseTemplateId ?? template.id;
   const structureTypeRaw = template.structureType as unknown as string | undefined;
@@ -47,6 +61,34 @@ export const migrateTemplate = (template: TemplateDefinition): TemplateDefinitio
     if (candidates.length === 0) return null;
     return Math.min(...candidates.map((el) => el.y as number));
   };
+  const resolveFooterElements = (elements: TemplateElement[]) => {
+    const bySlot = new Map<string, TemplateElement>();
+    for (const el of elements) {
+      if (el.region !== 'footer') continue;
+      const slotId = (el as any).slotId ?? el.id;
+      if (slotId) {
+        bySlot.set(String(slotId), el);
+      }
+    }
+    return bySlot;
+  };
+  const isNear = (value: unknown, target: number) =>
+    typeof value === 'number' && Math.abs(value - target) <= FOOTER_LEGACY_TOLERANCE;
+  const isLegacyFooterLayout = (elements: TemplateElement[]) => {
+    const footer = resolveFooterElements(elements);
+    const remarks = footer.get('remarks');
+    const totalLabel = footer.get('total_label');
+    const total = footer.get('total');
+    if (!remarks || !totalLabel || !total) return false;
+    return (
+      isNear((remarks as any).x, FOOTER_LEGACY.remarks.x) &&
+      isNear((remarks as any).y, FOOTER_LEGACY.remarks.y) &&
+      isNear((totalLabel as any).x, FOOTER_LEGACY.total_label.x) &&
+      isNear((totalLabel as any).y, FOOTER_LEGACY.total_label.y) &&
+      isNear((total as any).x, FOOTER_LEGACY.total.x) &&
+      isNear((total as any).y, FOOTER_LEGACY.total.y)
+    );
+  };
   const needsListV1TableYAdjust =
     nextStructureType === 'list_v1' &&
     Array.isArray(template.elements) &&
@@ -64,6 +106,10 @@ export const migrateTemplate = (template: TemplateDefinition): TemplateDefinitio
         return gap < MIN_TABLE_GAP || gap > MAX_TABLE_GAP;
       });
     })();
+  const needsListV1FooterAdjust =
+    nextStructureType === 'list_v1' &&
+    Array.isArray(template.elements) &&
+    isLegacyFooterLayout(template.elements);
   const hasCardList = Array.isArray(template.elements)
     ? template.elements.some((el) => el.type === 'cardList')
     : false;
@@ -76,7 +122,8 @@ export const migrateTemplate = (template: TemplateDefinition): TemplateDefinitio
     !needsCardListMigration &&
     !needsElementsNormalization &&
     !needsMappingNormalization &&
-    !needsListV1TableYAdjust
+    !needsListV1TableYAdjust &&
+    !needsListV1FooterAdjust
   ) {
     return template;
   }
@@ -143,6 +190,41 @@ export const migrateTemplate = (template: TemplateDefinition): TemplateDefinitio
         return element;
       });
     }
+  }
+
+  if (nextStructureType === 'list_v1' && isLegacyFooterLayout(nextElements)) {
+    const footer = resolveFooterElements(nextElements);
+    const targetSlots = new Set<string>(FOOTER_ORDER);
+    const adjustedFooter: TemplateElement[] = [];
+    for (const slotId of FOOTER_ORDER) {
+      const existing = footer.get(slotId);
+      const base = existing
+        ? { ...existing }
+        : {
+            id: slotId,
+            slotId,
+            type: 'text',
+            region: 'footer',
+            footerRepeatMode: 'last',
+            dataSource: { type: 'static', value: '' },
+          };
+      const layout = FOOTER_TARGETS[slotId];
+      const next = { ...base, ...layout } as any;
+      if (slotId === 'total') {
+        next.fontWeight = 'bold';
+      } else if ('fontWeight' in next) {
+        delete next.fontWeight;
+      }
+      adjustedFooter.push(next as TemplateElement);
+    }
+
+    const nonFooter = nextElements.filter((el) => el.region !== 'footer');
+    const otherFooter = nextElements.filter((el) => {
+      if (el.region !== 'footer') return false;
+      const slotId = (el as any).slotId ?? el.id;
+      return !targetSlots.has(String(slotId));
+    });
+    nextElements = [...nonFooter, ...otherFooter, ...adjustedFooter];
   }
 
   if (nextStructureType === 'cards_v1') {
