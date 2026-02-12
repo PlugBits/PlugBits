@@ -78,8 +78,8 @@ const LIST_V1_PRESETS: Record<PresetDefinition['id'], PresetDefinition> = {
     name: '見積書',
     slots: [
       { slotId: 'to_name', label: '宛先名', group: '宛先', required: 'error', region: 'header' },
-      { slotId: 'doc_no', label: '文書番号', group: '右上メタ', required: 'error', region: 'header' },
-      { slotId: 'issue_date', label: '日付', group: '右上メタ', required: 'error', region: 'header' },
+      { slotId: 'doc_no', label: '見積番号', group: '右上メタ', required: 'none', region: 'header' },
+      { slotId: 'issue_date', label: '発行日', group: '右上メタ', required: 'error', region: 'header' },
       { slotId: 'total', label: '合計', group: '合計', required: 'error', region: 'footer' },
       { slotId: 'remarks', label: '備考', group: '補助', required: 'none', region: 'footer' },
       { slotId: 'subtotal', label: '小計', group: '合計', required: 'none', region: 'footer' },
@@ -243,7 +243,9 @@ export const collectIssues = ({
   recordData?: Record<string, unknown> | null;
 }): Issue[] => {
   const issues: Issue[] = [];
-  if (template.structureType !== 'list_v1') return issues;
+  if (template.structureType !== 'list_v1' && template.structureType !== 'estimate_v1') {
+    return issues;
+  }
 
   const mapping = (template.mapping ?? {}) as Partial<ListV1Mapping>;
   const header = mapping.header ?? {};

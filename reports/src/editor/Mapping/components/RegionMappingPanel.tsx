@@ -64,7 +64,8 @@ const RegionMappingPanel: React.FC<Props> = ({
     () => schemaOverride ?? extractSchemaFromSampleData(template.sampleData),
     [schemaOverride, template.sampleData],
   );
-  const isListV1 = (template.structureType ?? 'list_v1') === 'list_v1';
+  const structureType = template.structureType ?? 'list_v1';
+  const isListLike = structureType === 'list_v1' || structureType === 'estimate_v1';
   const [openSlotId, setOpenSlotId] = useState<string | null>(null);
   const [openTableRow, setOpenTableRow] = useState<'source' | 'columns' | 'summary' | null>(null);
   const [openCardFieldId, setOpenCardFieldId] = useState<string | null>(null);
@@ -73,14 +74,14 @@ const RegionMappingPanel: React.FC<Props> = ({
   const listSummaryModeRaw = tableMapping.summaryMode;
 
   useEffect(() => {
-    if (!isListV1 || region.kind !== 'table') return;
+    if (!isListLike || region.kind !== 'table') return;
     if (listSummaryModeRaw && listSummaryModeRaw !== 'none') return;
 
     const next = deepClone(mapping ?? {});
     next[region.id] = next[region.id] ?? {};
     next[region.id].summaryMode = 'lastPageOnly';
     onChangeMapping(next);
-  }, [isListV1, listSummaryModeRaw, mapping, onChangeMapping, region.id, region.kind]);
+  }, [isListLike, listSummaryModeRaw, mapping, onChangeMapping, region.id, region.kind]);
 
   const recordFieldLabelByCode = useMemo(() => {
     const map = new Map<string, string>();
@@ -277,7 +278,7 @@ const RegionMappingPanel: React.FC<Props> = ({
                         placeholderStaticText={slot.kind === 'date' ? '2025-12-14' : '固定文字'}
                       />
                     </div>
-                    {region.id === 'header' && slot.id === 'to_name' && (() => {
+                    {region.id === 'header' && slot.id === 'to_name' && structureType === 'list_v1' && (() => {
                       const ref = mapping?.header?.to_honorific as FieldRef | undefined;
                       const text = ref?.kind === 'staticText' ? ref.text ?? '' : '';
                       const honorificValue = text === '御中' ? 'onchu' : text === '様' ? 'sama' : 'none';

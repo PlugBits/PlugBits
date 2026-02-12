@@ -17,6 +17,7 @@ fi
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 TEMPLATES=(
   list_v1
+  estimate_v1
   cards_v1
   cards_v2
   label_standard_v1

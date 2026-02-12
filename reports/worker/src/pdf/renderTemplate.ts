@@ -174,16 +174,29 @@ const drawMultilineText = (
   color: ReturnType<typeof rgb>,
   maxLines: number,
   lineHeight = fontSize * 1.2,
+  fontWeight: 'normal' | 'bold' = 'normal',
 ) => {
-  const limit = Math.min(lines.length, Math.max(0, maxLines));
-  for (let idx = 0; idx < limit; idx += 1) {
-    page.drawText(lines[idx], {
-      x,
-      y: yStart - idx * lineHeight,
+  const drawLine = (text: string, xPos: number, yPos: number) => {
+    page.drawText(text, {
+      x: xPos,
+      y: yPos,
       size: fontSize,
       font,
       color,
     });
+    if (fontWeight === 'bold') {
+      page.drawText(text, {
+        x: xPos + 0.4,
+        y: yPos,
+        size: fontSize,
+        font,
+        color,
+      });
+    }
+  };
+  const limit = Math.min(lines.length, Math.max(0, maxLines));
+  for (let idx = 0; idx < limit; idx += 1) {
+    drawLine(lines[idx], x, yStart - idx * lineHeight);
   }
 };
 
@@ -1322,12 +1335,38 @@ function drawLabel(
   const text = element.text ?? '';
   const maxWidth = element.width ?? 180;
   const maxLines = 99;
+  const boxHeight = element.height ?? fontSize * 1.2;
+  const fillGray = (element as any).fillGray as number | undefined;
+  const borderWidth = (element as any).borderWidth as number | undefined;
+  const borderColorGray = (element as any).borderColorGray as number | undefined;
 
   let yStart = toPdfYFromBottom(element.y, pageHeight);
   yStart = clampPdfY(yStart, pageHeight - fontSize - 2);
 
   const lines = wrapTextToLines(text, jpFont, fontSize, maxWidth);
   const x = resolveAlignedX(element, pageWidth, maxWidth, pagePadding);
+  const yBottom = clampPdfY(toPdfYFromBottom(element.y, pageHeight), pageHeight);
+  if (typeof fillGray === 'number') {
+    page.drawRectangle({
+      x,
+      y: yBottom,
+      width: maxWidth,
+      height: boxHeight,
+      color: rgb(fillGray, fillGray, fillGray),
+    });
+  }
+  if (borderWidth && borderWidth > 0) {
+    const gray = typeof borderColorGray === 'number' ? borderColorGray : 0.6;
+    page.drawRectangle({
+      x,
+      y: yBottom,
+      width: maxWidth,
+      height: boxHeight,
+      borderColor: rgb(gray, gray, gray),
+      borderWidth,
+    });
+  }
+  const lineHeight = fontSize * 1.2;
   drawMultilineText(
     page,
     lines,
@@ -1337,6 +1376,8 @@ function drawLabel(
     fontSize,
     rgb(0, 0, 0),
     maxLines,
+    lineHeight,
+    element.fontWeight === 'bold' ? 'bold' : 'normal',
   );
 }
 
@@ -1360,6 +1401,10 @@ function drawText(
   const fontSize = (element.fontSize ?? 12) * fontScale;
   const lineHeight = fontSize * 1.2;
   const maxWidth = element.width ?? 200;
+  const boxHeight = element.height ?? lineHeight;
+  const fillGray = (element as any).fillGray as number | undefined;
+  const borderWidth = (element as any).borderWidth as number | undefined;
+  const borderColorGray = (element as any).borderColorGray as number | undefined;
 
   const resolved = resolveDataSource(
     element.dataSource,
@@ -1388,6 +1433,27 @@ function drawText(
     slotId === 'date_label' ||
     slotId === 'issue_date';
   const x = resolveAlignedX(element, pageWidth, maxWidth, pagePadding);
+  const yBottom = clampPdfY(toPdfYFromBottom(element.y, pageHeight), pageHeight);
+  if (typeof fillGray === 'number') {
+    page.drawRectangle({
+      x,
+      y: yBottom,
+      width: maxWidth,
+      height: boxHeight,
+      color: rgb(fillGray, fillGray, fillGray),
+    });
+  }
+  if (borderWidth && borderWidth > 0) {
+    const gray = typeof borderColorGray === 'number' ? borderColorGray : 0.6;
+    page.drawRectangle({
+      x,
+      y: yBottom,
+      width: maxWidth,
+      height: boxHeight,
+      borderColor: rgb(gray, gray, gray),
+      borderWidth,
+    });
+  }
   if (isDocMeta) {
     const line = ellipsisTextToWidth(text, fontToUse, fontSize, maxWidth);
     if (line) {
@@ -1398,6 +1464,15 @@ function drawText(
         font: fontToUse,
         color: textColor,
       });
+      if (element.fontWeight === 'bold') {
+        page.drawText(line, {
+          x: x + 0.4,
+          y: yStart,
+          size: fontSize,
+          font: fontToUse,
+          color: textColor,
+        });
+      }
     }
     return;
   }
@@ -1412,6 +1487,8 @@ function drawText(
     fontSize,
     textColor,
     maxLines,
+    lineHeight,
+    element.fontWeight === 'bold' ? 'bold' : 'normal',
   );
 }
 
@@ -2062,6 +2139,7 @@ function drawTable(
   const paddingLeft = CELL_PADDING_X;
   const paddingRight = CELL_PADDING_X;
   const headerRowGap = Math.min(8, Math.max(4, Math.round(rowHeight * 0.3)));
+  const gridBorderGray = (element as any).borderColorGray ?? 0.85;
 
   const originX = element.x;
   const bottomMargin = footerReserveHeight + 40; // 下から40ptは余白
@@ -2150,7 +2228,7 @@ function drawTable(
         y: headerY,
         width: colWidth,
         height: headerHeight,
-        borderColor: rgb(0.7, 0.7, 0.7),
+        borderColor: rgb(gridBorderGray, gridBorderGray, gridBorderGray),
         borderWidth: 0.5,
       });
 
@@ -2269,7 +2347,7 @@ function drawTable(
       const fontForCell = pickFontForText(cellText, jpFont, latinFont);
 
       if (element.showGrid) {
-        const borderGray = summaryStyle?.borderColorGray ?? 0.85;
+        const borderGray = summaryStyle?.borderColorGray ?? gridBorderGray;
         currentPage.drawRectangle({
           x: currentX,
           y: rowYBottom,
@@ -2367,7 +2445,7 @@ function drawTable(
     }
 
     if (summaryStyle && kind === 'total') {
-      const borderGray = summaryStyle.borderColorGray ?? 0.85;
+      const borderGray = summaryStyle.borderColorGray ?? gridBorderGray;
       const thickness = summaryStyle.totalTopBorderWidth ?? 1.5;
       currentPage.drawLine({
         start: { x: originX, y: rowYBottom + summaryRowHeight },
@@ -2653,7 +2731,7 @@ function drawTable(
           y: rowYBottom,
           width: colWidth,
           height: effectiveRowHeight,
-          borderColor: rgb(0.85, 0.85, 0.85),
+          borderColor: rgb(gridBorderGray, gridBorderGray, gridBorderGray),
           borderWidth: 0.5,
         });
       }

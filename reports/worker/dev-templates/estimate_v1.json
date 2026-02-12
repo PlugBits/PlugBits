@@ -1,0 +1,421 @@
+{
+  "id": "estimate_v1",
+  "name": "見積書",
+  "schemaVersion": 1,
+  "pageSize": "A4",
+  "orientation": "portrait",
+  "structureType": "estimate_v1",
+  "footerRepeatMode": "last",
+  "footerReserveHeight": 150,
+  "settings": {
+    "presetId": "estimate_v1"
+  },
+  "slotSchema": {
+    "header": [
+      {
+        "slotId": "doc_title",
+        "label": "タイトル",
+        "kind": "text"
+      },
+      {
+        "slotId": "to_name",
+        "label": "宛先名",
+        "kind": "text",
+        "required": true
+      },
+      {
+        "slotId": "issue_date",
+        "label": "発行日",
+        "kind": "date",
+        "required": true
+      },
+      {
+        "slotId": "doc_no",
+        "label": "見積番号",
+        "kind": "text"
+      },
+      {
+        "slotId": "logo",
+        "label": "ロゴ",
+        "kind": "image"
+      }
+    ],
+    "footer": [
+      {
+        "slotId": "remarks",
+        "label": "備考",
+        "kind": "text"
+      },
+      {
+        "slotId": "subtotal",
+        "label": "小計",
+        "kind": "number"
+      },
+      {
+        "slotId": "tax",
+        "label": "税",
+        "kind": "number"
+      },
+      {
+        "slotId": "total",
+        "label": "合計",
+        "kind": "number",
+        "required": true
+      }
+    ]
+  },
+  "elements": [
+    {
+      "id": "doc_title",
+      "slotId": "doc_title",
+      "type": "text",
+      "region": "header",
+      "x": 0,
+      "y": 790,
+      "width": 595,
+      "height": 28,
+      "fontSize": 22,
+      "fontWeight": "bold",
+      "repeatOnEveryPage": true,
+      "dataSource": {
+        "type": "static",
+        "value": "御見積書"
+      },
+      "alignX": "center"
+    },
+    {
+      "id": "to_name",
+      "slotId": "to_name",
+      "type": "text",
+      "region": "header",
+      "x": 50,
+      "y": 735,
+      "width": 220,
+      "height": 18,
+      "fontSize": 12,
+      "repeatOnEveryPage": true,
+      "dataSource": {
+        "type": "kintone",
+        "fieldCode": "CustomerName"
+      },
+      "fontWeight": "bold"
+    },
+    {
+      "id": "to_honorific_label",
+      "type": "label",
+      "region": "header",
+      "x": 210,
+      "y": 735,
+      "width": 40,
+      "height": 16,
+      "fontSize": 10,
+      "text": "御中"
+    },
+    {
+      "id": "doc_no_label",
+      "type": "text",
+      "region": "header",
+      "x": 360,
+      "y": 750,
+      "width": 56,
+      "height": 16,
+      "fontSize": 10,
+      "repeatOnEveryPage": true,
+      "dataSource": {
+        "type": "static",
+        "value": "見積番号"
+      }
+    },
+    {
+      "id": "doc_no",
+      "slotId": "doc_no",
+      "type": "text",
+      "region": "header",
+      "x": 420,
+      "y": 750,
+      "width": 150,
+      "height": 16,
+      "fontSize": 10,
+      "repeatOnEveryPage": true,
+      "dataSource": {
+        "type": "static",
+        "value": ""
+      }
+    },
+    {
+      "id": "date_label",
+      "slotId": "date_label",
+      "type": "text",
+      "region": "header",
+      "x": 360,
+      "y": 730,
+      "width": 56,
+      "height": 16,
+      "fontSize": 10,
+      "repeatOnEveryPage": true,
+      "dataSource": {
+        "type": "static",
+        "value": "発行日"
+      }
+    },
+    {
+      "id": "issue_date",
+      "slotId": "issue_date",
+      "type": "text",
+      "region": "header",
+      "x": 420,
+      "y": 730,
+      "width": 150,
+      "height": 16,
+      "fontSize": 10,
+      "repeatOnEveryPage": true,
+      "dataSource": {
+        "type": "static",
+        "value": ""
+      }
+    },
+    {
+      "id": "logo",
+      "slotId": "logo",
+      "type": "image",
+      "region": "header",
+      "x": 450,
+      "y": 772,
+      "width": 120,
+      "height": 60,
+      "dataSource": {
+        "type": "static",
+        "value": ""
+      }
+    },
+    {
+      "id": "company_name",
+      "slotId": "company_name",
+      "type": "text",
+      "region": "header",
+      "x": 360,
+      "y": 700,
+      "width": 200,
+      "height": 14,
+      "fontSize": 11,
+      "fontWeight": "bold",
+      "dataSource": {
+        "type": "static",
+        "value": ""
+      }
+    },
+    {
+      "id": "company_address",
+      "slotId": "company_address",
+      "type": "text",
+      "region": "header",
+      "x": 360,
+      "y": 684,
+      "width": 200,
+      "height": 12,
+      "fontSize": 9,
+      "dataSource": {
+        "type": "static",
+        "value": ""
+      }
+    },
+    {
+      "id": "company_tel",
+      "slotId": "company_tel",
+      "type": "text",
+      "region": "header",
+      "x": 360,
+      "y": 668,
+      "width": 200,
+      "height": 12,
+      "fontSize": 9,
+      "dataSource": {
+        "type": "static",
+        "value": ""
+      }
+    },
+    {
+      "id": "company_email",
+      "slotId": "company_email",
+      "type": "text",
+      "region": "header",
+      "x": 360,
+      "y": 652,
+      "width": 200,
+      "height": 12,
+      "fontSize": 9,
+      "dataSource": {
+        "type": "static",
+        "value": ""
+      }
+    },
+    {
+      "id": "items",
+      "type": "table",
+      "region": "body",
+      "x": 50,
+      "y": 520,
+      "width": 520,
+      "rowHeight": 20,
+      "headerHeight": 24,
+      "showGrid": true,
+      "borderColorGray": 0.3,
+      "dataSource": {
+        "type": "kintoneSubtable",
+        "fieldCode": "Items"
+      },
+      "columns": [
+        {
+          "id": "c1",
+          "title": "品名",
+          "fieldCode": "ItemName",
+          "width": 300,
+          "minFontSize": 9
+        },
+        {
+          "id": "c2",
+          "title": "数量",
+          "fieldCode": "Qty",
+          "width": 60,
+          "align": "right",
+          "minFontSize": 9
+        },
+        {
+          "id": "c3",
+          "title": "単価",
+          "fieldCode": "UnitPrice",
+          "width": 80,
+          "align": "right",
+          "minFontSize": 9
+        },
+        {
+          "id": "c4",
+          "title": "金額",
+          "fieldCode": "Amount",
+          "width": 80,
+          "align": "right",
+          "minFontSize": 9
+        }
+      ],
+      "summary": {
+        "mode": "lastPageOnly",
+        "rows": [
+          {
+            "op": "sum",
+            "fieldCode": "Amount",
+            "columnId": "c4",
+            "label": "合計",
+            "labelSubtotal": "小計",
+            "labelTotal": "合計",
+            "kind": "total"
+          }
+        ],
+        "style": {
+          "subtotalFillGray": 0.95,
+          "totalFillGray": 0.93,
+          "totalTopBorderWidth": 1.2,
+          "borderColorGray": 0.3
+        }
+      }
+    },
+    {
+      "id": "subtotal_label",
+      "type": "label",
+      "region": "footer",
+      "x": 350,
+      "y": 200,
+      "width": 60,
+      "height": 16,
+      "fontSize": 10,
+      "text": "小計"
+    },
+    {
+      "id": "subtotal",
+      "slotId": "subtotal",
+      "type": "text",
+      "region": "footer",
+      "x": 420,
+      "y": 200,
+      "width": 150,
+      "height": 16,
+      "fontSize": 10,
+      "dataSource": {
+        "type": "static",
+        "value": ""
+      }
+    },
+    {
+      "id": "tax_label",
+      "type": "label",
+      "region": "footer",
+      "x": 350,
+      "y": 180,
+      "width": 60,
+      "height": 16,
+      "fontSize": 10,
+      "text": "消費税"
+    },
+    {
+      "id": "tax",
+      "slotId": "tax",
+      "type": "text",
+      "region": "footer",
+      "x": 420,
+      "y": 180,
+      "width": 150,
+      "height": 16,
+      "fontSize": 10,
+      "dataSource": {
+        "type": "static",
+        "value": ""
+      }
+    },
+    {
+      "id": "total_label_fixed",
+      "type": "label",
+      "region": "footer",
+      "x": 350,
+      "y": 160,
+      "width": 60,
+      "height": 16,
+      "fontSize": 10,
+      "fontWeight": "bold",
+      "text": "合計",
+      "fillGray": 0.93
+    },
+    {
+      "id": "total",
+      "slotId": "total",
+      "type": "text",
+      "region": "footer",
+      "x": 420,
+      "y": 160,
+      "width": 150,
+      "height": 20,
+      "fontSize": 14,
+      "fontWeight": "bold",
+      "fillGray": 0.93,
+      "dataSource": {
+        "type": "static",
+        "value": ""
+      }
+    },
+    {
+      "id": "remarks",
+      "slotId": "remarks",
+      "type": "text",
+      "region": "footer",
+      "x": 50,
+      "y": 120,
+      "width": 520,
+      "height": 60,
+      "fontSize": 10,
+      "dataSource": {
+        "type": "static",
+        "value": ""
+      },
+      "borderWidth": 0.5,
+      "borderColorGray": 0.3
+    }
+  ]
+}

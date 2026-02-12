@@ -12,6 +12,7 @@ import { getFonts } from "./fonts/fontLoader.js";
 import { getFixtureData } from "./fixtures/templateData.js";
 import { migrateTemplate, validateTemplate } from "./template/migrate.js";
 import { applyListV1MappingToTemplate } from "./template/listV1Mapping.ts";
+import { applyEstimateV1MappingToTemplate } from "./template/estimateV1Mapping.ts";
 import { applyCardsV1MappingToTemplate } from "./template/cardsV1Mapping.ts";
 import {
   applySlotDataOverrides,
@@ -239,6 +240,7 @@ const getTenantContext = (
  
 const TEMPLATE_IDS = new Set([
   "list_v1",
+  "estimate_v1",
   "cards_v1",
   "cards_v2",
   "label_standard_v1",
@@ -262,6 +264,21 @@ const SLOT_SCHEMA_LIST_V1 = {
     { slotId: "total", label: "合計", kind: "number" as const },
   ],
 };
+const SLOT_SCHEMA_ESTIMATE_V1 = {
+  header: [
+    { slotId: "doc_title", label: "タイトル", kind: "text" as const },
+    { slotId: "to_name", label: "宛先名", kind: "text" as const, required: true },
+    { slotId: "issue_date", label: "発行日", kind: "date" as const, required: true },
+    { slotId: "doc_no", label: "見積番号", kind: "text" as const },
+    { slotId: "logo", label: "ロゴ", kind: "image" as const },
+  ],
+  footer: [
+    { slotId: "remarks", label: "備考", kind: "text" as const },
+    { slotId: "subtotal", label: "小計", kind: "number" as const },
+    { slotId: "tax", label: "税", kind: "number" as const },
+    { slotId: "total", label: "合計", kind: "number" as const, required: true },
+  ],
+};
 const SLOT_SCHEMA_LABEL_V1 = {
   header: [
     { slotId: "title", label: "タイトル", kind: "text" as const, required: true },
@@ -281,6 +298,15 @@ const TEMPLATE_CATALOG = [
     version: 1,
     flags: [] as string[],
     slotSchema: SLOT_SCHEMA_LIST_V1,
+  },
+  {
+    templateId: "estimate_v1",
+    displayName: "見積書（固定）",
+    structureType: "estimate_v1",
+    description: "見積書専用の固定レイアウトテンプレ",
+    version: 1,
+    flags: [] as string[],
+    slotSchema: SLOT_SCHEMA_ESTIMATE_V1,
   },
   {
     templateId: "cards_v1",
@@ -349,6 +375,8 @@ const getUserTemplateById = async (
         parsed.baseTemplateId === "cards_v1" ||
         parsed.baseTemplateId === "cards_v2"
           ? applyCardsV1MappingToTemplate(baseTemplate, parsed.mapping)
+          : baseTemplate.structureType === "estimate_v1" || parsed.baseTemplateId === "estimate_v1"
+          ? applyEstimateV1MappingToTemplate(baseTemplate, parsed.mapping)
           : baseTemplate.structureType === "list_v1" || parsed.baseTemplateId === "list_v1"
           ? applyListV1MappingToTemplate(baseTemplate, parsed.mapping)
           : { ...baseTemplate, mapping: parsed.mapping };
@@ -402,7 +430,7 @@ const applyListV1SummaryFromMapping = (
   template: TemplateDefinition,
 ): TemplateDefinition => {
   const structure = template.structureType ?? "list_v1";
-  if (structure !== "list_v1") return template;
+  if (structure !== "list_v1" && structure !== "estimate_v1") return template;
   const mapping = template.mapping as any;
   const rawSummaryMode = mapping?.table?.summaryMode ?? mapping?.table?.summary?.mode;
   if (!rawSummaryMode || rawSummaryMode === "none") return template;
@@ -1611,6 +1639,8 @@ export default {
               baseTemplateId === "cards_v1" ||
               baseTemplateId === "cards_v2"
                 ? applyCardsV1MappingToTemplate(baseTemplate, payload?.mapping)
+                : baseTemplate.structureType === "estimate_v1" || baseTemplateId === "estimate_v1"
+                ? applyEstimateV1MappingToTemplate(baseTemplate, payload?.mapping)
                 : baseTemplate.structureType === "list_v1" || baseTemplateId === "list_v1"
                 ? applyListV1MappingToTemplate(baseTemplate, payload?.mapping)
                 : { ...baseTemplate, mapping: payload?.mapping };
@@ -1976,6 +2006,7 @@ export default {
           if (
             !isUserTemplate &&
             body.templateId !== "list_v1" &&
+            body.templateId !== "estimate_v1" &&
             body.templateId !== "cards_v1" &&
             body.templateId !== "cards_v2" &&
             body.templateId !== "label_standard_v1" &&
