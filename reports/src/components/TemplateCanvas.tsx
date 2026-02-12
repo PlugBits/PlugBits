@@ -190,12 +190,22 @@ const TemplateCanvas = ({
     const slotId = (el as any).slotId as string | undefined;
     return el.type === 'text' && (slotId === 'date_label' || el.id === 'date_label');
   });
+  const companyNameElement = template.elements.find((el): el is TextElement => {
+    const slotId = (el as any).slotId as string | undefined;
+    return el.type === 'text' && slotId === 'company_name';
+  });
+  const isCompanyNameEmpty = (() => {
+    const ds = (companyNameElement as any)?.dataSource as DataSource | undefined;
+    if (ds?.type !== 'static') return false;
+    return String(ds.value ?? '').trim().length === 0;
+  })();
 
   const visibleElements = template.elements.filter((el) => {
     if (isElementHiddenByEasyAdjust(el, template)) return false;
     const slotId = (el as any).slotId as string | undefined;
     if (el.id === 'doc_no_label') return false;
     if (slotId === 'date_label' || el.id === 'date_label') return false;
+    if (isCompanyNameEmpty && slotId && slotId.startsWith('company_')) return false;
     return true;
   });
 

@@ -594,6 +594,7 @@ const TemplateEditorPage = () => {
 
     const docNo = findBySlotOrId('doc_no') as TextElement | undefined;
     const issueDate = findBySlotOrId('issue_date') as TextElement | undefined;
+    const docNoLabelText = presetId === 'invoice_v1' ? '請求番号' : '見積番号';
 
     if (docNo || issueDate) {
       const headerSettings = normalizeEasyAdjustBlockSettings(template, 'header');
@@ -619,7 +620,7 @@ const TemplateEditorPage = () => {
           height: 16,
           fontSize: 9,
           repeatOnEveryPage: true,
-          dataSource: { type: 'static', value: '文書番号' },
+          dataSource: { type: 'static', value: docNoLabelText },
         });
         const labelSource = (docNoLabel as any).dataSource as { type?: string; value?: string } | undefined;
         const labelPatch: Partial<TextElement> = {
@@ -628,7 +629,7 @@ const TemplateEditorPage = () => {
           repeatOnEveryPage: true,
         };
         if (labelSource?.type !== 'static' || !labelSource.value) {
-          labelPatch.dataSource = { type: 'static', value: '文書番号' };
+          labelPatch.dataSource = { type: 'static', value: docNoLabelText };
         }
         updateElement(docNoLabel, labelPatch);
       };

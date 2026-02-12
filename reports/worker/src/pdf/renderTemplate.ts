@@ -743,14 +743,46 @@ export async function renderTemplateToPdf(
     template,
     pageWidth,
   );
+  const isCompanySlot = (element: TemplateElement) => {
+    const slotId = (element as any).slotId as string | undefined;
+    return slotId ? slotId.startsWith('company_') : false;
+  };
+  const resolveTextValue = (element: TemplateElement | undefined) => {
+    if (!element || element.type !== 'text') return '';
+    return resolveDataSource(
+      element.dataSource,
+      renderData,
+      previewMode,
+      warn,
+      { elementId: element.id },
+    );
+  };
+  const companyNameEl = headerCandidates.find(
+    (el) => (el as any).slotId === 'company_name',
+  ) as TextElement | undefined;
+  const companyNameValue = resolveTextValue(companyNameEl);
+  const shouldHideCompanyBlock = !!companyNameEl && !companyNameValue;
+  const docNoEl = headerCandidates.find(
+    (el) => (el as any).slotId === 'doc_no',
+  ) as TextElement | undefined;
+  const docNoValue = resolveTextValue(docNoEl);
+  const shouldHideDocNo = !!docNoEl && !docNoValue;
+  const filteredHeaderCandidates = headerCandidates.filter((element) => {
+    if (shouldHideCompanyBlock && isCompanySlot(element)) return false;
+    const slotId = (element as any).slotId as string | undefined;
+    if (shouldHideDocNo && (slotId === 'doc_no' || element.id === 'doc_no_label')) {
+      return false;
+    }
+    return true;
+  });
 
   // ヘッダー：毎ページ出すもの（デフォルト）
-  const repeatingHeaderElements = headerCandidates.filter(
+  const repeatingHeaderElements = filteredHeaderCandidates.filter(
     (e) => e.repeatOnEveryPage !== false,
   );
 
   // ヘッダー：1ページ目だけ出すもの
-  const firstPageOnlyHeaderElements = headerCandidates.filter(
+  const firstPageOnlyHeaderElements = filteredHeaderCandidates.filter(
     (e) => e.repeatOnEveryPage === false,
   );
 

@@ -50,6 +50,22 @@ const clampYToRegion = (y: number, region: "header" | "body" | "footer") => {
 };
 
 let warnedMissingAmountColumn = false;
+const HEADER_SLOT_IDS = new Set([
+  "doc_title",
+  "to_name",
+  "to_honorific",
+  "date_label",
+  "issue_date",
+  "doc_no",
+  "logo",
+]);
+const FOOTER_SLOT_IDS = new Set([
+  "remarks",
+  "total_label",
+  "subtotal",
+  "tax",
+  "total",
+]);
 
 export const applyListV1MappingToTemplate = (
   template: TemplateDefinition,
@@ -126,9 +142,11 @@ export const applyListV1MappingToTemplate = (
   let slotSyncedElements = elements.map((element) => {
     if (!element.slotId) return element;
     if (element.region === "header") {
+      if (!HEADER_SLOT_IDS.has(element.slotId)) return element;
       return applyFieldRefToElement(element, headerSlots[element.slotId]);
     }
     if (element.region === "footer") {
+      if (!FOOTER_SLOT_IDS.has(element.slotId)) return element;
       return applyFieldRefToElement(element, footerSlots[element.slotId]);
     }
     return element;
@@ -169,6 +187,7 @@ export const applyListV1MappingToTemplate = (
       height?: number;
       fontSize?: number;
       fontWeight?: "normal" | "bold";
+      alignX?: "left" | "center" | "right";
     },
     ref: FieldRef | undefined,
   ) => {
@@ -201,6 +220,7 @@ export const applyListV1MappingToTemplate = (
         height: base.height ?? fallback.height,
         fontSize: base.fontSize ?? fallback.fontSize,
         fontWeight: base.fontWeight ?? fallback.fontWeight,
+        alignX: base.alignX ?? fallback.alignX,
         ...(type === "text" ? { dataSource: mkDataSource() } : {}),
         ...(type === "image" ? { dataSource: mkDataSource() } : {}),
       } as any;
@@ -219,6 +239,7 @@ export const applyListV1MappingToTemplate = (
         height: fallback.height ?? 24,
         fontSize: fallback.fontSize ?? 12,
         fontWeight: fallback.fontWeight ?? "normal",
+        alignX: fallback.alignX,
         dataSource: mkDataSource(),
       } as any);
       return;
@@ -259,22 +280,22 @@ export const applyListV1MappingToTemplate = (
     "doc_title",
     "header",
     "text",
-    { x: 50, y: 765, fontSize: 24, fontWeight: "bold", width: 320, height: 32 },
+    { x: 0, y: 790, fontSize: 24, fontWeight: "bold", width: 240, height: 32, alignX: "center" },
     headerRef["doc_title"],
   );
   ensureSlotElement(
     "to_name",
     "header",
     "text",
-    { x: 50, y: 715, fontSize: 12, fontWeight: "bold", width: 300, height: 24 },
+    { x: 60, y: 720, fontSize: 12, fontWeight: "bold", width: 260, height: 20 },
     headerRef["to_name"],
   );
   if (shouldShowHonorific) {
     const toNameEl = slotSyncedElements.find((e) => (e as any).slotId === "to_name" || e.id === "to_name") as any;
-    const baseX = typeof toNameEl?.x === "number" ? toNameEl.x : 50;
-    const baseY = typeof toNameEl?.y === "number" ? toNameEl.y : 715;
-    const baseWidth = typeof toNameEl?.width === "number" ? toNameEl.width : 300;
-    const baseHeight = typeof toNameEl?.height === "number" ? toNameEl.height : 24;
+    const baseX = typeof toNameEl?.x === "number" ? toNameEl.x : 60;
+    const baseY = typeof toNameEl?.y === "number" ? toNameEl.y : 720;
+    const baseWidth = typeof toNameEl?.width === "number" ? toNameEl.width : 260;
+    const baseHeight = typeof toNameEl?.height === "number" ? toNameEl.height : 20;
     ensureSlotElement(
       "to_honorific",
       "header",
@@ -287,28 +308,28 @@ export const applyListV1MappingToTemplate = (
     "logo",
     "header",
     "image",
-    { x: 450, y: 742, width: 120, height: 60 },
+    { x: 450, y: 780, width: 120, height: 60 },
     headerRef["logo"],
   );
   ensureSlotElement(
     "date_label",
     "header",
     "text",
-    { x: 350, y: 715, fontSize: 12, width: 50, height: 24 },
+    { x: 360, y: 730, fontSize: 10, width: 56, height: 16 },
     headerRef["date_label"],
   );
   ensureSlotElement(
     "issue_date",
     "header",
     "text",
-    { x: 410, y: 715, fontSize: 12, width: 160, height: 24 },
+    { x: 420, y: 730, fontSize: 10, width: 150, height: 16 },
     headerRef["issue_date"],
   );
   ensureSlotElement(
     "doc_no",
     "header",
     "text",
-    { x: 350, y: 742, fontSize: 10, width: 220, height: 20 },
+    { x: 360, y: 750, fontSize: 10, width: 220, height: 18 },
     headerRef["doc_no"],
   );
 

@@ -26,6 +26,7 @@ export const migrateTemplate = (template: TemplateDefinition): TemplateDefinitio
   const MIN_TABLE_GAP = 16;
   const MAX_TABLE_GAP = 40;
   const FOOTER_LEGACY_TOLERANCE = 20;
+  const HEADER_LEGACY_TOLERANCE = 20;
   const FOOTER_TARGETS = {
     subtotal: { x: 360, y: 150, width: 210, height: 20, fontSize: 10 },
     tax: { x: 360, y: 130, width: 210, height: 20, fontSize: 10 },
@@ -39,6 +40,30 @@ export const migrateTemplate = (template: TemplateDefinition): TemplateDefinitio
     total: { x: 360, y: 126 },
   } as const;
   const FOOTER_ORDER = ['subtotal', 'tax', 'total_label', 'total', 'remarks'] as const;
+  const HEADER_TARGETS = {
+    doc_title: {
+      x: 0,
+      y: 790,
+      width: 240,
+      height: 32,
+      fontSize: 24,
+      fontWeight: 'bold',
+      alignX: 'center',
+    },
+    to_name: { x: 60, y: 720, width: 260, height: 20, fontSize: 12, fontWeight: 'bold' },
+    date_label: { x: 360, y: 730, width: 56, height: 16, fontSize: 10 },
+    issue_date: { x: 420, y: 730, width: 150, height: 16, fontSize: 10 },
+    doc_no: { x: 360, y: 750, width: 220, height: 18, fontSize: 10 },
+    logo: { x: 450, y: 780, width: 120, height: 60 },
+  } as const;
+  const HEADER_LEGACY = {
+    doc_title: { x: 60, y: 780, width: 320 },
+    to_name: { x: 60, y: 720, width: 280 },
+    date_label: { x: 350, y: 720 },
+    issue_date: { x: 420, y: 720 },
+    doc_no: { x: 300, y: 752 },
+    logo: { x: 450, y: 752 },
+  } as const;
   const schemaVersion = template.schemaVersion ?? 0;
   const baseTemplateId = template.baseTemplateId ?? template.id;
   const structureTypeRaw = template.structureType as unknown as string | undefined;
@@ -61,10 +86,13 @@ export const migrateTemplate = (template: TemplateDefinition): TemplateDefinitio
     if (candidates.length === 0) return null;
     return Math.min(...candidates.map((el) => el.y as number));
   };
-  const resolveFooterElements = (elements: TemplateElement[]) => {
+  const resolveElementsBySlot = (
+    elements: TemplateElement[],
+    region?: 'header' | 'footer',
+  ) => {
     const bySlot = new Map<string, TemplateElement>();
     for (const el of elements) {
-      if (el.region !== 'footer') continue;
+      if (region && el.region !== region) continue;
       const slotId = (el as any).slotId ?? el.id;
       if (slotId) {
         bySlot.set(String(slotId), el);
@@ -74,8 +102,10 @@ export const migrateTemplate = (template: TemplateDefinition): TemplateDefinitio
   };
   const isNear = (value: unknown, target: number) =>
     typeof value === 'number' && Math.abs(value - target) <= FOOTER_LEGACY_TOLERANCE;
+  const isNearHeader = (value: unknown, target: number) =>
+    typeof value === 'number' && Math.abs(value - target) <= HEADER_LEGACY_TOLERANCE;
   const isLegacyFooterLayout = (elements: TemplateElement[]) => {
-    const footer = resolveFooterElements(elements);
+    const footer = resolveElementsBySlot(elements, 'footer');
     const remarks = footer.get('remarks');
     const totalLabel = footer.get('total_label');
     const total = footer.get('total');
@@ -110,6 +140,35 @@ export const migrateTemplate = (template: TemplateDefinition): TemplateDefinitio
     nextStructureType === 'list_v1' &&
     Array.isArray(template.elements) &&
     isLegacyFooterLayout(template.elements);
+  const needsListV1HeaderAdjust =
+    nextStructureType === 'list_v1' &&
+    Array.isArray(template.elements) &&
+    (() => {
+      const header = resolveElementsBySlot(template.elements, 'header');
+      const docTitle = header.get('doc_title');
+      const toName = header.get('to_name');
+      const dateLabel = header.get('date_label');
+      const issueDate = header.get('issue_date');
+      const docNo = header.get('doc_no');
+      const logo = header.get('logo');
+      if (!docTitle || !toName || !dateLabel || !issueDate || !docNo || !logo) return false;
+      return (
+        isNearHeader((docTitle as any).x, HEADER_LEGACY.doc_title.x) &&
+        isNearHeader((docTitle as any).y, HEADER_LEGACY.doc_title.y) &&
+        isNearHeader((docTitle as any).width, HEADER_LEGACY.doc_title.width) &&
+        isNearHeader((toName as any).x, HEADER_LEGACY.to_name.x) &&
+        isNearHeader((toName as any).y, HEADER_LEGACY.to_name.y) &&
+        isNearHeader((toName as any).width, HEADER_LEGACY.to_name.width) &&
+        isNearHeader((dateLabel as any).x, HEADER_LEGACY.date_label.x) &&
+        isNearHeader((dateLabel as any).y, HEADER_LEGACY.date_label.y) &&
+        isNearHeader((issueDate as any).x, HEADER_LEGACY.issue_date.x) &&
+        isNearHeader((issueDate as any).y, HEADER_LEGACY.issue_date.y) &&
+        isNearHeader((docNo as any).x, HEADER_LEGACY.doc_no.x) &&
+        isNearHeader((docNo as any).y, HEADER_LEGACY.doc_no.y) &&
+        isNearHeader((logo as any).x, HEADER_LEGACY.logo.x) &&
+        isNearHeader((logo as any).y, HEADER_LEGACY.logo.y)
+      );
+    })();
   const hasCardList = Array.isArray(template.elements)
     ? template.elements.some((el) => el.type === 'cardList')
     : false;
@@ -123,7 +182,8 @@ export const migrateTemplate = (template: TemplateDefinition): TemplateDefinitio
     !needsElementsNormalization &&
     !needsMappingNormalization &&
     !needsListV1TableYAdjust &&
-    !needsListV1FooterAdjust
+    !needsListV1FooterAdjust &&
+    !needsListV1HeaderAdjust
   ) {
     return template;
   }
@@ -193,7 +253,7 @@ export const migrateTemplate = (template: TemplateDefinition): TemplateDefinitio
   }
 
   if (nextStructureType === 'list_v1' && isLegacyFooterLayout(nextElements)) {
-    const footer = resolveFooterElements(nextElements);
+    const footer = resolveElementsBySlot(nextElements, 'footer');
     const targetSlots = new Set<string>(FOOTER_ORDER);
     const adjustedFooter: TemplateElement[] = [];
     for (const slotId of FOOTER_ORDER) {
@@ -225,6 +285,90 @@ export const migrateTemplate = (template: TemplateDefinition): TemplateDefinitio
       return !targetSlots.has(String(slotId));
     });
     nextElements = [...nonFooter, ...otherFooter, ...adjustedFooter];
+  }
+
+  if (nextStructureType === 'list_v1' && needsListV1HeaderAdjust) {
+    const header = resolveElementsBySlot(nextElements, 'header');
+    const applyHeaderPatch = (slotId: keyof typeof HEADER_TARGETS) => {
+      const element = header.get(slotId);
+      if (!element) return;
+      const patch = HEADER_TARGETS[slotId];
+      const next = { ...(element as any), ...patch };
+      if (slotId === 'doc_title') {
+        const ds = (next as any).dataSource;
+        if (ds?.type === 'static' && (!ds.value || ds.value === '一覧表')) {
+          next.dataSource = { ...ds, value: '御見積書' };
+        }
+      }
+      const idx = nextElements.findIndex((el) => el.id === element.id);
+      if (idx >= 0) nextElements[idx] = next as TemplateElement;
+    };
+
+    applyHeaderPatch('doc_title');
+    applyHeaderPatch('to_name');
+    applyHeaderPatch('date_label');
+    applyHeaderPatch('issue_date');
+    applyHeaderPatch('doc_no');
+    applyHeaderPatch('logo');
+
+    const companyIds = new Set(['company_name', 'company_address', 'company_tel', 'company_email']);
+    const hasCompany = nextElements.some((el) => {
+      const slotId = (el as any).slotId ?? el.id;
+      return companyIds.has(String(slotId));
+    });
+    if (!hasCompany) {
+      nextElements.push(
+        {
+          id: 'company_name',
+          slotId: 'company_name',
+          type: 'text',
+          region: 'header',
+          x: 360,
+          y: 716,
+          width: 200,
+          height: 14,
+          fontSize: 10,
+          fontWeight: 'bold',
+          dataSource: { type: 'static', value: '' },
+        },
+        {
+          id: 'company_address',
+          slotId: 'company_address',
+          type: 'text',
+          region: 'header',
+          x: 360,
+          y: 704,
+          width: 200,
+          height: 12,
+          fontSize: 9,
+          dataSource: { type: 'static', value: '' },
+        },
+        {
+          id: 'company_tel',
+          slotId: 'company_tel',
+          type: 'text',
+          region: 'header',
+          x: 360,
+          y: 692,
+          width: 200,
+          height: 12,
+          fontSize: 9,
+          dataSource: { type: 'static', value: '' },
+        },
+        {
+          id: 'company_email',
+          slotId: 'company_email',
+          type: 'text',
+          region: 'header',
+          x: 360,
+          y: 680,
+          width: 200,
+          height: 12,
+          fontSize: 9,
+          dataSource: { type: 'static', value: '' },
+        },
+      );
+    }
   }
 
   if (nextStructureType === 'cards_v1') {
