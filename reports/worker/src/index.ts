@@ -111,6 +111,109 @@ const requireEditorToken = async (
   return verified;
 };
 
+const requireUserTemplateToken = async (
+  request: Request,
+  env: Env,
+): Promise<{ tenantId: string; record: { kintoneBaseUrl: string; appId: string; kintoneApiToken?: string } } | { error: Response }> => {
+  const authHeader = request.headers.get("Authorization") ?? "";
+  const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : "";
+  if (!token) {
+    console.log("[auth] missing bearer");
+    return {
+      error: new Response("Missing Authorization", {
+        status: 401,
+        headers: CORS_HEADERS,
+      }),
+    };
+  }
+
+  const verified = await verifyEditorToken(env.USER_TEMPLATES_KV, token);
+  if (verified) return verified;
+
+  if (!env.SESSIONS_KV) {
+    return {
+      error: new Response("SESSIONS_KV is required", {
+        status: 500,
+        headers: CORS_HEADERS,
+      }),
+    };
+  }
+
+  const key = `editor_session:${token}`;
+  const raw = await env.SESSIONS_KV.get(key);
+  if (!raw) {
+    console.log("[auth] invalid session");
+    return {
+      error: new Response("Invalid session token", {
+        status: 401,
+        headers: CORS_HEADERS,
+      }),
+    };
+  }
+
+  let session: { kintoneBaseUrl?: string; appId?: string; expiresAt?: number; kintoneApiToken?: string };
+  try {
+    session = JSON.parse(raw) as {
+      kintoneBaseUrl?: string;
+      appId?: string;
+      expiresAt?: number;
+      kintoneApiToken?: string;
+    };
+  } catch {
+    console.log("[auth] invalid session");
+    return {
+      error: new Response("Invalid session payload", {
+        status: 401,
+        headers: CORS_HEADERS,
+      }),
+    };
+  }
+
+  const kintoneBaseUrl = session.kintoneBaseUrl ?? "";
+  const appId = session.appId ? String(session.appId) : "";
+  if (!kintoneBaseUrl || !appId) {
+    console.log("[auth] invalid session");
+    return {
+      error: new Response("Invalid session payload", {
+        status: 401,
+        headers: CORS_HEADERS,
+      }),
+    };
+  }
+
+  if (!session?.expiresAt || Date.now() > session.expiresAt) {
+    console.log("[auth] expired session");
+    return {
+      error: new Response("Session expired", {
+        status: 401,
+        headers: CORS_HEADERS,
+      }),
+    };
+  }
+
+  let tenantId = "";
+  try {
+    tenantId = buildTenantKey(kintoneBaseUrl, appId);
+  } catch {
+    console.log("[auth] invalid session");
+    return {
+      error: new Response("Invalid session payload", {
+        status: 401,
+        headers: CORS_HEADERS,
+      }),
+    };
+  }
+
+  return {
+    tenantId,
+    record: {
+      kintoneBaseUrl,
+      appId,
+      kintoneApiToken: session.kintoneApiToken,
+    },
+  };
+};
+
 const loadEditorSession = async (
   env: Env,
   token: string,
@@ -1531,7 +1634,7 @@ export default {
           const authHeader = request.headers.get("Authorization") ?? "";
           const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : "";
           if (token) {
-            const auth = await requireEditorToken(request, env);
+            const auth = await requireUserTemplateToken(request, env);
             if ("error" in auth) return auth.error;
             if (url.searchParams.get("requireActive") === "1") {
               try {
@@ -1587,7 +1690,7 @@ export default {
           });
         }
 
-        const auth = await requireEditorToken(request, env);
+        const auth = await requireUserTemplateToken(request, env);
         if ("error" in auth) return auth.error;
         const key = buildUserTemplateKey(auth.tenantId, templateId);
 
