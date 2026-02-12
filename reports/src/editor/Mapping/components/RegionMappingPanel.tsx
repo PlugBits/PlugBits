@@ -1,6 +1,7 @@
 // src/editor/Mapping/components/RegionMappingPanel.tsx
 import React, { useEffect, useMemo, useState } from 'react';
 import type { TemplateDefinition } from '@shared/template';
+import { isListV1 as isListV1Template } from '@shared/templateGuards';
 import type { RegionDef, ValidationError } from '../adapters/StructureAdapter';
 import FieldPicker, { type FieldRef } from './FieldPicker';
 import ColumnEditor, { type Column } from './ColumnEditor';
@@ -65,7 +66,8 @@ const RegionMappingPanel: React.FC<Props> = ({
     [schemaOverride, template.sampleData],
   );
   const structureType = template.structureType ?? 'list_v1';
-  const isListLike = structureType === 'list_v1' || structureType === 'estimate_v1';
+  const isListV1 = isListV1Template(template);
+  const isListLike = isListV1 || structureType === 'estimate_v1';
   const [openSlotId, setOpenSlotId] = useState<string | null>(null);
   const [openTableRow, setOpenTableRow] = useState<'source' | 'columns' | 'summary' | null>(null);
   const [openCardFieldId, setOpenCardFieldId] = useState<string | null>(null);
