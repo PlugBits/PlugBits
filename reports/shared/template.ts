@@ -83,6 +83,7 @@ export interface BaseElement {
   borderWidth?: number;
   borderColorGray?: number;
   fillGray?: number;
+  cornerRadius?: number;
   hidden?: boolean;
   region?: 'header' | 'body' | 'footer';
   repeatOnEveryPage?: boolean;

@@ -107,6 +107,22 @@ const TemplateEditorPage = () => {
     }
     return adapter;
   }, [template?.id, structureType, isLabelTemplate]);
+  useEffect(() => {
+    if (!import.meta.env.DEV || !template) return;
+    const elements = template.elements ?? [];
+    console.log('[templateEditor] template elements snapshot', {
+      templateId: template.id,
+      structureType: template.structureType,
+      elementsCount: elements.length,
+      elements: elements.map((el) => ({
+        id: el.id,
+        slotId: (el as any).slotId,
+        type: el.type,
+        region: el.region,
+        hidden: (el as any).hidden,
+      })),
+    });
+  }, [template?.id, template?.structureType]);
   const isUnsupportedStructure =
     !!template && !isLabelTemplate && !isCardTemplate && !adapterForTemplate;
   const presetId = useMemo(

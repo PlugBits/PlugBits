@@ -528,8 +528,9 @@ const TemplateCanvas = ({
                         gridTemplateColumns: docMetaLabelText ? `${docMetaLabelWidth}px 1fr` : '1fr',
                         columnGap: 8,
                         alignItems: 'center',
+                        textAlign,
                       }
-                    : undefined
+                    : { textAlign }
                 }
               >
                 {isDocMetaValue ? (
