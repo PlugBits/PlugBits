@@ -29,6 +29,27 @@ type WarnFn = (
 ) => void;
 type PreviewMode = 'record' | 'fieldCode';
 const MAX_TEXT_LENGTH = 200;
+type DrawTextOptions = Parameters<PDFPage['drawText']>[1];
+
+const hasNonAscii = (text: string) => /[^\u0000-\u007F]/.test(text);
+const pickFont = (text: string, latinFont: PDFFont, jpFont: PDFFont) =>
+  hasNonAscii(text) ? jpFont : latinFont;
+
+const safeDrawText = (
+  page: PDFPage,
+  text: string,
+  options: DrawTextOptions,
+  warn?: WarnFn,
+  context?: Record<string, unknown>,
+) => {
+  try {
+    page.drawText(text, options);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    warn?.('debug', 'drawText failed', { text, ...context, error: message });
+    throw error;
+  }
+};
 
 const truncateText = (text: string, maxLength = MAX_TEXT_LENGTH) => {
   if (text.length <= maxLength) return text;
@@ -177,23 +198,25 @@ const drawMultilineText = (
   fontWeight: 'normal' | 'bold' = 'normal',
   align: 'left' | 'center' | 'right' = 'left',
   maxWidth?: number,
+  warn?: WarnFn,
+  context?: Record<string, unknown>,
 ) => {
   const drawLine = (text: string, xPos: number, yPos: number) => {
-    page.drawText(text, {
+    safeDrawText(page, text, {
       x: xPos,
       y: yPos,
       size: fontSize,
       font,
       color,
-    });
+    }, warn, context);
     if (fontWeight === 'bold') {
-      page.drawText(text, {
+      safeDrawText(page, text, {
         x: xPos + 0.4,
         y: yPos,
         size: fontSize,
         font,
         color,
-      });
+      }, warn, context);
     }
   };
   const limit = Math.min(lines.length, Math.max(0, maxLines));
@@ -246,6 +269,8 @@ const drawCellText = (
   minFontSize = MIN_FONT_SIZE,
   valign: 'top' | 'middle' = 'middle',
   color: ReturnType<typeof rgb> = rgb(0, 0, 0),
+  warn?: WarnFn,
+  context?: Record<string, unknown>,
 ) => {
   const availableW = Math.max(0, cellW - CELL_PADDING_X * 2);
   const fontSize = calcShrinkFontSize(
@@ -269,7 +294,7 @@ const drawCellText = (
       ? cellY + cellH - fontSize - 2
       : cellY + cellH / 2 - fontSize / 2;
 
-  page.drawText(text, { x, y, size: fontSize, font, color });
+  safeDrawText(page, text, { x, y, size: fontSize, font, color }, warn, context);
 };
 
 const drawAlignedText = (
@@ -282,6 +307,8 @@ const drawAlignedText = (
   cellW: number,
   cellH: number,
   align: 'left' | 'center' | 'right',
+  warn?: WarnFn,
+  context?: Record<string, unknown>,
 ) => {
   const textW = font.widthOfTextAtSize(text, fontSize);
   const x =
@@ -292,7 +319,13 @@ const drawAlignedText = (
       : cellX + CELL_PADDING_X;
   const y = cellY + cellH / 2 - fontSize / 2;
 
-  page.drawText(text, { x, y, size: fontSize, font, color: rgb(0, 0, 0) });
+  safeDrawText(
+    page,
+    text,
+    { x, y, size: fontSize, font, color: rgb(0, 0, 0) },
+    warn,
+    context,
+  );
 };
 
 type NormalizedColumnSpec = {
@@ -1069,20 +1102,18 @@ export async function renderTemplateToPdf(
 
     // --- ページ番号 (1 / N) を中央下に描画 ---
     const footerText = `${i + 1} / ${totalPages}`;
-    const textWidth = latinFont.widthOfTextAtSize(
-      footerText,
-      footerFontSize,
-    );
+    const footerFont = pickFont(footerText, latinFont, jpFont);
+    const textWidth = footerFont.widthOfTextAtSize(footerText, footerFontSize);
     const x = (pageWidth - textWidth) / 2;
     const y = 20; // 下から20pt
 
-    p.drawText(footerText, {
+    safeDrawText(p, footerText, {
       x,
       y,
       size: footerFontSize,
-      font: latinFont,
+      font: footerFont,
       color: rgb(0.5, 0.5, 0.5),
-    });
+    }, warn, { elementId: 'page_number' });
   }
 
 
@@ -1100,11 +1131,6 @@ export async function renderTemplateToPdf(
 // - fixture=longtext to verify table cell wrap within fixed rowHeight
 // - rowHeight=40 query to verify fixed row height spacing changes
 
-
-function pickFontForText(text: string, jpFont: PDFFont, latinFont: PDFFont): PDFFont {
-  // ASCIIのみは Latin、それ以外は日本語フォント
-  return /^[\x00-\x7F]*$/.test(text) ? latinFont : jpFont;
-}
 
 const ALIGN_PADDING = 12;
 
@@ -1347,10 +1373,12 @@ function drawLabel(
   page: PDFPage,
   element: LabelElement,
   jpFont: PDFFont,
+  latinFont: PDFFont,
   pageWidth: number,
   pageHeight: number,
   fontScale: number,
   pagePadding: number,
+  warn?: WarnFn,
 ) {
   const fontSize = (element.fontSize ?? 12) * fontScale;
   const text = element.text ?? '';
@@ -1360,11 +1388,12 @@ function drawLabel(
   const fillGray = (element as any).fillGray as number | undefined;
   const borderWidth = (element as any).borderWidth as number | undefined;
   const borderColorGray = (element as any).borderColorGray as number | undefined;
+  const fontToUse = pickFont(text, latinFont, jpFont);
 
   let yStart = toPdfYFromBottom(element.y, pageHeight);
   yStart = clampPdfY(yStart, pageHeight - fontSize - 2);
 
-  const lines = wrapTextToLines(text, jpFont, fontSize, maxWidth);
+  const lines = wrapTextToLines(text, fontToUse, fontSize, maxWidth);
   const x = resolveAlignedX(element, pageWidth, maxWidth, pagePadding);
   const yBottom = clampPdfY(toPdfYFromBottom(element.y, pageHeight), pageHeight);
   if (typeof fillGray === 'number') {
@@ -1394,7 +1423,7 @@ function drawLabel(
     lines,
     x,
     yStart,
-    jpFont,
+    fontToUse,
     fontSize,
     rgb(0, 0, 0),
     maxLines,
@@ -1402,6 +1431,8 @@ function drawLabel(
     element.fontWeight === 'bold' ? 'bold' : 'normal',
     align ?? 'left',
     maxWidth,
+    warn,
+    { elementId: element.id },
   );
 }
 
@@ -1442,7 +1473,7 @@ function drawText(
 
   let yStart = toPdfYFromBottom(element.y, pageHeight);
   yStart = clampPdfY(yStart, pageHeight - fontSize - 2);
-  const fontToUse = pickFontForText(text, jpFont, latinFont);
+  const fontToUse = pickFont(text, latinFont, jpFont);
   const slotId = (element as any).slotId as string | undefined;
   const isLabelText =
     element.id.endsWith('_label') ||
@@ -1491,21 +1522,21 @@ function drawText(
           xPos = x + Math.max(0, maxWidth - textWidth);
         }
       }
-      page.drawText(line, {
+      safeDrawText(page, line, {
         x: xPos,
         y: yStart,
         size: fontSize,
         font: fontToUse,
         color: textColor,
-      });
+      }, warn, { elementId: element.id });
       if (element.fontWeight === 'bold') {
-        page.drawText(line, {
+        safeDrawText(page, line, {
           x: xPos + 0.4,
           y: yStart,
           size: fontSize,
           font: fontToUse,
           color: textColor,
-        });
+        }, warn, { elementId: element.id });
       }
     }
     return;
@@ -1525,6 +1556,8 @@ function drawText(
     element.fontWeight === 'bold' ? 'bold' : 'normal',
     align ?? 'left',
     maxWidth,
+    warn,
+    { elementId: element.id },
   );
 }
 
@@ -1554,10 +1587,12 @@ function drawHeaderElements(
           page,
           element as LabelElement,
           jpFont,
+          latinFont,
           pageWidth,
           pageHeight,
           adjust.fontScale,
           adjust.pagePadding,
+          warn,
         );
         break;
 
@@ -1581,6 +1616,8 @@ function drawHeaderElements(
         drawImageElement(
           page,
           element as ImageElement,
+          jpFont,
+          latinFont,
           pageWidth,
           pageHeight,
           data,
@@ -1631,10 +1668,12 @@ function drawFooterElements(
           page,
           element as LabelElement,
           jpFont,
+          latinFont,
           pageWidth,
           pageHeight,
           adjust.fontScale,
           adjust.pagePadding,
+          warn,
         );
         break;
 
@@ -1658,6 +1697,8 @@ function drawFooterElements(
         drawImageElement(
           page,
           element as ImageElement,
+          jpFont,
+          latinFont,
           pageWidth,
           pageHeight,
           data,
@@ -1858,6 +1899,7 @@ const drawQrPlaceholder = (
   y: number,
   size: number,
   font: PDFFont,
+  warn?: WarnFn,
 ) => {
   page.drawRectangle({
     x,
@@ -1867,13 +1909,19 @@ const drawQrPlaceholder = (
     borderColor: rgb(0.6, 0.6, 0.6),
     borderWidth: 0.5,
   });
-  page.drawText('QR', {
-    x: x + 4,
-    y: y + size / 2 - 4,
-    size: 8,
-    font,
-    color: rgb(0.5, 0.5, 0.5),
-  });
+  safeDrawText(
+    page,
+    'QR',
+    {
+      x: x + 4,
+      y: y + size / 2 - 4,
+      size: 8,
+      font,
+      color: rgb(0.5, 0.5, 0.5),
+    },
+    warn,
+    { elementId: 'qr_placeholder' },
+  );
 };
 
 const drawQrCode = (
@@ -1886,7 +1934,7 @@ const drawQrCode = (
   fallbackFont: PDFFont,
 ) => {
   if (!value) {
-    drawQrPlaceholder(page, x, y, size, fallbackFont);
+    drawQrPlaceholder(page, x, y, size, fallbackFont, warn);
     return;
   }
 
@@ -2081,8 +2129,8 @@ const drawLabelSheet = (
     const qrY = y + safeMarginPt;
     const textX = x + safeMarginPt;
     const textWidth = Math.max(0, w - safeMarginPt * 2 - qrSizePt - internalGapPt);
-    const titleFont = pickFontForText(titleValue, jpFont, latinFont);
-    const subFont = pickFontForText(codeValue || qtyValue || extraValue || '', jpFont, latinFont);
+    const titleFont = pickFont(titleValue, latinFont, jpFont);
+    const subFont = pickFont(codeValue || qtyValue || extraValue || '', latinFont, jpFont);
 
     const headerTop = y + h - safeMarginPt;
     const headerBottom = Math.max(footerTop, y + safeMarginPt);
@@ -2110,6 +2158,11 @@ const drawLabelSheet = (
           rgb(0, 0, 0),
           fit.lines.length,
           titleLineHeight,
+          'normal',
+          'left',
+          undefined,
+          warn,
+          { elementId: 'label_sheet_title' },
         );
       }
     }
@@ -2138,6 +2191,11 @@ const drawLabelSheet = (
           rgb(0.2, 0.2, 0.2),
           subValues.length,
           subLineHeight,
+          'normal',
+          'left',
+          undefined,
+          warn,
+          { elementId: 'label_sheet_footer' },
         );
       }
     }
@@ -2270,20 +2328,33 @@ function drawTable(
       });
 
       // 列タイトル
-      targetPage.drawText(col.title, {
-        x: currentX + 4,
-        y: headerY + headerHeight / 2 - baseFontSize / 2,
-        size: baseFontSize,
-        font: jpFont,
-        color: rgb(0, 0, 0),
-      });
-      targetPage.drawText(col.title, {
-        x: currentX + 4 + 0.4,
-        y: headerY + headerHeight / 2 - baseFontSize / 2,
-        size: baseFontSize,
-        font: jpFont,
-        color: rgb(0, 0, 0),
-      });
+      const headerFont = pickFont(col.title, latinFont, jpFont);
+      safeDrawText(
+        targetPage,
+        col.title,
+        {
+          x: currentX + 4,
+          y: headerY + headerHeight / 2 - baseFontSize / 2,
+          size: baseFontSize,
+          font: headerFont,
+          color: rgb(0, 0, 0),
+        },
+        warn,
+        { tableId: element.id, columnId: col.id },
+      );
+      safeDrawText(
+        targetPage,
+        col.title,
+        {
+          x: currentX + 4 + 0.4,
+          y: headerY + headerHeight / 2 - baseFontSize / 2,
+          size: baseFontSize,
+          font: headerFont,
+          color: rgb(0, 0, 0),
+        },
+        warn,
+        { tableId: element.id, columnId: col.id },
+      );
 
       currentX += colWidth;
     }
@@ -2388,7 +2459,7 @@ function drawTable(
           : col.id === valueColumnId
           ? sumText
           : '';
-      const fontForCell = pickFontForText(cellText, jpFont, latinFont);
+      const fontForCell = pickFont(cellText, latinFont, jpFont);
 
       if (element.showGrid) {
         const borderGray = summaryStyle?.borderColorGray ?? gridBorderGray;
@@ -2422,6 +2493,8 @@ function drawTable(
             colWidth,
             summaryRowHeight,
             align,
+            warn,
+            { tableId: element.id, columnId: col.id },
           );
         } else if (spec.overflow === 'shrink') {
           drawCellText(
@@ -2435,6 +2508,10 @@ function drawTable(
             summaryRowHeight,
             align,
             spec.minFontSize,
+            'middle',
+            rgb(0, 0, 0),
+            warn,
+            { tableId: element.id, columnId: col.id },
           );
         } else if (spec.overflow === 'ellipsis') {
           const clipped = ellipsisTextToWidth(cellText, fontForCell, baseFontSize, maxCellWidth);
@@ -2448,6 +2525,8 @@ function drawTable(
             colWidth,
             summaryRowHeight,
             align,
+            warn,
+            { tableId: element.id, columnId: col.id },
           );
         } else if (spec.overflow === 'wrap') {
           const lines = wrapTextToLines(cellText, fontForCell, baseFontSize, maxCellWidth);
@@ -2462,13 +2541,19 @@ function drawTable(
                 : align === 'center'
                 ? currentX + (colWidth - lineWidth) / 2
                 : currentX + paddingLeft;
-            currentPage.drawText(line, {
-              x,
-              y: yStart - idx * lineHeight,
-              size: baseFontSize,
-              font: fontForCell,
-              color: rgb(0, 0, 0),
-            });
+            safeDrawText(
+              currentPage,
+              line,
+              {
+                x,
+                y: yStart - idx * lineHeight,
+                size: baseFontSize,
+                font: fontForCell,
+                color: rgb(0, 0, 0),
+              },
+              warn,
+              { tableId: element.id, columnId: col.id },
+            );
           }
         } else {
           drawAlignedText(
@@ -2481,6 +2566,8 @@ function drawTable(
             colWidth,
             summaryRowHeight,
             align,
+            warn,
+            { tableId: element.id, columnId: col.id },
           );
         }
       }
@@ -2632,7 +2719,7 @@ function drawTable(
         columnId: col.id,
         fieldCode: col.fieldCode,
       });
-      const fontForCell = pickFontForText(cellTextRaw, jpFont, latinFont);
+      const fontForCell = pickFont(cellTextRaw, latinFont, jpFont);
 
       if (!col.fieldCode) {
         const key = col.id ?? '(unknown)';
@@ -2796,13 +2883,19 @@ function drawTable(
               : align === 'center'
               ? currentX + (colWidth - lineWidth) / 2
               : currentX + paddingLeft;
-          currentPage.drawText(line, {
-            x,
-            y: yStart - idx * lineHeight,
-            size: baseFontSize,
-            font: fontForCell,
-            color: rgb(0, 0, 0),
-          });
+          safeDrawText(
+            currentPage,
+            line,
+            {
+              x,
+              y: yStart - idx * lineHeight,
+              size: baseFontSize,
+              font: fontForCell,
+              color: rgb(0, 0, 0),
+            },
+            warn,
+            { tableId: element.id, columnId: col.id },
+          );
         }
       } else if (spec.overflow === 'ellipsis') {
         const clipped = ellipsisTextToWidth(cellText, fontForCell, baseFontSize, maxCellWidth);
@@ -2816,6 +2909,8 @@ function drawTable(
           colWidth,
           effectiveRowHeight,
           align,
+          warn,
+          { tableId: element.id, columnId: col.id },
         );
       } else if (spec.overflow === 'clip') {
         drawAlignedText(
@@ -2828,6 +2923,8 @@ function drawTable(
           colWidth,
           effectiveRowHeight,
           align,
+          warn,
+          { tableId: element.id, columnId: col.id },
         );
       } else {
         drawCellText(
@@ -2841,6 +2938,10 @@ function drawTable(
           effectiveRowHeight,
           align,
           spec.minFontSize,
+          'middle',
+          rgb(0, 0, 0),
+          warn,
+          { tableId: element.id, columnId: col.id },
         );
       }
 
@@ -3141,7 +3242,7 @@ function drawCardList(
     });
     if (!text) return;
 
-    const font = pickFontForText(text, jpFont, latinFont);
+    const font = pickFont(text, latinFont, jpFont);
     const textColor = isPlaceholderRow
       ? rgb(0.35, 0.35, 0.35)
       : fieldId === 'fieldA'
@@ -3162,6 +3263,11 @@ function drawCardList(
         textColor,
         maxLines,
         lineHeight,
+        'normal',
+        'left',
+        maxWidth,
+        warn,
+        { cardId: element.id, fieldId, fieldCode },
       );
       return;
     }
@@ -3180,6 +3286,8 @@ function drawCardList(
       spec.minFontSize,
       'top',
       textColor,
+      warn,
+      { cardId: element.id, fieldId, fieldCode },
     );
   };
 
@@ -3287,7 +3395,7 @@ function drawCardList(
         if (text) {
           const isPlaceholderRow = (row as any).__placeholder === true;
           const textColor = isPlaceholderRow ? rgb(0.35, 0.35, 0.35) : rgb(0, 0, 0);
-          const font = pickFontForText(text, jpFont, latinFont);
+          const font = pickFont(text, latinFont, jpFont);
           if (isCompactV2) {
             const fontSize = 14;
             const lineHeight = fontSize * 1.28;
@@ -3376,7 +3484,7 @@ function drawCardList(
         if (titleText) {
           const titleFontSize = 13;
           const titleLineHeight = titleFontSize * 1.25;
-          const titleFont = pickFontForText(titleText, jpFont, latinFont);
+          const titleFont = pickFont(titleText, latinFont, jpFont);
           const lines = wrapTextToLines(titleText, titleFont, titleFontSize, innerWidth);
           drawMultilineText(
             currentPage,
@@ -3419,7 +3527,7 @@ function drawCardList(
               fieldCode,
             });
             if (text) {
-              const font = pickFontForText(text, jpFont, latinFont);
+              const font = pickFont(text, latinFont, jpFont);
               drawCellText(
                 currentPage,
                 text,
@@ -3453,7 +3561,7 @@ function drawCardList(
             fieldCode,
           });
           if (!text) return;
-          const font = pickFontForText(text, jpFont, latinFont);
+          const font = pickFont(text, latinFont, jpFont);
           const align = resolveColumnAlign(spec, text);
           drawCellText(
             currentPage,
@@ -3580,6 +3688,8 @@ function drawCardList(
 function drawImageElement(
   page: PDFPage,
   element: ImageElement,
+  jpFont: PDFFont,
+  latinFont: PDFFont,
   pageWidth: number,
   pageHeight: number,
   data: TemplateDataRecord | undefined,
@@ -3591,7 +3701,17 @@ function drawImageElement(
   if (previewMode === 'fieldCode') {
     const fieldCode =
       element.dataSource?.type === 'kintone' ? element.dataSource.fieldCode : '';
-    drawImagePlaceholderWithFieldCode(page, element, pageWidth, pageHeight, pagePadding, fieldCode);
+    drawImagePlaceholderWithFieldCode(
+      page,
+      element,
+      jpFont,
+      latinFont,
+      pageWidth,
+      pageHeight,
+      pagePadding,
+      fieldCode,
+      warn,
+    );
     return;
   }
 
@@ -3603,13 +3723,13 @@ function drawImageElement(
     { elementId: element.id },
   );
   if (!url || !isHttpUrl(url)) {
-    drawImagePlaceholder(page, element, pageWidth, pageHeight, pagePadding);
+    drawImagePlaceholder(page, element, jpFont, latinFont, pageWidth, pageHeight, pagePadding, warn);
     return;
   }
 
   const embedded = imageMap.get(url);
   if (!embedded) {
-    drawImagePlaceholder(page, element, pageWidth, pageHeight, pagePadding);
+    drawImagePlaceholder(page, element, jpFont, latinFont, pageWidth, pageHeight, pagePadding, warn);
     return;
   }
 
@@ -3648,9 +3768,12 @@ function drawImageElement(
 function drawImagePlaceholder(
   page: PDFPage,
   element: ImageElement,
+  jpFont: PDFFont,
+  latinFont: PDFFont,
   pageWidth: number,
   pageHeight: number,
   pagePadding: number,
+  warn?: WarnFn,
 ) {
   const width = element.width ?? 120;
   const height = element.height ?? 80;
@@ -3669,21 +3792,33 @@ function drawImagePlaceholder(
     borderWidth: 1,
   });
 
-  page.drawText('IMAGE', {
-    x: drawX + 8,
-    y: pdfY + height / 2 - 6,
-    size: 10,
-    color: rgb(0.4, 0.4, 0.4),
-  });
+  const labelText = 'IMAGE';
+  const labelFont = pickFont(labelText, latinFont, jpFont);
+  safeDrawText(
+    page,
+    labelText,
+    {
+      x: drawX + 8,
+      y: pdfY + height / 2 - 6,
+      size: 10,
+      font: labelFont,
+      color: rgb(0.4, 0.4, 0.4),
+    },
+    warn,
+    { elementId: element.id },
+  );
 }
 
 function drawImagePlaceholderWithFieldCode(
   page: PDFPage,
   element: ImageElement,
+  jpFont: PDFFont,
+  latinFont: PDFFont,
   pageWidth: number,
   pageHeight: number,
   pagePadding: number,
   fieldCode?: string,
+  warn?: WarnFn,
 ) {
   const width = element.width ?? 120;
   const height = element.height ?? 80;
@@ -3706,20 +3841,37 @@ function drawImagePlaceholderWithFieldCode(
   const centerY = pdfY + height / 2;
   const lineHeight = 10;
 
-  page.drawText('IMAGE', {
-    x: centerX - 18,
-    y: centerY + lineHeight / 2 - 4,
-    size: 9,
-    color: rgb(0.4, 0.4, 0.4),
-  });
+  const labelText = 'IMAGE';
+  const labelFont = pickFont(labelText, latinFont, jpFont);
+  safeDrawText(
+    page,
+    labelText,
+    {
+      x: centerX - 18,
+      y: centerY + lineHeight / 2 - 4,
+      size: 9,
+      font: labelFont,
+      color: rgb(0.4, 0.4, 0.4),
+    },
+    warn,
+    { elementId: element.id },
+  );
 
   if (fieldCode) {
-    page.drawText(fieldCode, {
-      x: centerX - fieldCode.length * 2.5,
-      y: centerY - lineHeight / 2 - 6,
-      size: 8,
-      color: rgb(0.4, 0.4, 0.4),
-    });
+    const codeFont = pickFont(fieldCode, latinFont, jpFont);
+    safeDrawText(
+      page,
+      fieldCode,
+      {
+        x: centerX - fieldCode.length * 2.5,
+        y: centerY - lineHeight / 2 - 6,
+        size: 8,
+        font: codeFont,
+        color: rgb(0.4, 0.4, 0.4),
+      },
+      warn,
+      { elementId: element.id, fieldCode },
+    );
   }
 }
 
@@ -3800,7 +3952,7 @@ export const renderLabelCalibrationPdf = async (
     thickness: 0.6,
     color: rgb(0.3, 0.3, 0.3),
   });
-  page.drawText('10mm', {
+  safeDrawText(page, '10mm', {
     x: scaleX + scaleLen + 2,
     y: scaleY - 4,
     size: 8,
