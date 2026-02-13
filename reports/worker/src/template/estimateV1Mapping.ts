@@ -53,6 +53,7 @@ let warnedMissingAmountColumn = false;
 const HEADER_SLOT_IDS = new Set([
   "doc_title",
   "to_name",
+  "to_honorific",
   "issue_date",
   "doc_no",
   "logo",
@@ -149,6 +150,14 @@ export const applyEstimateV1MappingToTemplate = (
       return applyFieldRefToElement(element, footerSlots[element.slotId]);
     }
     return element;
+  });
+
+  // suffix方式に寄せるため、headerの「御中」ラベルを除去（重複防止）
+  slotSyncedElements = slotSyncedElements.filter((e) => {
+    if (e.region !== "header") return true;
+    if (e.type !== "label") return true;
+    const text = (e as any).text ?? "";
+    return text !== "御中";
   });
 
   const ensureSlotElement = (
@@ -301,6 +310,7 @@ export const applyEstimateV1MappingToTemplate = (
       height?: number;
       fontSize?: number;
       fontWeight?: "normal" | "bold";
+      alignX?: "left" | "center" | "right";
     },
   ) => {
     const idx = slotSyncedElements.findIndex((e) => e.id === id);
@@ -314,6 +324,7 @@ export const applyEstimateV1MappingToTemplate = (
       height: fallback.height,
       fontSize: fallback.fontSize,
       fontWeight: fallback.fontWeight,
+      alignX: fallback.alignX,
       dataSource: { type: "static", value: text },
     } as any;
     if (idx >= 0) {
@@ -325,6 +336,27 @@ export const applyEstimateV1MappingToTemplate = (
 
   const headerRef = m?.header ?? {};
   const footerRef = m?.footer ?? {};
+  const honorificRef = headerRef["to_honorific"];
+  const honorificText =
+    honorificRef?.kind === "staticText" ? honorificRef.text ?? "" : "";
+  const shouldShowHonorific =
+    !!honorificRef &&
+    (honorificRef.kind !== "staticText" || honorificText.trim() !== "");
+  if (!shouldShowHonorific) {
+    slotSyncedElements = slotSyncedElements.filter((e) => {
+      const slotId = (e as any).slotId ?? "";
+      return e.id !== "to_honorific" && slotId !== "to_honorific";
+    });
+  }
+  slotSyncedElements = slotSyncedElements.map((e) => {
+    const slotId = (e as any).slotId as string | undefined;
+    if (slotId && slotId.startsWith("company_") && e.type === "text") {
+      const alignX = (e as any).alignX as "left" | "center" | "right" | undefined;
+      if (alignX === "right") return e;
+      return { ...e, alignX: "right" } as TemplateElement;
+    }
+    return e;
+  });
 
   const FOOTER_Y_MAX = 260;
   const yFooter = (fromBottomPx: number) =>
@@ -341,15 +373,23 @@ export const applyEstimateV1MappingToTemplate = (
     "to_name",
     "header",
     "text",
-    { x: 60, y: 720, fontSize: 12, fontWeight: "bold", width: 200, height: 18 },
+    { x: 70, y: 725, fontSize: 12, fontWeight: "bold", width: 200, height: 18 },
     headerRef["to_name"],
   );
-  ensureLabelElement(
-    "to_honorific_label",
-    "header",
-    "御中",
-    { x: 270, y: 720, fontSize: 10, fontWeight: "normal", width: 40, height: 16 },
-  );
+  if (shouldShowHonorific) {
+    const toNameEl = slotSyncedElements.find((e) => (e as any).slotId === "to_name" || e.id === "to_name") as any;
+    const baseX = typeof toNameEl?.x === "number" ? toNameEl.x : 70;
+    const baseY = typeof toNameEl?.y === "number" ? toNameEl.y : 725;
+    const baseWidth = typeof toNameEl?.width === "number" ? toNameEl.width : 200;
+    const baseHeight = typeof toNameEl?.height === "number" ? toNameEl.height : 18;
+    ensureSlotElement(
+      "to_honorific",
+      "header",
+      "text",
+      { x: baseX + baseWidth + 6, y: baseY, fontSize: 9, width: 24, height: baseHeight },
+      honorificRef,
+    );
+  }
   ensureSlotElement(
     "logo",
     "header",
@@ -361,82 +401,94 @@ export const applyEstimateV1MappingToTemplate = (
     "date_label",
     "header",
     "text",
-    { x: 350, y: 720, fontSize: 10, width: 56, height: 16 },
+    { x: 360, y: 720, fontSize: 10, width: 60, height: 16, alignX: "right" },
     { kind: "staticText", text: "発行日" },
   );
   ensureSlotElement(
     "issue_date",
     "header",
     "text",
-    { x: 410, y: 720, fontSize: 10, width: 150, height: 16 },
+    { x: 430, y: 720, fontSize: 10, width: 150, height: 16, alignX: "right" },
     headerRef["issue_date"],
   );
   ensureSlotElement(
     "doc_no",
     "header",
     "text",
-    { x: 410, y: 738, fontSize: 10, width: 150, height: 16 },
+    { x: 430, y: 740, fontSize: 10, width: 150, height: 16, alignX: "right" },
     headerRef["doc_no"],
   );
   ensureTextLabelElement(
     "doc_no_label",
     "header",
     "見積番号",
-    { x: 350, y: 738, fontSize: 10, width: 56, height: 16 },
+    { x: 360, y: 740, fontSize: 10, width: 60, height: 16, alignX: "right" },
   );
 
-  ensureSlotElement(
-    "amount_box",
-    "header",
-    "text",
-    { x: 60, y: 650, fontSize: 18, fontWeight: "bold", width: 300, height: 60, borderWidth: 1, borderColorGray: 0.3 },
-    footerRef["total"],
-  );
+  const shouldShowAmountBox = !!footerRef["total"];
+  if (!shouldShowAmountBox) {
+    slotSyncedElements = slotSyncedElements.filter((e) => e.id !== "amount_box" && e.id !== "amount_label");
+  }
+  if (shouldShowAmountBox) {
+    ensureLabelElement(
+      "amount_label",
+      "header",
+      "お見積金額",
+      { x: 78, y: 690, fontSize: 10, width: 120, height: 14 },
+    );
+    ensureSlotElement(
+      "amount_box",
+      "header",
+      "text",
+      { x: 70, y: 650, fontSize: 18, fontWeight: "bold", width: 300, height: 60, borderWidth: 1, borderColorGray: 0.2, alignX: "right" },
+      footerRef["total"],
+    );
+  }
 
   ensureLabelElement(
     "subtotal_label",
     "footer",
     "小計",
-    { x: 350, y: yFooter(250), fontSize: 10, width: 60, height: 16 },
+    { x: 360, y: yFooter(240), fontSize: 10, width: 60, height: 16 },
   );
   ensureSlotElement(
     "subtotal",
     "footer",
     "text",
-    { x: 420, y: yFooter(250), fontSize: 10, width: 150, height: 16 },
+    { x: 430, y: yFooter(240), fontSize: 10, width: 150, height: 16, alignX: "right" },
     footerRef["subtotal"],
   );
   ensureLabelElement(
     "tax_label",
     "footer",
     "消費税",
-    { x: 350, y: yFooter(230), fontSize: 10, width: 60, height: 16 },
+    { x: 360, y: yFooter(220), fontSize: 10, width: 60, height: 16 },
   );
   ensureSlotElement(
     "tax",
     "footer",
     "text",
-    { x: 420, y: yFooter(230), fontSize: 10, width: 150, height: 16 },
+    { x: 430, y: yFooter(220), fontSize: 10, width: 150, height: 16, alignX: "right" },
     footerRef["tax"],
   );
   ensureLabelElement(
     "total_label_fixed",
     "footer",
     "合計",
-    { x: 350, y: yFooter(210), fontSize: 10, width: 60, height: 16, fontWeight: "bold", fillGray: 0.93 },
+    { x: 360, y: yFooter(200), fontSize: 10, width: 60, height: 16, fontWeight: "bold", fillGray: 0.93 },
   );
   ensureSlotElement(
     "total",
     "footer",
     "text",
-    { x: 420, y: yFooter(210), fontSize: 14, fontWeight: "bold", width: 150, height: 20, fillGray: 0.93 },
+    { x: 430, y: yFooter(200), fontSize: 14, fontWeight: "bold", width: 150, height: 20, fillGray: 0.93, alignX: "right" },
     footerRef["total"],
   );
   ensureSlotElement(
     "remarks",
     "footer",
     "text",
-    { x: 60, y: yFooter(120), fontSize: 10, width: 500, height: 60, borderWidth: 0.8, borderColorGray: 0.3 },
+    { x: 70, y: yFooter(120), fontSize: 10, width: 480, height: 80, borderWidth: 0.8, borderColorGray: 0.3 },
     footerRef["remarks"],
   );
 
@@ -448,9 +500,9 @@ export const applyEstimateV1MappingToTemplate = (
   }
 
   const TABLE_ID = "items";
-  const BASE_X = 60;
-  const TOTAL_WIDTH = 500;
-  const BASE_Y = 400;
+  const BASE_X = 70;
+  const TOTAL_WIDTH = 480;
+  const BASE_Y = 420;
 
   const existingIdx = slotSyncedElements.findIndex((e) => e.id === TABLE_ID);
   const existing = existingIdx >= 0 ? (slotSyncedElements[existingIdx] as any) : null;
@@ -555,7 +607,7 @@ export const applyEstimateV1MappingToTemplate = (
     borderWidth:
       typeof (existing as any)?.borderWidth === "number"
         ? (existing as any).borderWidth
-        : 0.8,
+        : 0.9,
     dataSource: { type: "kintoneSubtable", fieldCode: sourceFieldCode },
     columns: nextColumns,
     summary,

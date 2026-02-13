@@ -430,6 +430,11 @@ const TemplateCanvas = ({
             }
           : undefined;
         const elementStyle = getElementStyle(element, getElementSettings(element).pagePadding);
+        const alignX = (element as any).alignX as 'left' | 'center' | 'right' | undefined;
+        const textAlign =
+          alignX === 'center' ? 'center' : alignX === 'right' ? 'right' : 'left';
+        const justifySelf =
+          alignX === 'center' ? 'center' : alignX === 'right' ? 'end' : 'start';
         const docMetaBounds = isDocMetaValue ? resolveDocMetaBounds() : null;
         const mergedStyle = docMetaBounds
           ? {
@@ -535,6 +540,8 @@ const TemplateCanvas = ({
                         style={{
                           fontSize: '0.7rem',
                           color: '#475467',
+                          textAlign,
+                          justifySelf,
                           ...(metaTextStyle ?? {}),
                         }}
                       >
@@ -545,6 +552,8 @@ const TemplateCanvas = ({
                       className="canvas-element-value"
                       style={{
                         fontSize: `${0.85 * getElementSettings(element).fontScale}rem`,
+                        textAlign,
+                        justifySelf,
                         ...(metaTextStyle ?? {}),
                       }}
                     >
@@ -559,6 +568,7 @@ const TemplateCanvas = ({
                         display: 'block',
                         fontSize: '0.7rem',
                         color: slotLabels?.[(element as any).slotId] ? '#344054' : '#475467',
+                        textAlign,
                         ...(metaTextStyle ?? {}),
                       }}
                     >
@@ -568,6 +578,7 @@ const TemplateCanvas = ({
                       className="canvas-element-value"
                       style={{
                         fontSize: `${0.85 * getElementSettings(element).fontScale}rem`,
+                        textAlign,
                         ...(metaTextStyle ?? {}),
                       }}
                     >

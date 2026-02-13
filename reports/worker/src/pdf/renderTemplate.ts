@@ -175,6 +175,8 @@ const drawMultilineText = (
   maxLines: number,
   lineHeight = fontSize * 1.2,
   fontWeight: 'normal' | 'bold' = 'normal',
+  align: 'left' | 'center' | 'right' = 'left',
+  maxWidth?: number,
 ) => {
   const drawLine = (text: string, xPos: number, yPos: number) => {
     page.drawText(text, {
@@ -196,7 +198,17 @@ const drawMultilineText = (
   };
   const limit = Math.min(lines.length, Math.max(0, maxLines));
   for (let idx = 0; idx < limit; idx += 1) {
-    drawLine(lines[idx], x, yStart - idx * lineHeight);
+    const line = lines[idx];
+    let xPos = x;
+    if (align !== 'left' && typeof maxWidth === 'number') {
+      const textWidth = font.widthOfTextAtSize(line, fontSize);
+      if (align === 'center') {
+        xPos = x + Math.max(0, (maxWidth - textWidth) / 2);
+      } else if (align === 'right') {
+        xPos = x + Math.max(0, maxWidth - textWidth);
+      }
+    }
+    drawLine(line, xPos, yStart - idx * lineHeight);
   }
 };
 
@@ -1218,6 +1230,7 @@ const applyDocumentMetaLayout = (
   template: TemplateDefinition,
   pageWidth: number,
 ): TemplateElement[] => {
+  if (template.structureType === 'estimate_v1') return elements;
   const docMetaSettings = normalizeEasyAdjustBlockSettings(template, 'documentMeta');
   if (!docMetaSettings.docNoVisible && !docMetaSettings.dateVisible) return elements;
 
@@ -1367,6 +1380,7 @@ function drawLabel(
     });
   }
   const lineHeight = fontSize * 1.2;
+  const align = (element as any).alignX as 'left' | 'center' | 'right' | undefined;
   drawMultilineText(
     page,
     lines,
@@ -1378,6 +1392,8 @@ function drawLabel(
     maxLines,
     lineHeight,
     element.fontWeight === 'bold' ? 'bold' : 'normal',
+    align ?? 'left',
+    maxWidth,
   );
 }
 
@@ -1434,6 +1450,7 @@ function drawText(
     slotId === 'issue_date';
   const x = resolveAlignedX(element, pageWidth, maxWidth, pagePadding);
   const yBottom = clampPdfY(toPdfYFromBottom(element.y, pageHeight), pageHeight);
+  const align = (element as any).alignX as 'left' | 'center' | 'right' | undefined;
   if (typeof fillGray === 'number') {
     page.drawRectangle({
       x,
@@ -1457,8 +1474,17 @@ function drawText(
   if (isDocMeta) {
     const line = ellipsisTextToWidth(text, fontToUse, fontSize, maxWidth);
     if (line) {
+      let xPos = x;
+      if (align && align !== 'left') {
+        const textWidth = fontToUse.widthOfTextAtSize(line, fontSize);
+        if (align === 'center') {
+          xPos = x + Math.max(0, (maxWidth - textWidth) / 2);
+        } else if (align === 'right') {
+          xPos = x + Math.max(0, maxWidth - textWidth);
+        }
+      }
       page.drawText(line, {
-        x,
+        x: xPos,
         y: yStart,
         size: fontSize,
         font: fontToUse,
@@ -1466,7 +1492,7 @@ function drawText(
       });
       if (element.fontWeight === 'bold') {
         page.drawText(line, {
-          x: x + 0.4,
+          x: xPos + 0.4,
           y: yStart,
           size: fontSize,
           font: fontToUse,
@@ -1489,6 +1515,8 @@ function drawText(
     maxLines,
     lineHeight,
     element.fontWeight === 'bold' ? 'bold' : 'normal',
+    align ?? 'left',
+    maxWidth,
   );
 }
 
@@ -2236,6 +2264,13 @@ function drawTable(
       // 列タイトル
       targetPage.drawText(col.title, {
         x: currentX + 4,
+        y: headerY + headerHeight / 2 - baseFontSize / 2,
+        size: baseFontSize,
+        font: jpFont,
+        color: rgb(0, 0, 0),
+      });
+      targetPage.drawText(col.title, {
+        x: currentX + 4 + 0.4,
         y: headerY + headerHeight / 2 - baseFontSize / 2,
         size: baseFontSize,
         font: jpFont,

@@ -596,7 +596,8 @@ const TemplateEditorPage = () => {
     const issueDate = findBySlotOrId('issue_date') as TextElement | undefined;
     const docNoLabelText = presetId === 'invoice_v1' ? '請求番号' : '見積番号';
 
-    if (docNo || issueDate) {
+    const shouldAutoLayoutDocMeta = template.structureType !== 'estimate_v1';
+    if ((docNo || issueDate) && shouldAutoLayoutDocMeta) {
       const headerSettings = normalizeEasyAdjustBlockSettings(template, 'header');
       const headerFontScale = resolveFontScalePreset(headerSettings.fontPreset);
       const headerPadding = resolvePagePaddingPreset(headerSettings.paddingPreset);

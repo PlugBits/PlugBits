@@ -280,7 +280,7 @@ const RegionMappingPanel: React.FC<Props> = ({
                         placeholderStaticText={slot.kind === 'date' ? '2025-12-14' : '固定文字'}
                       />
                     </div>
-                    {region.id === 'header' && slot.id === 'to_name' && structureType === 'list_v1' && (() => {
+                    {region.id === 'header' && slot.id === 'to_name' && (structureType === 'list_v1' || structureType === 'estimate_v1') && (() => {
                       const ref = mapping?.header?.to_honorific as FieldRef | undefined;
                       const text = ref?.kind === 'staticText' ? ref.text ?? '' : '';
                       const honorificValue = text === '御中' ? 'onchu' : text === '様' ? 'sama' : 'none';
