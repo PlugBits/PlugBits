@@ -1059,6 +1059,7 @@ export async function renderTemplateToPdf(
       page,
       pageWidth,
       pageHeight,
+      template.id,
       tableElementForRender,
       jpFont,
       latinFont,
@@ -2213,6 +2214,7 @@ function drawTable(
   page: PDFPage,
   pageWidth: number,
   pageHeight: number,
+  templateId: string,
   element: TableElement,
   jpFont: PDFFont,
   latinFont: PDFFont,
@@ -2224,6 +2226,8 @@ function drawTable(
   resolveAdjust: (element: TemplateElement) => { fontScale: number; pagePadding: number; hidden: boolean },
   warn: WarnFn,
 ): PDFPage {
+  let phase: 'header' | 'cell' | 'summary' = 'header';
+  try {
   const rowHeight = element.rowHeight ?? 18;
   const headerHeight = element.headerHeight ?? rowHeight;
   const baseFontSize = 10;
@@ -2679,6 +2683,7 @@ function drawTable(
     }
   };
 
+  phase = 'cell';
   for (let i = 0; i < rows.length; i++) {
     const row = rows[i];
     if (!row || typeof row !== 'object' || Array.isArray(row)) {
@@ -2738,6 +2743,8 @@ function drawTable(
       const lineCountForHeight = spec.overflow === 'wrap' ? linesToDraw.length : 1;
 
       return {
+        columnId: col.id,
+        fieldCode: col.fieldCode,
         colWidth,
         maxCellWidth,
         cellTextRaw,
@@ -2848,6 +2855,8 @@ function drawTable(
 
     for (const cell of cells) {
       const {
+        columnId,
+        fieldCode,
         colWidth,
         maxCellWidth,
         cellTextRaw,
@@ -2883,72 +2892,73 @@ function drawTable(
               : align === 'center'
               ? currentX + (colWidth - lineWidth) / 2
               : currentX + paddingLeft;
-          safeDrawText(
+            safeDrawText(
+              currentPage,
+              line,
+              {
+                x,
+                y: yStart - idx * lineHeight,
+                size: baseFontSize,
+                font: fontForCell,
+                color: rgb(0, 0, 0),
+              },
+              warn,
+              { tableId: element.id, columnId, fieldCode },
+            );
+          }
+        } else if (spec.overflow === 'ellipsis') {
+          const clipped = ellipsisTextToWidth(cellText, fontForCell, baseFontSize, maxCellWidth);
+          drawAlignedText(
             currentPage,
-            line,
-            {
-              x,
-              y: yStart - idx * lineHeight,
-              size: baseFontSize,
-              font: fontForCell,
-              color: rgb(0, 0, 0),
-            },
+            clipped,
+            fontForCell,
+            baseFontSize,
+            currentX,
+            rowYBottom,
+            colWidth,
+            effectiveRowHeight,
+            align,
             warn,
-            { tableId: element.id, columnId: col.id },
+            { tableId: element.id, columnId, fieldCode },
+          );
+        } else if (spec.overflow === 'clip') {
+          drawAlignedText(
+            currentPage,
+            cellText,
+            fontForCell,
+            baseFontSize,
+            currentX,
+            rowYBottom,
+            colWidth,
+            effectiveRowHeight,
+            align,
+            warn,
+            { tableId: element.id, columnId, fieldCode },
+          );
+        } else {
+          drawCellText(
+            currentPage,
+            cellText,
+            fontForCell,
+            baseFontSize,
+            currentX,
+            rowYBottom,
+            colWidth,
+            effectiveRowHeight,
+            align,
+            spec.minFontSize,
+            'middle',
+            rgb(0, 0, 0),
+            warn,
+            { tableId: element.id, columnId, fieldCode },
           );
         }
-      } else if (spec.overflow === 'ellipsis') {
-        const clipped = ellipsisTextToWidth(cellText, fontForCell, baseFontSize, maxCellWidth);
-        drawAlignedText(
-          currentPage,
-          clipped,
-          fontForCell,
-          baseFontSize,
-          currentX,
-          rowYBottom,
-          colWidth,
-          effectiveRowHeight,
-          align,
-          warn,
-          { tableId: element.id, columnId: col.id },
-        );
-      } else if (spec.overflow === 'clip') {
-        drawAlignedText(
-          currentPage,
-          cellText,
-          fontForCell,
-          baseFontSize,
-          currentX,
-          rowYBottom,
-          colWidth,
-          effectiveRowHeight,
-          align,
-          warn,
-          { tableId: element.id, columnId: col.id },
-        );
-      } else {
-        drawCellText(
-          currentPage,
-          cellText,
-          fontForCell,
-          baseFontSize,
-          currentX,
-          rowYBottom,
-          colWidth,
-          effectiveRowHeight,
-          align,
-          spec.minFontSize,
-          'middle',
-          rgb(0, 0, 0),
-          warn,
-          { tableId: element.id, columnId: col.id },
-        );
-      }
 
       currentX += colWidth;
     }
 
-    if (summaryStates.length > 0) {
+  if (summaryStates.length > 0) {
+      phase = 'summary';
       for (const state of summaryStates) {
         if (state.row.op !== 'sum') continue;
         const rawVal = resolveFieldValue(
@@ -3091,6 +3101,12 @@ function drawTable(
   }
 
   return currentPage;
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    throw new Error(
+      `[renderTable] template=${templateId} element=${element.id} phase=${phase} error=${message}`,
+    );
+  }
 }
 
 // ============================
