@@ -80,6 +80,9 @@ export interface BaseElement {
   width?: number;
   height?: number;
   alignX?: 'left' | 'center' | 'right';
+  borderWidth?: number;
+  borderColorGray?: number;
+  fillGray?: number;
   hidden?: boolean;
   region?: 'header' | 'body' | 'footer';
   repeatOnEveryPage?: boolean;

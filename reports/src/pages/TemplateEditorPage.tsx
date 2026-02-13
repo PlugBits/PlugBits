@@ -746,8 +746,9 @@ const TemplateEditorPage = () => {
       }
     }
 
+    const shouldAutoLayoutRecipient = template.structureType !== 'estimate_v1';
     const toName = findBySlotOrId('to_name') as TextElement | undefined;
-    if (toName) {
+    if (toName && shouldAutoLayoutRecipient) {
       const baseWidth = Number.isFinite(toName.width) ? (toName.width as number) : 280;
       const baseHeight = Number.isFinite(toName.height) ? (toName.height as number) : 18;
       const baseY = clampYToRegion(

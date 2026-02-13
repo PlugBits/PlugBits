@@ -371,6 +371,7 @@ const SLOT_SCHEMA_ESTIMATE_V1 = {
   header: [
     { slotId: "doc_title", label: "タイトル", kind: "text" as const },
     { slotId: "to_name", label: "宛先名", kind: "text" as const, required: true },
+    { slotId: "to_honorific", label: "敬称", kind: "text" as const },
     { slotId: "issue_date", label: "発行日", kind: "date" as const, required: true },
     { slotId: "doc_no", label: "見積番号", kind: "text" as const },
     { slotId: "logo", label: "ロゴ", kind: "image" as const },

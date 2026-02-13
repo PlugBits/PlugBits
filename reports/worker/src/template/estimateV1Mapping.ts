@@ -426,24 +426,25 @@ export const applyEstimateV1MappingToTemplate = (
   );
 
   const shouldShowAmountBox = !!footerRef["total"];
-  if (!shouldShowAmountBox) {
-    slotSyncedElements = slotSyncedElements.filter((e) => e.id !== "amount_box" && e.id !== "amount_label");
-  }
-  if (shouldShowAmountBox) {
-    ensureLabelElement(
-      "amount_label",
-      "header",
-      "お見積金額",
-      { x: 78, y: 690, fontSize: 10, width: 120, height: 14 },
-    );
-    ensureSlotElement(
-      "amount_box",
-      "header",
-      "text",
-      { x: 70, y: 650, fontSize: 18, fontWeight: "bold", width: 300, height: 60, borderWidth: 1, borderColorGray: 0.2, alignX: "right" },
-      footerRef["total"],
-    );
-  }
+  ensureLabelElement(
+    "amount_label",
+    "header",
+    "お見積金額",
+    { x: 78, y: 690, fontSize: 10, width: 120, height: 14 },
+  );
+  ensureSlotElement(
+    "amount_box",
+    "header",
+    "text",
+    { x: 70, y: 650, fontSize: 18, fontWeight: "bold", width: 300, height: 60, borderWidth: 1, borderColorGray: 0.2, alignX: "right" },
+    footerRef["total"],
+  );
+  slotSyncedElements = slotSyncedElements.map((e) => {
+    if (e.id === "amount_label" || e.id === "amount_box") {
+      return { ...e, hidden: !shouldShowAmountBox } as TemplateElement;
+    }
+    return e;
+  });
 
   ensureLabelElement(
     "subtotal_label",
