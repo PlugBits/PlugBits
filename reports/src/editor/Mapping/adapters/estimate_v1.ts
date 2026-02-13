@@ -394,7 +394,7 @@ export const estimateV1Adapter: StructureAdapter = {
       slotSyncedElements.push(nextElement);
     };
 
-    const ensureTextLabelElement = (
+    const ensureFixedLabelElement = (
       id: string,
       region: "header" | "footer",
       text: string,
@@ -407,11 +407,13 @@ export const estimateV1Adapter: StructureAdapter = {
         fontWeight?: "normal" | "bold";
         alignX?: "left" | "center" | "right";
       },
+      slotId?: string,
     ) => {
       const idx = slotSyncedElements.findIndex((e) => e.id === id);
       const nextElement: TemplateElement = {
         id,
-        type: "text",
+        slotId,
+        type: "label",
         region,
         x: fallback.x,
         y: fallback.y,
@@ -420,7 +422,7 @@ export const estimateV1Adapter: StructureAdapter = {
         fontSize: fallback.fontSize,
         fontWeight: fallback.fontWeight,
         alignX: fallback.alignX,
-        dataSource: { type: "static", value: text },
+        text,
       } as any;
       if (idx >= 0) {
         slotSyncedElements[idx] = nextElement;
@@ -498,12 +500,12 @@ export const estimateV1Adapter: StructureAdapter = {
       { x: 450, y: 772, width: 120, height: 60 },
       headerRef["logo"],
     );
-    ensureSlotElement(
+    ensureFixedLabelElement(
       "date_label",
       "header",
-      "text",
+      "発行日",
       { x: 360, y: 720, fontSize: 10, width: 60, height: 16, alignX: "right" },
-      { kind: "staticText", text: "発行日" },
+      "date_label",
     );
     ensureSlotElement(
       "issue_date",
@@ -520,7 +522,7 @@ export const estimateV1Adapter: StructureAdapter = {
       headerRef["doc_no"],
     );
 
-    ensureTextLabelElement(
+    ensureFixedLabelElement(
       "doc_no_label",
       "header",
       "見積番号",
@@ -609,7 +611,7 @@ export const estimateV1Adapter: StructureAdapter = {
     const TOTAL_WIDTH = 480;
 
     // items が無い場合のデフォルト位置
-    const BASE_Y = 420;
+    const BASE_Y = 610;
 
     // 既存 items を探して位置等を引き継ぐ
     const existingIdx = slotSyncedElements.findIndex((e) => e.id === TABLE_ID);

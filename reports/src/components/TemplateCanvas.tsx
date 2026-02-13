@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { CSSProperties, MouseEvent as ReactMouseEvent } from 'react';
 import type { TemplateDefinition, TemplateElement, DataSource } from '@shared/template';
 import { isEstimateV1 } from '@shared/templateGuards';
@@ -206,6 +206,16 @@ const TemplateCanvas = ({
     const slotId = (el as any).slotId as string | undefined;
     return el.type === 'text' && slotId === 'company_name';
   });
+  const slotMetaById = useMemo(() => {
+    const map = new Map<string, { label: string; required?: boolean }>();
+    template.slotSchema?.header?.forEach((slot) => {
+      map.set(slot.slotId, { label: slot.label, required: slot.required });
+    });
+    template.slotSchema?.footer?.forEach((slot) => {
+      map.set(slot.slotId, { label: slot.label, required: slot.required });
+    });
+    return map;
+  }, [template.slotSchema]);
   const isCompanyNameEmpty = (() => {
     const ds = (companyNameElement as any)?.dataSource as DataSource | undefined;
     if (ds?.type !== 'static') return false;
@@ -215,6 +225,8 @@ const TemplateCanvas = ({
   const visibleElements = template.elements.filter((el) => {
     if (isElementHiddenByEasyAdjust(el, template)) return false;
     const slotId = (el as any).slotId as string | undefined;
+    const slotMeta = slotId ? slotMetaById.get(slotId) : undefined;
+    if (el.hidden && !slotMeta?.required) return false;
     if (!isEstimate) {
       if (el.id === 'doc_no_label') return false;
       if (slotId === 'date_label' || el.id === 'date_label') return false;
@@ -403,6 +415,18 @@ const TemplateCanvas = ({
     <div className="template-canvas" style={canvasStyle} onMouseDown={handleCanvasMouseDown} ref={canvasRef}>
       {visibleElements.map((element) => {
         const slotId = (element as any).slotId as string | undefined;
+        const slotMeta = slotId ? slotMetaById.get(slotId) : undefined;
+        const placeholderText = (() => {
+          if (element.type !== 'text') return '';
+          if (!slotMeta?.required) return '';
+          const ds = (element as any).dataSource as DataSource | undefined;
+          const isEmptyStatic = ds?.type === 'static' && String(ds.value ?? '').trim().length === 0;
+          if (!element.hidden && !isEmptyStatic) return '';
+          const label = slotMeta.label || slotId || '未設定';
+          return `{{${label}}}`;
+        })();
+        const valueText = placeholderText || describeDataSource(element);
+        const isPlaceholder = placeholderText.length > 0;
         const isDocMeta = isDocumentMetaElement(element);
         const isDocMetaValue = !isEstimate && (slotId === 'doc_no' || slotId === 'issue_date');
         const docMetaLabelEl = isDocMetaValue
@@ -454,6 +478,11 @@ const TemplateCanvas = ({
         const justifySelf =
           alignX === 'center' ? 'center' : alignX === 'right' ? 'end' : 'start';
         const docMetaBounds = isDocMetaValue ? resolveDocMetaBounds() : null;
+        const labelText = slotId && slotLabels?.[slotId]
+          ? slotLabels[slotId]
+          : isAdvanced
+            ? element.type
+            : '';
         const mergedStyle = docMetaBounds
           ? {
               ...elementStyle,
@@ -581,27 +610,31 @@ const TemplateCanvas = ({
                   </>
                 ) : (
                   <>
-                    <strong
-                      className="canvas-element-label"
-                      style={{
-                        display: 'block',
-                        fontSize: '0.7rem',
-                        color: slotLabels?.[(element as any).slotId] ? '#344054' : '#475467',
-                        textAlign,
-                        ...(metaTextStyle ?? {}),
-                      }}
-                    >
-                      {slotLabels?.[(element as any).slotId] ?? element.type}
-                    </strong>
+                    {labelText ? (
+                      <strong
+                        className="canvas-element-label"
+                        style={{
+                          display: 'block',
+                          fontSize: '0.7rem',
+                          color: slotLabels?.[(element as any).slotId] ? '#344054' : '#475467',
+                          textAlign,
+                          ...(metaTextStyle ?? {}),
+                        }}
+                      >
+                        {labelText}
+                      </strong>
+                    ) : null}
                     <span
                       className="canvas-element-value"
                       style={{
                         fontSize: `${0.85 * getElementSettings(element).fontScale}rem`,
                         textAlign,
+                        color: isPlaceholder ? '#98a2b3' : undefined,
+                        opacity: isPlaceholder ? 0.7 : undefined,
                         ...(metaTextStyle ?? {}),
                       }}
                     >
-                      {describeDataSource(element)}
+                      {valueText}
                     </span>
                   </>
                 )}

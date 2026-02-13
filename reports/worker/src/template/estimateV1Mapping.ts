@@ -304,7 +304,7 @@ export const applyEstimateV1MappingToTemplate = (
     slotSyncedElements.push(nextElement);
   };
 
-  const ensureTextLabelElement = (
+  const ensureFixedLabelElement = (
     id: string,
     region: "header" | "footer",
     text: string,
@@ -317,11 +317,13 @@ export const applyEstimateV1MappingToTemplate = (
       fontWeight?: "normal" | "bold";
       alignX?: "left" | "center" | "right";
     },
+    slotId?: string,
   ) => {
     const idx = slotSyncedElements.findIndex((e) => e.id === id);
     const nextElement: TemplateElement = {
       id,
-      type: "text",
+      slotId,
+      type: "label",
       region,
       x: fallback.x,
       y: fallback.y,
@@ -330,7 +332,7 @@ export const applyEstimateV1MappingToTemplate = (
       fontSize: fallback.fontSize,
       fontWeight: fallback.fontWeight,
       alignX: fallback.alignX,
-      dataSource: { type: "static", value: text },
+      text,
     } as any;
     if (idx >= 0) {
       slotSyncedElements[idx] = nextElement;
@@ -407,12 +409,12 @@ export const applyEstimateV1MappingToTemplate = (
     { x: 450, y: 772, width: 120, height: 60 },
     headerRef["logo"],
   );
-  ensureSlotElement(
+  ensureFixedLabelElement(
     "date_label",
     "header",
-    "text",
+    "発行日",
     { x: 360, y: 720, fontSize: 10, width: 60, height: 16, alignX: "right" },
-    { kind: "staticText", text: "発行日" },
+    "date_label",
   );
   ensureSlotElement(
     "issue_date",
@@ -428,7 +430,7 @@ export const applyEstimateV1MappingToTemplate = (
     { x: 430, y: 740, fontSize: 10, width: 150, height: 16, alignX: "right" },
     headerRef["doc_no"],
   );
-  ensureTextLabelElement(
+  ensureFixedLabelElement(
     "doc_no_label",
     "header",
     "見積番号",
@@ -513,7 +515,7 @@ export const applyEstimateV1MappingToTemplate = (
   const TABLE_ID = "items";
   const BASE_X = 70;
   const TOTAL_WIDTH = 480;
-  const BASE_Y = 420;
+  const BASE_Y = 610;
 
   const existingIdx = slotSyncedElements.findIndex((e) => e.id === TABLE_ID);
   const existing = existingIdx >= 0 ? (slotSyncedElements[existingIdx] as any) : null;

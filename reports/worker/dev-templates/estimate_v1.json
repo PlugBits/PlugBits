@@ -120,22 +120,19 @@
         "value": "御中"
       }
     },
-    {
-      "id": "doc_no_label",
-      "type": "text",
-      "region": "header",
-      "x": 360,
-      "y": 740,
-      "width": 60,
-      "height": 16,
-      "fontSize": 10,
-      "alignX": "right",
-      "repeatOnEveryPage": true,
-      "dataSource": {
-        "type": "static",
-        "value": "見積番号"
-      }
-    },
+  {
+    "id": "doc_no_label",
+    "type": "label",
+    "region": "header",
+    "x": 360,
+    "y": 740,
+    "width": 60,
+    "height": 16,
+    "fontSize": 10,
+    "alignX": "right",
+    "repeatOnEveryPage": true,
+    "text": "見積番号"
+  },
     {
       "id": "doc_no",
       "slotId": "doc_no",
@@ -153,23 +150,20 @@
         "value": ""
       }
     },
-    {
-      "id": "date_label",
-      "slotId": "date_label",
-      "type": "text",
-      "region": "header",
-      "x": 360,
-      "y": 720,
-      "width": 60,
-      "height": 16,
-      "fontSize": 10,
-      "alignX": "right",
-      "repeatOnEveryPage": true,
-      "dataSource": {
-        "type": "static",
-        "value": "発行日"
-      }
-    },
+  {
+    "id": "date_label",
+    "slotId": "date_label",
+    "type": "label",
+    "region": "header",
+    "x": 360,
+    "y": 720,
+    "width": 60,
+    "height": 16,
+    "fontSize": 10,
+    "alignX": "right",
+    "repeatOnEveryPage": true,
+    "text": "発行日"
+  },
     {
       "id": "issue_date",
       "slotId": "issue_date",
@@ -297,12 +291,12 @@
       "borderColorGray": 0.2
     },
     {
-      "id": "items",
-      "type": "table",
-      "region": "body",
-      "x": 70,
-      "y": 420,
-      "width": 480,
+    "id": "items",
+    "type": "table",
+    "region": "body",
+    "x": 70,
+    "y": 610,
+    "width": 480,
       "rowHeight": 20,
       "headerHeight": 24,
       "showGrid": true,
