@@ -725,6 +725,10 @@ export async function renderTemplateToPdf(
   const pdfDoc = await PDFDocument.create();
   pdfDoc.registerFontkit(fontkit);
 
+  if (debugEnabled && template.structureType === 'estimate_v1') {
+    console.debug('[render] estimate_v1 passthrough');
+  }
+
   const [pageWidth, pageHeight] = getPageSize(template);
   const resolveAdjust = (element: TemplateElement) =>
     resolveEasyAdjustForElement(element, template);
@@ -972,17 +976,21 @@ export async function renderTemplateToPdf(
       typeof tableHeaderTopY === 'number' && typeof headerBottomY === 'number'
         ? headerBottomY - tableHeaderTopY
         : null;
+    const shouldAdjustTableY = template.structureType !== 'estimate_v1';
     const minGap = 16;
     const desiredTableY =
-      typeof headerBottomY === 'number'
+      shouldAdjustTableY && typeof headerBottomY === 'number'
         ? headerBottomY - minGap - tableHeaderHeight
         : null;
     const adjustedTableY =
-      typeof gap === 'number' && gap < minGap && typeof desiredTableY === 'number'
+      shouldAdjustTableY &&
+      typeof gap === 'number' &&
+      gap < minGap &&
+      typeof desiredTableY === 'number'
         ? desiredTableY
         : null;
     const tableElementForRender =
-      typeof adjustedTableY === 'number'
+      shouldAdjustTableY && typeof adjustedTableY === 'number'
         ? { ...tableElementToRender, y: adjustedTableY }
         : tableElementToRender;
 

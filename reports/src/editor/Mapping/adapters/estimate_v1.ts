@@ -169,24 +169,28 @@ export const estimateV1Adapter: StructureAdapter = {
     const applyFieldRefToElement = (element: TemplateElement, ref: FieldRef | undefined): TemplateElement => {
       if (!ref) {
         if (element.type === "label") {
-          if (element.text === "" && element.hidden === true) return element;
-          return { ...element, text: "", hidden: true };
+          const hasLabelText = String(element.text ?? "").trim().length > 0;
+          if (hasLabelText) return element.hidden ? { ...element, hidden: false } : element;
+          return element.hidden ? element : { ...element, hidden: true };
         }
         if (element.type === "text") {
-          const nextSource = { type: "static", value: "" } as const;
-          if (element.dataSource?.type === "static" && element.dataSource.value === "" && element.hidden === true) {
-            return element;
+          const staticValue = element.dataSource?.type === "static"
+            ? String(element.dataSource.value ?? "").trim()
+            : "";
+          if (staticValue) return element.hidden ? { ...element, hidden: false } : element;
+          if (element.dataSource?.type === "kintone") {
+            return element.hidden ? element : { ...element, hidden: true };
           }
-          return { ...element, dataSource: nextSource, hidden: true };
+          return element.hidden ? element : { ...element, hidden: true };
         }
         if (element.type === "image") {
-          const nextSource = { type: "static", value: "" } as const;
-          if (element.dataSource?.type === "static" && element.dataSource.value === "" && element.hidden === true) {
-            return element;
-          }
-          return { ...element, dataSource: nextSource, hidden: true };
+          const staticValue = element.dataSource?.type === "static"
+            ? String(element.dataSource.value ?? "").trim()
+            : "";
+          if (staticValue) return element.hidden ? { ...element, hidden: false } : element;
+          return element.hidden ? element : { ...element, hidden: true };
         }
-        return { ...element, hidden: true };
+        return element.hidden ? element : { ...element, hidden: true };
       }
 
       if (ref.kind === "recordField") {
@@ -254,7 +258,7 @@ export const estimateV1Adapter: StructureAdapter = {
       type: "text" | "image",
       fallback: {
         x: number;
-        y: number; // bottom座標（safetyYとしても使う）
+        y: number; // bottom座標
         width?: number;
         height?: number;
         fontSize?: number;
@@ -279,15 +283,15 @@ export const estimateV1Adapter: StructureAdapter = {
       const idxById = slotSyncedElements.findIndex((e) => e.id === slotId);
       const idx = idxBySlot >= 0 ? idxBySlot : idxById;
 
-      const safetyY = fallback.y;
-      const nextHidden = !ref;
+      const base = idx >= 0 ? (slotSyncedElements[idx] as any) : undefined;
+      const baseStaticText =
+        base?.dataSource?.type === "static"
+          ? String(base.dataSource.value ?? "").trim()
+          : "";
+      const nextHidden = !ref && !baseStaticText;
+      const nextDataSource = ref ? mkDataSource() : base?.dataSource;
 
       if (idx >= 0) {
-        const base = slotSyncedElements[idx] as any;
-
-        // yが上に寄りすぎなら下げる（bottom座標なので「大きいほど上」）
-        const nextY = typeof base.y === "number" && base.y > safetyY ? safetyY : base.y;
-
         slotSyncedElements[idx] = {
           ...base,
           slotId,
@@ -295,7 +299,7 @@ export const estimateV1Adapter: StructureAdapter = {
           type,
           hidden: nextHidden,
           x: base.x ?? fallback.x,
-          y: nextY ?? safetyY,
+          y: base.y ?? fallback.y,
           width: base.width ?? fallback.width,
           height: base.height ?? fallback.height,
           fontSize: base.fontSize ?? fallback.fontSize,
@@ -304,8 +308,8 @@ export const estimateV1Adapter: StructureAdapter = {
           borderWidth: base.borderWidth ?? fallback.borderWidth,
           borderColorGray: base.borderColorGray ?? fallback.borderColorGray,
           fillGray: base.fillGray ?? fallback.fillGray,
-          ...(type === "text" ? { dataSource: mkDataSource() } : {}),
-          ...(type === "image" ? { dataSource: mkDataSource() } : {}),
+          ...(type === "text" ? { dataSource: nextDataSource ?? mkDataSource() } : {}),
+          ...(type === "image" ? { dataSource: nextDataSource ?? mkDataSource() } : {}),
         } as any;
         return;
       }
@@ -430,9 +434,14 @@ export const estimateV1Adapter: StructureAdapter = {
     const honorificRef = headerRef["to_honorific"];
     const honorificText =
       honorificRef?.kind === "staticText" ? honorificRef.text ?? "" : "";
-    const shouldShowHonorific =
-      !!honorificRef &&
-      (honorificRef.kind !== "staticText" || honorificText.trim() !== "");
+    const existingHonorific = slotSyncedElements.find((e) => (e as any).slotId === "to_honorific" || e.id === "to_honorific") as any;
+    const existingHonorificText =
+      existingHonorific?.type === "text" && existingHonorific.dataSource?.type === "static"
+        ? String(existingHonorific.dataSource.value ?? "").trim()
+        : "";
+    const shouldShowHonorific = honorificRef
+      ? honorificRef.kind !== "staticText" || honorificText.trim() !== ""
+      : existingHonorificText.trim().length > 0;
     if (!shouldShowHonorific) {
       slotSyncedElements = slotSyncedElements.filter((e) => {
         const slotId = (e as any).slotId ?? "";

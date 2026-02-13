@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { CSSProperties, MouseEvent as ReactMouseEvent } from 'react';
 import type { TemplateDefinition, TemplateElement, DataSource } from '@shared/template';
+import { isEstimateV1 } from '@shared/templateGuards';
 import { CANVAS_WIDTH, CANVAS_HEIGHT, REGION_BOUNDS, getRegionOf, clampYToRegion } from '../utils/regionBounds';
 import {
   isElementHiddenByEasyAdjust,
@@ -166,7 +167,16 @@ const TemplateCanvas = ({
   slotLabels,
 }: CanvasProps) => {
   const isAdvanced = !!template.advancedLayoutEditing;
+  const isEstimate = isEstimateV1(template);
+  const loggedEstimateRef = useRef(false);
+  useEffect(() => {
+    if (!import.meta.env.DEV) return;
+    if (!isEstimate || loggedEstimateRef.current) return;
+    console.log('[canvas] estimate_v1 mode');
+    loggedEstimateRef.current = true;
+  }, [isEstimate]);
   const isDocumentMetaElement = (element: TemplateElement) => {
+    if (isEstimate) return false;
     const slotId = (element as any).slotId as string | undefined;
     return (
       slotId === 'doc_no' ||
@@ -183,13 +193,15 @@ const TemplateCanvas = ({
       pagePadding: resolvePagePadding(settings.paddingPreset),
     };
   };
-  const docNoLabelElement = template.elements.find(
-    (el): el is TextElement => el.id === 'doc_no_label' && el.type === 'text',
-  );
-  const dateLabelElement = template.elements.find((el): el is TextElement => {
-    const slotId = (el as any).slotId as string | undefined;
-    return el.type === 'text' && (slotId === 'date_label' || el.id === 'date_label');
-  });
+  const docNoLabelElement = !isEstimate
+    ? template.elements.find((el): el is TextElement => el.id === 'doc_no_label' && el.type === 'text')
+    : undefined;
+  const dateLabelElement = !isEstimate
+    ? template.elements.find((el): el is TextElement => {
+        const slotId = (el as any).slotId as string | undefined;
+        return el.type === 'text' && (slotId === 'date_label' || el.id === 'date_label');
+      })
+    : undefined;
   const companyNameElement = template.elements.find((el): el is TextElement => {
     const slotId = (el as any).slotId as string | undefined;
     return el.type === 'text' && slotId === 'company_name';
@@ -203,8 +215,10 @@ const TemplateCanvas = ({
   const visibleElements = template.elements.filter((el) => {
     if (isElementHiddenByEasyAdjust(el, template)) return false;
     const slotId = (el as any).slotId as string | undefined;
-    if (el.id === 'doc_no_label') return false;
-    if (slotId === 'date_label' || el.id === 'date_label') return false;
+    if (!isEstimate) {
+      if (el.id === 'doc_no_label') return false;
+      if (slotId === 'date_label' || el.id === 'date_label') return false;
+    }
     if (isCompanyNameEmpty && slotId && slotId.startsWith('company_')) return false;
     return true;
   });
@@ -390,8 +404,12 @@ const TemplateCanvas = ({
       {visibleElements.map((element) => {
         const slotId = (element as any).slotId as string | undefined;
         const isDocMeta = isDocumentMetaElement(element);
-        const isDocMetaValue = slotId === 'doc_no' || slotId === 'issue_date';
-        const docMetaLabelEl = slotId === 'doc_no' ? docNoLabelElement : slotId === 'issue_date' ? dateLabelElement : undefined;
+        const isDocMetaValue = !isEstimate && (slotId === 'doc_no' || slotId === 'issue_date');
+        const docMetaLabelEl = isDocMetaValue
+          ? slotId === 'doc_no'
+            ? docNoLabelElement
+            : dateLabelElement
+          : undefined;
         const docMetaLabelText = (() => {
           const ds = (docMetaLabelEl as any)?.dataSource as DataSource | undefined;
           if (ds?.type === 'static' && ds.value) return String(ds.value);
