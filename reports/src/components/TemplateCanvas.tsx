@@ -261,6 +261,12 @@ const TemplateCanvas = ({
     }
     if (!companyBlockEnabled && slotId && slotId.startsWith('company_')) return false;
     if (isCompanyNameEmpty && slotId && slotId.startsWith('company_')) return false;
+    if (el.type === 'image' && (slotId === 'logo' || el.id === 'logo')) {
+      const ds = (el as any).dataSource as DataSource | undefined;
+      const staticValue = ds?.type === 'static' ? String(ds.value ?? '').trim() : '';
+      const kintoneField = ds?.type === 'kintone' ? String(ds.fieldCode ?? '').trim() : '';
+      if (!staticValue && !kintoneField) return false;
+    }
     return true;
   });
 

@@ -3716,6 +3716,21 @@ function drawImageElement(
   imageMap: Map<string, PDFImage>,
   warn: WarnFn,
 ) {
+  const slotId = (element as any).slotId as string | undefined;
+  const isLogo = slotId === 'logo' || element.id === 'logo';
+  if (isLogo) {
+    const staticValue =
+      element.dataSource?.type === 'static'
+        ? String(element.dataSource.value ?? '').trim()
+        : '';
+    const kintoneField =
+      element.dataSource?.type === 'kintone'
+        ? String(element.dataSource.fieldCode ?? '').trim()
+        : '';
+    if (!staticValue && !kintoneField) {
+      return;
+    }
+  }
   if (previewMode === 'fieldCode') {
     const fieldCode =
       element.dataSource?.type === 'kintone' ? element.dataSource.fieldCode : '';

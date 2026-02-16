@@ -186,13 +186,14 @@
       "slotId": "logo",
       "type": "image",
       "region": "header",
-      "x": 450,
-      "y": 772,
+      "x": 40,
+      "y": 770,
       "width": 120,
       "height": 60,
+      "repeatOnEveryPage": true,
       "dataSource": {
-        "type": "static",
-        "value": ""
+        "type": "kintone",
+        "fieldCode": ""
       }
     },
     {

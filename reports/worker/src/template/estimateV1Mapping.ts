@@ -179,6 +179,7 @@ export const applyEstimateV1MappingToTemplate = (
       borderWidth?: number;
       borderColorGray?: number;
       fillGray?: number;
+      repeatOnEveryPage?: boolean;
     },
     ref: FieldRef | undefined,
   ) => {
@@ -216,6 +217,7 @@ export const applyEstimateV1MappingToTemplate = (
         fontSize: base.fontSize ?? fallback.fontSize,
         fontWeight: base.fontWeight ?? fallback.fontWeight,
         alignX: base.alignX ?? fallback.alignX,
+        repeatOnEveryPage: base.repeatOnEveryPage ?? fallback.repeatOnEveryPage,
         borderWidth: base.borderWidth ?? fallback.borderWidth,
         borderColorGray: base.borderColorGray ?? fallback.borderColorGray,
         fillGray: base.fillGray ?? fallback.fillGray,
@@ -238,6 +240,7 @@ export const applyEstimateV1MappingToTemplate = (
         fontSize: fallback.fontSize ?? 12,
         fontWeight: fallback.fontWeight ?? "normal",
         alignX: fallback.alignX,
+        repeatOnEveryPage: fallback.repeatOnEveryPage,
         hidden: nextHidden,
         borderWidth: fallback.borderWidth,
         borderColorGray: fallback.borderColorGray,
@@ -256,6 +259,7 @@ export const applyEstimateV1MappingToTemplate = (
       y: fallback.y,
       width: fallback.width ?? 120,
       height: fallback.height ?? 60,
+      repeatOnEveryPage: fallback.repeatOnEveryPage,
       hidden: nextHidden,
       borderWidth: fallback.borderWidth,
       borderColorGray: fallback.borderColorGray,
@@ -406,7 +410,7 @@ export const applyEstimateV1MappingToTemplate = (
     "logo",
     "header",
     "image",
-    { x: 450, y: 772, width: 120, height: 60 },
+    { x: 40, y: 770, width: 120, height: 60, repeatOnEveryPage: true },
     headerRef["logo"],
   );
   ensureFixedLabelElement(
