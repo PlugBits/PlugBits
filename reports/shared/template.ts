@@ -35,6 +35,16 @@ export type TemplateSettings = {
   fontScalePreset?: FontScalePreset;
   pagePaddingPreset?: PagePaddingPreset;
   presetId?: string;
+  companyBlock?: {
+    enabled?: boolean;
+  };
+};
+
+export type CompanyProfile = {
+  companyName?: string;
+  companyAddress?: string;
+  companyTel?: string;
+  companyEmail?: string;
 };
 
 export type LabelSheetSettings = {

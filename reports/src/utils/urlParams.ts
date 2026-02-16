@@ -42,5 +42,12 @@ export const getEditorTokenFromParams = (params: URLSearchParams) =>
   params.get('token') ??
   '';
 
+export const getCompanyProfileFromParams = (params: URLSearchParams) => ({
+  companyName: params.get('companyName') ?? '',
+  companyAddress: params.get('companyAddress') ?? '',
+  companyTel: params.get('companyTel') ?? '',
+  companyEmail: params.get('companyEmail') ?? '',
+});
+
 export const getReportsApiBaseUrlFromParams = (_params: URLSearchParams) => WORKER_BASE_URL;
 import { WORKER_BASE_URL } from '../constants';

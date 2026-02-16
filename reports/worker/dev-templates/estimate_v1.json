@@ -261,36 +261,6 @@
       }
     },
     {
-      "id": "amount_label",
-      "type": "label",
-      "region": "header",
-      "x": 78,
-      "y": 690,
-      "width": 120,
-      "height": 14,
-      "fontSize": 10,
-      "text": "お見積金額"
-    },
-    {
-      "id": "amount_box",
-      "slotId": "amount_box",
-      "type": "text",
-      "region": "header",
-      "x": 70,
-      "y": 650,
-      "width": 300,
-      "height": 60,
-      "fontSize": 18,
-      "fontWeight": "bold",
-      "alignX": "right",
-      "dataSource": {
-        "type": "static",
-        "value": ""
-      },
-      "borderWidth": 1,
-      "borderColorGray": 0.2
-    },
-    {
     "id": "items",
     "type": "table",
     "region": "body",

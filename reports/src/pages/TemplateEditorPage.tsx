@@ -227,6 +227,14 @@ const TemplateEditorPage = () => {
     return adapterForTemplate.validate(mapping);
   }, [template, isLabelTemplate, adapterForTemplate]);
   const missingCount = mappingValidation.errors.length;
+  const companyBlockEnabled = template?.settings?.companyBlock?.enabled !== false;
+  const hasCompanySlots = useMemo(() => {
+    if (!template) return false;
+    return template.elements.some((el) => {
+      const slotId = (el as any).slotId as string | undefined;
+      return slotId ? slotId.startsWith('company_') : false;
+    });
+  }, [template]);
 
   const getPresetDisplayLabel = (id: 'estimate_v1' | 'invoice_v1') =>
     id === 'invoice_v1' ? '請求書' : '見積書';
@@ -1593,6 +1601,39 @@ const TemplateEditorPage = () => {
               </div>
               {activeTab === 'adjust' && template && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                  {hasCompanySlots && (
+                    <div
+                      style={{
+                        border: '1px solid #e4e7ec',
+                        borderRadius: 12,
+                        padding: 10,
+                        background: '#fff',
+                      }}
+                    >
+                      <div style={{ fontWeight: 700, fontSize: 13, color: '#101828', marginBottom: 6 }}>
+                        自社情報の表示
+                      </div>
+                      <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: '#344054' }}>
+                        <input
+                          type="checkbox"
+                          checked={companyBlockEnabled}
+                          onChange={(event) => {
+                            if (!template) return;
+                            updateTemplateSettings({
+                              companyBlock: {
+                                ...(template.settings?.companyBlock ?? {}),
+                                enabled: event.target.checked,
+                              },
+                            });
+                          }}
+                        />
+                        会社情報ブロックを表示する
+                      </label>
+                      <div style={{ marginTop: 6, fontSize: 11, color: '#667085' }}>
+                        プラグイン設定で入力した会社情報の表示/非表示を切り替えます。
+                      </div>
+                    </div>
+                  )}
                   <div
                     style={{
                       border: '1px solid #e4e7ec',

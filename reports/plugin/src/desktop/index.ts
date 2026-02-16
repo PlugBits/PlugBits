@@ -21,6 +21,10 @@ const getConfig = (): PluginConfig | null => {
     templateId: raw.templateId ?? '',
     attachmentFieldCode: raw.attachmentFieldCode ?? '',
     enableSaveButton: parseBoolean(raw.enableSaveButton),
+    companyName: raw.companyName ?? '',
+    companyAddress: raw.companyAddress ?? '',
+    companyTel: raw.companyTel ?? '',
+    companyEmail: raw.companyEmail ?? '',
   };
 };
 
@@ -325,6 +329,12 @@ const callRenderApi = async (
       baseUrl: location.origin,
       appId: appIdValue,
       recordId,
+    },
+    companyProfile: {
+      companyName: config.companyName,
+      companyAddress: config.companyAddress,
+      companyTel: config.companyTel,
+      companyEmail: config.companyEmail,
     },
   });
   const shouldRetry = (status: number) => status === 429 || status >= 500;

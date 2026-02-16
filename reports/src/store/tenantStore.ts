@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import type { CompanyProfile } from '@shared/template';
 
 export type TenantContext = {
   workerBaseUrl: string;
@@ -6,6 +7,7 @@ export type TenantContext = {
   appId: string;
   sessionToken: string;
   editorToken: string;
+  companyProfile?: CompanyProfile;
 };
 
 type TenantStore = {

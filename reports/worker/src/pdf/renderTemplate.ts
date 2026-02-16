@@ -823,7 +823,9 @@ export async function renderTemplateToPdf(
     (el) => (el as any).slotId === 'company_name',
   ) as TextElement | undefined;
   const companyNameValue = resolveTextValue(companyNameEl);
-  const shouldHideCompanyBlock = !!companyNameEl && !companyNameValue;
+  const companyBlockEnabled = template.settings?.companyBlock?.enabled !== false;
+  const shouldHideCompanyBlock =
+    !companyBlockEnabled || (!!companyNameEl && !companyNameValue);
   const docNoEl = headerCandidates.find(
     (el) => (el as any).slotId === 'doc_no',
   ) as TextElement | undefined;

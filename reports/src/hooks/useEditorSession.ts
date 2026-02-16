@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import {
   getKintoneContextFromParams,
+  getCompanyProfileFromParams,
   getQueryParams,
   getReportsApiBaseUrlFromParams,
   getSessionTokenFromParams,
@@ -20,6 +21,10 @@ export const useEditorSession = () => {
   const workerBaseUrl = useMemo(() => getReportsApiBaseUrlFromParams(params), [params]);
   const { kintoneBaseUrl, appId } = useMemo(
     () => getKintoneContextFromParams(params),
+    [params],
+  );
+  const companyProfileFromParams = useMemo(
+    () => getCompanyProfileFromParams(params),
     [params],
   );
 
@@ -70,6 +75,12 @@ export const useEditorSession = () => {
         const verifyData = (await verifyRes.json()) as {
           kintoneBaseUrl?: string;
           appId?: string;
+          companyProfile?: {
+            companyName?: string;
+            companyAddress?: string;
+            companyTel?: string;
+            companyEmail?: string;
+          };
         };
 
         const exchangeRes = await fetch(`${normalizedWorkerBaseUrl}/editor/session/exchange`, {
@@ -87,6 +98,12 @@ export const useEditorSession = () => {
           editorToken?: string;
           kintoneBaseUrl?: string;
           appId?: string;
+          companyProfile?: {
+            companyName?: string;
+            companyAddress?: string;
+            companyTel?: string;
+            companyEmail?: string;
+          };
         };
         const editorToken = String(exchangeData.editorToken ?? '');
         if (!editorToken) {
@@ -101,6 +118,28 @@ export const useEditorSession = () => {
           appId: String(exchangeData.appId ?? verifyData.appId ?? appId),
           sessionToken,
           editorToken,
+          companyProfile: {
+            companyName:
+              exchangeData.companyProfile?.companyName ??
+              verifyData.companyProfile?.companyName ??
+              companyProfileFromParams.companyName ??
+              '',
+            companyAddress:
+              exchangeData.companyProfile?.companyAddress ??
+              verifyData.companyProfile?.companyAddress ??
+              companyProfileFromParams.companyAddress ??
+              '',
+            companyTel:
+              exchangeData.companyProfile?.companyTel ??
+              verifyData.companyProfile?.companyTel ??
+              companyProfileFromParams.companyTel ??
+              '',
+            companyEmail:
+              exchangeData.companyProfile?.companyEmail ??
+              verifyData.companyProfile?.companyEmail ??
+              companyProfileFromParams.companyEmail ??
+              '',
+          },
         };
         setTenantContext(nextContext);
         console.log('[editor session] exchange ok', { editorToken: editorToken.slice(0, 8) });
@@ -122,6 +161,7 @@ export const useEditorSession = () => {
     workerBaseUrl,
     kintoneBaseUrl,
     appId,
+    companyProfileFromParams,
     tenantContext,
     setTenantContext,
     clearTenantContext,

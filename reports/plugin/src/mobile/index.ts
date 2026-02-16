@@ -20,6 +20,10 @@ const getConfig = (): PluginConfig | null => {
     templateId: raw.templateId ?? '',
     attachmentFieldCode: raw.attachmentFieldCode ?? '',
     enableSaveButton: parseBoolean(raw.enableSaveButton),
+    companyName: raw.companyName ?? '',
+    companyAddress: raw.companyAddress ?? '',
+    companyTel: raw.companyTel ?? '',
+    companyEmail: raw.companyEmail ?? '',
   };
 };
 
@@ -249,6 +253,12 @@ const addMobilePrintButton = (config: PluginConfig | null, event: any) => {
           baseUrl: location.origin,
           appId: appIdValue,
           recordId,
+        },
+        companyProfile: {
+          companyName: latestConfig.companyName,
+          companyAddress: latestConfig.companyAddress,
+          companyTel: latestConfig.companyTel,
+          companyEmail: latestConfig.companyEmail,
         },
       });
       const shouldRetry = (status: number) => status === 429 || status >= 500;

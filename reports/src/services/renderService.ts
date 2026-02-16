@@ -29,6 +29,7 @@ export async function requestPreviewPdf(
       template,
       data,
       previewMode: "fieldCode",
+      companyProfile: tenantContext.companyProfile,
     }),
   });
 

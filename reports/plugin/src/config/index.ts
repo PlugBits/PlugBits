@@ -7,12 +7,20 @@ export type PluginConfig = {
   templateId: string;
   attachmentFieldCode: string;
   enableSaveButton: boolean;
+  companyName: string;
+  companyAddress: string;
+  companyTel: string;
+  companyEmail: string;
 };
 
 const buildInitialConfig = (): PluginConfig => ({
   templateId: '',
   attachmentFieldCode: '',
   enableSaveButton: false,
+  companyName: '',
+  companyAddress: '',
+  companyTel: '',
+  companyEmail: '',
 });
 
 const parseBoolean = (value: unknown): boolean => {
@@ -26,6 +34,10 @@ const normalizeConfig = (rawConfig: Record<string, any>) => ({
     templateId: rawConfig.templateId ?? '',
     attachmentFieldCode: rawConfig.attachmentFieldCode ?? '',
     enableSaveButton: parseBoolean(rawConfig.enableSaveButton),
+    companyName: rawConfig.companyName ?? '',
+    companyAddress: rawConfig.companyAddress ?? '',
+    companyTel: rawConfig.companyTel ?? '',
+    companyEmail: rawConfig.companyEmail ?? '',
   },
 });
 
@@ -104,6 +116,16 @@ const renderForm = () => {
       <div class="kb-desc" id="attachmentFieldWarning" style="margin-top:4px; color:#b42318;"></div>
     </div>
 
+    <div class="kb-row" style="margin-top:16px;">
+      <label class="kb-label">自社情報（PDFに表示）</label>
+    </div>
+    <div class="kb-row" style="margin-top:8px; flex-direction:column; gap:8px;">
+      <input class="kb-input" id="companyName" type="text" placeholder="会社名" />
+      <input class="kb-input" id="companyAddress" type="text" placeholder="住所" />
+      <input class="kb-input" id="companyTel" type="text" placeholder="TEL" />
+      <input class="kb-input" id="companyEmail" type="text" placeholder="Email" />
+    </div>
+
     <div class="kb-row kb-toolbar">
       <button id="saveButton" class="kb-btn kb-primary" type="button">保存</button>
       <button id="cancelButton" class="kb-btn" type="button">キャンセル</button>
@@ -151,6 +173,10 @@ const renderForm = () => {
   setInputValue('templateId', config.templateId);
   setInputValue('attachmentFieldCode', config.attachmentFieldCode);
   setCheckboxValue('enableSaveButton', config.enableSaveButton);
+  setInputValue('companyName', config.companyName);
+  setInputValue('companyAddress', config.companyAddress);
+  setInputValue('companyTel', config.companyTel);
+  setInputValue('companyEmail', config.companyEmail);
 
   const getInputValue = (id: string) =>
     (document.getElementById(id) as HTMLInputElement | null)?.value.trim() || '';
@@ -343,6 +369,12 @@ const renderForm = () => {
     workerBaseUrl: string,
     kintoneBaseUrl: string,
     appId: string,
+    companyProfile?: {
+      companyName?: string;
+      companyAddress?: string;
+      companyTel?: string;
+      companyEmail?: string;
+    },
     options?: { silent?: boolean },
   ) => {
     try {
@@ -352,6 +384,7 @@ const renderForm = () => {
         body: JSON.stringify({
           kintoneBaseUrl,
           appId: String(appId),
+          companyProfile,
         }),
       });
       if (!res.ok) {
@@ -501,7 +534,7 @@ const renderForm = () => {
     if (cachedEditorToken && cachedEditorTokenExpiresAt - Date.now() > 30_000) {
       return cachedEditorToken;
     }
-    const sessionToken = await requestEditorSession(workerBaseUrl, kintoneBaseUrl, appId, {
+    const sessionToken = await requestEditorSession(workerBaseUrl, kintoneBaseUrl, appId, undefined, {
       silent: true,
     });
     if (!sessionToken) return '';
@@ -685,6 +718,10 @@ const renderForm = () => {
       templateId: '',
       attachmentFieldCode: '',
       enableSaveButton: 'false',
+      companyName: '',
+      companyAddress: '',
+      companyTel: '',
+      companyEmail: '',
     });
     alert('設定をリセットしました。画面を更新してください。');
   });
@@ -700,7 +737,17 @@ const renderForm = () => {
       return;
     }
 
-    const sessionToken = await requestEditorSession(workerBaseUrl, kintoneBaseUrl, String(appId));
+    const sessionToken = await requestEditorSession(
+      workerBaseUrl,
+      kintoneBaseUrl,
+      String(appId),
+      {
+        companyName: getInputValue('companyName'),
+        companyAddress: getInputValue('companyAddress'),
+        companyTel: getInputValue('companyTel'),
+        companyEmail: getInputValue('companyEmail'),
+      },
+    );
     if (!sessionToken) {
       alert('sessionToken が取得できません');
       return;
@@ -733,7 +780,17 @@ const renderForm = () => {
       return;
     }
 
-    const sessionToken = await requestEditorSession(workerBaseUrl, kintoneBaseUrl, String(appId));
+    const sessionToken = await requestEditorSession(
+      workerBaseUrl,
+      kintoneBaseUrl,
+      String(appId),
+      {
+        companyName: getInputValue('companyName'),
+        companyAddress: getInputValue('companyAddress'),
+        companyTel: getInputValue('companyTel'),
+        companyEmail: getInputValue('companyEmail'),
+      },
+    );
     if (!sessionToken) {
       alert('sessionToken が取得できません');
       return;
@@ -757,6 +814,10 @@ const renderForm = () => {
       templateId: getInputValue('templateId'),
       attachmentFieldCode: getInputValue('attachmentFieldCode'),
       enableSaveButton,
+      companyName: getInputValue('companyName'),
+      companyAddress: getInputValue('companyAddress'),
+      companyTel: getInputValue('companyTel'),
+      companyEmail: getInputValue('companyEmail'),
     };
 
     if (!payload.templateId) {
@@ -781,6 +842,10 @@ const renderForm = () => {
       templateId: payload.templateId,
       attachmentFieldCode: payload.attachmentFieldCode,
       enableSaveButton: payload.enableSaveButton ? 'true' : 'false',
+      companyName: payload.companyName,
+      companyAddress: payload.companyAddress,
+      companyTel: payload.companyTel,
+      companyEmail: payload.companyEmail,
     });
   });
 

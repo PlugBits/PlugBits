@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { CSSProperties, MouseEvent as ReactMouseEvent } from 'react';
-import type { TemplateDefinition, TemplateElement, DataSource } from '@shared/template';
+import type { TemplateDefinition, TemplateElement, DataSource, CompanyProfile } from '@shared/template';
 import { isEstimateV1 } from '@shared/templateGuards';
 import { CANVAS_WIDTH, CANVAS_HEIGHT, REGION_BOUNDS, getRegionOf, clampYToRegion } from '../utils/regionBounds';
 import {
@@ -10,6 +10,7 @@ import {
   resolveFontScalePreset,
   resolvePagePaddingPreset,
 } from '../utils/easyAdjust';
+import { useTenantStore } from '../store/tenantStore';
 
 
 type CanvasProps = {
@@ -122,7 +123,24 @@ const getElementStyle = (
   return base;
 };
 
-const describeDataSource = (element: TemplateElement) => {
+const describeDataSource = (
+  element: TemplateElement,
+  companyProfile?: CompanyProfile,
+) => {
+  const slotId = (element as any).slotId as string | undefined;
+  if (slotId && slotId.startsWith('company_') && companyProfile) {
+    const value =
+      slotId === 'company_name'
+        ? companyProfile.companyName
+        : slotId === 'company_address'
+          ? companyProfile.companyAddress
+          : slotId === 'company_tel'
+            ? companyProfile.companyTel
+            : slotId === 'company_email'
+              ? companyProfile.companyEmail
+              : '';
+    return value ?? '';
+  }
   // table
   if (element.type === 'table') {
     const ds = element.dataSource;
@@ -168,6 +186,14 @@ const TemplateCanvas = ({
 }: CanvasProps) => {
   const isAdvanced = !!template.advancedLayoutEditing;
   const isEstimate = isEstimateV1(template);
+  const companyProfile = useTenantStore((state) => state.tenantContext?.companyProfile);
+  const debugLabelsEnabled = useMemo(() => {
+    if (typeof window === 'undefined') return false;
+    const search = window.location.search ?? '';
+    const hash = window.location.hash ?? '';
+    return search.includes('debug=1') || hash.includes('debug=1');
+  }, []);
+  const companyBlockEnabled = template.settings?.companyBlock?.enabled !== false;
   const loggedEstimateRef = useRef(false);
   useEffect(() => {
     if (!import.meta.env.DEV) return;
@@ -217,8 +243,10 @@ const TemplateCanvas = ({
     return map;
   }, [template.slotSchema]);
   const isCompanyNameEmpty = (() => {
+    const profileName = String(companyProfile?.companyName ?? '').trim();
+    if (profileName) return false;
     const ds = (companyNameElement as any)?.dataSource as DataSource | undefined;
-    if (ds?.type !== 'static') return false;
+    if (ds?.type !== 'static') return true;
     return String(ds.value ?? '').trim().length === 0;
   })();
 
@@ -226,11 +254,12 @@ const TemplateCanvas = ({
     if (isElementHiddenByEasyAdjust(el, template)) return false;
     const slotId = (el as any).slotId as string | undefined;
     const slotMeta = slotId ? slotMetaById.get(slotId) : undefined;
-    if (el.hidden && !slotMeta?.required) return false;
+    if (el.hidden && !slotMeta) return false;
     if (!isEstimate) {
       if (el.id === 'doc_no_label') return false;
       if (slotId === 'date_label' || el.id === 'date_label') return false;
     }
+    if (!companyBlockEnabled && slotId && slotId.startsWith('company_')) return false;
     if (isCompanyNameEmpty && slotId && slotId.startsWith('company_')) return false;
     return true;
   });
@@ -418,14 +447,18 @@ const TemplateCanvas = ({
         const slotMeta = slotId ? slotMetaById.get(slotId) : undefined;
         const placeholderText = (() => {
           if (element.type !== 'text') return '';
-          if (!slotMeta?.required) return '';
+          if (!slotMeta) return '';
           const ds = (element as any).dataSource as DataSource | undefined;
-          const isEmptyStatic = ds?.type === 'static' && String(ds.value ?? '').trim().length === 0;
-          if (!element.hidden && !isEmptyStatic) return '';
+          const hasStatic = ds?.type === 'static';
+          const staticValue = hasStatic ? String(ds?.value ?? '') : '';
+          const isEmptyStatic = hasStatic && staticValue.trim().length === 0;
+          const isMissingKintone = ds?.type === 'kintone' && !ds.fieldCode;
+          const isMissingSubtable = ds?.type === 'kintoneSubtable' && !ds.fieldCode;
+          if (!element.hidden && !isEmptyStatic && !isMissingKintone && !isMissingSubtable && ds) return '';
           const label = slotMeta.label || slotId || '未設定';
           return `{{${label}}}`;
         })();
-        const valueText = placeholderText || describeDataSource(element);
+        const valueText = placeholderText || describeDataSource(element, companyProfile);
         const isPlaceholder = placeholderText.length > 0;
         const isDocMeta = isDocumentMetaElement(element);
         const isDocMetaValue = !isEstimate && (slotId === 'doc_no' || slotId === 'issue_date');
@@ -480,7 +513,7 @@ const TemplateCanvas = ({
         const docMetaBounds = isDocMetaValue ? resolveDocMetaBounds() : null;
         const labelText = slotId && slotLabels?.[slotId]
           ? slotLabels[slotId]
-          : isAdvanced
+          : debugLabelsEnabled
             ? element.type
             : '';
         const mergedStyle = docMetaBounds
@@ -602,10 +635,12 @@ const TemplateCanvas = ({
                         fontSize: `${0.85 * getElementSettings(element).fontScale}rem`,
                         textAlign,
                         justifySelf,
+                        color: isPlaceholder ? '#98a2b3' : undefined,
+                        opacity: isPlaceholder ? 0.7 : undefined,
                         ...(metaTextStyle ?? {}),
                       }}
                     >
-                      {describeDataSource(element)}
+                      {valueText}
                     </span>
                   </>
                 ) : (

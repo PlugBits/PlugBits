@@ -4,6 +4,8 @@ import type {
   TemplateDataRecord,
   TemplateMeta,
   TableElement,
+  CompanyProfile,
+  TemplateElement,
 } from "../../shared/template.js";
 import { TEMPLATE_SCHEMA_VERSION } from "../../shared/template.js";
 
@@ -62,6 +64,9 @@ type RenderRequestBody = {
 
   // 編集UI向け: fieldCode可視化モード
   previewMode?: "record" | "fieldCode";
+
+  // 自社情報（プラグイン設定由来）
+  companyProfile?: CompanyProfile;
 };
 
 // CORS 設定
@@ -76,6 +81,65 @@ const SESSION_TTL_SECONDS = 60 * 60;
 
 const truncateHeaderValue = (value: string, maxLength = 200) =>
   value.length > maxLength ? value.slice(0, maxLength) : value;
+
+const normalizeCompanyProfile = (profile?: CompanyProfile) => ({
+  companyName: String(profile?.companyName ?? '').trim(),
+  companyAddress: String(profile?.companyAddress ?? '').trim(),
+  companyTel: String(profile?.companyTel ?? '').trim(),
+  companyEmail: String(profile?.companyEmail ?? '').trim(),
+});
+
+const applyCompanyProfileToTemplate = (
+  template: TemplateDefinition,
+  profile?: CompanyProfile,
+): TemplateDefinition => {
+  const companyEnabled = template.settings?.companyBlock?.enabled !== false;
+  const normalized = normalizeCompanyProfile(profile);
+  const hasProfile =
+    normalized.companyName ||
+    normalized.companyAddress ||
+    normalized.companyTel ||
+    normalized.companyEmail;
+  if (companyEnabled && !hasProfile) return template;
+
+  const slotValues: Record<string, string> = {
+    company_name: normalized.companyName,
+    company_address: normalized.companyAddress,
+    company_tel: normalized.companyTel,
+    company_email: normalized.companyEmail,
+  };
+
+  let changed = false;
+  const nextElements = template.elements.map((el) => {
+    const slotId = (el as any).slotId as string | undefined;
+    if (!slotId || !slotId.startsWith('company_')) return el;
+    if (el.type !== 'text') return el;
+
+    if (!companyEnabled) {
+      if ((el as any).hidden) return el;
+      changed = true;
+      return { ...el, hidden: true } as TemplateElement;
+    }
+
+    const value = slotValues[slotId];
+    if (value === undefined) return el;
+    const nextDataSource = { type: 'static', value } as const;
+    const needsUpdate =
+      (el as any).hidden ||
+      !el.dataSource ||
+      el.dataSource.type !== 'static' ||
+      el.dataSource.value !== value;
+    if (!needsUpdate) return el;
+    changed = true;
+    return {
+      ...el,
+      hidden: false,
+      dataSource: nextDataSource,
+    } as TemplateElement;
+  });
+
+  return changed ? { ...template, elements: nextElements } : template;
+};
 
 // フォント読み込み（今はデフォルト埋め込みフォントだけ）
 async function loadFonts(env: Env): Promise<{ jp: Uint8Array; latin: Uint8Array }> {
@@ -223,6 +287,7 @@ const loadEditorSession = async (
     appId: string;
     expiresAt: number;
     kintoneApiToken?: string;
+    companyProfile?: CompanyProfile;
   };
 } | { error: Response }> => {
   if (!env.SESSIONS_KV) {
@@ -253,13 +318,20 @@ const loadEditorSession = async (
     };
   }
 
-  let session: { kintoneBaseUrl?: string; appId?: string; expiresAt?: number; kintoneApiToken?: string };
+  let session: {
+    kintoneBaseUrl?: string;
+    appId?: string;
+    expiresAt?: number;
+    kintoneApiToken?: string;
+    companyProfile?: CompanyProfile;
+  };
   try {
     session = JSON.parse(raw) as {
       kintoneBaseUrl?: string;
       appId?: string;
       expiresAt?: number;
       kintoneApiToken?: string;
+      companyProfile?: CompanyProfile;
     };
   } catch {
     return {
@@ -730,12 +802,18 @@ export default {
           });
         }
 
-        let payload: { kintoneBaseUrl?: string; appId?: string; kintoneApiToken?: string };
+        let payload: {
+          kintoneBaseUrl?: string;
+          appId?: string;
+          kintoneApiToken?: string;
+          companyProfile?: CompanyProfile;
+        };
         try {
           payload = (await request.json()) as {
             kintoneBaseUrl?: string;
             appId?: string;
             kintoneApiToken?: string;
+            companyProfile?: CompanyProfile;
           };
         } catch {
           return new Response("Invalid JSON body", {
@@ -781,6 +859,7 @@ export default {
           appId,
           expiresAt,
           kintoneApiToken: payload.kintoneApiToken,
+          companyProfile: normalizeCompanyProfile(payload.companyProfile),
         });
         await env.SESSIONS_KV.put(key, value, { expirationTtl: SESSION_TTL_SECONDS });
 
@@ -815,6 +894,7 @@ export default {
             ok: true,
             kintoneBaseUrl: session.kintoneBaseUrl ?? "",
             appId: session.appId ?? "",
+            companyProfile: normalizeCompanyProfile(session.companyProfile),
           }),
           {
             status: 200,
@@ -911,6 +991,7 @@ export default {
             kintoneBaseUrl: record.kintoneBaseUrl,
             appId: record.appId,
             tenantId: record.tenantId,
+            companyProfile: normalizeCompanyProfile(session.companyProfile),
           }),
           {
             status: 200,
@@ -978,6 +1059,7 @@ export default {
             appId: session.appId,
             expiresAt,
             kintoneApiToken: session.kintoneApiToken,
+            companyProfile: normalizeCompanyProfile(session.companyProfile),
           }),
           { expirationTtl: SESSION_TTL_SECONDS },
         );
@@ -2215,6 +2297,10 @@ export default {
             }
           : migratedTemplate;
         templateForRender = applyListV1SummaryFromMapping(templateForRender);
+        templateForRender = applyCompanyProfileToTemplate(
+          templateForRender,
+          body.companyProfile,
+        );
         const mappingSummaryMode =
           templateForRender.mapping &&
           typeof templateForRender.mapping === "object" &&
