@@ -5,6 +5,7 @@ import type {
   ImageElement,
   PageSize,
   LabelSheetSettings,
+  TemplateSettings,
 } from '@shared/template';
 import { getAdapter } from '../editor/Mapping/adapters/getAdapter';
 
@@ -36,6 +37,7 @@ export type UserTemplatePayload = {
   sheetSettings?: LabelSheetSettings;
   mapping?: unknown;
   overrides?: UserTemplateOverrides;
+  settings?: TemplateSettings;
   meta?: { name?: string; updatedAt?: string };
 };
 
@@ -286,5 +288,6 @@ export const buildTemplateFromUserTemplate = (
     id: record.templateId,
     name: record.meta?.name ?? dataApplied.name,
     baseTemplateId: record.baseTemplateId,
+    settings: record.settings ?? dataApplied.settings,
   };
 };

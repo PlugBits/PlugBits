@@ -12,7 +12,7 @@ import { TEMPLATE_SCHEMA_VERSION } from "../../shared/template.js";
 import { renderLabelCalibrationPdf, renderTemplateToPdf } from "./pdf/renderTemplate.ts";
 import { getFonts } from "./fonts/fontLoader.js";
 import { getFixtureData } from "./fixtures/templateData.js";
-import { migrateTemplate, validateTemplate } from "./template/migrate.js";
+import { applyEstimateV1PresetPatch, migrateTemplate, validateTemplate } from "./template/migrate.js";
 import { applyListV1MappingToTemplate } from "./template/listV1Mapping.ts";
 import { applyEstimateV1MappingToTemplate } from "./template/estimateV1Mapping.ts";
 import { applyCardsV1MappingToTemplate } from "./template/cardsV1Mapping.ts";
@@ -542,7 +542,7 @@ const getUserTemplateById = async (
   try {
     const parsed = JSON.parse(raw) as any;
     if (parsed && Array.isArray(parsed.elements)) {
-      return parsed as TemplateDefinition;
+      return applyEstimateV1PresetPatch(parsed as TemplateDefinition);
     }
     if (parsed?.baseTemplateId) {
       const baseTemplate = await getBaseTemplateById(parsed.baseTemplateId, env);
@@ -558,13 +558,15 @@ const getUserTemplateById = async (
           : { ...baseTemplate, mapping: parsed.mapping };
       const layoutApplied = applySlotLayoutOverrides(mapped, parsed.overrides?.layout);
       const dataApplied = applySlotDataOverrides(layoutApplied, parsed.overrides?.slots);
-      return {
+      const reconstructed: TemplateDefinition = {
         ...dataApplied,
         id: templateId,
         name: parsed.meta?.name ?? dataApplied.name,
         baseTemplateId: parsed.baseTemplateId,
         sheetSettings: parsed.sheetSettings ?? dataApplied.sheetSettings,
+        settings: parsed.settings ?? dataApplied.settings,
       };
+      return applyEstimateV1PresetPatch(reconstructed);
     }
     return null;
   } catch {
@@ -1851,6 +1853,7 @@ export default {
             name: nextName,
             baseTemplateId,
             sheetSettings: payload?.sheetSettings ?? templateBody.sheetSettings,
+            settings: payload?.settings ?? templateBody.settings,
           };
 
           const payloadSummaryMode =

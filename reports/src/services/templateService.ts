@@ -256,6 +256,7 @@ export async function createTemplateRemote(
       layout: extractSlotLayoutOverrides(template),
       slots: extractSlotDataOverrides(template),
     },
+    settings: template.settings,
     meta: {
       name: template.name,
       updatedAt: new Date().toISOString(),

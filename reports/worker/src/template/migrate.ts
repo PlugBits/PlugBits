@@ -18,9 +18,117 @@ export type TemplateIssue = {
 
 const PAGE_SIZES: PageSize[] = ['A4', 'Letter'];
 const ORIENTATIONS: Orientation[] = ['portrait', 'landscape'];
+const ESTIMATE_V1_PRESET_REV = 2;
+const ESTIMATE_V1_COMPANY_X = 360;
+const ESTIMATE_V1_COMPANY_WIDTH = 200;
+const ESTIMATE_V1_COMPANY_TARGETS = {
+  company_name: { y: 770, fontSize: 11, height: 14, fontWeight: 'bold' as const },
+  company_address: { y: 754, fontSize: 9, height: 12 },
+  company_tel: { y: 740, fontSize: 9, height: 12 },
+  company_email: { y: 726, fontSize: 9, height: 12 },
+} as const;
+const ESTIMATE_V1_COMPANY_LEGACY = {
+  company_name: { y: [700, 716] },
+  company_address: { y: [684, 704] },
+  company_tel: { y: [668, 692] },
+  company_email: { y: [652, 680] },
+} as const;
 
 const isItemNameColumn = (col: TableColumn) =>
   col.id === 'item_name' || col.fieldCode === 'ItemName';
+
+export const applyEstimateV1PresetPatch = (
+  template: TemplateDefinition,
+): TemplateDefinition => {
+  const baseTemplateId = template.baseTemplateId ?? template.id;
+  const structureType = template.structureType ?? baseTemplateId;
+  if (baseTemplateId !== 'estimate_v1' && structureType !== 'estimate_v1') {
+    return template;
+  }
+
+  const presetRevision = template.settings?.presetRevision ?? 1;
+  if (presetRevision >= ESTIMATE_V1_PRESET_REV) return template;
+
+  if (!Array.isArray(template.elements)) {
+    return {
+      ...template,
+      settings: {
+        ...(template.settings ?? {}),
+        presetRevision: ESTIMATE_V1_PRESET_REV,
+      },
+    };
+  }
+
+  const elements = [...template.elements];
+  const bySlot = new Map<string, number>();
+  elements.forEach((el, index) => {
+    const slotId = (el as any).slotId ?? el.id;
+    if (slotId) bySlot.set(String(slotId), index);
+  });
+
+  const isNear = (value: unknown, target: number, tolerance = 20) =>
+    typeof value === 'number' && Math.abs(value - target) <= tolerance;
+
+  const shouldUpdate = (el: TemplateElement, slotId: keyof typeof ESTIMATE_V1_COMPANY_LEGACY) => {
+    if (el.type !== 'text') return false;
+    const legacyYs = ESTIMATE_V1_COMPANY_LEGACY[slotId]?.y ?? [];
+    const matchesLegacy = Array.isArray(legacyYs)
+      ? legacyYs.some((legacyY) => isNear(el.y, legacyY, 20))
+      : isNear(el.y, legacyYs, 20);
+    if (!matchesLegacy) return false;
+    if (typeof el.x === 'number' && !isNear(el.x, ESTIMATE_V1_COMPANY_X, 12)) return false;
+    if (typeof el.width === 'number' && !isNear(el.width, ESTIMATE_V1_COMPANY_WIDTH, 20)) return false;
+    if (el.alignX && el.alignX !== 'right') return false;
+    return true;
+  };
+
+  let changed = false;
+  (Object.keys(ESTIMATE_V1_COMPANY_TARGETS) as Array<
+    keyof typeof ESTIMATE_V1_COMPANY_TARGETS
+  >).forEach((slotId) => {
+    const idx = bySlot.get(slotId);
+    if (idx === undefined) {
+      const target = ESTIMATE_V1_COMPANY_TARGETS[slotId];
+      elements.push({
+        id: slotId,
+        slotId,
+        type: 'text',
+        region: 'header',
+        x: ESTIMATE_V1_COMPANY_X,
+        y: target.y,
+        width: ESTIMATE_V1_COMPANY_WIDTH,
+        height: target.height,
+        fontSize: target.fontSize,
+        fontWeight: target.fontWeight,
+        alignX: 'right',
+        dataSource: { type: 'static', value: '' },
+      });
+      changed = true;
+      return;
+    }
+
+    const current = elements[idx];
+    if (shouldUpdate(current, slotId)) {
+      elements[idx] = { ...current, y: ESTIMATE_V1_COMPANY_TARGETS[slotId].y };
+      changed = true;
+    }
+  });
+
+  const nextSettings = {
+    ...(template.settings ?? {}),
+    presetRevision: ESTIMATE_V1_PRESET_REV,
+  };
+
+  if (!changed && template.settings?.presetRevision === ESTIMATE_V1_PRESET_REV) {
+    return template;
+  }
+
+  return {
+    ...template,
+    elements,
+    settings: nextSettings,
+  };
+};
 
 export const migrateTemplate = (template: TemplateDefinition): TemplateDefinition => {
   const MIN_TABLE_GAP = 16;
@@ -71,6 +179,9 @@ export const migrateTemplate = (template: TemplateDefinition): TemplateDefinitio
     structureTypeRaw === 'line_items_v1' ? 'list_v1' : template.structureType;
   const nextStructureType =
     baseTemplateId === 'cards_v1' ? 'cards_v1' : normalizedStructureType;
+  const needsEstimateV1PresetPatch =
+    (baseTemplateId === 'estimate_v1' || nextStructureType === 'estimate_v1') &&
+    (template.settings?.presetRevision ?? 1) < ESTIMATE_V1_PRESET_REV;
   const needsElementsNormalization = !Array.isArray(template.elements);
   const needsMappingNormalization = template.mapping == null;
   const needsStructureUpdate = nextStructureType !== template.structureType;
@@ -183,7 +294,8 @@ export const migrateTemplate = (template: TemplateDefinition): TemplateDefinitio
     !needsMappingNormalization &&
     !needsListV1TableYAdjust &&
     !needsListV1FooterAdjust &&
-    !needsListV1HeaderAdjust
+    !needsListV1HeaderAdjust &&
+    !needsEstimateV1PresetPatch
   ) {
     return template;
   }
@@ -471,7 +583,7 @@ export const migrateTemplate = (template: TemplateDefinition): TemplateDefinitio
     }
   }
 
-  return {
+  const migratedTemplate: TemplateDefinition = {
     ...template,
     schemaVersion: TEMPLATE_SCHEMA_VERSION,
     structureType: nextStructureType,
@@ -479,6 +591,8 @@ export const migrateTemplate = (template: TemplateDefinition): TemplateDefinitio
     elements: nextElements,
     mapping,
   };
+
+  return applyEstimateV1PresetPatch(migratedTemplate);
 };
 
 export const validateTemplate = (template: TemplateDefinition): { ok: boolean; issues: TemplateIssue[] } => {

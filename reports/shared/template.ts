@@ -35,6 +35,7 @@ export type TemplateSettings = {
   fontScalePreset?: FontScalePreset;
   pagePaddingPreset?: PagePaddingPreset;
   presetId?: string;
+  presetRevision?: number;
   companyBlock?: {
     enabled?: boolean;
   };

@@ -7,6 +7,7 @@ import type {
   TemplateStatus,
   PageSize,
   LabelSheetSettings,
+  TemplateSettings,
 } from "../../../shared/template.js";
 import { canonicalizeAppId, canonicalizeKintoneBaseUrl } from "../utils/canonicalize.ts";
 
@@ -38,6 +39,7 @@ export type UserTemplatePayload = {
   sheetSettings?: LabelSheetSettings;
   mapping?: unknown;
   overrides?: UserTemplateOverrides;
+  settings?: TemplateSettings;
   meta?: Partial<TemplateMeta>;
 };
 
