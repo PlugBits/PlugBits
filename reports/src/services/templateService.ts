@@ -103,13 +103,33 @@ const generateUserTemplateId = () =>
 // - TemplateDefinition.id / templateId identifies the user-specific template (e.g. "tpl_*").
 // - fetchBaseTemplate() must be called with baseTemplateId (catalog id).
 // - user templateId and baseTemplateId are expected to differ.
-const fetchBaseTemplate = async (templateId: string): Promise<TemplateDefinition> => {
+export const fetchBaseTemplate = async (templateId: string): Promise<TemplateDefinition> => {
   const res = await fetch(buildUrl(`/templates/${templateId}`), {
     headers: buildHeaders(false),
   });
   if (!res.ok) {
     const text = await res.text();
     throw new Error(text || `Failed to fetch base template: ${templateId}`);
+  }
+  return (await res.json()) as TemplateDefinition;
+};
+
+export const updateBaseTemplate = async (
+  template: TemplateDefinition,
+  adminApiKey?: string,
+): Promise<TemplateDefinition> => {
+  const headers = buildHeaders(true);
+  if (adminApiKey) {
+    headers['x-api-key'] = adminApiKey;
+  }
+  const res = await fetch(buildUrl(`/templates/${template.id}`), {
+    method: 'PUT',
+    headers,
+    body: JSON.stringify(template),
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(text || `Failed to update base template: ${template.id}`);
   }
   return (await res.json()) as TemplateDefinition;
 };

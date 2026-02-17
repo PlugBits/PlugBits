@@ -41,6 +41,12 @@ export type TemplateSettings = {
   };
 };
 
+export type RegionBounds = {
+  header: { yTop: number; yBottom: number };
+  body: { yTop: number; yBottom: number };
+  footer: { yTop: number; yBottom: number };
+};
+
 export type CompanyProfile = {
   companyName?: string;
   companyAddress?: string;
@@ -75,6 +81,60 @@ export type LabelMapping = {
 
 // Editor canvas height (bottom-based UI coordinates)
 export const CANVAS_HEIGHT = 842;
+
+const clampNumber = (value: number, min: number, max: number) =>
+  Math.min(Math.max(value, min), max);
+
+export const resolveRegionBounds = (
+  template?: Pick<TemplateDefinition, 'regionBounds' | 'footerReserveHeight'>,
+  pageHeight = CANVAS_HEIGHT,
+): RegionBounds => {
+  const footerReserve = template?.footerReserveHeight ?? 150;
+  const footerTop = clampNumber(pageHeight - footerReserve, 0, pageHeight);
+  const headerBottom = clampNumber(250, 0, pageHeight);
+  const bodyTop = Math.min(headerBottom, footerTop);
+  const bodyBottom = Math.max(bodyTop, footerTop);
+
+  const defaultBounds: RegionBounds = {
+    header: { yTop: 0, yBottom: headerBottom },
+    body: { yTop: bodyTop, yBottom: bodyBottom },
+    footer: { yTop: footerTop, yBottom: pageHeight },
+  };
+
+  const normalize = (input: { yTop: number; yBottom: number }, fallback: { yTop: number; yBottom: number }) => {
+    const rawTop = Number.isFinite(input.yTop) ? input.yTop : fallback.yTop;
+    const rawBottom = Number.isFinite(input.yBottom) ? input.yBottom : fallback.yBottom;
+    const yTop = clampNumber(Math.min(rawTop, rawBottom), 0, pageHeight);
+    const yBottom = clampNumber(Math.max(rawTop, rawBottom), 0, pageHeight);
+    return { yTop, yBottom };
+  };
+
+  if (!template?.regionBounds) return defaultBounds;
+
+  return {
+    header: normalize(template.regionBounds.header, defaultBounds.header),
+    body: normalize(template.regionBounds.body, defaultBounds.body),
+    footer: normalize(template.regionBounds.footer, defaultBounds.footer),
+  };
+};
+
+export const toBottomBasedRegionBounds = (
+  bounds: RegionBounds,
+  pageHeight = CANVAS_HEIGHT,
+) => ({
+  header: {
+    yMin: clampNumber(pageHeight - bounds.header.yBottom, 0, pageHeight),
+    yMax: clampNumber(pageHeight - bounds.header.yTop, 0, pageHeight),
+  },
+  body: {
+    yMin: clampNumber(pageHeight - bounds.body.yBottom, 0, pageHeight),
+    yMax: clampNumber(pageHeight - bounds.body.yTop, 0, pageHeight),
+  },
+  footer: {
+    yMin: clampNumber(pageHeight - bounds.footer.yBottom, 0, pageHeight),
+    yMax: clampNumber(pageHeight - bounds.footer.yTop, 0, pageHeight),
+  },
+});
 
 
 export type DataSource =
@@ -256,6 +316,7 @@ export interface TemplateDefinition<
   structureType?: StructureType;
   mapping?: TemplateMapping;
   settings?: TemplateSettings;
+  regionBounds?: RegionBounds;
   sheetSettings?: LabelSheetSettings;
   footerRepeatMode?: FooterRepeatMode;
   sampleData?: TData;

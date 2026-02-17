@@ -1,11 +1,11 @@
 // src/utils/regionBounds.ts
-import type { TemplateElement } from '@shared/template';
+import type { TemplateDefinition, TemplateElement } from '@shared/template';
+import { CANVAS_HEIGHT, resolveRegionBounds, toBottomBasedRegionBounds } from '@shared/template';
 
-// Canvasの座標系：bottom基準（あなたのTemplateCanvasの実装に合わせる）
+// Canvasの座標系：bottom基準（TemplateCanvasの実装に合わせる）
 export const CANVAS_WIDTH = 595;
-export const CANVAS_HEIGHT = 842;
+export { CANVAS_HEIGHT };
 
-// 仮境界（必要なら後で数値調整）
 export const REGION_BOUNDS = {
   header: { yMin: 680, yMax: CANVAS_HEIGHT },
   body: { yMin: 180, yMax: 680 },
@@ -18,7 +18,12 @@ export const getRegionOf = (el: TemplateElement): Region => (el.region ?? 'body'
 
 export const clamp = (v: number, min: number, max: number) => Math.min(Math.max(v, min), max);
 
-export const clampYToRegion = (y: number, region: Region) => {
-  const b = REGION_BOUNDS[region];
+export const resolveRegionBoundsBottom = (template?: TemplateDefinition) => {
+  const bounds = resolveRegionBounds(template, CANVAS_HEIGHT);
+  return toBottomBasedRegionBounds(bounds, CANVAS_HEIGHT);
+};
+
+export const clampYToRegion = (y: number, region: Region, template?: TemplateDefinition) => {
+  const b = template ? resolveRegionBoundsBottom(template)[region] : REGION_BOUNDS[region];
   return clamp(y, b.yMin, b.yMax);
 };

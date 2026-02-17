@@ -16,6 +16,7 @@ import {
   type PageSize,
   type LabelSheetSettings,
   type LabelMapping,
+  resolveRegionBounds,
 } from '../../../shared/template.js';
 import { computeDocumentMetaLayout, applyFrameToTextElement } from '../../../shared/documentMetaLayout.js';
 import type { PDFImage } from 'pdf-lib'; // 先頭の import に追加
@@ -918,9 +919,14 @@ export async function renderTemplateToPdf(
     return total + 10;
   })();
 
+  const bounds = resolveRegionBounds(template, CANVAS_HEIGHT);
+  const scale = pageHeight / CANVAS_HEIGHT;
+  const footerReserveFromBounds = (CANVAS_HEIGHT - bounds.footer.yTop) * scale;
+
   // テンプレが明示的に footerReserveHeight を持っていればそっちを優先
   const footerReserveHeight =
-    template.footerReserveHeight ?? estimatedFooterHeight ?? 0;
+    template.footerReserveHeight ??
+    (template.regionBounds ? footerReserveFromBounds : estimatedFooterHeight ?? 0);
 
   const tableElements = template.elements.filter(
     (e): e is TableElement => e.type === 'table' && !(e as any).hidden,

@@ -3,6 +3,7 @@ import AppHeader from './components/AppHeader';
 import TemplateEditorPage from './pages/TemplateEditorPage';
 import TemplateListPage from './pages/TemplateListPage';
 import TemplatePreviewPage from './pages/TemplatePreviewPage';
+import AdminTemplateTunerPage from './pages/AdminTemplateTunerPage';
 
 const App = () => {
   return (
@@ -17,6 +18,7 @@ const App = () => {
             <Route path="/templates/:templateId/edit" element={<TemplateEditorPage />} />
             <Route path="/templates/:templateId" element={<TemplateEditorPage />} />
             <Route path="/templates/:templateId/preview" element={<TemplatePreviewPage />} />
+            <Route path="/admin/tuner" element={<AdminTemplateTunerPage />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </main>

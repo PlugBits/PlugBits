@@ -1,8 +1,15 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { CSSProperties, MouseEvent as ReactMouseEvent } from 'react';
-import type { TemplateDefinition, TemplateElement, DataSource, CompanyProfile } from '@shared/template';
+import type {
+  TemplateDefinition,
+  TemplateElement,
+  DataSource,
+  CompanyProfile,
+  RegionBounds,
+} from '@shared/template';
+import { resolveRegionBounds, toBottomBasedRegionBounds } from '@shared/template';
 import { isEstimateV1 } from '@shared/templateGuards';
-import { CANVAS_WIDTH, CANVAS_HEIGHT, REGION_BOUNDS, getRegionOf, clampYToRegion } from '../utils/regionBounds';
+import { CANVAS_WIDTH, CANVAS_HEIGHT, REGION_BOUNDS, getRegionOf, clamp, clampYToRegion } from '../utils/regionBounds';
 import {
   isElementHiddenByEasyAdjust,
   normalizeEasyAdjustBlockSettings,
@@ -23,6 +30,9 @@ type CanvasProps = {
   showGuides?: boolean;
   highlightedElementIds?: Set<string>;
   slotLabels?: Record<string, string>;
+  adminMode?: boolean;
+  regionBounds?: RegionBounds;
+  errorElementIds?: Set<string>;
 
 };
 
@@ -183,10 +193,21 @@ const TemplateCanvas = ({
   showGuides = true,
   highlightedElementIds,
   slotLabels,
+  adminMode = false,
+  regionBounds,
+  errorElementIds,
 }: CanvasProps) => {
-  const isAdvanced = !!template.advancedLayoutEditing;
+  const isAdvanced = !adminMode && !!template.advancedLayoutEditing;
   const isEstimate = isEstimateV1(template);
   const companyProfile = useTenantStore((state) => state.tenantContext?.companyProfile);
+  const activeRegionBounds = useMemo(
+    () => regionBounds ?? resolveRegionBounds(template, CANVAS_HEIGHT),
+    [regionBounds, template],
+  );
+  const activeBoundsBottom = useMemo(
+    () => toBottomBasedRegionBounds(activeRegionBounds, CANVAS_HEIGHT),
+    [activeRegionBounds],
+  );
   const debugLabelsEnabled = useMemo(() => {
     if (typeof window === 'undefined') return false;
     const search = window.location.search ?? '';
@@ -251,6 +272,7 @@ const TemplateCanvas = ({
   })();
 
   const visibleElements = template.elements.filter((el) => {
+    if (adminMode) return true;
     if (isElementHiddenByEasyAdjust(el, template)) return false;
     const slotId = (el as any).slotId as string | undefined;
     const slotMeta = slotId ? slotMetaById.get(slotId) : undefined;
@@ -304,13 +326,13 @@ const TemplateCanvas = ({
         const deltaY = event.clientY - dragState.originY;
         
         const region = el ? getRegionOf(el) : 'body';
-        const bounds = REGION_BOUNDS[region];
+        const bounds = adminMode ? activeBoundsBottom[region] : REGION_BOUNDS[region];
 
         const nextX = clampToCanvas(applySnap(dragState.startX + deltaX), CANVAS_WIDTH);
         const rawY = applySnap(dragState.startY - deltaY);
 
         // region内に収める（yはbottom基準）
-        const nextY = clampYToRegion(rawY, region);
+        const nextY = adminMode ? clamp(rawY, bounds.yMin, bounds.yMax) : clampYToRegion(rawY, region);
         onUpdateElement(dragState.id, { x: nextX, y: nextY });
 
       }
@@ -448,12 +470,43 @@ const TemplateCanvas = ({
 
   return (
     <div className="template-canvas" style={canvasStyle} onMouseDown={handleCanvasMouseDown} ref={canvasRef}>
+      {adminMode && showGuides ? (
+        <div className="canvas-region-guides">
+          {(['header', 'body', 'footer'] as const).flatMap((region) => {
+            const bounds = activeRegionBounds[region];
+            const top = CANVAS_HEIGHT - bounds.yTop;
+            const bottom = CANVAS_HEIGHT - bounds.yBottom;
+            return [
+              <div
+                key={`${region}-top`}
+                className={`canvas-region-guide ${region}`}
+                style={{ bottom: `${top}px` }}
+              />,
+              <div
+                key={`${region}-bottom`}
+                className={`canvas-region-guide ${region}`}
+                style={{ bottom: `${bottom}px` }}
+              />,
+            ];
+          })}
+        </div>
+      ) : null}
       {visibleElements.map((element) => {
         const slotId = (element as any).slotId as string | undefined;
         const slotMeta = slotId ? slotMetaById.get(slotId) : undefined;
         const placeholderText = (() => {
           if (element.type !== 'text') return '';
-          if (!slotMeta) return '';
+          if (!slotMeta && !adminMode) return '';
+          if (adminMode) {
+            const ds = (element as any).dataSource as DataSource | undefined;
+            const hasStatic = ds?.type === 'static';
+            const staticValue = hasStatic ? String(ds?.value ?? '') : '';
+            const isMissingKintone = ds?.type === 'kintone' && !ds.fieldCode;
+            const isMissingSubtable = ds?.type === 'kintoneSubtable' && !ds.fieldCode;
+            if (!isMissingKintone && !isMissingSubtable && staticValue.trim()) return '';
+            const label = slotMeta?.label || slotId || element.id || '未設定';
+            return `{{${label}}}`;
+          }
           const ds = (element as any).dataSource as DataSource | undefined;
           const hasStatic = ds?.type === 'static';
           const staticValue = hasStatic ? String(ds?.value ?? '') : '';
@@ -517,11 +570,13 @@ const TemplateCanvas = ({
         const justifySelf =
           alignX === 'center' ? 'center' : alignX === 'right' ? 'end' : 'start';
         const docMetaBounds = isDocMetaValue ? resolveDocMetaBounds() : null;
-        const labelText = slotId && slotLabels?.[slotId]
-          ? slotLabels[slotId]
-          : debugLabelsEnabled
-            ? element.type
-            : '';
+        const labelText = adminMode
+          ? (slotId ?? element.id)
+          : slotId && slotLabels?.[slotId]
+            ? slotLabels[slotId]
+            : debugLabelsEnabled
+              ? element.type
+              : '';
         const mergedStyle = docMetaBounds
           ? {
               ...elementStyle,
@@ -546,6 +601,8 @@ const TemplateCanvas = ({
             <div
               className={[
                 'canvas-element',
+                adminMode ? 'admin' : '',
+                errorElementIds?.has(element.id) ? 'error' : '',
                 selectedElementId === element.id ? 'selected' : '',
                 highlightedElementIds?.has(element.id) ? 'highlighted' : '',
               ].filter(Boolean).join(' ')}
@@ -553,6 +610,7 @@ const TemplateCanvas = ({
                 ...(hasWidth ? { width: '100%' } : null),
                 ...(hasHeight ? { height: '100%' } : null),
                 ...(isDocMeta ? { overflow: 'hidden' } : null),
+                ...(adminMode ? { borderColor: 'rgba(148, 163, 184, 0.8)' } : null),
               }}
             >
               {element.type === 'cardList' ? (
