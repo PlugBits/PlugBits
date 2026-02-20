@@ -62,6 +62,7 @@ type ResizeState = {
 const GRID_SIZE = 5;
 const ALIGN_PADDING = 12;
 type TextElement = Extract<TemplateElement, { type: 'text' }>;
+const DBG_TEXT_TARGETS = new Set(['doc_title', 'doc_no', 'date_label', 'issue_date']);
 
 const resolvePagePadding = resolvePagePaddingPreset;
 const resolveFontScale = resolveFontScalePreset;
@@ -233,6 +234,29 @@ const TemplateCanvas = ({
     console.log('[canvas] estimate_v1 mode');
     loggedEstimateRef.current = true;
   }, [isEstimate]);
+  useEffect(() => {
+    if (!debugLabelsEnabled) return;
+    const raf = window.requestAnimationFrame(() => {
+      const root = canvasRef.current;
+      if (!root) return;
+      const rootRect = root.getBoundingClientRect();
+      const map = (window as any).__DBG_CANVAS_TOP__ ?? {};
+      root.querySelectorAll<HTMLElement>('[data-element-id]').forEach((el) => {
+        const elementId = el.dataset.elementId;
+        if (!elementId || !DBG_TEXT_TARGETS.has(elementId)) return;
+        const rect = el.getBoundingClientRect();
+        const canvasTop = rect.top - rootRect.top;
+        console.log('[DBG_CANVAS_RECT]', {
+          elementId,
+          canvasTop,
+          height: rect.height,
+        });
+        map[elementId] = canvasTop;
+      });
+      (window as any).__DBG_CANVAS_TOP__ = map;
+    });
+    return () => window.cancelAnimationFrame(raf);
+  }, [debugLabelsEnabled, template, canvasWidth, canvasHeight, visibleElements]);
   const isDocumentMetaElement = (element: TemplateElement) => {
     if (isEstimate) return false;
     const slotId = (element as any).slotId as string | undefined;
@@ -657,6 +681,7 @@ const TemplateCanvas = ({
           <div
             key={element.id}
             className="canvas-element-wrapper"
+            data-element-id={slotId ?? element.id}
             style={{
               ...mergedStyle,
               zIndex: selectedElementId === element.id ? 50 : highlightedElementIds?.has(element.id) ? 40 : undefined,

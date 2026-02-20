@@ -31,6 +31,22 @@ type WarnFn = (
 type PreviewMode = 'record' | 'fieldCode';
 const MAX_TEXT_LENGTH = 200;
 type DrawTextOptions = Parameters<PDFPage['drawText']>[1];
+type TextBaselineDebug = {
+  elementId: string;
+  rectTopY: number;
+  rectBottomY: number;
+  fontSize: number;
+  ascent: number | null;
+  descent: number | null;
+  computedDrawY: number;
+};
+
+const DBG_TEXT_BASELINE_TARGETS = new Set([
+  'doc_title',
+  'doc_no',
+  'date_label',
+  'issue_date',
+]);
 
 const hasNonAscii = (text: string) => /[^\u0000-\u007F]/.test(text);
 const pickFont = (text: string, latinFont: PDFFont, jpFont: PDFFont) =>
@@ -882,6 +898,7 @@ export async function renderTemplateToPdf(
     previewMode?: PreviewMode;
     requestId?: string;
     onPageInfo?: (info: { pdfPageW: number; pdfPageH: number }) => void;
+    onTextBaseline?: (entry: TextBaselineDebug) => void;
   },
 ): Promise<{ bytes: Uint8Array; warnings: string[] }> {
   const warnings = new Set<string>();
@@ -889,6 +906,7 @@ export async function renderTemplateToPdf(
   const debugOverlayEnabled = debugEnabled;
   const requestId = options?.requestId;
   const onPageInfo = options?.onPageInfo;
+  const onTextBaseline = options?.onTextBaseline;
   const previewMode: PreviewMode = options?.previewMode ?? 'record';
   const warn: WarnFn = (category, message, context) => {
     if (category === 'debug' && !debugEnabled) return;
@@ -1266,6 +1284,7 @@ export async function renderTemplateToPdf(
     transform,
     warn,
     debugEnabled,
+    onTextBaseline,
   );
 
   // ボディ描画：cardList or table
@@ -1288,6 +1307,8 @@ export async function renderTemplateToPdf(
       resolveAdjust,
       transform,
       warn,
+      debugEnabled,
+      onTextBaseline,
       cardListVariant,
     );
   } else if (tableElementToRender) {
@@ -1375,6 +1396,8 @@ export async function renderTemplateToPdf(
       resolveAdjust,
       transform,
       warn,
+      debugEnabled,
+      onTextBaseline,
     );
   }
 
@@ -1404,6 +1427,7 @@ export async function renderTemplateToPdf(
       transform,
       warn,
       debugEnabled,
+      onTextBaseline,
     );
 
     // --- ページ番号 (1 / N) を中央下に描画 ---
@@ -1770,6 +1794,7 @@ function drawText(
   transform: PdfTransform,
   warn: WarnFn,
   debugEnabled = false,
+  onTextBaseline?: (entry: TextBaselineDebug) => void,
 ) {
   const fontSizeCanvas = (element.fontSize ?? 12) * fontScale;
   const fontSize = fontSizeCanvas * transform.scaleY;
@@ -1791,6 +1816,7 @@ function drawText(
   const text = resolved || element.text || '';
   const fontToUse = pickFont(text, latinFont, jpFont);
   const slotId = (element as any).slotId as string | undefined;
+  const elementKey = slotId ?? element.id;
   const isLabelText =
     element.id.endsWith('_label') ||
     (slotId ? slotId.endsWith('_label') : false) ||
@@ -1818,6 +1844,29 @@ function drawText(
   let yStart = yBottom + boxHeight - lineHeight;
   yStart = clampPdfY(yStart, transform.pageHeightPt - lineHeight);
   const align = (element as any).alignX as 'left' | 'center' | 'right' | undefined;
+  const shouldLogBaseline = debugEnabled && DBG_TEXT_BASELINE_TARGETS.has(elementKey);
+  const fontAny = fontToUse as unknown as {
+    ascentAtSize?: (size: number) => number;
+    descentAtSize?: (size: number) => number;
+  };
+  const ascent =
+    typeof fontAny.ascentAtSize === 'function' ? fontAny.ascentAtSize(fontSize) : null;
+  const descent =
+    typeof fontAny.descentAtSize === 'function' ? fontAny.descentAtSize(fontSize) : null;
+  const emitBaseline = (computedDrawY: number) => {
+    if (!shouldLogBaseline) return;
+    const entry = {
+      elementId: elementKey,
+      rectTopY: yBottom + boxHeight,
+      rectBottomY: yBottom,
+      fontSize,
+      ascent,
+      descent,
+      computedDrawY,
+    };
+    console.log('[DBG_TEXT_BASELINE]', entry);
+    onTextBaseline?.(entry);
+  };
   if (debugEnabled && (element.id === 'doc_title' || slotId === 'doc_title')) {
     console.debug(
       `[DBG_TEXT_POS] id=${element.id} slotId=${slotId ?? ''} ` +
@@ -1851,6 +1900,7 @@ function drawText(
   if (isDocMeta) {
     const line = ellipsisTextToWidth(text, fontToUse, fontSize, maxWidth);
     if (line) {
+      emitBaseline(yStart);
       let xPos = x;
       if (align && align !== 'left') {
         const textWidth = fontToUse.widthOfTextAtSize(line, fontSize);
@@ -1880,6 +1930,7 @@ function drawText(
     return;
   }
 
+  emitBaseline(yStart);
   drawMultilineText(
     page,
     lines,
@@ -1914,6 +1965,7 @@ function drawHeaderElements(
   transform: PdfTransform,
   warn: WarnFn,
   debugEnabled = false,
+  onTextBaseline?: (entry: TextBaselineDebug) => void,
 ) {
   for (const element of headerElements) {
     const adjust = resolveAdjust(element);
@@ -1945,6 +1997,7 @@ function drawHeaderElements(
           transform,
           warn,
           debugEnabled,
+          onTextBaseline,
         );
         break;
 
@@ -1993,6 +2046,7 @@ function drawFooterElements(
   transform: PdfTransform,
   warn: WarnFn,
   debugEnabled = false,
+  onTextBaseline?: (entry: TextBaselineDebug) => void,
 ) {
   for (const element of footerElements) {
     const adjust = resolveAdjust(element);
@@ -2024,6 +2078,7 @@ function drawFooterElements(
           transform,
           warn,
           debugEnabled,
+          onTextBaseline,
         );
         break;
 
@@ -2556,6 +2611,8 @@ function drawTable(
   resolveAdjust: (element: TemplateElement) => { fontScale: number; pagePadding: number; hidden: boolean },
   transform: PdfTransform,
   warn: WarnFn,
+  debugEnabled = false,
+  onTextBaseline?: (entry: TextBaselineDebug) => void,
 ): PDFPage {
   let phase: 'header' | 'cell' | 'summary' = 'header';
   try {
@@ -2727,6 +2784,8 @@ function drawTable(
       resolveAdjust,
       transform,
       warn,
+      debugEnabled,
+      onTextBaseline,
     );
 
     headerY = getHeaderY();
@@ -2962,6 +3021,8 @@ function drawTable(
       resolveAdjust,
       transform,
       warn,
+      debugEnabled,
+      onTextBaseline,
     );
 
     headerY = getHeaderY();
@@ -3140,6 +3201,8 @@ function drawTable(
           resolveAdjust,
           transform,
           warn,
+          debugEnabled,
+          onTextBaseline,
         );
 
         headerY = getHeaderY();
@@ -3177,6 +3240,8 @@ function drawTable(
         resolveAdjust,
         transform,
         warn,
+        debugEnabled,
+        onTextBaseline,
       );
 
       // テーブルヘッダーの位置を再計算して描画
@@ -3477,6 +3542,8 @@ function drawCardList(
   resolveAdjust: (element: TemplateElement) => { fontScale: number; pagePadding: number; hidden: boolean },
   transform: PdfTransform,
   warn: WarnFn,
+  debugEnabled = false,
+  onTextBaseline?: (entry: TextBaselineDebug) => void,
   layoutVariant?: "compact_v2",
 ): PDFPage {
   const isCompactV2 = layoutVariant === "compact_v2";
@@ -3696,6 +3763,8 @@ function drawCardList(
       resolveAdjust,
       transform,
       warn,
+      debugEnabled,
+      onTextBaseline,
     );
     cardTopY = startTopY;
   };

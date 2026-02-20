@@ -1,7 +1,9 @@
-import type { TemplateDefinition } from '@shared/template';
+import { getPageDimensions, type TemplateDefinition } from '@shared/template';
 import { isDebugEnabled } from '../shared/debugFlag';
 import { appendDebugParam } from '../shared/appendDebug';
 import { getTenantContext } from '../store/tenantStore';
+
+const DBG_TEXT_TARGETS = new Set(['doc_title', 'doc_no', 'date_label', 'issue_date']);
 
 export async function previewPdf(template: TemplateDefinition) {
   const tenantContext = getTenantContext();
@@ -33,6 +35,37 @@ export async function previewPdf(template: TemplateDefinition) {
 
   if (!res.ok) {
     throw new Error('処理に失敗しました。もう一度お試しください。');
+  }
+
+  if (debugEnabled) {
+    const header = res.headers.get('x-debug-text-baseline');
+    if (header) {
+      try {
+        const entries = JSON.parse(header) as Array<{
+          elementId: string;
+          rectTopY: number;
+        }>;
+        const page = getPageDimensions(template.pageSize, template.orientation);
+        const canvasTopById = (window as any).__DBG_CANVAS_TOP__ ?? {};
+        for (const entry of entries) {
+          if (!DBG_TEXT_TARGETS.has(entry.elementId)) continue;
+          const canvasTop = canvasTopById[entry.elementId];
+          if (typeof canvasTop !== 'number') continue;
+          const pdfTop = page.height - entry.rectTopY;
+          const diffPx = canvasTop - pdfTop;
+          console.log('[DBG_TEXT_DIFF]', {
+            elementId: entry.elementId,
+            canvasTop,
+            pdfTop,
+            diffPx,
+          });
+        }
+      } catch (error) {
+        console.debug('[DBG_TEXT_DIFF] parse failed', {
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
+    }
   }
 
   const blob = await res.blob();

@@ -2488,6 +2488,15 @@ export default {
         });
         let dataForRender = (fixtureData ?? body.data) as unknown;
         const dataWarnings: string[] = [];
+        const debugTextBaseline: Array<{
+          elementId: string;
+          rectTopY: number;
+          rectBottomY: number;
+          fontSize: number;
+          ascent: number | null;
+          descent: number | null;
+          computedDrawY: number;
+        }> = debug ? [] : [];
 
         if (dataForRender && typeof dataForRender === "object") {
           const record = dataForRender as Record<string, unknown>;
@@ -2577,6 +2586,11 @@ export default {
               debug,
               previewMode,
               requestId,
+              onTextBaseline: debug
+                ? (entry) => {
+                    debugTextBaseline.push(entry);
+                  }
+                : undefined,
               onPageInfo: debug
                 ? ({ pdfPageW, pdfPageH }) => {
                     console.debug('[DBG_PAGE]', {
@@ -2607,6 +2621,12 @@ export default {
 
           if (debug && warnCount > 0) {
             headers["X-Debug-Warn-Sample"] = truncateHeaderValue(combinedWarnings[0]);
+          }
+          if (debug && debugTextBaseline.length > 0) {
+            headers["X-Debug-Text-Baseline"] = truncateHeaderValue(
+              JSON.stringify(debugTextBaseline),
+              1000,
+            );
           }
 
           return new Response(pdfBytes, {
