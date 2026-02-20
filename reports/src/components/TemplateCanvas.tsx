@@ -63,7 +63,13 @@ const GRID_SIZE = 5;
 const ALIGN_PADDING = 12;
 type TextElement = Extract<TemplateElement, { type: 'text' }>;
 type TableElement = Extract<TemplateElement, { type: 'table' }>;
-const DBG_TEXT_TARGETS = new Set(['doc_title', 'doc_no', 'date_label', 'issue_date']);
+const DBG_TEXT_TARGETS = new Set([
+  'doc_title',
+  'doc_no',
+  'date_label',
+  'issue_date',
+  'items:row0:item_name',
+]);
 
 const resolvePagePadding = resolvePagePaddingPreset;
 const resolveFontScale = resolveFontScalePreset;
@@ -127,13 +133,12 @@ const resolveTableDebugCell = (template: TemplateDefinition) => {
   const table = tables.find((el) => el.id === 'items') ?? tables[0];
   if (!table.columns || table.columns.length === 0) return null;
   const itemColumn = table.columns.find(isItemNameColumn) ?? table.columns[0];
-  if (!itemColumn?.id) return null;
+  if (!itemColumn) return null;
   const headerHeight = table.headerHeight ?? table.rowHeight ?? 18;
   const rowHeight = table.rowHeight ?? 18;
   return {
     tableId: table.id,
-    columnId: itemColumn.id,
-    elementId: `${table.id}:row0:${itemColumn.id}`,
+    elementId: 'items:row0:item_name',
     headerHeight,
     rowHeight,
   };
@@ -272,10 +277,7 @@ const TemplateCanvas = ({
       const map = (window as any).__DBG_CANVAS_TOP__ ?? {};
       root.querySelectorAll<HTMLElement>('[data-element-id]').forEach((el) => {
         const elementId = el.dataset.elementId;
-        if (!elementId) return;
-        if (!DBG_TEXT_TARGETS.has(elementId) && elementId !== tableDebugCell?.elementId) {
-          return;
-        }
+        if (!elementId || !DBG_TEXT_TARGETS.has(elementId)) return;
         const rect = el.getBoundingClientRect();
         const canvasTop = rect.top - rootRect.top;
         console.log('[DBG_CANVAS_RECT]', {
