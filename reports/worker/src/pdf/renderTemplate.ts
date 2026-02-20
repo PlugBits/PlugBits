@@ -913,11 +913,16 @@ export async function renderTemplateToPdf(
   const [pageWidth, pageHeight] = getPageSize(template);
   const canvasWidth = pageWidth;
   const canvasHeight = pageHeight;
+  const templateYMode = template.rawYMode ?? template.settings?.yMode ?? 'bottom';
+  if (debugEnabled) {
+    console.debug('[DBG_YMODE]', { templateYMode });
+  }
   const transform = buildPdfTransform({
     pageWidthPt: pageWidth,
     pageHeightPt: pageHeight,
     canvasWidth,
     canvasHeight,
+    yMode: templateYMode,
   });
   if (debugEnabled) {
     console.debug('[DBG_XFORM]', {
@@ -927,13 +932,17 @@ export async function renderTemplateToPdf(
       scaleX: transform.scaleX,
       scaleY: transform.scaleY,
       mode: 'renderTemplate',
+      yMode: transform.yMode,
     });
   }
   const dbgFlipY = (tag: string, uiY: number, uiH?: number) => {
     if (!debugEnabled) return;
     const height = Number.isFinite(uiH ?? 0) ? (uiH ?? 0) : 0;
     const usedPageH = transform.pageHeightPt;
-    const outY = usedPageH - uiY * transform.scaleY - height * transform.scaleY;
+    const outY =
+      transform.yMode === 'top'
+        ? usedPageH - uiY * transform.scaleY - height * transform.scaleY
+        : uiY * transform.scaleY;
     console.debug('[DBG_FLIPY]', {
       requestId,
       tag,

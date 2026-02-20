@@ -304,6 +304,7 @@ export interface TemplateDefinition<
   schemaVersion?: number;
   pageSize: PageSize;
   orientation: Orientation;
+  rawYMode?: 'top' | 'bottom';
   elements: TemplateElement[];
   slotSchema?: {
     header: Array<{

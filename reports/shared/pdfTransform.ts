@@ -3,6 +3,7 @@ type PdfTransformInput = {
   pageHeightPt: number;
   canvasWidth: number;
   canvasHeight: number;
+  yMode?: 'top' | 'bottom';
 };
 
 export type PdfTransform = {
@@ -12,6 +13,7 @@ export type PdfTransform = {
   canvasHeight: number;
   scaleX: number;
   scaleY: number;
+  yMode: 'top' | 'bottom';
   toPdfX: (x: number) => number;
   toPdfW: (w: number) => number;
   toPdfH: (h: number) => number;
@@ -30,9 +32,23 @@ export const buildPdfTransform = ({
   pageHeightPt,
   canvasWidth,
   canvasHeight,
+  yMode,
 }: PdfTransformInput): PdfTransform => {
   const scaleX = safeScale(pageWidthPt, canvasWidth);
   const scaleY = safeScale(pageHeightPt, canvasHeight);
+  const resolvedYMode: 'top' | 'bottom' = yMode ?? 'top';
+  const toPdfYBox =
+    resolvedYMode === 'top'
+      ? (yTop: number, h: number) => pageHeightPt - yTop * scaleY - h * scaleY
+      : (yTop: number, _h: number) => yTop * scaleY;
+  const toPdfYTop =
+    resolvedYMode === 'top'
+      ? (yTop: number) => pageHeightPt - yTop * scaleY
+      : (yTop: number) => yTop * scaleY;
+  const toPdfTop =
+    resolvedYMode === 'top'
+      ? (yTop: number, _h: number) => pageHeightPt - yTop * scaleY
+      : (yTop: number, h: number) => yTop * scaleY + h * scaleY;
   return {
     pageWidthPt,
     pageHeightPt,
@@ -40,11 +56,12 @@ export const buildPdfTransform = ({
     canvasHeight,
     scaleX,
     scaleY,
+    yMode: resolvedYMode,
     toPdfX: (x) => x * scaleX,
     toPdfW: (w) => w * scaleX,
     toPdfH: (h) => h * scaleY,
-    toPdfYTop: (yTop) => pageHeightPt - yTop * scaleY,
-    toPdfYBox: (yTop, h) => pageHeightPt - yTop * scaleY - h * scaleY,
-    toPdfTop: (yTop, _h) => pageHeightPt - yTop * scaleY,
+    toPdfYTop,
+    toPdfYBox,
+    toPdfTop,
   };
 };
