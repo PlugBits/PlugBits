@@ -62,6 +62,7 @@ type ResizeState = {
 const GRID_SIZE = 5;
 const ALIGN_PADDING = 12;
 type TextElement = Extract<TemplateElement, { type: 'text' }>;
+type TableElement = Extract<TemplateElement, { type: 'table' }>;
 const DBG_TEXT_TARGETS = new Set(['doc_title', 'doc_no', 'date_label', 'issue_date']);
 
 const resolvePagePadding = resolvePagePaddingPreset;
@@ -113,6 +114,29 @@ const resolveAlignedX = (
   if (alignX === 'center') return (canvasWidth - safeWidth) / 2;
   if (alignX === 'right') return canvasWidth - safeWidth - padding;
   return element.x;
+};
+
+const isItemNameColumn = (column: TableElement['columns'][number]) =>
+  column.id === 'item_name' || column.fieldCode === 'ItemName';
+
+const resolveTableDebugCell = (template: TemplateDefinition) => {
+  const tables = template.elements.filter(
+    (el): el is TableElement => el.type === 'table',
+  );
+  if (tables.length === 0) return null;
+  const table = tables.find((el) => el.id === 'items') ?? tables[0];
+  if (!table.columns || table.columns.length === 0) return null;
+  const itemColumn = table.columns.find(isItemNameColumn) ?? table.columns[0];
+  if (!itemColumn?.id) return null;
+  const headerHeight = table.headerHeight ?? table.rowHeight ?? 18;
+  const rowHeight = table.rowHeight ?? 18;
+  return {
+    tableId: table.id,
+    columnId: itemColumn.id,
+    elementId: `${table.id}:row0:${itemColumn.id}`,
+    headerHeight,
+    rowHeight,
+  };
 };
 
 const getElementStyle = (
@@ -226,6 +250,10 @@ const TemplateCanvas = ({
   );
   const activeBoundsTop = activeRegionBounds;
   const debugLabelsEnabled = useMemo(() => isDebugEnabled(), []);
+  const tableDebugCell = useMemo(
+    () => (debugLabelsEnabled ? resolveTableDebugCell(template) : null),
+    [debugLabelsEnabled, template],
+  );
   const companyBlockEnabled = template.settings?.companyBlock?.enabled !== false;
   const loggedEstimateRef = useRef(false);
   const canvasRef = useRef<HTMLDivElement | null>(null);
@@ -244,7 +272,10 @@ const TemplateCanvas = ({
       const map = (window as any).__DBG_CANVAS_TOP__ ?? {};
       root.querySelectorAll<HTMLElement>('[data-element-id]').forEach((el) => {
         const elementId = el.dataset.elementId;
-        if (!elementId || !DBG_TEXT_TARGETS.has(elementId)) return;
+        if (!elementId) return;
+        if (!DBG_TEXT_TARGETS.has(elementId) && elementId !== tableDebugCell?.elementId) {
+          return;
+        }
         const rect = el.getBoundingClientRect();
         const canvasTop = rect.top - rootRect.top;
         console.log('[DBG_CANVAS_RECT]', {
@@ -257,7 +288,7 @@ const TemplateCanvas = ({
       (window as any).__DBG_CANVAS_TOP__ = map;
     });
     return () => window.cancelAnimationFrame(raf);
-  }, [debugLabelsEnabled, template, canvasWidth, canvasHeight]);
+  }, [debugLabelsEnabled, template, canvasWidth, canvasHeight, tableDebugCell?.elementId]);
   const isDocumentMetaElement = (element: TemplateElement) => {
     if (isEstimate) return false;
     const slotId = (element as any).slotId as string | undefined;
@@ -688,6 +719,20 @@ const TemplateCanvas = ({
             }}
             onMouseDown={(event) => handleElementMouseDown(event, element)}
           >
+            {debugLabelsEnabled && tableDebugCell && element.type === 'table' && element.id === tableDebugCell.tableId ? (
+              <span
+                data-element-id={tableDebugCell.elementId}
+                style={{
+                  position: 'absolute',
+                  left: 0,
+                  top: `${tableDebugCell.headerHeight}px`,
+                  width: '1px',
+                  height: `${tableDebugCell.rowHeight}px`,
+                  pointerEvents: 'none',
+                  opacity: 0,
+                }}
+              />
+            ) : null}
             <div
               className={[
                 'canvas-element',

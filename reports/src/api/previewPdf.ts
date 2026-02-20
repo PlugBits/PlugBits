@@ -1,9 +1,26 @@
-import { getPageDimensions, type TemplateDefinition } from '@shared/template';
+import { type TemplateDefinition } from '@shared/template';
 import { isDebugEnabled } from '../shared/debugFlag';
 import { appendDebugParam } from '../shared/appendDebug';
 import { getTenantContext } from '../store/tenantStore';
 
 const DBG_TEXT_TARGETS = new Set(['doc_title', 'doc_no', 'date_label', 'issue_date']);
+const TABLE_DEBUG_PDF_TOP = 842;
+
+const isItemNameColumn = (column: { id: string; fieldCode?: string | null }) =>
+  column.id === 'item_name' || column.fieldCode === 'ItemName';
+
+const resolveTableDebugCellId = (template: TemplateDefinition) => {
+  const tables = template.elements.filter(
+    (el): el is Extract<TemplateDefinition['elements'][number], { type: 'table' }> =>
+      el.type === 'table',
+  );
+  if (tables.length === 0) return null;
+  const table = tables.find((el) => el.id === 'items') ?? tables[0];
+  if (!table.columns || table.columns.length === 0) return null;
+  const itemColumn = table.columns.find(isItemNameColumn) ?? table.columns[0];
+  if (!itemColumn?.id) return null;
+  return `${table.id}:row0:${itemColumn.id}`;
+};
 
 export async function previewPdf(template: TemplateDefinition) {
   const tenantContext = getTenantContext();
@@ -45,13 +62,15 @@ export async function previewPdf(template: TemplateDefinition) {
           elementId: string;
           rectTopY: number;
         }>;
-        const page = getPageDimensions(template.pageSize, template.orientation);
+        const tableDebugCellId = resolveTableDebugCellId(template);
+        const targetIds = new Set(DBG_TEXT_TARGETS);
+        if (tableDebugCellId) targetIds.add(tableDebugCellId);
         const canvasTopById = (window as any).__DBG_CANVAS_TOP__ ?? {};
         for (const entry of entries) {
-          if (!DBG_TEXT_TARGETS.has(entry.elementId)) continue;
+          if (!targetIds.has(entry.elementId)) continue;
           const canvasTop = canvasTopById[entry.elementId];
           if (typeof canvasTop !== 'number') continue;
-          const pdfTop = page.height - entry.rectTopY;
+          const pdfTop = TABLE_DEBUG_PDF_TOP - entry.rectTopY;
           const diffPx = canvasTop - pdfTop;
           console.log('[DBG_TEXT_DIFF]', {
             elementId: entry.elementId,

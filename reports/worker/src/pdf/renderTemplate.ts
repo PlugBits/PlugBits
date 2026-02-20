@@ -3100,6 +3100,35 @@ function drawTable(
   const missingFieldCodes = new Set<string>();
   let invalidRowWarnCount = 0;
   let pageRowCount = 0;
+  const emitTableCellBaseline = (
+    elementId: string,
+    rectTopY: number,
+    rectBottomY: number,
+    fontSize: number,
+    computedDrawY: number,
+    font: PDFFont,
+  ) => {
+    if (!debugEnabled) return;
+    const fontAny = font as unknown as {
+      ascentAtSize?: (size: number) => number;
+      descentAtSize?: (size: number) => number;
+    };
+    const ascent =
+      typeof fontAny.ascentAtSize === 'function' ? fontAny.ascentAtSize(fontSize) : null;
+    const descent =
+      typeof fontAny.descentAtSize === 'function' ? fontAny.descentAtSize(fontSize) : null;
+    const entry = {
+      elementId,
+      rectTopY,
+      rectBottomY,
+      fontSize,
+      ascent,
+      descent,
+      computedDrawY,
+    };
+    console.log('[DBG_TEXT_BASELINE]', entry);
+    onTextBaseline?.(entry);
+  };
 
   const emitSubtotalIfNeeded = () => {
     if (summaryMode !== 'everyPageSubtotal+lastTotal') return;
@@ -3319,11 +3348,25 @@ function drawTable(
       const cellText = cellTextRaw.replace(/\n/g, '');
       const align = resolveColumnAlign(spec, cellText);
       const minFontSize = spec.minFontSize * transform.scaleY;
+      const shouldLogTableCell = debugEnabled && i === 0 && spec.isItemName;
+      const tableCellElementId = `${element.id}:row0:${columnId}`;
+      const rectTopY = rowYBottom + effectiveRowHeight;
+      const rectBottomY = rowYBottom;
 
       if (spec.overflow === 'wrap' && maxCellWidth > 0) {
         const maxLinesByHeight = Math.floor((effectiveRowHeight - paddingY * 2) / lineHeight);
         const lines = linesToDraw.slice(0, Math.max(0, maxLinesByHeight));
         const yStart = rowYBottom + effectiveRowHeight - paddingY - lineHeight;
+        if (shouldLogTableCell && lines.length > 0) {
+          emitTableCellBaseline(
+            tableCellElementId,
+            rectTopY,
+            rectBottomY,
+            baseFontSize,
+            yStart,
+            fontForCell,
+          );
+        }
         for (let idx = 0; idx < lines.length; idx += 1) {
           const line = lines[idx];
           const lineWidth = fontForCell.widthOfTextAtSize(line, baseFontSize);
@@ -3333,71 +3376,112 @@ function drawTable(
               : align === 'center'
               ? currentX + (colWidth - lineWidth) / 2
               : currentX + paddingLeft;
-            safeDrawText(
-              currentPage,
-              line,
-              {
-                x,
-                y: yStart - idx * lineHeight,
-                size: baseFontSize,
-                font: fontForCell,
-                color: rgb(0, 0, 0),
-              },
-              warn,
-              { tableId: element.id, columnId, fieldCode },
-            );
-          }
-        } else if (spec.overflow === 'ellipsis') {
-          const clipped = ellipsisTextToWidth(cellText, fontForCell, baseFontSize, maxCellWidth);
-          drawAlignedText(
+          safeDrawText(
             currentPage,
-            clipped,
-            fontForCell,
-            baseFontSize,
-            currentX,
-            rowYBottom,
-            colWidth,
-            effectiveRowHeight,
-            align,
-            paddingLeft,
-            warn,
-            { tableId: element.id, columnId, fieldCode },
-          );
-        } else if (spec.overflow === 'clip') {
-          drawAlignedText(
-            currentPage,
-            cellText,
-            fontForCell,
-            baseFontSize,
-            currentX,
-            rowYBottom,
-            colWidth,
-            effectiveRowHeight,
-            align,
-            paddingLeft,
-            warn,
-            { tableId: element.id, columnId, fieldCode },
-          );
-        } else {
-          drawCellText(
-            currentPage,
-            cellText,
-            fontForCell,
-            baseFontSize,
-            currentX,
-            rowYBottom,
-            colWidth,
-            effectiveRowHeight,
-            align,
-            paddingLeft,
-            paddingY,
-            minFontSize,
-            'middle',
-            rgb(0, 0, 0),
+            line,
+            {
+              x,
+              y: yStart - idx * lineHeight,
+              size: baseFontSize,
+              font: fontForCell,
+              color: rgb(0, 0, 0),
+            },
             warn,
             { tableId: element.id, columnId, fieldCode },
           );
         }
+      } else if (spec.overflow === 'ellipsis') {
+        const clipped = ellipsisTextToWidth(cellText, fontForCell, baseFontSize, maxCellWidth);
+        if (shouldLogTableCell && clipped) {
+          const drawY = rowYBottom + effectiveRowHeight / 2 - baseFontSize / 2;
+          emitTableCellBaseline(
+            tableCellElementId,
+            rectTopY,
+            rectBottomY,
+            baseFontSize,
+            drawY,
+            fontForCell,
+          );
+        }
+        drawAlignedText(
+          currentPage,
+          clipped,
+          fontForCell,
+          baseFontSize,
+          currentX,
+          rowYBottom,
+          colWidth,
+          effectiveRowHeight,
+          align,
+          paddingLeft,
+          warn,
+          { tableId: element.id, columnId, fieldCode },
+        );
+      } else if (spec.overflow === 'clip') {
+        if (shouldLogTableCell && cellText) {
+          const drawY = rowYBottom + effectiveRowHeight / 2 - baseFontSize / 2;
+          emitTableCellBaseline(
+            tableCellElementId,
+            rectTopY,
+            rectBottomY,
+            baseFontSize,
+            drawY,
+            fontForCell,
+          );
+        }
+        drawAlignedText(
+          currentPage,
+          cellText,
+          fontForCell,
+          baseFontSize,
+          currentX,
+          rowYBottom,
+          colWidth,
+          effectiveRowHeight,
+          align,
+          paddingLeft,
+          warn,
+          { tableId: element.id, columnId, fieldCode },
+        );
+      } else {
+        if (shouldLogTableCell && cellText) {
+          const availableW = Math.max(0, colWidth - paddingLeft * 2);
+          const shrinkFontSize = calcShrinkFontSize(
+            cellText,
+            fontForCell,
+            baseFontSize,
+            availableW,
+            minFontSize,
+          );
+          const drawY = rowYBottom + effectiveRowHeight / 2 - shrinkFontSize / 2;
+          emitTableCellBaseline(
+            tableCellElementId,
+            rectTopY,
+            rectBottomY,
+            shrinkFontSize,
+            drawY,
+            fontForCell,
+          );
+        }
+        drawCellText(
+          currentPage,
+          cellText,
+          fontForCell,
+          baseFontSize,
+          currentX,
+          rowYBottom,
+          colWidth,
+          effectiveRowHeight,
+          align,
+          paddingLeft,
+          paddingY,
+          minFontSize,
+          'middle',
+          rgb(0, 0, 0),
+          warn,
+          { tableId: element.id, columnId, fieldCode },
+        );
+      }
 
       currentX += colWidth;
     }
