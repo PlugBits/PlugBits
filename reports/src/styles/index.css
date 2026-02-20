@@ -454,6 +454,91 @@ button:disabled {
   margin-bottom: 10px;
 }
 
+.adminTunerRoot {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  margin: -2rem;
+  background: #f4f6fb;
+}
+
+.adminTunerHeader {
+  flex: 0 0 auto;
+  padding: 16px 24px;
+  border-bottom: 1px solid #e4e7ec;
+  background: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  position: sticky;
+  top: 0;
+  z-index: 5;
+}
+
+.adminTunerHeaderContent {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.adminTunerAlert {
+  margin: 0 24px;
+}
+
+.adminTunerBody {
+  flex: 1 1 auto;
+  display: grid;
+  grid-template-columns: minmax(520px, 1fr) 420px;
+  gap: 16px;
+  padding: 16px 24px;
+  overflow: hidden;
+}
+
+.adminTunerCanvas {
+  overflow: hidden;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+}
+
+.adminTunerPanel {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow: hidden;
+  min-height: 0;
+}
+
+.adminTunerPanelToolbar {
+  flex: 0 0 auto;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #e4e7ec;
+  background: #fff;
+}
+
+.adminTunerPanelScroll {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  padding-right: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+@media (max-width: 1024px) {
+  .adminTunerBody {
+    grid-template-columns: 1fr;
+  }
+  .adminTunerCanvas {
+    order: 1;
+  }
+  .adminTunerPanel {
+    order: 2;
+    max-height: 50vh;
+  }
+}
+
 .admin-tuner-issues {
   padding-left: 18px;
   color: #b42318;

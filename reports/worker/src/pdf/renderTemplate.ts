@@ -2,7 +2,6 @@ import { PDFDocument, rgb, StandardFonts, type PDFPage, type PDFFont } from 'pdf
 import fontkit from '@pdf-lib/fontkit';
 import qrcode from 'qrcode-generator';
 import {
-  CANVAS_HEIGHT,
   type TemplateDefinition,
   type TemplateElement,
   type TextElement,
@@ -13,11 +12,12 @@ import {
   type ImageElement,
   type TemplateDataRecord,
   type DataSource,
-  type PageSize,
   type LabelSheetSettings,
   type LabelMapping,
   resolveRegionBounds,
+  getPageDimensions,
 } from '../../../shared/template.js';
+import { buildPdfTransform, type PdfTransform } from '../../../shared/pdfTransform.js';
 import { computeDocumentMetaLayout, applyFrameToTextElement } from '../../../shared/documentMetaLayout.js';
 import type { PDFImage } from 'pdf-lib'; // 先頭の import に追加
 
@@ -257,6 +257,170 @@ const calcShrinkFontSize = (
   return Math.max(minFontSize, Math.min(baseSize, shrunk));
 };
 
+type DebugOverlayInfo = {
+  elementId: string;
+  canvas: { x: number; y: number; w: number; h: number };
+  pdf: { x: number; y: number; w: number; h: number };
+  raw: { x: number; y: number; w: number; h: number };
+  rawDrawY?: number;
+};
+
+const logDebugOverlayInfo = (
+  info: DebugOverlayInfo,
+  pageWidth: number,
+  pageHeight: number,
+  transform: PdfTransform,
+  pageSize?: string,
+) => {
+  console.debug('[renderTemplate] coord debug', {
+    elementId: info.elementId,
+    canvas: info.canvas,
+    pdfPage: { width: pageWidth, height: pageHeight },
+    pageSize: pageSize ?? null,
+    scale: { x: transform.scaleX, y: transform.scaleY },
+    pdf: info.pdf,
+    raw: info.raw,
+    rawDrawY: info.rawDrawY ?? null,
+  });
+};
+
+const drawDebugOverlay = (
+  page: PDFPage,
+  info: DebugOverlayInfo,
+  pageWidth: number,
+  pageHeight: number,
+) => {
+  page.drawRectangle({
+    x: 0,
+    y: 0,
+    width: pageWidth,
+    height: pageHeight,
+    borderColor: rgb(0.8, 0.1, 0.1),
+    borderWidth: 0.6,
+  });
+
+  page.drawRectangle({
+    x: info.pdf.x,
+    y: info.pdf.y,
+    width: info.pdf.w,
+    height: info.pdf.h,
+    borderColor: rgb(0.1, 0.6, 0.1),
+    borderWidth: 0.8,
+  });
+
+  page.drawRectangle({
+    x: info.raw.x,
+    y: info.raw.y,
+    width: info.raw.w,
+    height: info.raw.h,
+    borderColor: rgb(0.1, 0.2, 0.8),
+    borderWidth: 0.6,
+  });
+
+  const crossSize = 6;
+  page.drawLine({
+    start: { x: info.pdf.x - crossSize, y: info.pdf.y },
+    end: { x: info.pdf.x + crossSize, y: info.pdf.y },
+    thickness: 0.7,
+    color: rgb(0.1, 0.6, 0.1),
+  });
+  page.drawLine({
+    start: { x: info.pdf.x, y: info.pdf.y - crossSize },
+    end: { x: info.pdf.x, y: info.pdf.y + crossSize },
+    thickness: 0.7,
+    color: rgb(0.1, 0.6, 0.1),
+  });
+};
+
+const assertDebugOverlayInfo = (
+  info: DebugOverlayInfo,
+  pageWidth: number,
+  pageHeight: number,
+  warn: WarnFn,
+) => {
+  if (
+    info.pdf.x < 0 ||
+    info.pdf.x > pageWidth ||
+    info.pdf.y < -pageHeight ||
+    info.pdf.y > pageHeight
+  ) {
+    warn('layout', 'pdf coord out of range', {
+      elementId: info.elementId,
+      pdf: info.pdf,
+      page: { width: pageWidth, height: pageHeight },
+    });
+  }
+  if (Math.abs(info.pdf.y) < 1) {
+    warn('layout', 'pdf y near zero', {
+      elementId: info.elementId,
+      pdfY: info.pdf.y,
+    });
+  }
+  if (info.pdf.y < -pageHeight * 0.5) {
+    warn('layout', 'pdf y unusually negative', {
+      elementId: info.elementId,
+      pdfY: info.pdf.y,
+    });
+  }
+};
+
+const buildDebugOverlayInfoForText = (
+  element: TextElement,
+  data: TemplateDataRecord | undefined,
+  previewMode: PreviewMode,
+  fontScale: number,
+  pagePadding: number,
+  transform: PdfTransform,
+  jpFont: PDFFont,
+  latinFont: PDFFont,
+  warn: WarnFn,
+): DebugOverlayInfo => {
+  const fontSizeCanvas = (element.fontSize ?? 12) * fontScale;
+  const fontSize = fontSizeCanvas * transform.scaleY;
+  const lineHeight = fontSize * 1.2;
+  const lineHeightCanvas = fontSizeCanvas * 1.2;
+  const maxWidthCanvas = element.width ?? 200;
+  const maxWidth = transform.toPdfW(maxWidthCanvas);
+
+  const resolved = resolveDataSource(
+    element.dataSource,
+    data,
+    previewMode,
+    warn,
+    { elementId: element.id },
+  );
+  const text = resolved || element.text || '';
+  const fontToUse = pickFont(text, latinFont, jpFont);
+  const xCanvas = resolveAlignedX(element, transform.canvasWidth, maxWidthCanvas, pagePadding);
+  const yCanvas = typeof element.y === 'number' ? element.y : 0;
+
+  const lines = wrapTextToLines(text, fontToUse, fontSize, maxWidth);
+  const contentHeightCanvas = lineHeightCanvas * Math.max(1, lines.length);
+  const elementHeightCanvas = typeof element.height === 'number' ? element.height : 0;
+  const boxHeightCanvas = Math.max(elementHeightCanvas, contentHeightCanvas);
+  const boxHeight = transform.toPdfH(boxHeightCanvas);
+
+  const yBottom = clampPdfY(
+    transform.toPdfYBox(yCanvas, boxHeightCanvas),
+    transform.pageHeightPt,
+  );
+  let yStart = yBottom + boxHeight - lineHeight;
+  yStart = clampPdfY(yStart, transform.pageHeightPt - lineHeight);
+
+  return {
+    elementId: element.id,
+    canvas: { x: xCanvas, y: yCanvas, w: maxWidthCanvas, h: boxHeightCanvas },
+    pdf: { x: transform.toPdfX(xCanvas), y: yBottom, w: maxWidth, h: boxHeight },
+    raw: {
+      x: xCanvas * transform.scaleX,
+      y: yCanvas * transform.scaleY,
+      w: maxWidthCanvas * transform.scaleX,
+      h: boxHeightCanvas * transform.scaleY,
+    },
+    rawDrawY: yStart,
+  };
+};
+
 const drawCellText = (
   page: PDFPage,
   text: string,
@@ -267,13 +431,15 @@ const drawCellText = (
   cellW: number,
   cellH: number,
   align: 'left' | 'center' | 'right',
+  paddingX: number,
+  paddingY: number,
   minFontSize = MIN_FONT_SIZE,
   valign: 'top' | 'middle' = 'middle',
   color: ReturnType<typeof rgb> = rgb(0, 0, 0),
   warn?: WarnFn,
   context?: Record<string, unknown>,
 ) => {
-  const availableW = Math.max(0, cellW - CELL_PADDING_X * 2);
+  const availableW = Math.max(0, cellW - paddingX * 2);
   const fontSize = calcShrinkFontSize(
     text,
     font,
@@ -285,14 +451,14 @@ const drawCellText = (
 
   const x =
     align === 'right'
-      ? cellX + cellW - CELL_PADDING_X - textW
+      ? cellX + cellW - paddingX - textW
       : align === 'center'
       ? cellX + (cellW - textW) / 2
-      : cellX + CELL_PADDING_X;
+      : cellX + paddingX;
 
   const y =
     valign === 'top'
-      ? cellY + cellH - fontSize - 2
+      ? cellY + cellH - fontSize - paddingY
       : cellY + cellH / 2 - fontSize / 2;
 
   safeDrawText(page, text, { x, y, size: fontSize, font, color }, warn, context);
@@ -308,16 +474,17 @@ const drawAlignedText = (
   cellW: number,
   cellH: number,
   align: 'left' | 'center' | 'right',
+  paddingX: number,
   warn?: WarnFn,
   context?: Record<string, unknown>,
 ) => {
   const textW = font.widthOfTextAtSize(text, fontSize);
   const x =
     align === 'right'
-      ? cellX + cellW - CELL_PADDING_X - textW
+      ? cellX + cellW - paddingX - textW
       : align === 'center'
       ? cellX + (cellW - textW) / 2
-      : cellX + CELL_PADDING_X;
+      : cellX + paddingX;
   const y = cellY + cellH / 2 - fontSize / 2;
 
   safeDrawText(
@@ -607,24 +774,6 @@ async function preloadImages(
   return map;
 }
 
-/**
- * ページサイズ定義
- */
-const PAGE_DIMENSIONS: Record<
-  PageSize,
-  { portrait: [number, number]; landscape: [number, number] }
-> = {
-  A4: {
-    // ざっくり A4（もともとの値と同じくらい）
-    portrait: [595.28, 841.89],
-    landscape: [841.89, 595.28],
-  },
-  Letter: {
-    portrait: [612, 792],
-    landscape: [792, 612],
-  },
-};
-
 const MM_TO_PT = 72 / 25.4;
 const mmToPt = (mm: number) => mm * MM_TO_PT;
 
@@ -647,18 +796,8 @@ function getPageSize(template: TemplateDefinition): [number, number] {
     const sheet = template.sheetSettings ?? DEFAULT_LABEL_SHEET;
     return [mmToPt(sheet.paperWidthMm), mmToPt(sheet.paperHeightMm)];
   }
-  const dims = PAGE_DIMENSIONS[template.pageSize] ?? PAGE_DIMENSIONS.A4;
-  return template.orientation === 'landscape'
-    ? dims.landscape
-    : dims.portrait;
-}
-
-/**
- * UI の Y（bottom基準） → PDF の Y（bottom基準）に変換
- */
-function toPdfYFromBottom(uiBottomY: number, pageHeight: number): number {
-  const scale = pageHeight / CANVAS_HEIGHT;
-  return uiBottomY * scale;
+  const dims = getPageDimensions(template.pageSize, template.orientation);
+  return [dims.width, dims.height];
 }
 
 const clampPdfY = (pdfY: number, maxY: number) => {
@@ -742,6 +881,7 @@ export async function renderTemplateToPdf(
 ): Promise<{ bytes: Uint8Array; warnings: string[] }> {
   const warnings = new Set<string>();
   const debugEnabled = options?.debug === true;
+  const debugOverlayEnabled = debugEnabled;
   const previewMode: PreviewMode = options?.previewMode ?? 'record';
   const warn: WarnFn = (category, message, context) => {
     if (category === 'debug' && !debugEnabled) return;
@@ -764,6 +904,14 @@ export async function renderTemplateToPdf(
   }
 
   const [pageWidth, pageHeight] = getPageSize(template);
+  const canvasWidth = pageWidth;
+  const canvasHeight = pageHeight;
+  const transform = buildPdfTransform({
+    pageWidthPt: pageWidth,
+    pageHeightPt: pageHeight,
+    canvasWidth,
+    canvasHeight,
+  });
   const resolveAdjust = (element: TemplateElement) =>
     resolveEasyAdjustForElement(element, template);
   let renderData = data ? structuredClone(data) : undefined;
@@ -798,13 +946,24 @@ export async function renderTemplateToPdf(
     (e) => e.region === 'footer',
   );
 
+  if (debugEnabled) {
+    console.debug('[renderTemplate] canvas/pdf scales', {
+      pageWidth,
+      pageHeight,
+      canvasWidth,
+      canvasHeight,
+      scaleX: transform.scaleX,
+      scaleY: transform.scaleY,
+    });
+  }
+
   // それ以外（region 未指定 or 'header' 'body'）はヘッダー候補として扱う
   const headerCandidates = applyDocumentMetaLayout(
     nonBodyElements.filter(
       (e) => e.region !== 'footer',
     ),
     template,
-    pageWidth,
+    canvasWidth,
   );
   const isCompanySlot = (element: TemplateElement) => {
     const slotId = (element as any).slotId as string | undefined;
@@ -841,6 +1000,35 @@ export async function renderTemplateToPdf(
     return true;
   });
 
+  let debugOverlayInfo: DebugOverlayInfo | null = null;
+  if (debugOverlayEnabled) {
+    const debugTarget =
+      filteredHeaderCandidates.find(
+        (el) =>
+          (el as any).slotId === 'doc_title' ||
+          el.id === 'doc_title',
+      ) ??
+      filteredHeaderCandidates.find((el) => el.type === 'text');
+    if (debugTarget && debugTarget.type === 'text') {
+      const adjust = resolveAdjust(debugTarget);
+      if (!adjust.hidden) {
+        debugOverlayInfo = buildDebugOverlayInfoForText(
+          debugTarget,
+          renderData,
+          previewMode,
+          adjust.fontScale,
+          adjust.pagePadding,
+          transform,
+          jpFont,
+          latinFont,
+          warn,
+        );
+        logDebugOverlayInfo(debugOverlayInfo, pageWidth, pageHeight, transform, template.pageSize);
+        assertDebugOverlayInfo(debugOverlayInfo, pageWidth, pageHeight, warn);
+      }
+    }
+  }
+
   // ヘッダー：毎ページ出すもの（デフォルト）
   const repeatingHeaderElements = filteredHeaderCandidates.filter(
     (e) => e.repeatOnEveryPage !== false,
@@ -851,13 +1039,57 @@ export async function renderTemplateToPdf(
     (e) => e.repeatOnEveryPage === false,
   );
 
+  const resolveElementHeightForLayout = (el: TemplateElement) => {
+    if (el.type === 'table') {
+      const header = el.headerHeight ?? el.rowHeight ?? 18;
+      const rows = (el.rowHeight ?? 18) * 3;
+      return header + rows;
+    }
+    if (el.type === 'cardList') {
+      return el.cardHeight ?? 90;
+    }
+    if (typeof el.height === 'number') return el.height;
+    if (el.type === 'text' || el.type === 'label') {
+      const fontSize = ((el as any).fontSize ?? 12) * resolveAdjust(el).fontScale;
+      return fontSize * 1.2;
+    }
+    return 0;
+  };
   const resolveHeaderBottomY = (elements: TemplateElement[]) => {
     const candidates = elements.filter(
       (el) => !resolveAdjust(el).hidden && typeof el.y === 'number',
     );
     if (candidates.length === 0) return null;
-    return Math.min(...candidates.map((el) => el.y as number));
+    return Math.max(
+      ...candidates.map((el) => (el.y as number) + resolveElementHeightForLayout(el)),
+    );
   };
+
+  if (debugEnabled) {
+    const debugTargets = new Set(['doc_no_label', 'doc_no', 'issue_date', 'date_label']);
+    const docMetaDebug = template.elements
+      .filter((el) => {
+        const slotId = (el as any).slotId as string | undefined;
+        return debugTargets.has(el.id) || (slotId ? debugTargets.has(slotId) : false);
+      })
+      .map((el) => {
+        const height = resolveElementHeightForLayout(el);
+        const width = typeof (el as any).width === 'number' ? (el as any).width : undefined;
+        const pdfY = transform.toPdfYBox(el.y, height);
+        return {
+          id: el.id,
+          slotId: (el as any).slotId ?? null,
+          x: el.x,
+          yTop: el.y,
+          width: width ?? null,
+          height,
+          pdfY,
+        };
+      });
+    if (docMetaDebug.length > 0) {
+      console.debug('[renderTemplate] docMeta coords', docMetaDebug);
+    }
+  }
 
   // フッター：全ページに出すもの（デフォルト）
   const footerAllPages = footerElements.filter(
@@ -919,14 +1151,14 @@ export async function renderTemplateToPdf(
     return total + 10;
   })();
 
-  const bounds = resolveRegionBounds(template, CANVAS_HEIGHT);
-  const scale = pageHeight / CANVAS_HEIGHT;
-  const footerReserveFromBounds = (CANVAS_HEIGHT - bounds.footer.yTop) * scale;
+  const bounds = resolveRegionBounds(template, canvasHeight);
+  const footerReserveFromBounds = bounds.footer.yBottom - bounds.footer.yTop;
 
   // テンプレが明示的に footerReserveHeight を持っていればそっちを優先
-  const footerReserveHeight =
+  const footerReserveHeightCanvas =
     template.footerReserveHeight ??
     (template.regionBounds ? footerReserveFromBounds : estimatedFooterHeight ?? 0);
+  const footerReserveHeightPdf = transform.toPdfH(footerReserveHeightCanvas);
 
   const tableElements = template.elements.filter(
     (e): e is TableElement => e.type === 'table' && !(e as any).hidden,
@@ -968,15 +1200,15 @@ export async function renderTemplateToPdf(
   drawHeaderElements(
     page,
     [...repeatingHeaderElements, ...firstPageOnlyHeaderElements],
-    pageWidth,
-    pageHeight,
     renderData,
     previewMode,
     jpFont,
     latinFont,
     imageMap,
     resolveAdjust,
+    transform,
     warn,
+    debugEnabled,
   );
 
   // ボディ描画：cardList or table
@@ -988,17 +1220,16 @@ export async function renderTemplateToPdf(
     page = drawCardList(
       pdfDoc,
       page,
-      pageWidth,
-      pageHeight,
       cardListElementToRender,
       jpFont,
       latinFont,
       renderData,
       previewMode,
       repeatingHeaderElements,
-      footerReserveHeight,
+      footerReserveHeightPdf,
       imageMap,
       resolveAdjust,
+      transform,
       warn,
       cardListVariant,
     );
@@ -1011,17 +1242,16 @@ export async function renderTemplateToPdf(
     const tableY = tableElementToRender.y;
     const tableHeaderHeight =
       tableElementToRender.headerHeight ?? tableElementToRender.rowHeight ?? 18;
-    const tableHeaderTopY =
-      typeof tableY === 'number' ? tableY + tableHeaderHeight : null;
+    const tableHeaderTopY = typeof tableY === 'number' ? tableY : null;
     const gap =
       typeof tableHeaderTopY === 'number' && typeof headerBottomY === 'number'
-        ? headerBottomY - tableHeaderTopY
+        ? tableHeaderTopY - headerBottomY
         : null;
     const shouldAdjustTableY = template.structureType !== 'estimate_v1';
     const minGap = 16;
     const desiredTableY =
       shouldAdjustTableY && typeof headerBottomY === 'number'
-        ? headerBottomY - minGap - tableHeaderHeight
+        ? headerBottomY + minGap
         : null;
     const adjustedTableY =
       shouldAdjustTableY &&
@@ -1042,11 +1272,14 @@ export async function renderTemplateToPdf(
       headerBottomY,
       gap,
       adjustedTableY,
-      pdf: {
-        tableY: typeof tableY === 'number' ? toPdfYFromBottom(tableY, pageHeight) : null,
+        pdf: {
+        tableY:
+          typeof tableY === 'number'
+            ? transform.toPdfYBox(tableY, tableHeaderHeight)
+            : null,
         headerBottomY:
           typeof headerBottomY === 'number'
-            ? toPdfYFromBottom(headerBottomY, pageHeight)
+            ? transform.toPdfYBox(headerBottomY, 0)
             : null,
       },
     });
@@ -1065,8 +1298,6 @@ export async function renderTemplateToPdf(
     page = drawTable(
       pdfDoc,
       page,
-      pageWidth,
-      pageHeight,
       template.id,
       tableElementForRender,
       jpFont,
@@ -1074,9 +1305,10 @@ export async function renderTemplateToPdf(
       renderData,
       previewMode,
       repeatingHeaderElements,
-      footerReserveHeight,
+      footerReserveHeightPdf,
       imageMap,
       resolveAdjust,
+      transform,
       warn,
     );
   }
@@ -1098,15 +1330,15 @@ export async function renderTemplateToPdf(
     drawFooterElements(
       p,
       footerElementsForThisPage,
-      pageWidth,
-      pageHeight,
       renderData,
       previewMode,
       jpFont,
       latinFont,
       imageMap,
       resolveAdjust,
+      transform,
       warn,
+      debugEnabled,
     );
 
     // --- ページ番号 (1 / N) を中央下に描画 ---
@@ -1125,6 +1357,9 @@ export async function renderTemplateToPdf(
     }, warn, { elementId: 'page_number' });
   }
 
+  if (debugOverlayEnabled && debugOverlayInfo && pages[0]) {
+    drawDebugOverlay(pages[0], debugOverlayInfo, pageWidth, pageHeight);
+  }
 
   const bytes = await pdfDoc.save();
   const warningList = Array.from(warnings);
@@ -1383,28 +1618,38 @@ function drawLabel(
   element: LabelElement,
   jpFont: PDFFont,
   latinFont: PDFFont,
-  pageWidth: number,
-  pageHeight: number,
   fontScale: number,
   pagePadding: number,
+  transform: PdfTransform,
   warn?: WarnFn,
 ) {
-  const fontSize = (element.fontSize ?? 12) * fontScale;
+  const fontSizeCanvas = (element.fontSize ?? 12) * fontScale;
+  const fontSize = fontSizeCanvas * transform.scaleY;
   const text = element.text ?? '';
-  const maxWidth = element.width ?? 180;
+  const maxWidthCanvas = element.width ?? 180;
+  const maxWidth = transform.toPdfW(maxWidthCanvas);
   const maxLines = 99;
-  const boxHeight = element.height ?? fontSize * 1.2;
+  const lineHeight = fontSize * 1.2;
+  const lineHeightCanvas = fontSizeCanvas * 1.2;
   const fillGray = (element as any).fillGray as number | undefined;
-  const borderWidth = (element as any).borderWidth as number | undefined;
+  const borderWidthCanvas = (element as any).borderWidth as number | undefined;
   const borderColorGray = (element as any).borderColorGray as number | undefined;
   const fontToUse = pickFont(text, latinFont, jpFont);
-
-  let yStart = toPdfYFromBottom(element.y, pageHeight);
-  yStart = clampPdfY(yStart, pageHeight - fontSize - 2);
+  const strokeScale = Math.min(transform.scaleX, transform.scaleY);
 
   const lines = wrapTextToLines(text, fontToUse, fontSize, maxWidth);
-  const x = resolveAlignedX(element, pageWidth, maxWidth, pagePadding);
-  const yBottom = clampPdfY(toPdfYFromBottom(element.y, pageHeight), pageHeight);
+  const contentHeightCanvas = lineHeightCanvas * Math.max(1, lines.length);
+  const elementHeightCanvas = typeof element.height === 'number' ? element.height : 0;
+  const boxHeightCanvas = Math.max(elementHeightCanvas, contentHeightCanvas);
+  const boxHeight = transform.toPdfH(boxHeightCanvas);
+  const yBottom = clampPdfY(
+    transform.toPdfYBox(element.y, boxHeightCanvas),
+    transform.pageHeightPt,
+  );
+  let yStart = yBottom + boxHeight - lineHeight;
+  yStart = clampPdfY(yStart, transform.pageHeightPt - lineHeight);
+  const xCanvas = resolveAlignedX(element, transform.canvasWidth, maxWidthCanvas, pagePadding);
+  const x = transform.toPdfX(xCanvas);
   if (typeof fillGray === 'number') {
     page.drawRectangle({
       x,
@@ -1414,7 +1659,7 @@ function drawLabel(
       color: rgb(fillGray, fillGray, fillGray),
     });
   }
-  if (borderWidth && borderWidth > 0) {
+  if (borderWidthCanvas && borderWidthCanvas > 0) {
     const gray = typeof borderColorGray === 'number' ? borderColorGray : 0.6;
     page.drawRectangle({
       x,
@@ -1422,10 +1667,9 @@ function drawLabel(
       width: maxWidth,
       height: boxHeight,
       borderColor: rgb(gray, gray, gray),
-      borderWidth,
+      borderWidth: borderWidthCanvas * strokeScale,
     });
   }
-  const lineHeight = fontSize * 1.2;
   const align = (element as any).alignX as 'left' | 'center' | 'right' | undefined;
   drawMultilineText(
     page,
@@ -1454,20 +1698,22 @@ function drawText(
   element: TextElement,
   jpFont: PDFFont,
   latinFont: PDFFont,
-  pageWidth: number,
-  pageHeight: number,
   data: TemplateDataRecord | undefined,
   previewMode: PreviewMode,
   fontScale: number,
   pagePadding: number,
+  transform: PdfTransform,
   warn: WarnFn,
+  debugEnabled = false,
 ) {
-  const fontSize = (element.fontSize ?? 12) * fontScale;
+  const fontSizeCanvas = (element.fontSize ?? 12) * fontScale;
+  const fontSize = fontSizeCanvas * transform.scaleY;
   const lineHeight = fontSize * 1.2;
-  const maxWidth = element.width ?? 200;
-  const boxHeight = element.height ?? lineHeight;
+  const lineHeightCanvas = fontSizeCanvas * 1.2;
+  const maxWidthCanvas = element.width ?? 200;
+  const maxWidth = transform.toPdfW(maxWidthCanvas);
   const fillGray = (element as any).fillGray as number | undefined;
-  const borderWidth = (element as any).borderWidth as number | undefined;
+  const borderWidthCanvas = (element as any).borderWidth as number | undefined;
   const borderColorGray = (element as any).borderColorGray as number | undefined;
 
   const resolved = resolveDataSource(
@@ -1478,10 +1724,6 @@ function drawText(
     { elementId: element.id },
   );
   const text = resolved || element.text || '';
-  const maxLines = element.height ? Math.floor(element.height / lineHeight) : 99999;
-
-  let yStart = toPdfYFromBottom(element.y, pageHeight);
-  yStart = clampPdfY(yStart, pageHeight - fontSize - 2);
   const fontToUse = pickFont(text, latinFont, jpFont);
   const slotId = (element as any).slotId as string | undefined;
   const isLabelText =
@@ -1496,9 +1738,30 @@ function drawText(
     slotId === 'doc_no' ||
     slotId === 'date_label' ||
     slotId === 'issue_date';
-  const x = resolveAlignedX(element, pageWidth, maxWidth, pagePadding);
-  const yBottom = clampPdfY(toPdfYFromBottom(element.y, pageHeight), pageHeight);
+  const xCanvas = resolveAlignedX(element, transform.canvasWidth, maxWidthCanvas, pagePadding);
+  const x = transform.toPdfX(xCanvas);
+  const lines = wrapTextToLines(text, fontToUse, fontSize, maxWidth);
+  const contentHeightCanvas = lineHeightCanvas * Math.max(1, lines.length);
+  const elementHeightCanvas = typeof element.height === 'number' ? element.height : 0;
+  const boxHeightCanvas = Math.max(elementHeightCanvas, contentHeightCanvas);
+  const boxHeight = transform.toPdfH(boxHeightCanvas);
+  const maxLines = Math.max(1, Math.floor(boxHeight / lineHeight));
+  const yBottom = clampPdfY(
+    transform.toPdfYBox(element.y, boxHeightCanvas),
+    transform.pageHeightPt,
+  );
+  let yStart = yBottom + boxHeight - lineHeight;
+  yStart = clampPdfY(yStart, transform.pageHeightPt - lineHeight);
   const align = (element as any).alignX as 'left' | 'center' | 'right' | undefined;
+  if (debugEnabled && (element.id === 'doc_title' || slotId === 'doc_title')) {
+    console.debug(
+      `[DBG_TEXT_POS] id=${element.id} slotId=${slotId ?? ''} ` +
+        `canvas(x=${xCanvas},y=${element.y},w=${maxWidthCanvas},h=${boxHeightCanvas}) ` +
+        `page(w=${transform.pageWidthPt},h=${transform.pageHeightPt}) ` +
+        `rectPdf(x=${x},y=${yBottom}) drawText(x=${x},y=${yStart}) ` +
+        `fontSize=${fontSize} lineHeight=${lineHeight}`,
+    );
+  }
   if (typeof fillGray === 'number') {
     page.drawRectangle({
       x,
@@ -1508,15 +1771,16 @@ function drawText(
       color: rgb(fillGray, fillGray, fillGray),
     });
   }
-  if (borderWidth && borderWidth > 0) {
+  if (borderWidthCanvas && borderWidthCanvas > 0) {
     const gray = typeof borderColorGray === 'number' ? borderColorGray : 0.6;
+    const strokeScale = Math.min(transform.scaleX, transform.scaleY);
     page.drawRectangle({
       x,
       y: yBottom,
       width: maxWidth,
       height: boxHeight,
       borderColor: rgb(gray, gray, gray),
-      borderWidth,
+      borderWidth: borderWidthCanvas * strokeScale,
     });
   }
   if (isDocMeta) {
@@ -1551,7 +1815,6 @@ function drawText(
     return;
   }
 
-  const lines = wrapTextToLines(text, fontToUse, fontSize, maxWidth);
   drawMultilineText(
     page,
     lines,
@@ -1577,15 +1840,15 @@ function drawText(
 function drawHeaderElements(
   page: PDFPage,
   headerElements: TemplateElement[],
-  pageWidth: number,
-  pageHeight: number,
   data: TemplateDataRecord | undefined,
   previewMode: PreviewMode,
   jpFont: PDFFont,
   latinFont: PDFFont,
   imageMap: Map<string, PDFImage>,
   resolveAdjust: (element: TemplateElement) => { fontScale: number; pagePadding: number; hidden: boolean },
+  transform: PdfTransform,
   warn: WarnFn,
+  debugEnabled = false,
 ) {
   for (const element of headerElements) {
     const adjust = resolveAdjust(element);
@@ -1597,10 +1860,9 @@ function drawHeaderElements(
           element as LabelElement,
           jpFont,
           latinFont,
-          pageWidth,
-          pageHeight,
           adjust.fontScale,
           adjust.pagePadding,
+          transform,
           warn,
         );
         break;
@@ -1611,13 +1873,13 @@ function drawHeaderElements(
           element as TextElement,
           jpFont,
           latinFont,
-          pageWidth,
-          pageHeight,
           data,
           previewMode,
           adjust.fontScale,
           adjust.pagePadding,
+          transform,
           warn,
+          debugEnabled,
         );
         break;
 
@@ -1627,12 +1889,11 @@ function drawHeaderElements(
           element as ImageElement,
           jpFont,
           latinFont,
-          pageWidth,
-          pageHeight,
           data,
           previewMode,
           adjust.pagePadding,
           imageMap,
+          transform,
           warn,
         );
         break;
@@ -1658,15 +1919,15 @@ function drawHeaderElements(
 function drawFooterElements(
   page: PDFPage,
   footerElements: TemplateElement[],
-  pageWidth: number,
-  pageHeight: number,
   data: TemplateDataRecord | undefined,
   previewMode: PreviewMode,
   jpFont: PDFFont,
   latinFont: PDFFont,
   imageMap: Map<string, PDFImage>,
   resolveAdjust: (element: TemplateElement) => { fontScale: number; pagePadding: number; hidden: boolean },
+  transform: PdfTransform,
   warn: WarnFn,
+  debugEnabled = false,
 ) {
   for (const element of footerElements) {
     const adjust = resolveAdjust(element);
@@ -1678,10 +1939,9 @@ function drawFooterElements(
           element as LabelElement,
           jpFont,
           latinFont,
-          pageWidth,
-          pageHeight,
           adjust.fontScale,
           adjust.pagePadding,
+          transform,
           warn,
         );
         break;
@@ -1692,13 +1952,13 @@ function drawFooterElements(
           element as TextElement,
           jpFont,
           latinFont,
-          pageWidth,
-          pageHeight,
           data,
           previewMode,
           adjust.fontScale,
           adjust.pagePadding,
+          transform,
           warn,
+          debugEnabled,
         );
         break;
 
@@ -1708,12 +1968,11 @@ function drawFooterElements(
           element as ImageElement,
           jpFont,
           latinFont,
-          pageWidth,
-          pageHeight,
           data,
           previewMode,
           adjust.pagePadding,
           imageMap,
+          transform,
           warn,
         );
         break;
@@ -2220,8 +2479,6 @@ const drawLabelSheet = (
 function drawTable(
   pdfDoc: PDFDocument,
   page: PDFPage,
-  pageWidth: number,
-  pageHeight: number,
   templateId: string,
   element: TableElement,
   jpFont: PDFFont,
@@ -2232,23 +2489,31 @@ function drawTable(
   footerReserveHeight: number,
   imageMap: Map<string, PDFImage>,
   resolveAdjust: (element: TemplateElement) => { fontScale: number; pagePadding: number; hidden: boolean },
+  transform: PdfTransform,
   warn: WarnFn,
 ): PDFPage {
   let phase: 'header' | 'cell' | 'summary' = 'header';
   try {
-  const rowHeight = element.rowHeight ?? 18;
-  const headerHeight = element.headerHeight ?? rowHeight;
-  const baseFontSize = 10;
-  const lineGap = 2;
+  const pageWidth = transform.pageWidthPt;
+  const pageHeight = transform.pageHeightPt;
+  const rowHeightCanvas = element.rowHeight ?? 18;
+  const headerHeightCanvas = element.headerHeight ?? rowHeightCanvas;
+  const baseFontSize = 10 * transform.scaleY;
+  const lineGap = 2 * transform.scaleY;
   const lineHeight = baseFontSize + lineGap;
-  const paddingY = 4;
-  const paddingLeft = CELL_PADDING_X;
-  const paddingRight = CELL_PADDING_X;
-  const headerRowGap = Math.min(8, Math.max(4, Math.round(rowHeight * 0.3)));
+  const paddingY = 4 * transform.scaleY;
+  const paddingLeft = CELL_PADDING_X * transform.scaleX;
+  const paddingRight = CELL_PADDING_X * transform.scaleX;
+  const headerRowGapCanvas = Math.min(8, Math.max(4, Math.round(rowHeightCanvas * 0.3)));
+  const headerRowGap = transform.toPdfH(headerRowGapCanvas);
   const gridBorderGray = (element as any).borderColorGray ?? 0.85;
-  const gridBorderWidth = (element as any).borderWidth ?? 0.5;
+  const gridBorderWidthCanvas = (element as any).borderWidth ?? 0.5;
+  const strokeScale = Math.min(transform.scaleX, transform.scaleY);
+  const gridBorderWidth = gridBorderWidthCanvas * strokeScale;
 
-  const originX = element.x;
+  const rowHeight = transform.toPdfH(rowHeightCanvas);
+  const headerHeight = transform.toPdfH(headerHeightCanvas);
+  const originX = transform.toPdfX(element.x);
   const bottomMargin = footerReserveHeight + 40; // 下から40ptは余白
 
   // サブテーブル行
@@ -2309,7 +2574,8 @@ function drawTable(
   let fallbackGrandTotalValue = 0n;
   let fallbackGrandTotalScale = 0;
   const summaryRowHeight = Math.max(rowHeight, lineHeight + paddingY * 2);
-  const tableWidth = element.columns.reduce((sum, col) => sum + col.width, 0);
+  const columnWidths = element.columns.map((col) => transform.toPdfW(col.width));
+  const tableWidth = columnWidths.reduce((sum, width) => sum + width, 0);
   const summaryMode = summarySpec?.mode;
   const resolveSummaryKind = (row: SummaryRow) => row.kind ?? 'both';
   const shouldDrawSummaryKind = (row: SummaryRow, kind: 'subtotal' | 'total') => {
@@ -2326,8 +2592,8 @@ function drawTable(
   // テーブルヘッダー（列タイトル）を描画するヘルパー
   const drawTableHeaderRow = (targetPage: PDFPage, headerY: number) => {
     let currentX = originX;
-    for (const col of element.columns) {
-      const colWidth = col.width;
+    for (const [index, col] of element.columns.entries()) {
+      const colWidth = columnWidths[index] ?? transform.toPdfW(col.width);
 
       // 枠線
       targetPage.drawRectangle({
@@ -2345,7 +2611,7 @@ function drawTable(
         targetPage,
         col.title,
         {
-          x: currentX + 4,
+          x: currentX + paddingLeft,
           y: headerY + headerHeight / 2 - baseFontSize / 2,
           size: baseFontSize,
           font: headerFont,
@@ -2358,7 +2624,7 @@ function drawTable(
         targetPage,
         col.title,
         {
-          x: currentX + 4 + 0.4,
+          x: currentX + paddingLeft + 0.4 * strokeScale,
           y: headerY + headerHeight / 2 - baseFontSize / 2,
           size: baseFontSize,
           font: headerFont,
@@ -2375,7 +2641,10 @@ function drawTable(
   let currentPage = page;
   const minHeaderY = bottomMargin + headerRowGap + rowHeight;
   const getHeaderY = () =>
-    clampPdfY(toPdfYFromBottom(element.y, pageHeight), pageHeight - headerHeight);
+    clampPdfY(
+      transform.toPdfYBox(element.y, headerHeightCanvas),
+      pageHeight - headerHeight,
+    );
   let headerY = getHeaderY();
   let cursorY = headerY - headerRowGap;
 
@@ -2385,14 +2654,13 @@ function drawTable(
     drawHeaderElements(
       currentPage,
       headerElements,
-      pageWidth,
-      pageHeight,
       data,
       previewMode,
       jpFont,
       latinFont,
       imageMap,
       resolveAdjust,
+      transform,
       warn,
     );
 
@@ -2462,8 +2730,8 @@ function drawTable(
       });
     }
 
-    for (const col of element.columns) {
-      const colWidth = col.width;
+    for (const [colIndex, col] of element.columns.entries()) {
+      const colWidth = columnWidths[colIndex] ?? transform.toPdfW(col.width);
       const spec = normalizeColumnSpec(col);
       const cellText =
         col.id === labelColumn.id
@@ -2472,6 +2740,7 @@ function drawTable(
           ? sumText
           : '';
       const fontForCell = pickFont(cellText, latinFont, jpFont);
+      const minFontSize = spec.minFontSize * transform.scaleY;
 
       if (element.showGrid) {
         const borderGray = summaryStyle?.borderColorGray ?? gridBorderGray;
@@ -2505,6 +2774,7 @@ function drawTable(
             colWidth,
             summaryRowHeight,
             align,
+            paddingLeft,
             warn,
             { tableId: element.id, columnId: col.id },
           );
@@ -2519,7 +2789,9 @@ function drawTable(
             colWidth,
             summaryRowHeight,
             align,
-            spec.minFontSize,
+            paddingLeft,
+            paddingY,
+            minFontSize,
             'middle',
             rgb(0, 0, 0),
             warn,
@@ -2537,6 +2809,7 @@ function drawTable(
             colWidth,
             summaryRowHeight,
             align,
+            paddingLeft,
             warn,
             { tableId: element.id, columnId: col.id },
           );
@@ -2578,6 +2851,7 @@ function drawTable(
             colWidth,
             summaryRowHeight,
             align,
+            paddingLeft,
             warn,
             { tableId: element.id, columnId: col.id },
           );
@@ -2589,7 +2863,8 @@ function drawTable(
 
     if (summaryStyle && kind === 'total') {
       const borderGray = summaryStyle.borderColorGray ?? gridBorderGray;
-      const thickness = summaryStyle.totalTopBorderWidth ?? 1.5;
+      const thicknessCanvas = summaryStyle.totalTopBorderWidth ?? 1.5;
+      const thickness = thicknessCanvas * strokeScale;
       currentPage.drawLine({
         start: { x: originX, y: rowYBottom + summaryRowHeight },
         end: { x: originX + tableWidth, y: rowYBottom + summaryRowHeight },
@@ -2614,14 +2889,13 @@ function drawTable(
     drawHeaderElements(
       currentPage,
       headerElements,
-      pageWidth,
-      pageHeight,
       data,
       previewMode,
       jpFont,
       latinFont,
       imageMap,
       resolveAdjust,
+      transform,
       warn,
     );
 
@@ -2718,8 +2992,8 @@ function drawTable(
     }
 
 
-    const cells = element.columns.map((col) => {
-      const colWidth = col.width;
+    const cells = element.columns.map((col, colIndex) => {
+      const colWidth = columnWidths[colIndex] ?? transform.toPdfW(col.width);
       const maxCellWidth = Math.max(0, colWidth - (paddingLeft + paddingRight));
       const spec = normalizeColumnSpec(col);
       const rawVal = resolveFieldValue(
@@ -2793,14 +3067,13 @@ function drawTable(
         drawHeaderElements(
           currentPage,
           headerElements,
-          pageWidth,
-          pageHeight,
           data,
           previewMode,
           jpFont,
           latinFont,
           imageMap,
           resolveAdjust,
+          transform,
           warn,
         );
 
@@ -2831,14 +3104,13 @@ function drawTable(
       drawHeaderElements(
         currentPage,
         headerElements,
-        pageWidth,
-        pageHeight,
         data,
         previewMode,
         jpFont,
         latinFont,
         imageMap,
         resolveAdjust,
+        transform,
         warn,
       );
 
@@ -2886,6 +3158,7 @@ function drawTable(
 
       const cellText = cellTextRaw.replace(/\n/g, '');
       const align = resolveColumnAlign(spec, cellText);
+      const minFontSize = spec.minFontSize * transform.scaleY;
 
       if (spec.overflow === 'wrap' && maxCellWidth > 0) {
         const maxLinesByHeight = Math.floor((effectiveRowHeight - paddingY * 2) / lineHeight);
@@ -2926,6 +3199,7 @@ function drawTable(
             colWidth,
             effectiveRowHeight,
             align,
+            paddingLeft,
             warn,
             { tableId: element.id, columnId, fieldCode },
           );
@@ -2940,6 +3214,7 @@ function drawTable(
             colWidth,
             effectiveRowHeight,
             align,
+            paddingLeft,
             warn,
             { tableId: element.id, columnId, fieldCode },
           );
@@ -2954,7 +3229,9 @@ function drawTable(
             colWidth,
             effectiveRowHeight,
             align,
-            spec.minFontSize,
+            paddingLeft,
+            paddingY,
+            minFontSize,
             'middle',
             rgb(0, 0, 0),
             warn,
@@ -3124,8 +3401,6 @@ function drawTable(
 function drawCardList(
   pdfDoc: PDFDocument,
   page: PDFPage,
-  pageWidth: number,
-  pageHeight: number,
   element: CardListElement,
   jpFont: PDFFont,
   latinFont: PDFFont,
@@ -3135,29 +3410,41 @@ function drawCardList(
   footerReserveHeight: number,
   imageMap: Map<string, PDFImage>,
   resolveAdjust: (element: TemplateElement) => { fontScale: number; pagePadding: number; hidden: boolean },
+  transform: PdfTransform,
   warn: WarnFn,
   layoutVariant?: "compact_v2",
 ): PDFPage {
   const isCompactV2 = layoutVariant === "compact_v2";
-  const cardHeight = element.cardHeight ?? 86;
-  const gapY = element.gapY ?? 14;
-  const padding = element.padding ?? 12;
-  const borderWidth = element.borderWidth ?? 0;
+  const pageWidth = transform.pageWidthPt;
+  const pageHeight = transform.pageHeightPt;
+  const strokeScale = Math.min(transform.scaleX, transform.scaleY);
+  const cardHeightCanvas = element.cardHeight ?? 86;
+  const gapYCanvas = element.gapY ?? 14;
+  const paddingCanvas = element.padding ?? 12;
+  const borderWidthCanvas = element.borderWidth ?? 0;
   const borderGray = element.borderColorGray ?? 0.85;
   const fillGray = element.fillGray ?? 0.93;
-  const cornerRadius = element.cornerRadius ?? 8;
+  const cornerRadiusCanvas = element.cornerRadius ?? 8;
 
-  if (!Number.isFinite(cardHeight) || cardHeight <= 0) {
-    warn('layout', 'cardHeight is invalid', { id: element.id, cardHeight });
+  if (!Number.isFinite(cardHeightCanvas) || cardHeightCanvas <= 0) {
+    warn('layout', 'cardHeight is invalid', { id: element.id, cardHeight: cardHeightCanvas });
     return page;
   }
 
   const { pagePadding } = resolveAdjust(element);
   const cardWidthBase = element.width ?? 520;
-  const cardWidth = isCompactV2 ? 430 : cardWidthBase;
-  const originX = isCompactV2
-    ? Math.max(0, (pageWidth - cardWidth) / 2)
-    : resolveAlignedX(element, pageWidth, cardWidth, pagePadding);
+  const cardWidthCanvas = isCompactV2 ? 430 : cardWidthBase;
+  const originXCanvas = isCompactV2
+    ? Math.max(0, (transform.canvasWidth - cardWidthCanvas) / 2)
+    : resolveAlignedX(element, transform.canvasWidth, cardWidthCanvas, pagePadding);
+  const cardWidth = transform.toPdfW(cardWidthCanvas);
+  const cardHeight = transform.toPdfH(cardHeightCanvas);
+  const gapY = transform.toPdfH(gapYCanvas);
+  const paddingX = transform.toPdfW(paddingCanvas);
+  const paddingY = transform.toPdfH(paddingCanvas);
+  const borderWidth = borderWidthCanvas * strokeScale;
+  const cornerRadius = cornerRadiusCanvas * strokeScale;
+  const originX = transform.toPdfX(originXCanvas);
   const bottomMargin = footerReserveHeight + 40;
 
   const rawRows =
@@ -3207,9 +3494,12 @@ function drawCardList(
     warn('data', 'cardList rows empty; using placeholder rows', { id: element.id });
   }
 
-  const startTopY = clampPdfY(toPdfYFromBottom(element.y, pageHeight), pageHeight - 5);
-  const innerWidth = Math.max(0, cardWidth - padding * 2);
-  const innerHeight = Math.max(0, cardHeight - padding * 2);
+  const startTopY = clampPdfY(
+    transform.toPdfTop(element.y, cardHeightCanvas),
+    pageHeight - 5,
+  );
+  const innerWidth = Math.max(0, cardWidth - paddingX * 2);
+  const innerHeight = Math.max(0, cardHeight - paddingY * 2);
   const leftWidth = Math.round(innerWidth * 0.72);
   const rightWidth = Math.max(0, innerWidth - leftWidth);
   const compactLeftWidth = Math.round(innerWidth * 0.55);
@@ -3243,6 +3533,7 @@ function drawCardList(
 
   const hasValue = (value: unknown) =>
     value === 0 ? true : !!String(value ?? '').trim();
+  const cellPaddingY = 2 * transform.scaleY;
 
   const drawFieldText = (
     targetPage: PDFPage,
@@ -3297,6 +3588,7 @@ function drawCardList(
     }
 
     const align = resolveColumnAlign(spec, text);
+    const minFontSize = spec.minFontSize * transform.scaleY;
     drawCellText(
       targetPage,
       text,
@@ -3307,7 +3599,9 @@ function drawCardList(
       box.w,
       box.h,
       align,
-      spec.minFontSize,
+      paddingX,
+      cellPaddingY,
+      minFontSize,
       'top',
       textColor,
       warn,
@@ -3329,14 +3623,13 @@ function drawCardList(
     drawHeaderElements(
       currentPage,
       headerElements,
-      pageWidth,
-      pageHeight,
       data,
       previewMode,
       jpFont,
       latinFont,
       imageMap,
       resolveAdjust,
+      transform,
       warn,
     );
     cardTopY = startTopY;
@@ -3361,7 +3654,7 @@ function drawCardList(
     ensureCardSpace();
 
     if (!isCompactV2) {
-      const shadowOffset = 3;
+      const shadowOffset = 3 * strokeScale;
       const shadowOptions: any = {
         x: originX + shadowOffset,
         y: cardTopY - cardHeight - shadowOffset,
@@ -3389,8 +3682,8 @@ function drawCardList(
     }
     currentPage.drawRectangle(rectOptions);
 
-    const innerLeft = originX + padding;
-    const innerTop = cardTopY - padding;
+    const innerLeft = originX + paddingX;
+    const innerTop = cardTopY - paddingY;
     const mode = isCompactV2
       ? activeCompactIds.length === 1
         ? 'single'
@@ -3421,7 +3714,7 @@ function drawCardList(
           const textColor = isPlaceholderRow ? rgb(0.35, 0.35, 0.35) : rgb(0, 0, 0);
           const font = pickFont(text, latinFont, jpFont);
           if (isCompactV2) {
-            const fontSize = 14;
+            const fontSize = 14 * transform.scaleY;
             const lineHeight = fontSize * 1.28;
             const maxLines = Math.min(2, Math.max(1, Math.floor(innerHeight / lineHeight)));
             const blockHeight = maxLines * lineHeight;
@@ -3441,7 +3734,7 @@ function drawCardList(
             drawMultilineText(
               currentPage,
               lines,
-              innerLeft + 0.3,
+              innerLeft + 0.3 * strokeScale,
               startY,
               font,
               fontSize,
@@ -3450,7 +3743,7 @@ function drawCardList(
               lineHeight,
             );
           } else {
-            const fontSize = 16;
+            const fontSize = 16 * transform.scaleY;
             const lineHeight = fontSize * 1.3;
             const maxLines = Math.max(1, Math.floor(innerHeight / lineHeight));
             const lines = wrapTextToLines(text, font, fontSize, innerWidth);
@@ -3458,7 +3751,7 @@ function drawCardList(
               currentPage,
               lines,
               innerLeft,
-              cardTopY - padding - 10,
+              cardTopY - paddingY - 10 * transform.scaleY,
               font,
               fontSize,
               textColor,
@@ -3468,8 +3761,8 @@ function drawCardList(
             drawMultilineText(
               currentPage,
               lines,
-              innerLeft + 0.35,
-              cardTopY - padding - 10,
+              innerLeft + 0.35 * strokeScale,
+              cardTopY - paddingY - 10 * transform.scaleY,
               font,
               fontSize,
               textColor,
@@ -3506,7 +3799,7 @@ function drawCardList(
         const subColor = isPlaceholderRow ? rgb(0.4, 0.4, 0.4) : rgb(0.25, 0.25, 0.25);
 
         if (titleText) {
-          const titleFontSize = 13;
+          const titleFontSize = 13 * transform.scaleY;
           const titleLineHeight = titleFontSize * 1.25;
           const titleFont = pickFont(titleText, latinFont, jpFont);
           const lines = wrapTextToLines(titleText, titleFont, titleFontSize, innerWidth);
@@ -3514,7 +3807,7 @@ function drawCardList(
             currentPage,
             lines,
             innerLeft,
-            innerTop - 2,
+            innerTop - 2 * transform.scaleY,
             titleFont,
             titleFontSize,
             titleColor,
@@ -3524,8 +3817,8 @@ function drawCardList(
           drawMultilineText(
             currentPage,
             lines,
-            innerLeft + 0.3,
-            innerTop - 2,
+            innerLeft + 0.3 * strokeScale,
+            innerTop - 2 * transform.scaleY,
             titleFont,
             titleFontSize,
             titleColor,
@@ -3534,8 +3827,8 @@ function drawCardList(
           );
         }
 
-        const innerBottom = cardTopY - cardHeight + padding;
-        const subRowHeight = 12;
+        const innerBottom = cardTopY - cardHeight + paddingY;
+        const subRowHeight = 12 * transform.scaleY;
         if (subFieldId) {
           const { field, spec } = getFieldSpec(subFieldId);
           const fieldCode = field?.fieldCode;
@@ -3552,17 +3845,20 @@ function drawCardList(
             });
             if (text) {
               const font = pickFont(text, latinFont, jpFont);
+              const minFontSize = spec.minFontSize * transform.scaleY;
               drawCellText(
                 currentPage,
                 text,
                 font,
-                9,
+                9 * transform.scaleY,
                 innerLeft,
                 innerBottom,
                 compactLeftWidth,
                 subRowHeight,
                 "left",
-                MIN_FONT_SIZE,
+                paddingX,
+                cellPaddingY,
+                minFontSize,
                 "top",
                 subColor,
               );
@@ -3587,17 +3883,20 @@ function drawCardList(
           if (!text) return;
           const font = pickFont(text, latinFont, jpFont);
           const align = resolveColumnAlign(spec, text);
+          const minFontSize = spec.minFontSize * transform.scaleY;
           drawCellText(
             currentPage,
             text,
             font,
-            10,
+            10 * transform.scaleY,
             x,
             innerBottom,
             width,
             subRowHeight,
             align,
-            MIN_FONT_SIZE,
+            paddingX,
+            cellPaddingY,
+            minFontSize,
             "top",
             subColor,
           );
@@ -3624,18 +3923,18 @@ function drawCardList(
           );
           return hasValue(rawVal);
         });
-        const titleHeight = Math.max(24, Math.round(innerHeight * 0.6));
-        const lineGap = 4;
+        const titleHeight = Math.max(24 * transform.scaleY, Math.round(innerHeight * 0.6));
+        const lineGap = 4 * transform.scaleY;
         const secondaryArea = Math.max(0, innerHeight - titleHeight - lineGap);
         const secondaryCount = Math.max(1, presentSecondary.length);
-        const blockHeight = Math.max(12, Math.floor(secondaryArea / secondaryCount));
+        const blockHeight = Math.max(12 * transform.scaleY, Math.floor(secondaryArea / secondaryCount));
 
         drawFieldText(
           currentPage,
           row as Record<string, unknown>,
           titleFieldId,
           { x: innerLeft, y: innerTop - titleHeight, w: leftWidth, h: titleHeight },
-          14,
+          14 * transform.scaleY,
         );
 
         let rightY = innerTop - titleHeight - lineGap;
@@ -3645,7 +3944,7 @@ function drawCardList(
             row as Record<string, unknown>,
             fieldId,
             { x: innerLeft + leftWidth, y: rightY - blockHeight, w: rightWidth, h: blockHeight },
-            10,
+            10 * transform.scaleY,
           );
           rightY -= blockHeight + lineGap;
         }
@@ -3664,42 +3963,42 @@ function drawCardList(
         row as Record<string, unknown>,
         'fieldA',
         { x: innerLeft, y: topRowBottom, w: leftWidth, h: topHeight },
-        14,
+        14 * transform.scaleY,
       );
       drawFieldText(
         currentPage,
         row as Record<string, unknown>,
         'fieldB',
         { x: innerLeft + leftWidth, y: topRowBottom, w: rightWidth, h: topHeight },
-        10,
+        10 * transform.scaleY,
       );
       drawFieldText(
         currentPage,
         row as Record<string, unknown>,
         'fieldC',
         { x: innerLeft, y: midRowBottom, w: leftWidth, h: midHeight },
-        10,
+        10 * transform.scaleY,
       );
       drawFieldText(
         currentPage,
         row as Record<string, unknown>,
         'fieldD',
         { x: innerLeft + leftWidth, y: midRowBottom, w: rightWidth, h: midHeight },
-        10,
+        10 * transform.scaleY,
       );
       drawFieldText(
         currentPage,
         row as Record<string, unknown>,
         'fieldE',
         { x: innerLeft, y: bottomRowBottom, w: leftWidth, h: bottomHeight },
-        9,
+        9 * transform.scaleY,
       );
       drawFieldText(
         currentPage,
         row as Record<string, unknown>,
         'fieldF',
         { x: innerLeft + leftWidth, y: bottomRowBottom, w: rightWidth, h: bottomHeight },
-        9,
+        9 * transform.scaleY,
       );
     }
 
@@ -3714,12 +4013,11 @@ function drawImageElement(
   element: ImageElement,
   jpFont: PDFFont,
   latinFont: PDFFont,
-  pageWidth: number,
-  pageHeight: number,
   data: TemplateDataRecord | undefined,
   previewMode: PreviewMode,
   pagePadding: number,
   imageMap: Map<string, PDFImage>,
+  transform: PdfTransform,
   warn: WarnFn,
 ) {
   const slotId = (element as any).slotId as string | undefined;
@@ -3745,9 +4043,8 @@ function drawImageElement(
       element,
       jpFont,
       latinFont,
-      pageWidth,
-      pageHeight,
       pagePadding,
+      transform,
       fieldCode,
       warn,
     );
@@ -3762,20 +4059,24 @@ function drawImageElement(
     { elementId: element.id },
   );
   if (!url || !isHttpUrl(url)) {
-    drawImagePlaceholder(page, element, jpFont, latinFont, pageWidth, pageHeight, pagePadding, warn);
+    drawImagePlaceholder(page, element, jpFont, latinFont, pagePadding, transform, warn);
     return;
   }
 
   const embedded = imageMap.get(url);
   if (!embedded) {
-    drawImagePlaceholder(page, element, jpFont, latinFont, pageWidth, pageHeight, pagePadding, warn);
+    drawImagePlaceholder(page, element, jpFont, latinFont, pagePadding, transform, warn);
     return;
   }
 
-  const width = element.width ?? embedded.width;
-  const height = element.height ?? embedded.height;
-  let pdfY = toPdfYFromBottom(element.y, pageHeight);
-  pdfY = clampPdfY(pdfY, pageHeight - height);
+  const widthCanvas =
+    typeof element.width === 'number' ? element.width : embedded.width / transform.scaleX;
+  const heightCanvas =
+    typeof element.height === 'number' ? element.height : embedded.height / transform.scaleY;
+  const width = transform.toPdfW(widthCanvas);
+  const height = transform.toPdfH(heightCanvas);
+  let pdfY = transform.toPdfYBox(element.y, heightCanvas);
+  pdfY = clampPdfY(pdfY, transform.pageHeightPt - height);
 
   const { width: imgW, height: imgH } = embedded.size();
   const fitMode = element.fitMode ?? 'fit';
@@ -3789,7 +4090,8 @@ function drawImageElement(
     drawHeight = imgH * scale;
   }
 
-  const drawX = resolveAlignedX(element, pageWidth, width, pagePadding);
+  const drawXCanvas = resolveAlignedX(element, transform.canvasWidth, widthCanvas, pagePadding);
+  const drawX = transform.toPdfX(drawXCanvas);
 
   page.drawImage(embedded, {
     x: drawX,
@@ -3809,18 +4111,21 @@ function drawImagePlaceholder(
   element: ImageElement,
   jpFont: PDFFont,
   latinFont: PDFFont,
-  pageWidth: number,
-  pageHeight: number,
   pagePadding: number,
+  transform: PdfTransform,
   warn?: WarnFn,
 ) {
-  const width = element.width ?? 120;
-  const height = element.height ?? 80;
+  const widthCanvas = element.width ?? 120;
+  const heightCanvas = element.height ?? 80;
+  const width = transform.toPdfW(widthCanvas);
+  const height = transform.toPdfH(heightCanvas);
+  const strokeScale = Math.min(transform.scaleX, transform.scaleY);
 
-  let pdfY = toPdfYFromBottom(element.y, pageHeight);
-  pdfY = clampPdfY(pdfY, pageHeight - height);
+  let pdfY = transform.toPdfYBox(element.y, heightCanvas);
+  pdfY = clampPdfY(pdfY, transform.pageHeightPt - height);
 
-  const drawX = resolveAlignedX(element, pageWidth, width, pagePadding);
+  const drawXCanvas = resolveAlignedX(element, transform.canvasWidth, widthCanvas, pagePadding);
+  const drawX = transform.toPdfX(drawXCanvas);
 
   page.drawRectangle({
     x: drawX,
@@ -3828,18 +4133,19 @@ function drawImagePlaceholder(
     width,
     height,
     borderColor: rgb(0.5, 0.5, 0.5),
-    borderWidth: 1,
+    borderWidth: 1 * strokeScale,
   });
 
   const labelText = 'IMAGE';
   const labelFont = pickFont(labelText, latinFont, jpFont);
+  const labelSize = 10 * transform.scaleY;
   safeDrawText(
     page,
     labelText,
     {
-      x: drawX + 8,
-      y: pdfY + height / 2 - 6,
-      size: 10,
+      x: drawX + 8 * transform.scaleX,
+      y: pdfY + height / 2 - 6 * transform.scaleY,
+      size: labelSize,
       font: labelFont,
       color: rgb(0.4, 0.4, 0.4),
     },
@@ -3853,19 +4159,22 @@ function drawImagePlaceholderWithFieldCode(
   element: ImageElement,
   jpFont: PDFFont,
   latinFont: PDFFont,
-  pageWidth: number,
-  pageHeight: number,
   pagePadding: number,
+  transform: PdfTransform,
   fieldCode?: string,
   warn?: WarnFn,
 ) {
-  const width = element.width ?? 120;
-  const height = element.height ?? 80;
+  const widthCanvas = element.width ?? 120;
+  const heightCanvas = element.height ?? 80;
+  const width = transform.toPdfW(widthCanvas);
+  const height = transform.toPdfH(heightCanvas);
+  const strokeScale = Math.min(transform.scaleX, transform.scaleY);
 
-  let pdfY = toPdfYFromBottom(element.y, pageHeight);
-  pdfY = clampPdfY(pdfY, pageHeight - height);
+  let pdfY = transform.toPdfYBox(element.y, heightCanvas);
+  pdfY = clampPdfY(pdfY, transform.pageHeightPt - height);
 
-  const drawX = resolveAlignedX(element, pageWidth, width, pagePadding);
+  const drawXCanvas = resolveAlignedX(element, transform.canvasWidth, widthCanvas, pagePadding);
+  const drawX = transform.toPdfX(drawXCanvas);
 
   page.drawRectangle({
     x: drawX,
@@ -3873,22 +4182,24 @@ function drawImagePlaceholderWithFieldCode(
     width,
     height,
     borderColor: rgb(0.5, 0.5, 0.5),
-    borderWidth: 1,
+    borderWidth: 1 * strokeScale,
   });
 
   const centerX = drawX + width / 2;
   const centerY = pdfY + height / 2;
-  const lineHeight = 10;
+  const lineHeight = 10 * transform.scaleY;
 
   const labelText = 'IMAGE';
   const labelFont = pickFont(labelText, latinFont, jpFont);
+  const labelSize = 9 * transform.scaleY;
+  const labelOffsetX = 18 * transform.scaleX;
   safeDrawText(
     page,
     labelText,
     {
-      x: centerX - 18,
-      y: centerY + lineHeight / 2 - 4,
-      size: 9,
+      x: centerX - labelOffsetX,
+      y: centerY + lineHeight / 2 - 4 * transform.scaleY,
+      size: labelSize,
       font: labelFont,
       color: rgb(0.4, 0.4, 0.4),
     },
@@ -3898,13 +4209,15 @@ function drawImagePlaceholderWithFieldCode(
 
   if (fieldCode) {
     const codeFont = pickFont(fieldCode, latinFont, jpFont);
+    const codeSize = 8 * transform.scaleY;
+    const codeOffsetX = fieldCode.length * 2.5 * transform.scaleX;
     safeDrawText(
       page,
       fieldCode,
       {
-        x: centerX - fieldCode.length * 2.5,
-        y: centerY - lineHeight / 2 - 6,
-        size: 8,
+        x: centerX - codeOffsetX,
+        y: centerY - lineHeight / 2 - 6 * transform.scaleY,
+        size: codeSize,
         font: codeFont,
         color: rgb(0.4, 0.4, 0.4),
       },

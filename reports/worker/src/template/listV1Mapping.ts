@@ -37,17 +37,8 @@ export type ListV1Mapping = {
 };
 
 const CANVAS_HEIGHT = 842;
-const REGION_BOUNDS = {
-  header: { yMin: 660, yMax: CANVAS_HEIGHT },
-  body: { yMin: 180, yMax: 660 },
-  footer: { yMin: 0, yMax: 180 },
-} as const;
-
 const clamp = (v: number, min: number, max: number) => Math.min(Math.max(v, min), max);
-const clampYToRegion = (y: number, region: "header" | "body" | "footer") => {
-  const b = REGION_BOUNDS[region];
-  return clamp(y, b.yMin, b.yMax);
-};
+const clampYToRegion = (y: number) => clamp(y, 0, CANVAS_HEIGHT);
 
 let warnedMissingAmountColumn = false;
 const HEADER_SLOT_IDS = new Set([
@@ -273,21 +264,20 @@ export const applyListV1MappingToTemplate = (
     });
   }
 
-  const yFooter = (fromBottomPx: number) =>
-    clampYToRegion(fromBottomPx, "footer");
+  const yFooter = (yTop: number) => clampYToRegion(yTop);
 
   ensureSlotElement(
     "doc_title",
     "header",
     "text",
-    { x: 0, y: 790, fontSize: 24, fontWeight: "bold", width: 240, height: 32, alignX: "center" },
+    { x: 0, y: 20, fontSize: 24, fontWeight: "bold", width: 240, height: 32, alignX: "center" },
     headerRef["doc_title"],
   );
   ensureSlotElement(
     "to_name",
     "header",
     "text",
-    { x: 60, y: 720, fontSize: 12, fontWeight: "bold", width: 260, height: 20 },
+    { x: 60, y: 102, fontSize: 12, fontWeight: "bold", width: 260, height: 20 },
     headerRef["to_name"],
   );
   if (shouldShowHonorific) {
@@ -308,28 +298,28 @@ export const applyListV1MappingToTemplate = (
     "logo",
     "header",
     "image",
-    { x: 450, y: 780, width: 120, height: 60 },
+    { x: 450, y: 2, width: 120, height: 60 },
     headerRef["logo"],
   );
   ensureSlotElement(
     "date_label",
     "header",
     "text",
-    { x: 360, y: 730, fontSize: 10, width: 56, height: 16 },
+    { x: 360, y: 96, fontSize: 10, width: 56, height: 16 },
     headerRef["date_label"],
   );
   ensureSlotElement(
     "issue_date",
     "header",
     "text",
-    { x: 420, y: 730, fontSize: 10, width: 150, height: 16 },
+    { x: 420, y: 96, fontSize: 10, width: 150, height: 16 },
     headerRef["issue_date"],
   );
   ensureSlotElement(
     "doc_no",
     "header",
     "text",
-    { x: 360, y: 750, fontSize: 10, width: 220, height: 18 },
+    { x: 360, y: 74, fontSize: 10, width: 220, height: 18 },
     headerRef["doc_no"],
   );
 
@@ -337,35 +327,35 @@ export const applyListV1MappingToTemplate = (
     "subtotal",
     "footer",
     "text",
-    { x: 360, y: yFooter(150), fontSize: 10, width: 210, height: 20 },
+    { x: 360, y: yFooter(672), fontSize: 10, width: 210, height: 20 },
     footerRef["subtotal"],
   );
   ensureSlotElement(
     "tax",
     "footer",
     "text",
-    { x: 360, y: yFooter(130), fontSize: 10, width: 210, height: 20 },
+    { x: 360, y: yFooter(692), fontSize: 10, width: 210, height: 20 },
     footerRef["tax"],
   );
   ensureSlotElement(
     "total_label",
     "footer",
     "text",
-    { x: 300, y: yFooter(110), fontSize: 10, width: 80, height: 20 },
+    { x: 300, y: yFooter(712), fontSize: 10, width: 80, height: 20 },
     footerRef["total_label"],
   );
   ensureSlotElement(
     "total",
     "footer",
     "text",
-    { x: 360, y: yFooter(106), fontSize: 14, fontWeight: "bold", width: 210, height: 24 },
+    { x: 360, y: yFooter(712), fontSize: 14, fontWeight: "bold", width: 210, height: 24 },
     footerRef["total"],
   );
   ensureSlotElement(
     "remarks",
     "footer",
     "text",
-    { x: 50, y: yFooter(30), fontSize: 10, width: 520, height: 60 },
+    { x: 50, y: yFooter(752), fontSize: 10, width: 520, height: 60 },
     footerRef["remarks"],
   );
 
@@ -380,7 +370,7 @@ export const applyListV1MappingToTemplate = (
   const TABLE_ID = "items";
   const BASE_X = 50;
   const TOTAL_WIDTH = 520;
-  const BASE_Y = 680;
+  const BASE_Y = 144;
 
   const existingIdx = slotSyncedElements.findIndex((e) => e.id === TABLE_ID);
   const existing = existingIdx >= 0 ? (slotSyncedElements[existingIdx] as any) : null;

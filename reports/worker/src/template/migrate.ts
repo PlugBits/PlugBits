@@ -7,7 +7,9 @@ import {
   type CardListElement,
   type PageSize,
   type Orientation,
+  getPageDimensions,
 } from '../../../shared/template.js';
+import { normalizeTemplateForPageSize } from '../../../shared/convertPageSize.js';
 
 export type TemplateIssue = {
   level: 'warn' | 'error';
@@ -16,26 +18,87 @@ export type TemplateIssue = {
   path?: string;
 };
 
+type MigrateDebugOptions = {
+  enabled?: boolean;
+  requestId?: string;
+  reason?: string;
+  templateId?: string;
+};
+
 const PAGE_SIZES: PageSize[] = ['A4', 'Letter'];
 const ORIENTATIONS: Orientation[] = ['portrait', 'landscape'];
 const ESTIMATE_V1_PRESET_REV = 2;
 const ESTIMATE_V1_COMPANY_X = 360;
 const ESTIMATE_V1_COMPANY_WIDTH = 200;
 const ESTIMATE_V1_COMPANY_TARGETS = {
-  company_name: { y: 770, fontSize: 11, height: 14, fontWeight: 'bold' as const },
-  company_address: { y: 754, fontSize: 9, height: 12 },
-  company_tel: { y: 740, fontSize: 9, height: 12 },
-  company_email: { y: 726, fontSize: 9, height: 12 },
+  company_name: { y: 58, fontSize: 11, height: 14, fontWeight: 'bold' as const },
+  company_address: { y: 76, fontSize: 9, height: 12 },
+  company_tel: { y: 90, fontSize: 9, height: 12 },
+  company_email: { y: 104, fontSize: 9, height: 12 },
 } as const;
 const ESTIMATE_V1_COMPANY_LEGACY = {
-  company_name: { y: [700, 716] },
-  company_address: { y: [684, 704] },
-  company_tel: { y: [668, 692] },
-  company_email: { y: [652, 680] },
+  company_name: { y: [112, 128] },
+  company_address: { y: [126, 146] },
+  company_tel: { y: [138, 162] },
+  company_email: { y: [150, 178] },
 } as const;
 
 const isItemNameColumn = (col: TableColumn) =>
   col.id === 'item_name' || col.fieldCode === 'ItemName';
+
+const stableStringify = (value: unknown): string => {
+  const seen = new WeakSet<object>();
+  const stringify = (input: unknown): string => {
+    if (input === null || typeof input === 'number' || typeof input === 'boolean') {
+      return JSON.stringify(input);
+    }
+    if (typeof input === 'string') {
+      return JSON.stringify(input);
+    }
+    if (typeof input !== 'object') {
+      return 'null';
+    }
+    const obj = input as Record<string, unknown>;
+    if (seen.has(obj)) return '"[Circular]"';
+    seen.add(obj);
+    if (Array.isArray(obj)) {
+      const items = obj.map((item) => {
+        if (item === undefined || typeof item === 'function' || typeof item === 'symbol') {
+          return 'null';
+        }
+        return stringify(item);
+      });
+      return `[${items.join(',')}]`;
+    }
+    const keys = Object.keys(obj).sort();
+    const entries: string[] = [];
+    for (const key of keys) {
+      const val = obj[key];
+      if (val === undefined || typeof val === 'function' || typeof val === 'symbol') continue;
+      entries.push(`${JSON.stringify(key)}:${stringify(val)}`);
+    }
+    return `{${entries.join(',')}}`;
+  };
+  return stringify(value);
+};
+
+const hashStringFNV1a = (input: string): string => {
+  let hash = 0x811c9dc5;
+  for (let i = 0; i < input.length; i += 1) {
+    hash ^= input.charCodeAt(i);
+    hash = (hash * 0x01000193) >>> 0;
+  }
+  return hash.toString(16).padStart(8, '0');
+};
+
+const buildTemplateFingerprint = (template: TemplateDefinition) => {
+  const json = stableStringify(template);
+  return {
+    jsonLen: json.length,
+    elements: Array.isArray(template.elements) ? template.elements.length : 0,
+    hash: hashStringFNV1a(json),
+  };
+};
 
 export const applyEstimateV1PresetPatch = (
   template: TemplateDefinition,
@@ -130,47 +193,127 @@ export const applyEstimateV1PresetPatch = (
   };
 };
 
-export const migrateTemplate = (template: TemplateDefinition): TemplateDefinition => {
+export const migrateTemplate = (
+  inputTemplate: TemplateDefinition,
+  debug?: MigrateDebugOptions,
+): TemplateDefinition => {
+  const debugEnabled = debug?.enabled === true;
+  const before = debugEnabled ? buildTemplateFingerprint(inputTemplate) : null;
+  const templateId = debug?.templateId ?? inputTemplate.id ?? '';
   const MIN_TABLE_GAP = 16;
   const MAX_TABLE_GAP = 40;
   const FOOTER_LEGACY_TOLERANCE = 20;
   const HEADER_LEGACY_TOLERANCE = 20;
+  const clampNumber = (value: number, min: number, max: number) =>
+    Math.min(Math.max(value, min), max);
+  const resolveElementHeightForYMode = (element: TemplateElement) => {
+    if (typeof (element as any).height === 'number') return (element as any).height;
+    if (element.type === 'table') {
+      return (element as TableElement).headerHeight ?? (element as TableElement).rowHeight ?? 18;
+    }
+    if (element.type === 'cardList') {
+      return (element as CardListElement).cardHeight ?? 90;
+    }
+    if (element.type === 'text' || element.type === 'label') {
+      const fontSize = (element as any).fontSize ?? 12;
+      return fontSize * 1.2;
+    }
+    return 0;
+  };
+  const resolveTemplateHeight = (tpl: TemplateDefinition) => {
+    const pageSize = tpl.pageSize ?? 'A4';
+    const orientation = tpl.orientation ?? 'portrait';
+    return getPageDimensions(pageSize, orientation).height;
+  };
+  const convertRegionBoundsToTop = (
+    bounds: TemplateDefinition['regionBounds'],
+    pageHeight: number,
+  ) => {
+    if (!bounds) return bounds;
+    const convert = (b: { yTop: number; yBottom: number }) => {
+      const top = pageHeight - b.yBottom;
+      const bottom = pageHeight - b.yTop;
+      const yTop = clampNumber(Math.min(top, bottom), 0, pageHeight);
+      const yBottom = clampNumber(Math.max(top, bottom), 0, pageHeight);
+      return { yTop, yBottom };
+    };
+    return {
+      header: convert(bounds.header),
+      body: convert(bounds.body),
+      footer: convert(bounds.footer),
+    };
+  };
+  const convertTemplateToTopBased = (tpl: TemplateDefinition): TemplateDefinition => {
+    const pageHeight = resolveTemplateHeight(tpl);
+    const elements = Array.isArray(tpl.elements)
+      ? tpl.elements.map((el) => {
+          if (typeof el.y !== 'number') return el;
+          const height = resolveElementHeightForYMode(el);
+          const yTop = pageHeight - el.y - height;
+          return { ...el, y: yTop };
+        })
+      : tpl.elements;
+    const regionBounds = convertRegionBoundsToTop(tpl.regionBounds, pageHeight);
+    return {
+      ...tpl,
+      elements,
+      regionBounds,
+      settings: {
+        ...(tpl.settings ?? {}),
+        yMode: 'top',
+      },
+    };
+  };
+
+  let template = inputTemplate;
+  const rawYMode = template.settings?.yMode ?? 'bottom';
+  const needsYModeMigration = rawYMode !== 'top';
+  if (needsYModeMigration) {
+    template = convertTemplateToTopBased(template);
+  }
+  if (debugEnabled) {
+    console.debug(
+      `[DBG_MIGRATE] requestId=${debug?.requestId ?? ''} templateId=${templateId} ` +
+        `reason=${debug?.reason ?? ''} rawYMode=${rawYMode} didYMode=${needsYModeMigration} ` +
+        `beforeHash=${before?.hash ?? ''} beforeJsonLen=${before?.jsonLen ?? ''}`,
+    );
+  }
   const FOOTER_TARGETS = {
-    subtotal: { x: 360, y: 150, width: 210, height: 20, fontSize: 10 },
-    tax: { x: 360, y: 130, width: 210, height: 20, fontSize: 10 },
-    total_label: { x: 300, y: 110, width: 80, height: 20, fontSize: 10 },
-    total: { x: 360, y: 106, width: 210, height: 24, fontSize: 14, fontWeight: 'bold' },
-    remarks: { x: 50, y: 30, width: 520, height: 60, fontSize: 10 },
+    subtotal: { x: 360, y: 672, width: 210, height: 20, fontSize: 10 },
+    tax: { x: 360, y: 692, width: 210, height: 20, fontSize: 10 },
+    total_label: { x: 300, y: 712, width: 80, height: 20, fontSize: 10 },
+    total: { x: 360, y: 712, width: 210, height: 24, fontSize: 14, fontWeight: 'bold' },
+    remarks: { x: 50, y: 752, width: 520, height: 60, fontSize: 10 },
   } as const;
   const FOOTER_LEGACY = {
-    remarks: { x: 50, y: 60 },
-    total_label: { x: 300, y: 130 },
-    total: { x: 360, y: 126 },
+    remarks: { x: 50, y: 722 },
+    total_label: { x: 300, y: 692 },
+    total: { x: 360, y: 692 },
   } as const;
   const FOOTER_ORDER = ['subtotal', 'tax', 'total_label', 'total', 'remarks'] as const;
   const HEADER_TARGETS = {
     doc_title: {
       x: 0,
-      y: 790,
+      y: 20,
       width: 240,
       height: 32,
       fontSize: 24,
       fontWeight: 'bold',
       alignX: 'center',
     },
-    to_name: { x: 60, y: 720, width: 260, height: 20, fontSize: 12, fontWeight: 'bold' },
-    date_label: { x: 360, y: 730, width: 56, height: 16, fontSize: 10 },
-    issue_date: { x: 420, y: 730, width: 150, height: 16, fontSize: 10 },
-    doc_no: { x: 360, y: 750, width: 220, height: 18, fontSize: 10 },
-    logo: { x: 450, y: 780, width: 120, height: 60 },
+    to_name: { x: 60, y: 102, width: 260, height: 20, fontSize: 12, fontWeight: 'bold' },
+    date_label: { x: 360, y: 96, width: 56, height: 16, fontSize: 10 },
+    issue_date: { x: 420, y: 96, width: 150, height: 16, fontSize: 10 },
+    doc_no: { x: 360, y: 74, width: 220, height: 18, fontSize: 10 },
+    logo: { x: 450, y: 2, width: 120, height: 60 },
   } as const;
   const HEADER_LEGACY = {
-    doc_title: { x: 60, y: 780, width: 320 },
-    to_name: { x: 60, y: 720, width: 280 },
-    date_label: { x: 350, y: 720 },
-    issue_date: { x: 420, y: 720 },
-    doc_no: { x: 300, y: 752 },
-    logo: { x: 450, y: 752 },
+    doc_title: { x: 60, y: 30, width: 320 },
+    to_name: { x: 60, y: 102, width: 280 },
+    date_label: { x: 350, y: 106 },
+    issue_date: { x: 420, y: 106 },
+    doc_no: { x: 300, y: 72 },
+    logo: { x: 450, y: 30 },
   } as const;
   const schemaVersion = template.schemaVersion ?? 0;
   const baseTemplateId = template.baseTemplateId ?? template.id;
@@ -195,7 +338,9 @@ export const migrateTemplate = (template: TemplateDefinition): TemplateDefinitio
         typeof el.y === 'number',
     );
     if (candidates.length === 0) return null;
-    return Math.min(...candidates.map((el) => el.y as number));
+    return Math.max(
+      ...candidates.map((el) => (el.y as number) + resolveElementHeightForYMode(el)),
+    );
   };
   const resolveElementsBySlot = (
     elements: TemplateElement[],
@@ -241,9 +386,8 @@ export const migrateTemplate = (template: TemplateDefinition): TemplateDefinitio
         const table = el as TableElement;
         const y = table.y;
         if (typeof y !== 'number') return false;
-        const headerHeight = table.headerHeight ?? table.rowHeight ?? 18;
-        const tableHeaderTopY = y + headerHeight;
-        const gap = headerBottomY - tableHeaderTopY;
+        const tableHeaderTopY = y;
+        const gap = tableHeaderTopY - headerBottomY;
         return gap < MIN_TABLE_GAP || gap > MAX_TABLE_GAP;
       });
     })();
@@ -286,6 +430,7 @@ export const migrateTemplate = (template: TemplateDefinition): TemplateDefinitio
   const needsCardListMigration = nextStructureType === 'cards_v1' && !hasCardList;
 
   if (
+    !needsYModeMigration &&
     schemaVersion >= TEMPLATE_SCHEMA_VERSION &&
     !needsStructureUpdate &&
     !needsPageSizeUpdate &&
@@ -350,14 +495,13 @@ export const migrateTemplate = (template: TemplateDefinition): TemplateDefinitio
         const table = element as TableElement;
         const y = table.y;
         if (typeof y !== 'number') return element;
-        const headerHeight = table.headerHeight ?? table.rowHeight ?? 18;
-        const tableHeaderTopY = y + headerHeight;
-        const gap = headerBottomY - tableHeaderTopY;
+        const tableHeaderTopY = y;
+        const gap = tableHeaderTopY - headerBottomY;
         if (gap < MIN_TABLE_GAP) {
-          return { ...table, y: headerBottomY - MIN_TABLE_GAP - headerHeight };
+          return { ...table, y: headerBottomY + MIN_TABLE_GAP };
         }
         if (gap > MAX_TABLE_GAP) {
-          return { ...table, y: headerBottomY - MAX_TABLE_GAP - headerHeight };
+          return { ...table, y: headerBottomY + MAX_TABLE_GAP };
         }
         return element;
       });
@@ -436,7 +580,7 @@ export const migrateTemplate = (template: TemplateDefinition): TemplateDefinitio
           type: 'text',
           region: 'header',
           x: 360,
-          y: 716,
+          y: 112,
           width: 200,
           height: 14,
           fontSize: 10,
@@ -449,7 +593,7 @@ export const migrateTemplate = (template: TemplateDefinition): TemplateDefinitio
           type: 'text',
           region: 'header',
           x: 360,
-          y: 704,
+          y: 126,
           width: 200,
           height: 12,
           fontSize: 9,
@@ -461,7 +605,7 @@ export const migrateTemplate = (template: TemplateDefinition): TemplateDefinitio
           type: 'text',
           region: 'header',
           x: 360,
-          y: 692,
+          y: 138,
           width: 200,
           height: 12,
           fontSize: 9,
@@ -473,7 +617,7 @@ export const migrateTemplate = (template: TemplateDefinition): TemplateDefinitio
           type: 'text',
           region: 'header',
           x: 360,
-          y: 680,
+          y: 150,
           width: 200,
           height: 12,
           fontSize: 9,
@@ -592,7 +736,17 @@ export const migrateTemplate = (template: TemplateDefinition): TemplateDefinitio
     mapping,
   };
 
-  return applyEstimateV1PresetPatch(migratedTemplate);
+  const patched = applyEstimateV1PresetPatch(migratedTemplate);
+  const normalized = normalizeTemplateForPageSize(patched, debug);
+  if (debugEnabled) {
+    const after = buildTemplateFingerprint(normalized.template);
+    console.debug(
+      `[DBG_MIGRATE] requestId=${debug?.requestId ?? ''} templateId=${templateId} ` +
+        `reason=${debug?.reason ?? ''} didNormalize=${normalized.didNormalize} ` +
+        `afterHash=${after.hash} afterJsonLen=${after.jsonLen}`,
+    );
+  }
+  return normalized.template;
 };
 
 export const validateTemplate = (template: TemplateDefinition): { ok: boolean; issues: TemplateIssue[] } => {

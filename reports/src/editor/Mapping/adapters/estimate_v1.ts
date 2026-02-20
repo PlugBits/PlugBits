@@ -1,6 +1,7 @@
 // src/editor/Mapping/adapters/estimate_v1.ts
 import type { StructureAdapter, ValidationResult } from "./StructureAdapter";
 import type { TemplateDefinition, TemplateElement, TableElement, TableColumn as PdfTableColumn, TableSummary } from "@shared/template";
+import { getCanvasDimensions } from "../../../utils/regionBounds";
 const ok = (): ValidationResult => ({ ok: true, errors: [] });
 const ng = (errors: ValidationResult["errors"]): ValidationResult => ({ ok: false, errors });
 
@@ -464,23 +465,22 @@ export const estimateV1Adapter: StructureAdapter = {
       return e;
     });
 
-    const FOOTER_Y_MAX = 260;
-    const yFooter = (fromBottomPx: number) =>
-      Math.min(Math.max(fromBottomPx, 0), FOOTER_Y_MAX);
+    const { height: canvasHeight } = getCanvasDimensions(template);
+    const yFooter = (yTop: number) => Math.min(Math.max(yTop, 0), canvasHeight);
 
     // header slots (fallback = safety position)
     ensureSlotElement(
       "doc_title",
       "header",
       "text",
-      { x: 0, y: 790, fontSize: 22, fontWeight: "bold", width: 595, height: 28, alignX: "center" },
+      { x: 0, y: 24, fontSize: 22, fontWeight: "bold", width: 595, height: 28, alignX: "center" },
       headerRef["doc_title"],
     );
     ensureSlotElement(
       "to_name",
       "header",
       "text",
-      { x: 70, y: 725, fontSize: 12, fontWeight: "bold", width: 200, height: 18 },
+      { x: 70, y: 99, fontSize: 12, fontWeight: "bold", width: 200, height: 18 },
       headerRef["to_name"],
     );
     if (shouldShowHonorific) {
@@ -501,28 +501,28 @@ export const estimateV1Adapter: StructureAdapter = {
       "logo",
       "header",
       "image",
-      { x: 40, y: 770, width: 120, height: 60, repeatOnEveryPage: true },
+      { x: 40, y: 12, width: 120, height: 60, repeatOnEveryPage: true },
       headerRef["logo"],
     );
     ensureFixedLabelElement(
       "date_label",
       "header",
       "発行日",
-      { x: 360, y: 720, fontSize: 10, width: 60, height: 16, alignX: "right" },
+      { x: 360, y: 106, fontSize: 10, width: 60, height: 16, alignX: "right" },
       "date_label",
     );
     ensureSlotElement(
       "issue_date",
       "header",
       "text",
-      { x: 430, y: 720, fontSize: 10, width: 150, height: 16, alignX: "right" },
+      { x: 430, y: 106, fontSize: 10, width: 150, height: 16, alignX: "right" },
       headerRef["issue_date"],
     );
     ensureSlotElement(
       "doc_no",
       "header",
       "text",
-      { x: 430, y: 740, fontSize: 10, width: 150, height: 16, alignX: "right" },
+      { x: 430, y: 86, fontSize: 10, width: 150, height: 16, alignX: "right" },
       headerRef["doc_no"],
     );
 
@@ -530,53 +530,53 @@ export const estimateV1Adapter: StructureAdapter = {
       "doc_no_label",
       "header",
       "見積番号",
-      { x: 360, y: 740, fontSize: 10, width: 60, height: 16, alignX: "right" },
+      { x: 360, y: 86, fontSize: 10, width: 60, height: 16, alignX: "right" },
     );
 
     ensureLabelElement(
       "subtotal_label",
       "footer",
       "小計",
-      { x: 360, y: yFooter(240), fontSize: 10, width: 60, height: 16 },
+      { x: 360, y: yFooter(586), fontSize: 10, width: 60, height: 16 },
     );
     ensureSlotElement(
       "subtotal",
       "footer",
       "text",
-      { x: 430, y: yFooter(240), fontSize: 10, width: 150, height: 16, alignX: "right" },
+      { x: 430, y: yFooter(586), fontSize: 10, width: 150, height: 16, alignX: "right" },
       footerRef["subtotal"],
     );
     ensureLabelElement(
       "tax_label",
       "footer",
       "消費税",
-      { x: 360, y: yFooter(220), fontSize: 10, width: 60, height: 16 },
+      { x: 360, y: yFooter(606), fontSize: 10, width: 60, height: 16 },
     );
     ensureSlotElement(
       "tax",
       "footer",
       "text",
-      { x: 430, y: yFooter(220), fontSize: 10, width: 150, height: 16, alignX: "right" },
+      { x: 430, y: yFooter(606), fontSize: 10, width: 150, height: 16, alignX: "right" },
       footerRef["tax"],
     );
     ensureLabelElement(
       "total_label_fixed",
       "footer",
       "合計",
-      { x: 360, y: yFooter(200), fontSize: 10, width: 60, height: 16, fontWeight: "bold", fillGray: 0.93 },
+      { x: 360, y: yFooter(626), fontSize: 10, width: 60, height: 16, fontWeight: "bold", fillGray: 0.93 },
     );
     ensureSlotElement(
       "total",
       "footer",
       "text",
-      { x: 430, y: yFooter(200), fontSize: 14, fontWeight: "bold", width: 150, height: 20, fillGray: 0.93, alignX: "right" },
+      { x: 430, y: yFooter(622), fontSize: 14, fontWeight: "bold", width: 150, height: 20, fillGray: 0.93, alignX: "right" },
       footerRef["total"],
     );
     ensureSlotElement(
       "remarks",
       "footer",
       "text",
-      { x: 70, y: yFooter(120), fontSize: 10, width: 480, height: 80, borderWidth: 0.8, borderColorGray: 0.3 },
+      { x: 70, y: yFooter(642), fontSize: 10, width: 480, height: 80, borderWidth: 0.8, borderColorGray: 0.3 },
       footerRef["remarks"],
     );
 
@@ -594,7 +594,7 @@ export const estimateV1Adapter: StructureAdapter = {
     const TOTAL_WIDTH = 480;
 
     // items が無い場合のデフォルト位置
-    const BASE_Y = 610;
+    const BASE_Y = 208;
 
     // 既存 items を探して位置等を引き継ぐ
     const existingIdx = slotSyncedElements.findIndex((e) => e.id === TABLE_ID);

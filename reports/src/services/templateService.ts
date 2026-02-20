@@ -7,6 +7,8 @@ import type {
   TemplateStatus,
   TableElement,
 } from '@shared/template';
+import { getPageDimensions } from '@shared/template';
+import { isDebugEnabled } from '../shared/debugFlag';
 import {
   applySlotDataOverrides,
   applySlotLayoutOverrides,
@@ -36,8 +38,11 @@ const getTenantContext = () => {
 
 const getWorkerBaseUrl = () => getTenantContext().workerBaseUrl.replace(/\/$/, '');
 
-const buildUrl = (path: string, params?: Record<string, string>) => {
-  const baseUrl = getWorkerBaseUrl();
+const buildUrlFromBase = (
+  baseUrl: string,
+  path: string,
+  params?: Record<string, string>,
+) => {
   const normalized = path.startsWith('/') ? path : `/${path}`;
   const url = new URL(`${baseUrl}${normalized}`);
   if (params) {
@@ -46,10 +51,21 @@ const buildUrl = (path: string, params?: Record<string, string>) => {
   return url.toString();
 };
 
+const buildDebugParams = (params?: Record<string, string>) => {
+  if (!isDebugEnabled()) return params;
+  return { ...(params ?? {}), debug: '1' };
+};
+
+const buildUrl = (
+  path: string,
+  params?: Record<string, string>,
+  workerBaseUrl?: string,
+) => buildUrlFromBase(workerBaseUrl ?? getWorkerBaseUrl(), path, params);
+
 const buildHeaders = (includeContentType = true, requireEditorToken = false) => {
   const headers: Record<string, string> = {};
   if (includeContentType) headers['Content-Type'] = 'application/json';
-  const { editorToken } = getTenantContext();
+  const editorToken = getTenantContextFromStore()?.editorToken;
   if (editorToken) {
     headers.Authorization = `Bearer ${editorToken}`;
   } else if (requireEditorToken) {
@@ -98,15 +114,82 @@ const generateUserTemplateId = () =>
     ? `tpl_${crypto.randomUUID()}`
     : `tpl_${Date.now()}`;
 
+const stableStringify = (value: unknown): string => {
+  const seen = new WeakSet<object>();
+  const stringify = (input: unknown): string => {
+    if (input === null || typeof input === 'number' || typeof input === 'boolean') {
+      return JSON.stringify(input);
+    }
+    if (typeof input === 'string') {
+      return JSON.stringify(input);
+    }
+    if (typeof input !== 'object') {
+      return 'null';
+    }
+    const obj = input as Record<string, unknown>;
+    if (seen.has(obj)) return '"[Circular]"';
+    seen.add(obj);
+    if (Array.isArray(obj)) {
+      const items = obj.map((item) => {
+        if (item === undefined || typeof item === 'function' || typeof item === 'symbol') {
+          return 'null';
+        }
+        return stringify(item);
+      });
+      return `[${items.join(',')}]`;
+    }
+    const keys = Object.keys(obj).sort();
+    const entries: string[] = [];
+    for (const key of keys) {
+      const val = obj[key];
+      if (val === undefined || typeof val === 'function' || typeof val === 'symbol') continue;
+      entries.push(`${JSON.stringify(key)}:${stringify(val)}`);
+    }
+    return `{${entries.join(',')}}`;
+  };
+  return stringify(value);
+};
+
+const sha256Hex = async (input: string): Promise<string | null> => {
+  if (typeof crypto === 'undefined' || !crypto.subtle) return null;
+  try {
+    const data = new TextEncoder().encode(input);
+    const hash = await crypto.subtle.digest('SHA-256', data);
+    return Array.from(new Uint8Array(hash))
+      .map((b) => b.toString(16).padStart(2, '0'))
+      .join('');
+  } catch {
+    return null;
+  }
+};
+
+const buildTemplateFingerprint = async (template: TemplateDefinition) => {
+  const json = stableStringify(template);
+  const hash = await sha256Hex(json);
+  return {
+    jsonLen: json.length,
+    elements: Array.isArray(template.elements) ? template.elements.length : 0,
+    hash,
+    hashType: hash ? 'sha256' : 'none',
+  };
+};
+
 // NOTE:
 // - baseTemplateId identifies the catalog/base template (e.g. "list_v1").
 // - TemplateDefinition.id / templateId identifies the user-specific template (e.g. "tpl_*").
 // - fetchBaseTemplate() must be called with baseTemplateId (catalog id).
 // - user templateId and baseTemplateId are expected to differ.
-export const fetchBaseTemplate = async (templateId: string): Promise<TemplateDefinition> => {
-  const res = await fetch(buildUrl(`/templates/${templateId}`), {
+export const fetchBaseTemplate = async (
+  templateId: string,
+  opts?: { workerBaseUrl?: string },
+): Promise<TemplateDefinition> => {
+  const res = await fetch(
+    buildUrl(`/templates/${templateId}`, buildDebugParams(), opts?.workerBaseUrl),
+    {
     headers: buildHeaders(false),
-  });
+    cache: 'no-store',
+    },
+  );
   if (!res.ok) {
     const text = await res.text();
     throw new Error(text || `Failed to fetch base template: ${templateId}`);
@@ -116,17 +199,20 @@ export const fetchBaseTemplate = async (templateId: string): Promise<TemplateDef
 
 export const updateBaseTemplate = async (
   template: TemplateDefinition,
-  adminApiKey?: string,
+  opts?: { workerBaseUrl?: string; adminApiKey?: string },
 ): Promise<TemplateDefinition> => {
   const headers = buildHeaders(true);
-  if (adminApiKey) {
-    headers['x-api-key'] = adminApiKey;
+  if (opts?.adminApiKey) {
+    headers['x-api-key'] = opts.adminApiKey;
   }
-  const res = await fetch(buildUrl(`/templates/${template.id}`), {
-    method: 'PUT',
-    headers,
-    body: JSON.stringify(template),
-  });
+  const res = await fetch(
+    buildUrl(`/templates/${template.id}`, undefined, opts?.workerBaseUrl),
+    {
+      method: 'PUT',
+      headers,
+      body: JSON.stringify(template),
+    },
+  );
   if (!res.ok) {
     const text = await res.text();
     throw new Error(text || `Failed to update base template: ${template.id}`);
@@ -225,8 +311,8 @@ export const purgeTemplate = async (templateId: string): Promise<void> => {
 export const fetchTemplateById = async (templateId: string): Promise<TemplateDefinition> => {
   const isUserTemplate = templateId.startsWith('tpl_');
   const url = isUserTemplate
-    ? buildUrl(`/user-templates/${templateId}`)
-    : buildUrl(`/templates/${templateId}`);
+    ? buildUrl(`/user-templates/${templateId}`, buildDebugParams())
+    : buildUrl(`/templates/${templateId}`, buildDebugParams());
   if (isUserTemplate) {
     const tenant = getTenantContext();
     console.log('[templateService] load user template', {
@@ -253,6 +339,7 @@ export async function createTemplateRemote(
   template: TemplateDefinition,
 ): Promise<TemplateDefinition> {
   const workerBaseUrl = getWorkerBaseUrl();
+  const debugEnabled = isDebugEnabled();
   console.log('[templateService] save template', {
     workerBaseUrl,
     templateId: template.id,
@@ -261,6 +348,7 @@ export async function createTemplateRemote(
     templateId: template.id,
     ...getSummarySnapshot(template),
   });
+  const updatedAt = new Date().toISOString();
   const baseTemplateId = template.baseTemplateId ?? 'list_v1';
   const structureType = template.structureType ?? 'list_v1';
   const mapping =
@@ -279,11 +367,11 @@ export async function createTemplateRemote(
     settings: template.settings,
     meta: {
       name: template.name,
-      updatedAt: new Date().toISOString(),
+      updatedAt,
     },
   };
 
-  const url = buildUrl(`/user-templates/${template.id}`);
+  const url = buildUrl(`/user-templates/${template.id}`, buildDebugParams());
   console.log('[templateService] save user template request', {
     workerBaseUrl,
     templateId: template.id,
@@ -300,6 +388,19 @@ export async function createTemplateRemote(
   }
 
   console.log('[templateService] save user template success', { templateId: template.id });
+  if (debugEnabled) {
+    const fingerprint = await buildTemplateFingerprint(template);
+    const dims = getPageDimensions(template.pageSize ?? 'A4', template.orientation ?? 'portrait');
+    const etag = res.headers.get('etag');
+    const revision = res.headers.get('x-template-revision') ?? res.headers.get('x-template-version');
+    const schemaVersion = res.headers.get('x-template-schema-version');
+    console.debug(
+      `[DBG_SAVE] templateId=${template.id} pageSize=${template.pageSize ?? 'A4'} w=${dims.width} h=${dims.height} ` +
+        `elements=${fingerprint.elements} jsonLen=${fingerprint.jsonLen} ` +
+        `hash=${fingerprint.hash ?? ''} hashType=${fingerprint.hashType} worker=${workerBaseUrl} url=${url} ` +
+        `updatedAt=${updatedAt} etag=${etag ?? ''} revision=${revision ?? ''} schema=${schemaVersion ?? ''}`,
+    );
+  }
   return { ...template, baseTemplateId };
 }
 

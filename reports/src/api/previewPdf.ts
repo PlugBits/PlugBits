@@ -1,4 +1,6 @@
 import type { TemplateDefinition } from '@shared/template';
+import { isDebugEnabled } from '../shared/debugFlag';
+import { appendDebugParam } from '../shared/appendDebug';
 import { getTenantContext } from '../store/tenantStore';
 
 export async function previewPdf(template: TemplateDefinition) {
@@ -12,7 +14,13 @@ export async function previewPdf(template: TemplateDefinition) {
   if (tenantContext.editorToken) {
     headers.Authorization = `Bearer ${tenantContext.editorToken}`;
   }
-  const res = await fetch(`${tenantContext.workerBaseUrl.replace(/\/$/, '')}/render`, {
+  const debugEnabled = isDebugEnabled();
+  const renderUrl = appendDebugParam(
+    `${tenantContext.workerBaseUrl.replace(/\/$/, '')}/render`,
+    debugEnabled,
+  );
+  console.log('[DBG_PREVIEWPDF_CALL]', { enabled: debugEnabled, renderUrl });
+  const res = await fetch(renderUrl, {
     method: 'POST',
     headers,
     body: JSON.stringify({
@@ -28,6 +36,6 @@ export async function previewPdf(template: TemplateDefinition) {
   }
 
   const blob = await res.blob();
-  const url = URL.createObjectURL(blob);
-  window.open(url, '_blank');
+  const blobUrl = URL.createObjectURL(blob);
+  window.open(blobUrl, '_blank');
 }

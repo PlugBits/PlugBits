@@ -1,5 +1,7 @@
 import { WORKER_BASE_URL } from '../constants';
 import type { PluginConfig } from '../config/index.ts';
+import { isDebugEnabled } from '../../../src/shared/debugFlag';
+import { appendDebugParam } from '../../../src/shared/appendDebug';
 
 const PLUGIN_ID =
   (typeof kintone !== 'undefined' ? (kintone as any).$PLUGIN_ID : '') || '';
@@ -245,7 +247,12 @@ const addMobilePrintButton = (config: PluginConfig | null, event: any) => {
       }
 
       const templateData = buildTemplateDataFromKintoneRecord(recordData);
-      const renderUrl = `${WORKER_BASE_URL.replace(/\/$/, '')}/render`;
+      const debugEnabled = isDebugEnabled();
+      const renderUrl = appendDebugParam(
+        `${WORKER_BASE_URL.replace(/\/$/, '')}/render`,
+        debugEnabled,
+      );
+      if (debugEnabled) console.log('[DBG_RENDER_URL]', renderUrl);
       const body = JSON.stringify({
         templateId: latestConfig.templateId,
         data: templateData,

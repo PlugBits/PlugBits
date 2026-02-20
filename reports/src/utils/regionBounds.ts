@@ -1,29 +1,30 @@
 // src/utils/regionBounds.ts
 import type { TemplateDefinition, TemplateElement } from '@shared/template';
-import { CANVAS_HEIGHT, resolveRegionBounds, toBottomBasedRegionBounds } from '@shared/template';
+import { getPageDimensions, resolveRegionBounds } from '@shared/template';
 
-// Canvasの座標系：bottom基準（TemplateCanvasの実装に合わせる）
-export const CANVAS_WIDTH = 595;
-export { CANVAS_HEIGHT };
-
-export const REGION_BOUNDS = {
-  header: { yMin: 680, yMax: CANVAS_HEIGHT },
-  body: { yMin: 180, yMax: 680 },
-  footer: { yMin: 0, yMax: 180 },
-} as const;
-
-export type Region = keyof typeof REGION_BOUNDS;
+export type Region = 'header' | 'body' | 'footer';
 
 export const getRegionOf = (el: TemplateElement): Region => (el.region ?? 'body');
 
 export const clamp = (v: number, min: number, max: number) => Math.min(Math.max(v, min), max);
 
-export const resolveRegionBoundsBottom = (template?: TemplateDefinition) => {
-  const bounds = resolveRegionBounds(template, CANVAS_HEIGHT);
-  return toBottomBasedRegionBounds(bounds, CANVAS_HEIGHT);
+export const getCanvasDimensions = (
+  template?: Pick<TemplateDefinition, 'pageSize' | 'orientation'>,
+) => getPageDimensions(template?.pageSize ?? 'A4', template?.orientation ?? 'portrait');
+
+export const REGION_BOUNDS = (pageHeight: number) => ({
+  header: { yTop: 0, yBottom: 250 },
+  body: { yTop: 250, yBottom: pageHeight - 150 },
+  footer: { yTop: pageHeight - 150, yBottom: pageHeight },
+});
+
+export const resolveRegionBoundsTop = (template?: TemplateDefinition) => {
+  const { height } = getCanvasDimensions(template);
+  return resolveRegionBounds(template, height);
 };
 
 export const clampYToRegion = (y: number, region: Region, template?: TemplateDefinition) => {
-  const b = template ? resolveRegionBoundsBottom(template)[region] : REGION_BOUNDS[region];
-  return clamp(y, b.yMin, b.yMax);
+  const { height } = getCanvasDimensions(template);
+  const b = template ? resolveRegionBoundsTop(template)[region] : REGION_BOUNDS(height)[region];
+  return clamp(y, b.yTop, b.yBottom);
 };

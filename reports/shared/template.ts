@@ -36,6 +36,7 @@ export type TemplateSettings = {
   pagePaddingPreset?: PagePaddingPreset;
   presetId?: string;
   presetRevision?: number;
+  yMode?: 'top' | 'bottom';
   companyBlock?: {
     enabled?: boolean;
   };
@@ -79,8 +80,32 @@ export type LabelMapping = {
   copiesFieldCode: string | null;
 };
 
-// Editor canvas height (bottom-based UI coordinates)
+// Editor canvas size (top-based UI coordinates)
+export const CANVAS_WIDTH = 595;
 export const CANVAS_HEIGHT = 842;
+
+export const PAGE_DIMENSIONS: Record<
+  PageSize,
+  { portrait: [number, number]; landscape: [number, number] }
+> = {
+  A4: {
+    portrait: [595, 842],
+    landscape: [842, 595],
+  },
+  Letter: {
+    portrait: [612, 792],
+    landscape: [792, 612],
+  },
+};
+
+export const getPageDimensions = (
+  pageSize: PageSize,
+  orientation: Orientation = 'portrait',
+): { width: number; height: number } => {
+  const dims = PAGE_DIMENSIONS[pageSize] ?? PAGE_DIMENSIONS.A4;
+  const [width, height] = orientation === 'landscape' ? dims.landscape : dims.portrait;
+  return { width, height };
+};
 
 const clampNumber = (value: number, min: number, max: number) =>
   Math.min(Math.max(value, min), max);
@@ -118,23 +143,6 @@ export const resolveRegionBounds = (
   };
 };
 
-export const toBottomBasedRegionBounds = (
-  bounds: RegionBounds,
-  pageHeight = CANVAS_HEIGHT,
-) => ({
-  header: {
-    yMin: clampNumber(pageHeight - bounds.header.yBottom, 0, pageHeight),
-    yMax: clampNumber(pageHeight - bounds.header.yTop, 0, pageHeight),
-  },
-  body: {
-    yMin: clampNumber(pageHeight - bounds.body.yBottom, 0, pageHeight),
-    yMax: clampNumber(pageHeight - bounds.body.yTop, 0, pageHeight),
-  },
-  footer: {
-    yMin: clampNumber(pageHeight - bounds.footer.yBottom, 0, pageHeight),
-    yMax: clampNumber(pageHeight - bounds.footer.yTop, 0, pageHeight),
-  },
-});
 
 
 export type DataSource =

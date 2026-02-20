@@ -1,4 +1,6 @@
 import type { TemplateDataRecord, TemplateDefinition } from '@shared/template';
+import { isDebugEnabled } from '../shared/debugFlag';
+import { appendDebugParam } from '../shared/appendDebug';
 import { getTenantContext } from '../store/tenantStore';
 
 function buildHeaders() {
@@ -21,7 +23,13 @@ export async function requestPreviewPdf(
     throw new Error('設定画面から開き直してください。');
   }
 
-  const res = await fetch(`${tenantContext.workerBaseUrl.replace(/\/$/, '')}/render-preview`, {
+  const debugEnabled = isDebugEnabled();
+  const renderUrl = appendDebugParam(
+    `${tenantContext.workerBaseUrl.replace(/\/$/, '')}/render-preview`,
+    debugEnabled,
+  );
+  if (debugEnabled) console.log('[DBG_RENDER_URL]', renderUrl);
+  const res = await fetch(renderUrl, {
     method: "POST",
     headers: buildHeaders(),
     body: JSON.stringify({

@@ -203,12 +203,40 @@
           maxStatusLogOnce.logged = true;
           console.info("print.html render failed", payload);
         };
+        const DEBUG_PATTERN = /(^|[?#&])debug=(1|true)($|[&#])/i;
+        const isDebugEnabled = () => {
+          if (typeof window === "undefined") return false;
+          const href = window.location.href || "";
+          return DEBUG_PATTERN.test(href);
+        };
+        const appendDebugParam = (url, debug) => {
+          if (!debug) return url;
+          const base =
+            typeof window !== "undefined" && window.location && window.location.origin
+              ? window.location.origin
+              : "http://localhost";
+          let parsed;
+          try {
+            parsed = new URL(url, base);
+          } catch {
+            return url;
+          }
+          if (parsed.searchParams.has("debug")) return parsed.toString();
+          parsed.searchParams.append("debug", "1");
+          return parsed.toString();
+        };
+        const debugEnabled = isDebugEnabled();
+        const renderUrl = appendDebugParam(
+          workerBaseUrl.replace(/\/$/, "") + "/render",
+          debugEnabled
+        );
+        if (debugEnabled) console.log("[DBG_RENDER_URL]", renderUrl);
 
         inFlight = (async () => {
           for (let attempt = 0; attempt <= maxRetries; attempt += 1) {
             let res;
             try {
-              res = await fetch(workerBaseUrl.replace(/\/$/, "") + "/render", {
+              res = await fetch(renderUrl, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(body),

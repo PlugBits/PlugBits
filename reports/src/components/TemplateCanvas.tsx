@@ -7,9 +7,16 @@ import type {
   CompanyProfile,
   RegionBounds,
 } from '@shared/template';
-import { resolveRegionBounds, toBottomBasedRegionBounds } from '@shared/template';
+import { getPageDimensions, resolveRegionBounds } from '@shared/template';
+import { isDebugEnabled } from '../shared/debugFlag';
 import { isEstimateV1 } from '@shared/templateGuards';
-import { CANVAS_WIDTH, CANVAS_HEIGHT, REGION_BOUNDS, getRegionOf, clamp, clampYToRegion } from '../utils/regionBounds';
+import {
+  REGION_BOUNDS,
+  getCanvasDimensions,
+  getRegionOf,
+  clamp,
+  clampYToRegion,
+} from '../utils/regionBounds';
 import {
   isElementHiddenByEasyAdjust,
   normalizeEasyAdjustBlockSettings,
@@ -92,6 +99,7 @@ const resolveAlignedX = (
   element: TemplateElement,
   width: number,
   pagePadding: number,
+  canvasWidth: number,
 ) => {
   const slotId = (element as any).slotId as string | undefined;
   if (slotId !== 'doc_title') return element.x;
@@ -101,19 +109,20 @@ const resolveAlignedX = (
   if (safeWidth <= 0) return element.x;
   const padding = Number.isFinite(pagePadding) ? pagePadding : ALIGN_PADDING;
   if (alignX === 'left') return padding;
-  if (alignX === 'center') return (CANVAS_WIDTH - safeWidth) / 2;
-  if (alignX === 'right') return CANVAS_WIDTH - safeWidth - padding;
+  if (alignX === 'center') return (canvasWidth - safeWidth) / 2;
+  if (alignX === 'right') return canvasWidth - safeWidth - padding;
   return element.x;
 };
 
 const getElementStyle = (
   element: TemplateElement,
   pagePadding: number,
+  canvasWidth: number,
 ): CSSProperties => {
   const widthValue = getElementWidthValue(element);
   const base: CSSProperties = {
-    left: `${resolveAlignedX(element, widthValue, pagePadding)}px`,
-    bottom: `${element.y}px`,
+    left: `${resolveAlignedX(element, widthValue, pagePadding, canvasWidth)}px`,
+    top: `${element.y}px`,
   };
 
   if ('width' in element && element.width) {
@@ -193,27 +202,29 @@ const TemplateCanvas = ({
   showGuides = true,
   highlightedElementIds,
   slotLabels,
-  adminMode = false,
+  adminMode,
   regionBounds,
   errorElementIds,
 }: CanvasProps) => {
-  const isAdvanced = !adminMode && !!template.advancedLayoutEditing;
+  const resolvedAdminMode = useMemo(() => {
+    if (adminMode !== undefined) return adminMode;
+    if (import.meta.env.VITE_ADMIN_MODE === '1') return true;
+    if (typeof window === 'undefined') return false;
+    return (window.location.hash ?? '').includes('/admin/tuner');
+  }, [adminMode]);
+  const isAdvanced = !resolvedAdminMode && !!template.advancedLayoutEditing;
   const isEstimate = isEstimateV1(template);
   const companyProfile = useTenantStore((state) => state.tenantContext?.companyProfile);
+  const { width: canvasWidth, height: canvasHeight } = useMemo(
+    () => getCanvasDimensions(template),
+    [template],
+  );
   const activeRegionBounds = useMemo(
-    () => regionBounds ?? resolveRegionBounds(template, CANVAS_HEIGHT),
-    [regionBounds, template],
+    () => regionBounds ?? resolveRegionBounds(template, canvasHeight),
+    [regionBounds, template, canvasHeight],
   );
-  const activeBoundsBottom = useMemo(
-    () => toBottomBasedRegionBounds(activeRegionBounds, CANVAS_HEIGHT),
-    [activeRegionBounds],
-  );
-  const debugLabelsEnabled = useMemo(() => {
-    if (typeof window === 'undefined') return false;
-    const search = window.location.search ?? '';
-    const hash = window.location.hash ?? '';
-    return search.includes('debug=1') || hash.includes('debug=1');
-  }, []);
+  const activeBoundsTop = activeRegionBounds;
+  const debugLabelsEnabled = useMemo(() => isDebugEnabled(), []);
   const companyBlockEnabled = template.settings?.companyBlock?.enabled !== false;
   const loggedEstimateRef = useRef(false);
   useEffect(() => {
@@ -272,7 +283,7 @@ const TemplateCanvas = ({
   })();
 
   const visibleElements = template.elements.filter((el) => {
-    if (adminMode) return true;
+    if (resolvedAdminMode) return true;
     if (isElementHiddenByEasyAdjust(el, template)) return false;
     const slotId = (el as any).slotId as string | undefined;
     const slotMeta = slotId ? slotMetaById.get(slotId) : undefined;
@@ -299,6 +310,39 @@ const TemplateCanvas = ({
   const selectedElement = selectedElementId
     ? template.elements.find((el) => el.id === selectedElementId)
     : null;
+  useEffect(() => {
+    if (!debugLabelsEnabled) return;
+    const page = getPageDimensions(template.pageSize ?? 'A4', template.orientation ?? 'portrait');
+    const scaleX = canvasWidth / page.width;
+    const scaleY = canvasHeight / page.height;
+    const selected = selectedElement;
+    if (!selected) {
+      console.debug(
+        `[DBG_CANVAS] page(pt)=${page.width}x${page.height} canvas(px)=${canvasWidth}x${canvasHeight} ` +
+          `scale=${scaleX.toFixed(4)}x${scaleY.toFixed(4)} selected=(none)`,
+      );
+      return;
+    }
+    const width = getElementWidthValue(selected);
+    const height = getElementHeightValue(selected);
+    const { pagePadding } = getElementSettings(selected);
+    const alignedX = resolveAlignedX(selected, width, pagePadding, canvasWidth);
+    console.debug(
+      `[DBG_CANVAS] page(pt)=${page.width}x${page.height} canvas(px)=${canvasWidth}x${canvasHeight} ` +
+        `scale=${scaleX.toFixed(4)}x${scaleY.toFixed(4)} selected=${selected.id} ` +
+        `pt(x=${selected.x},y=${selected.y},w=${width},h=${height}) ` +
+        `px(x=${(selected.x * scaleX).toFixed(2)},y=${(selected.y * scaleY).toFixed(2)},` +
+        `w=${(width * scaleX).toFixed(2)},h=${(height * scaleY).toFixed(2)}) ` +
+        `alignedPxX=${alignedX.toFixed(2)}`,
+    );
+  }, [
+    debugLabelsEnabled,
+    template.pageSize,
+    template.orientation,
+    canvasWidth,
+    canvasHeight,
+    selectedElement,
+  ]);
 
   const canvasStyle: CSSProperties = showGrid
     ? {
@@ -306,8 +350,10 @@ const TemplateCanvas = ({
           'linear-gradient(90deg, rgba(15,23,42,0.05) 1px, transparent 1px), linear-gradient(0deg, rgba(15,23,42,0.05) 1px, transparent 1px)',
         backgroundSize: `${GRID_SIZE * 4}px ${GRID_SIZE * 4}px`,
         backgroundColor: '#fff',
+        width: `${canvasWidth}px`,
+        height: `${canvasHeight}px`,
       }
-    : { backgroundColor: '#fff' };
+    : { backgroundColor: '#fff', width: `${canvasWidth}px`, height: `${canvasHeight}px` };
 
   const applySnap = (value: number) => (snapEnabled ? snapToGrid(value) : value);
 
@@ -326,13 +372,17 @@ const TemplateCanvas = ({
         const deltaY = event.clientY - dragState.originY;
         
         const region = el ? getRegionOf(el) : 'body';
-        const bounds = adminMode ? activeBoundsBottom[region] : REGION_BOUNDS[region];
+        const bounds = resolvedAdminMode
+          ? activeBoundsTop[region]
+          : REGION_BOUNDS(canvasHeight)[region];
 
-        const nextX = clampToCanvas(applySnap(dragState.startX + deltaX), CANVAS_WIDTH);
-        const rawY = applySnap(dragState.startY - deltaY);
+          const nextX = clampToCanvas(applySnap(dragState.startX + deltaX), canvasWidth);
+        const rawY = applySnap(dragState.startY + deltaY);
 
-        // region内に収める（yはbottom基準）
-        const nextY = adminMode ? clamp(rawY, bounds.yMin, bounds.yMax) : clampYToRegion(rawY, region);
+        // region内に収める（yはtop基準）
+        const nextY = resolvedAdminMode
+          ? clamp(rawY, bounds.yTop, bounds.yBottom)
+          : clampYToRegion(rawY, region);
         onUpdateElement(dragState.id, { x: nextX, y: nextY });
 
       }
@@ -369,7 +419,7 @@ const TemplateCanvas = ({
     const point = rect
       ? {
           x: event.clientX - rect.left,
-          y: CANVAS_HEIGHT - (event.clientY - rect.top),
+          y: event.clientY - rect.top,
         }
       : null;
 
@@ -378,7 +428,7 @@ const TemplateCanvas = ({
           const width = getElementWidthValue(el);
           const height = getElementHeightValue(el);
           const { pagePadding } = getElementSettings(el);
-          const left = resolveAlignedX(el, width, pagePadding);
+          const left = resolveAlignedX(el, width, pagePadding, canvasWidth);
           return (
             point.x >= left &&
             point.x <= left + width &&
@@ -453,14 +503,14 @@ const TemplateCanvas = ({
         const width = getElementWidthValue(selectedElement);
         const height = getElementHeightValue(selectedElement);
         const { pagePadding } = getElementSettings(selectedElement);
-        const alignedX = resolveAlignedX(selectedElement, width, pagePadding);
-        const badgeLeft = Math.min(alignedX + width + 12, CANVAS_WIDTH - 80);
-        const badgeBottom = Math.min(selectedElement.y + height + 12, CANVAS_HEIGHT - 24);
+        const alignedX = resolveAlignedX(selectedElement, width, pagePadding, canvasWidth);
+        const badgeLeft = Math.min(alignedX + width + 12, canvasWidth - 80);
+        const badgeTop = Math.min(selectedElement.y + height + 12, canvasHeight - 24);
         return (
           <>
-            <div className="canvas-guide horizontal" style={{ bottom: `${selectedElement.y}px` }} />
+            <div className="canvas-guide horizontal" style={{ top: `${selectedElement.y}px` }} />
             <div className="canvas-guide vertical" style={{ left: `${alignedX}px` }} />
-            <div className="canvas-coord-badge" style={{ left: `${badgeLeft}px`, bottom: `${badgeBottom}px` }}>
+            <div className="canvas-coord-badge" style={{ left: `${badgeLeft}px`, top: `${badgeTop}px` }}>
               {Math.round(alignedX)}px / {selectedElement.y}px
             </div>
           </>
@@ -470,22 +520,22 @@ const TemplateCanvas = ({
 
   return (
     <div className="template-canvas" style={canvasStyle} onMouseDown={handleCanvasMouseDown} ref={canvasRef}>
-      {adminMode && showGuides ? (
+      {resolvedAdminMode && showGuides ? (
         <div className="canvas-region-guides">
           {(['header', 'body', 'footer'] as const).flatMap((region) => {
             const bounds = activeRegionBounds[region];
-            const top = CANVAS_HEIGHT - bounds.yTop;
-            const bottom = CANVAS_HEIGHT - bounds.yBottom;
+            const top = bounds.yTop;
+            const bottom = bounds.yBottom;
             return [
               <div
                 key={`${region}-top`}
                 className={`canvas-region-guide ${region}`}
-                style={{ bottom: `${top}px` }}
+                style={{ top: `${top}px` }}
               />,
               <div
                 key={`${region}-bottom`}
                 className={`canvas-region-guide ${region}`}
-                style={{ bottom: `${bottom}px` }}
+                style={{ top: `${bottom}px` }}
               />,
             ];
           })}
@@ -496,8 +546,8 @@ const TemplateCanvas = ({
         const slotMeta = slotId ? slotMetaById.get(slotId) : undefined;
         const placeholderText = (() => {
           if (element.type !== 'text') return '';
-          if (!slotMeta && !adminMode) return '';
-          if (adminMode) {
+          if (!slotMeta && !resolvedAdminMode) return '';
+          if (resolvedAdminMode) {
             const ds = (element as any).dataSource as DataSource | undefined;
             const hasStatic = ds?.type === 'static';
             const staticValue = hasStatic ? String(ds?.value ?? '') : '';
@@ -519,6 +569,7 @@ const TemplateCanvas = ({
         })();
         const valueText = placeholderText || describeDataSource(element, companyProfile);
         const isPlaceholder = placeholderText.length > 0;
+        const hasMultiline = valueText.includes('\n');
         const isDocMeta = isDocumentMetaElement(element);
         const isDocMetaValue = !isEstimate && (slotId === 'doc_no' || slotId === 'issue_date');
         const docMetaLabelEl = isDocMetaValue
@@ -546,11 +597,11 @@ const TemplateCanvas = ({
           const valueW = Number.isFinite(element.width) ? (element.width as number) : 0;
           const left = Math.min(labelX, valueX);
           const right = Math.max(labelX + labelW, valueX + valueW);
-          const bottom = Math.min(labelY, element.y);
+          const top = Math.min(labelY, element.y);
           const height = Math.max(docMetaLabelEl.height ?? 0, element.height ?? 0);
           return {
             x: left,
-            y: bottom,
+            y: top,
             width: Math.max(0, right - left),
             height,
           };
@@ -563,14 +614,28 @@ const TemplateCanvas = ({
               textOverflow: 'ellipsis',
             }
           : undefined;
-        const elementStyle = getElementStyle(element, getElementSettings(element).pagePadding);
+        const elementStyle = getElementStyle(
+          element,
+          getElementSettings(element).pagePadding,
+          canvasWidth,
+        );
         const alignX = (element as any).alignX as 'left' | 'center' | 'right' | undefined;
         const textAlign =
           alignX === 'center' ? 'center' : alignX === 'right' ? 'right' : 'left';
         const justifySelf =
           alignX === 'center' ? 'center' : alignX === 'right' ? 'end' : 'start';
         const docMetaBounds = isDocMetaValue ? resolveDocMetaBounds() : null;
-        const labelText = adminMode
+        const valueMultilineStyle: CSSProperties | undefined =
+          !isDocMetaValue && hasMultiline
+            ? { whiteSpace: 'pre-line', lineHeight: '1.2' }
+            : undefined;
+        const elementWidthValue = getElementWidthValue(element);
+        const elementHeightValue = getElementHeightValue(element);
+        const debugInfo =
+          resolvedAdminMode && debugLabelsEnabled
+            ? `x:${Math.round(element.x)} y:${Math.round(element.y)} w:${Math.round(elementWidthValue)} h:${Math.round(elementHeightValue)}`
+            : '';
+        const labelText = resolvedAdminMode
           ? (slotId ?? element.id)
           : slotId && slotLabels?.[slotId]
             ? slotLabels[slotId]
@@ -581,7 +646,7 @@ const TemplateCanvas = ({
           ? {
               ...elementStyle,
               left: `${docMetaBounds.x}px`,
-              bottom: `${docMetaBounds.y}px`,
+              top: `${docMetaBounds.y}px`,
               width: `${docMetaBounds.width}px`,
               height: `${docMetaBounds.height}px`,
             }
@@ -601,7 +666,7 @@ const TemplateCanvas = ({
             <div
               className={[
                 'canvas-element',
-                adminMode ? 'admin' : '',
+                resolvedAdminMode ? 'admin' : '',
                 errorElementIds?.has(element.id) ? 'error' : '',
                 selectedElementId === element.id ? 'selected' : '',
                 highlightedElementIds?.has(element.id) ? 'highlighted' : '',
@@ -702,10 +767,24 @@ const TemplateCanvas = ({
                         color: isPlaceholder ? '#98a2b3' : undefined,
                         opacity: isPlaceholder ? 0.7 : undefined,
                         ...(metaTextStyle ?? {}),
+                        ...(valueMultilineStyle ?? {}),
                       }}
                     >
                       {valueText}
                     </span>
+                    {debugInfo ? (
+                      <span
+                        className="canvas-element-label"
+                        style={{
+                          gridColumn: '1 / -1',
+                          fontSize: '0.62rem',
+                          color: '#98a2b3',
+                          textAlign,
+                        }}
+                      >
+                        {debugInfo}
+                      </span>
+                    ) : null}
                   </>
                 ) : (
                   <>
@@ -723,6 +802,19 @@ const TemplateCanvas = ({
                         {labelText}
                       </strong>
                     ) : null}
+                    {debugInfo ? (
+                      <span
+                        className="canvas-element-label"
+                        style={{
+                          display: 'block',
+                          fontSize: '0.62rem',
+                          color: '#98a2b3',
+                          textAlign,
+                        }}
+                      >
+                        {debugInfo}
+                      </span>
+                    ) : null}
                     <span
                       className="canvas-element-value"
                       style={{
@@ -731,6 +823,7 @@ const TemplateCanvas = ({
                         color: isPlaceholder ? '#98a2b3' : undefined,
                         opacity: isPlaceholder ? 0.7 : undefined,
                         ...(metaTextStyle ?? {}),
+                        ...(valueMultilineStyle ?? {}),
                       }}
                     >
                       {valueText}

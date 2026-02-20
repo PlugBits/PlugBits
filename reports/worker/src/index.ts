@@ -7,7 +7,7 @@ import type {
   CompanyProfile,
   TemplateElement,
 } from "../../shared/template.js";
-import { TEMPLATE_SCHEMA_VERSION } from "../../shared/template.js";
+import { TEMPLATE_SCHEMA_VERSION, getPageDimensions } from "../../shared/template.js";
 
 import { renderLabelCalibrationPdf, renderTemplateToPdf } from "./pdf/renderTemplate.ts";
 import { getFonts } from "./fonts/fontLoader.js";
@@ -88,6 +88,87 @@ const normalizeCompanyProfile = (profile?: CompanyProfile) => ({
   companyTel: String(profile?.companyTel ?? '').trim(),
   companyEmail: String(profile?.companyEmail ?? '').trim(),
 });
+
+const stableStringify = (value: unknown): string => {
+  const seen = new WeakSet<object>();
+  const stringify = (input: unknown): string => {
+    if (input === null || typeof input === "number" || typeof input === "boolean") {
+      return JSON.stringify(input);
+    }
+    if (typeof input === "string") {
+      return JSON.stringify(input);
+    }
+    if (typeof input !== "object") {
+      return "null";
+    }
+    const obj = input as Record<string, unknown>;
+    if (seen.has(obj)) return "\"[Circular]\"";
+    seen.add(obj);
+    if (Array.isArray(obj)) {
+      const items = obj.map((item) => {
+        if (item === undefined || typeof item === "function" || typeof item === "symbol") {
+          return "null";
+        }
+        return stringify(item);
+      });
+      return `[${items.join(",")}]`;
+    }
+    const keys = Object.keys(obj).sort();
+    const entries: string[] = [];
+    for (const key of keys) {
+      const val = obj[key];
+      if (val === undefined || typeof val === "function" || typeof val === "symbol") continue;
+      entries.push(`${JSON.stringify(key)}:${stringify(val)}`);
+    }
+    return `{${entries.join(",")}}`;
+  };
+  return stringify(value);
+};
+
+const hashStringFNV1a = (input: string): string => {
+  let hash = 0x811c9dc5;
+  for (let i = 0; i < input.length; i += 1) {
+    hash ^= input.charCodeAt(i);
+    hash = (hash * 0x01000193) >>> 0;
+  }
+  return hash.toString(16).padStart(8, "0");
+};
+
+const sha256Hex = async (input: string): Promise<string | null> => {
+  if (typeof crypto === "undefined" || !crypto.subtle) return null;
+  try {
+    const data = new TextEncoder().encode(input);
+    const hash = await crypto.subtle.digest("SHA-256", data);
+    return Array.from(new Uint8Array(hash))
+      .map((b) => b.toString(16).padStart(2, "0"))
+      .join("");
+  } catch {
+    return null;
+  }
+};
+
+const buildTemplateFingerprint = async (template: TemplateDefinition) => {
+  const json = stableStringify(template);
+  const hash = await sha256Hex(json);
+  return {
+    jsonLen: json.length,
+    elements: Array.isArray(template.elements) ? template.elements.length : 0,
+    hash: hash ?? hashStringFNV1a(json),
+    hashType: hash ? "sha256" : "fnv1a",
+  };
+};
+
+const getTemplatePageInfo = (template: TemplateDefinition) => {
+  if (template.structureType === "label_v1") {
+    const sheet = template.sheetSettings ?? {
+      paperWidthMm: 210,
+      paperHeightMm: 297,
+    };
+    const mmToPt = (mm: number) => mm * (72 / 25.4);
+    return { width: mmToPt(sheet.paperWidthMm), height: mmToPt(sheet.paperHeightMm) };
+  }
+  return getPageDimensions(template.pageSize ?? "A4", template.orientation ?? "portrait");
+};
 
 const applyCompanyProfileToTemplate = (
   template: TemplateDefinition,
@@ -773,6 +854,10 @@ export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     try {
       const url = new URL(request.url);
+      const requestId = typeof crypto !== "undefined" && "randomUUID" in crypto
+        ? crypto.randomUUID()
+        : undefined;
+      const debugEnabled = url.searchParams.get("debug") === "1";
 
       // CORS preflight
       if (request.method === "OPTIONS") {
@@ -1738,6 +1823,20 @@ export default {
                 headers: CORS_HEADERS,
               });
             }
+            if (debugEnabled) {
+              const fingerprint = await buildTemplateFingerprint(templateBody);
+              const dims = getTemplatePageInfo(templateBody);
+              const key = buildUserTemplateKey(auth.tenantId, templateId);
+              const updatedAt = (templateBody as any).updatedAt ?? (templateBody as any).meta?.updatedAt ?? "";
+              const revision = (templateBody as any).revision ?? "";
+              console.info(
+                `[DBG_FETCH_TEMPLATE] requestId=${requestId ?? ""} path=${url.pathname} store=USER_TEMPLATES_KV ` +
+                  `key=${key} templateId=${templateId} pageSize=${templateBody.pageSize} ` +
+                  `w=${dims.width} h=${dims.height} elements=${fingerprint.elements} ` +
+                  `jsonLen=${fingerprint.jsonLen} hash=${fingerprint.hash} hashType=${fingerprint.hashType} ` +
+                  `updatedAt=${updatedAt} revision=${revision}`,
+              );
+            }
             return new Response(JSON.stringify({ ...templateBody, id: templateId }), {
               status: 200,
               headers: {
@@ -1764,6 +1863,20 @@ export default {
               status: 404,
               headers: CORS_HEADERS,
             });
+          }
+          if (debugEnabled) {
+            const fingerprint = await buildTemplateFingerprint(templateBody);
+            const dims = getTemplatePageInfo(templateBody);
+            const key = buildUserTemplateKey(tenant.tenantKey, templateId);
+            const updatedAt = (templateBody as any).updatedAt ?? (templateBody as any).meta?.updatedAt ?? "";
+            const revision = (templateBody as any).revision ?? "";
+            console.info(
+              `[DBG_FETCH_TEMPLATE] requestId=${requestId ?? ""} path=${url.pathname} store=USER_TEMPLATES_KV ` +
+                `key=${key} templateId=${templateId} pageSize=${templateBody.pageSize} ` +
+                `w=${dims.width} h=${dims.height} elements=${fingerprint.elements} ` +
+                `jsonLen=${fingerprint.jsonLen} hash=${fingerprint.hash} hashType=${fingerprint.hashType} ` +
+                `updatedAt=${updatedAt} revision=${revision}`,
+            );
           }
           return new Response(JSON.stringify({ ...templateBody, id: templateId }), {
             status: 200,
@@ -2015,6 +2128,7 @@ export default {
 
         if (request.method === "GET") {
           try {
+            let storeInfo: { store: string; key: string } | null = null;
             const rawTemplate = isUserTemplate
               ? (async () => {
                   const authHeader = request.headers.get("Authorization") ?? "";
@@ -2032,6 +2146,10 @@ export default {
                         return { error: new Response(message, { status: 404, headers: CORS_HEADERS }) };
                       }
                     }
+                    storeInfo = {
+                      store: "USER_TEMPLATES_KV",
+                      key: buildUserTemplateKey(verified.tenantId, templateId),
+                    };
                     return getUserTemplateById(templateId, env, verified.tenantId);
                   }
 
@@ -2043,11 +2161,18 @@ export default {
                     } catch (error) {
                       const message = error instanceof Error ? error.message : "Template not found";
                       return { error: new Response(message, { status: 404, headers: CORS_HEADERS }) };
+                      }
                     }
-                  }
+                  storeInfo = {
+                    store: "USER_TEMPLATES_KV",
+                    key: buildUserTemplateKey(tenant.tenantKey, templateId),
+                  };
                   return getUserTemplateById(templateId, env, tenant.tenantKey);
                 })()
               : getBaseTemplateById(templateId, env);
+            if (!isUserTemplate) {
+              storeInfo = { store: "TEMPLATE_KV", key: `tpl:${templateId}` };
+            }
 
             const resolved = await rawTemplate;
             if (!resolved || "error" in (resolved as any)) {
@@ -2060,10 +2185,29 @@ export default {
 
             const rawTemplateResolved = resolved as TemplateDefinition;
             const schemaVersionBefore = rawTemplateResolved.schemaVersion ?? 0;
-            const migratedTemplate = migrateTemplate(rawTemplateResolved);
+            const migratedTemplate = migrateTemplate(rawTemplateResolved, {
+              enabled: debugEnabled,
+              requestId,
+              reason: "fetch-template",
+              templateId,
+            });
             const didMigrate = schemaVersionBefore < TEMPLATE_SCHEMA_VERSION;
             const { ok, issues } = validateTemplate(migratedTemplate);
             const warnCount = issues.filter((issue) => issue.level === "warn").length;
+
+            if (debugEnabled) {
+              const fingerprint = await buildTemplateFingerprint(migratedTemplate);
+              const dims = getTemplatePageInfo(migratedTemplate);
+              const updatedAt = (migratedTemplate as any).updatedAt ?? (migratedTemplate as any).meta?.updatedAt ?? "";
+              const revision = (migratedTemplate as any).revision ?? "";
+              console.info(
+                `[DBG_FETCH_TEMPLATE] requestId=${requestId ?? ""} path=${url.pathname} store=${storeInfo?.store ?? ""} ` +
+                  `key=${storeInfo?.key ?? ""} templateId=${templateId} pageSize=${migratedTemplate.pageSize} ` +
+                  `w=${dims.width} h=${dims.height} elements=${fingerprint.elements} jsonLen=${fingerprint.jsonLen} ` +
+                  `hash=${fingerprint.hash} hashType=${fingerprint.hashType} migrated=${didMigrate} ` +
+                  `updatedAt=${updatedAt} revision=${revision}`,
+              );
+            }
 
             const headers: Record<string, string> = {
               ...CORS_HEADERS,
@@ -2125,7 +2269,12 @@ export default {
           }
 
           const schemaVersionBefore = templateBody.schemaVersion ?? 0;
-          const migratedTemplate = migrateTemplate(templateBody);
+          const migratedTemplate = migrateTemplate(templateBody, {
+            enabled: debugEnabled,
+            requestId,
+            reason: "admin-update",
+            templateId,
+          });
           const didMigrate = schemaVersionBefore < TEMPLATE_SCHEMA_VERSION;
           const { ok, issues } = validateTemplate(migratedTemplate);
           const warnCount = issues.filter((issue) => issue.level === "warn").length;
@@ -2175,15 +2324,20 @@ export default {
           });
         }
 
-        const debug = url.searchParams.get("debug") === "1";
+        const debug = debugEnabled;
         const previewMode =
           body.previewMode === "fieldCode" ? "fieldCode" : "record";
+        if (url.pathname === "/render") {
+          console.info("[render] debugFlag", { debug: url.searchParams.get("debug"), requestId });
+        }
 
         // template / templateId のどちらかから TemplateDefinition を決定
         let template: TemplateDefinition<TemplateDataRecord>;
+        let templateSource: "body.template" | "templateId" = "templateId";
 
         if (body.template) {
           template = body.template;
+          templateSource = "body.template";
         } else if (body.templateId) {
           const isUserTemplate = body.templateId.startsWith("tpl_");
           if (!isUserTemplate && !TEMPLATE_IDS.has(body.templateId)) {
@@ -2249,7 +2403,12 @@ export default {
           });
         }
         const schemaVersionBefore = template.schemaVersion ?? 0;
-        const migratedTemplate = migrateTemplate(template);
+        const migratedTemplate = migrateTemplate(template, {
+          enabled: debug,
+          requestId,
+          reason: "render",
+          templateId: template.id ?? body.templateId ?? "",
+        });
         const didMigrate = schemaVersionBefore < TEMPLATE_SCHEMA_VERSION;
         const { ok, issues } = validateTemplate(migratedTemplate);
         const issueWarnings = issues.map((issue) => {
@@ -2279,6 +2438,18 @@ export default {
               status: 400,
               headers,
             },
+          );
+        }
+        if (debug) {
+          const fingerprint = await buildTemplateFingerprint(migratedTemplate);
+          const dims = getTemplatePageInfo(migratedTemplate);
+          const templateId = template.id ?? body.templateId ?? "";
+          console.info(
+            `[DBG_RENDER_START] requestId=${requestId ?? ""} templateId=${templateId} source=${templateSource} ` +
+              `pageSize=${migratedTemplate.pageSize} previewMode=${previewMode} ` +
+              `fetchedHash=${fingerprint.hash} hashType=${fingerprint.hashType} fetchedEtag= ` +
+              `fetchedJsonLen=${fingerprint.jsonLen} fetchedElements=${fingerprint.elements} ` +
+              `pdfPageW=${dims.width} pdfPageH=${dims.height}`,
           );
         }
 

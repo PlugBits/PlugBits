@@ -1,5 +1,7 @@
 import { WORKER_BASE_URL } from '../constants';
 import type { PluginConfig } from '../config/index.ts';
+import { isDebugEnabled } from '../../../src/shared/debugFlag';
+import { appendDebugParam } from '../../../src/shared/appendDebug';
 
 const PLUGIN_ID =
   (typeof kintone !== 'undefined' ? (kintone as any).$PLUGIN_ID : '') || '';
@@ -321,7 +323,9 @@ const callRenderApi = async (
   const baseUrl = WORKER_BASE_URL;
   const appId = (window as any).kintone?.app?.getId?.();
   const appIdValue = appId ? String(appId) : '';
-  const url = `${baseUrl.replace(/\/$/, '')}/render`;
+  const debugEnabled = isDebugEnabled();
+  const renderUrl = appendDebugParam(`${baseUrl.replace(/\/$/, '')}/render`, debugEnabled);
+  if (debugEnabled) console.log('[DBG_RENDER_URL]', renderUrl);
   const body = JSON.stringify({
     templateId: config.templateId,
     data: templateData,
@@ -344,7 +348,7 @@ const callRenderApi = async (
   let response: Response | null = null;
   for (let attempt = 0; attempt < 2; attempt += 1) {
     try {
-      response = await fetch(url, {
+      response = await fetch(renderUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

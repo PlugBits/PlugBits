@@ -1,6 +1,25 @@
 "use strict";
 (() => {
   // src/desktop/index.ts
+  var DEBUG_PATTERN = /(^|[?#&])debug=(1|true)($|[&#])/i;
+  var isDebugEnabled = () => {
+    if (typeof window === "undefined") return false;
+    var href = window.location.href || "";
+    return DEBUG_PATTERN.test(href);
+  };
+  var appendDebugParam = (url, debug) => {
+    if (!debug) return url;
+    var base = typeof window !== "undefined" && window.location && window.location.origin ? window.location.origin : "http://localhost";
+    var parsed;
+    try {
+      parsed = new URL(url, base);
+    } catch {
+      return url;
+    }
+    if (parsed.searchParams.has("debug")) return parsed.toString();
+    parsed.searchParams.append("debug", "1");
+    return parsed.toString();
+  };
   var PLUGIN_ID = window.kintone?.$PLUGIN_ID || "";
   var getConfig = () => {
     if (!PLUGIN_ID) return null;
@@ -85,7 +104,10 @@
   var callRenderApi = async (config, recordId, templateData) => {
     const appId = window.kintone?.app?.getId?.();
     const appIdValue = appId ? String(appId) : "";
-    const response = await fetch(`${config.apiBaseUrl.replace(/\/$/, "")}/render`, {
+    const debugEnabled = isDebugEnabled();
+    const renderUrl = appendDebugParam(`${config.apiBaseUrl.replace(/\/$/, "")}/render`, debugEnabled);
+    if (debugEnabled) console.log("[DBG_RENDER_URL]", renderUrl);
+    const response = await fetch(renderUrl, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

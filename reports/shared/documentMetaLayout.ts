@@ -60,20 +60,20 @@ const resolveRowLayout = (
   const valueW = Math.max(0, blockW - labelW - gap);
   if (valueW >= minValueW) {
     const rowH = Math.max(labelH, valueH);
-    const y = topY - rowH;
+    const y = topY;
     return {
       label: { x: blockX, y, width: labelW, height: rowH },
       value: { x: blockX + labelW + gap, y, width: valueW, height: rowH },
-      bottom: y,
+      bottom: y + rowH,
     };
   }
 
-  const labelY = topY - labelH;
-  const valueY = labelY - gap - valueH;
+  const labelY = topY;
+  const valueY = labelY + labelH + gap;
   return {
     label: { x: blockX, y: labelY, width: blockW, height: labelH },
     value: { x: blockX, y: valueY, width: blockW, height: valueH },
-    bottom: valueY,
+    bottom: valueY + valueH,
   };
 };
 
@@ -84,6 +84,7 @@ export const computeDocumentMetaLayout = (
     logoX,
     logoY,
     logoWidth,
+    logoHeight,
     gap,
     labelWidth,
     columnGap,
@@ -105,7 +106,7 @@ export const computeDocumentMetaLayout = (
   const blockX = resolvedBlockX;
   const blockW = Math.max(0, resolvedBlockW);
   const labelW = Math.min(labelWidth, blockW);
-  let rowTop = logoY - gap;
+  let rowTop = logoY + logoHeight + gap;
   const result: DocumentMetaLayoutResult = {};
 
   const docNoLabelH = resolveMinHeight(fontSizes.docNoLabel, heights?.docNoLabel);

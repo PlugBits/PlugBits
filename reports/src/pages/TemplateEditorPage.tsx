@@ -2,6 +2,8 @@ import { previewPdf } from '../api/previewPdf';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import type { TemplateDefinition, TemplateElement, TextElement, TableElement, LabelElement, ImageElement, PageSize } from '@shared/template';
+import { convertTemplateForPageSize } from '@shared/convertPageSize';
+import { isDebugEnabled } from '../shared/debugFlag';
 import TemplateCanvas from '../components/TemplateCanvas';
 import Toast from '../components/Toast';
 import { selectTemplateById, useTemplateStore } from '../store/templateStore';
@@ -16,7 +18,7 @@ import {
   resolveFontScalePreset,
   isElementHiddenByEasyAdjust,
 } from '../utils/easyAdjust';
-import { CANVAS_WIDTH, clampYToRegion } from '../utils/regionBounds';
+import { clampYToRegion, getCanvasDimensions } from '../utils/regionBounds';
 import { computeDocumentMetaLayout } from '@shared/documentMetaLayout';
 import { getAdapter, getAdapterOrNull } from '../editor/Mapping/adapters/getAdapter';
 import { useEditorSession } from '../hooks/useEditorSession';
@@ -622,6 +624,7 @@ const TemplateEditorPage = () => {
 
     const shouldAutoLayoutDocMeta = template.structureType !== 'estimate_v1';
     if ((docNo || issueDate) && shouldAutoLayoutDocMeta) {
+      const { width: canvasWidth } = getCanvasDimensions(template);
       const headerSettings = normalizeEasyAdjustBlockSettings(template, 'header');
       const headerFontScale = resolveFontScalePreset(headerSettings.fontPreset);
       const headerPadding = resolvePagePaddingPreset(headerSettings.paddingPreset);
@@ -629,7 +632,7 @@ const TemplateEditorPage = () => {
       const dateFontSize = (issueDate?.fontSize ?? 10) * headerFontScale;
       const labelFontSize = 9 * headerFontScale;
       const blockWidth = Math.min(280, Math.max(200, logoW));
-      const blockRight = CANVAS_WIDTH - headerPadding;
+      const blockRight = canvasWidth - headerPadding;
       const blockX = Math.max(headerPadding, blockRight - blockWidth);
       const fallbackLabelWidth = Math.min(56, blockWidth);
       const fallbackTopY = logoY - 12;
@@ -1565,7 +1568,21 @@ const TemplateEditorPage = () => {
                   value={template.pageSize ?? 'A4'}
                   onChange={(event) => {
                     const next = event.target.value as PageSize;
-                    updateTemplate({ ...template, pageSize: next });
+                    if (next === template.pageSize) return;
+                    const debug = isDebugEnabled()
+                      ? {
+                          enabled: true,
+                          reason: 'ui-page-size-change',
+                          templateId: template.id,
+                        }
+                      : undefined;
+                    const converted = convertTemplateForPageSize(
+                      template,
+                      next,
+                      template.orientation ?? 'portrait',
+                      debug,
+                    );
+                    updateTemplate(converted);
                   }}
                   style={{ fontSize: 12, width: 180, minWidth: 140, maxWidth: 200 }}
                 >

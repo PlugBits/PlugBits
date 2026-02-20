@@ -37,17 +37,8 @@ export type EstimateV1Mapping = {
 };
 
 const CANVAS_HEIGHT = 842;
-const REGION_BOUNDS = {
-  header: { yMin: 660, yMax: CANVAS_HEIGHT },
-  body: { yMin: 180, yMax: 660 },
-  footer: { yMin: 0, yMax: 180 },
-} as const;
-
 const clamp = (v: number, min: number, max: number) => Math.min(Math.max(v, min), max);
-const clampYToRegion = (y: number, region: "header" | "body" | "footer") => {
-  const b = REGION_BOUNDS[region];
-  return clamp(y, b.yMin, b.yMax);
-};
+const clampYToRegion = (y: number) => clamp(y, 0, CANVAS_HEIGHT);
 
 let warnedMissingAmountColumn = false;
 const HEADER_SLOT_IDS = new Set([
@@ -374,22 +365,20 @@ export const applyEstimateV1MappingToTemplate = (
     return e;
   });
 
-  const FOOTER_Y_MAX = 260;
-  const yFooter = (fromBottomPx: number) =>
-    Math.min(Math.max(fromBottomPx, 0), FOOTER_Y_MAX);
+  const yFooter = (yTop: number) => clampYToRegion(yTop);
 
   ensureSlotElement(
     "doc_title",
     "header",
     "text",
-    { x: 0, y: 790, fontSize: 22, fontWeight: "bold", width: 595, height: 28, alignX: "center" },
+    { x: 0, y: 24, fontSize: 22, fontWeight: "bold", width: 595, height: 28, alignX: "center" },
     headerRef["doc_title"],
   );
   ensureSlotElement(
     "to_name",
     "header",
     "text",
-    { x: 70, y: 725, fontSize: 12, fontWeight: "bold", width: 200, height: 18 },
+    { x: 70, y: 99, fontSize: 12, fontWeight: "bold", width: 200, height: 18 },
     headerRef["to_name"],
   );
   if (shouldShowHonorific) {
@@ -410,81 +399,81 @@ export const applyEstimateV1MappingToTemplate = (
     "logo",
     "header",
     "image",
-    { x: 40, y: 770, width: 120, height: 60, repeatOnEveryPage: true },
+    { x: 40, y: 12, width: 120, height: 60, repeatOnEveryPage: true },
     headerRef["logo"],
   );
   ensureFixedLabelElement(
     "date_label",
     "header",
     "発行日",
-    { x: 360, y: 720, fontSize: 10, width: 60, height: 16, alignX: "right" },
+    { x: 360, y: 106, fontSize: 10, width: 60, height: 16, alignX: "right" },
     "date_label",
   );
   ensureSlotElement(
     "issue_date",
     "header",
     "text",
-    { x: 430, y: 720, fontSize: 10, width: 150, height: 16, alignX: "right" },
+    { x: 430, y: 106, fontSize: 10, width: 150, height: 16, alignX: "right" },
     headerRef["issue_date"],
   );
   ensureSlotElement(
     "doc_no",
     "header",
     "text",
-    { x: 430, y: 740, fontSize: 10, width: 150, height: 16, alignX: "right" },
+    { x: 430, y: 86, fontSize: 10, width: 150, height: 16, alignX: "right" },
     headerRef["doc_no"],
   );
   ensureFixedLabelElement(
     "doc_no_label",
     "header",
     "見積番号",
-    { x: 360, y: 740, fontSize: 10, width: 60, height: 16, alignX: "right" },
+    { x: 360, y: 86, fontSize: 10, width: 60, height: 16, alignX: "right" },
   );
 
   ensureLabelElement(
     "subtotal_label",
     "footer",
     "小計",
-    { x: 360, y: yFooter(240), fontSize: 10, width: 60, height: 16 },
+    { x: 360, y: yFooter(586), fontSize: 10, width: 60, height: 16 },
   );
   ensureSlotElement(
     "subtotal",
     "footer",
     "text",
-    { x: 430, y: yFooter(240), fontSize: 10, width: 150, height: 16, alignX: "right" },
+    { x: 430, y: yFooter(586), fontSize: 10, width: 150, height: 16, alignX: "right" },
     footerRef["subtotal"],
   );
   ensureLabelElement(
     "tax_label",
     "footer",
     "消費税",
-    { x: 360, y: yFooter(220), fontSize: 10, width: 60, height: 16 },
+    { x: 360, y: yFooter(606), fontSize: 10, width: 60, height: 16 },
   );
   ensureSlotElement(
     "tax",
     "footer",
     "text",
-    { x: 430, y: yFooter(220), fontSize: 10, width: 150, height: 16, alignX: "right" },
+    { x: 430, y: yFooter(606), fontSize: 10, width: 150, height: 16, alignX: "right" },
     footerRef["tax"],
   );
   ensureLabelElement(
     "total_label_fixed",
     "footer",
     "合計",
-    { x: 360, y: yFooter(200), fontSize: 10, width: 60, height: 16, fontWeight: "bold", fillGray: 0.93 },
+    { x: 360, y: yFooter(626), fontSize: 10, width: 60, height: 16, fontWeight: "bold", fillGray: 0.93 },
   );
   ensureSlotElement(
     "total",
     "footer",
     "text",
-    { x: 430, y: yFooter(200), fontSize: 14, fontWeight: "bold", width: 150, height: 20, fillGray: 0.93, alignX: "right" },
+    { x: 430, y: yFooter(622), fontSize: 14, fontWeight: "bold", width: 150, height: 20, fillGray: 0.93, alignX: "right" },
     footerRef["total"],
   );
   ensureSlotElement(
     "remarks",
     "footer",
     "text",
-    { x: 70, y: yFooter(120), fontSize: 10, width: 480, height: 80, borderWidth: 0.8, borderColorGray: 0.3 },
+    { x: 70, y: yFooter(642), fontSize: 10, width: 480, height: 80, borderWidth: 0.8, borderColorGray: 0.3 },
     footerRef["remarks"],
   );
 
@@ -498,7 +487,7 @@ export const applyEstimateV1MappingToTemplate = (
   const TABLE_ID = "items";
   const BASE_X = 70;
   const TOTAL_WIDTH = 480;
-  const BASE_Y = 610;
+  const BASE_Y = 208;
 
   const existingIdx = slotSyncedElements.findIndex((e) => e.id === TABLE_ID);
   const existing = existingIdx >= 0 ? (slotSyncedElements[existingIdx] as any) : null;
