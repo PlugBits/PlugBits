@@ -877,11 +877,18 @@ export async function renderTemplateToPdf(
   template: TemplateDefinition,
   data: TemplateDataRecord | undefined,
   fonts: { jp: Uint8Array; latin: Uint8Array },
-  options?: { debug?: boolean; previewMode?: PreviewMode },
+  options?: {
+    debug?: boolean;
+    previewMode?: PreviewMode;
+    requestId?: string;
+    onPageInfo?: (info: { pdfPageW: number; pdfPageH: number }) => void;
+  },
 ): Promise<{ bytes: Uint8Array; warnings: string[] }> {
   const warnings = new Set<string>();
   const debugEnabled = options?.debug === true;
   const debugOverlayEnabled = debugEnabled;
+  const requestId = options?.requestId;
+  const onPageInfo = options?.onPageInfo;
   const previewMode: PreviewMode = options?.previewMode ?? 'record';
   const warn: WarnFn = (category, message, context) => {
     if (category === 'debug' && !debugEnabled) return;
@@ -912,6 +919,30 @@ export async function renderTemplateToPdf(
     canvasWidth,
     canvasHeight,
   });
+  if (debugEnabled) {
+    console.debug('[DBG_XFORM]', {
+      requestId,
+      xformPageW: transform.pageWidthPt,
+      xformPageH: transform.pageHeightPt,
+      scaleX: transform.scaleX,
+      scaleY: transform.scaleY,
+      mode: 'renderTemplate',
+    });
+  }
+  const dbgFlipY = (tag: string, uiY: number, uiH?: number) => {
+    if (!debugEnabled) return;
+    const height = Number.isFinite(uiH ?? 0) ? (uiH ?? 0) : 0;
+    const usedPageH = transform.pageHeightPt;
+    const outY = usedPageH - uiY * transform.scaleY - height * transform.scaleY;
+    console.debug('[DBG_FLIPY]', {
+      requestId,
+      tag,
+      uiY,
+      uiH: height,
+      usedPageH,
+      outY,
+    });
+  };
   const resolveAdjust = (element: TemplateElement) =>
     resolveEasyAdjustForElement(element, template);
   let renderData = data ? structuredClone(data) : undefined;
@@ -919,6 +950,18 @@ export async function renderTemplateToPdf(
 
   // ★ let にして、テーブル描画の途中で別ページに差し替えられるようにする
   let page = pdfDoc.addPage([pageWidth, pageHeight]);
+  const pageWidthActual = page.getWidth();
+  const pageHeightActual = page.getHeight();
+  if (debugEnabled && onPageInfo) {
+    onPageInfo({ pdfPageW: pageWidthActual, pdfPageH: pageHeightActual });
+  }
+  if (debugEnabled && transform.pageHeightPt !== pageHeightActual) {
+    console.debug('[DBG_WARN_PAGEH_MISMATCH]', {
+      requestId,
+      xformPageH: transform.pageHeightPt,
+      pdfPageH: pageHeightActual,
+    });
+  }
 
   // フォント埋め込み
   const jpFont = await pdfDoc.embedFont(fonts.jp, { subset: false });
@@ -1022,6 +1065,11 @@ export async function renderTemplateToPdf(
           jpFont,
           latinFont,
           warn,
+        );
+        dbgFlipY(
+          'elementY(doc_title)',
+          debugOverlayInfo.canvas.y,
+          debugOverlayInfo.canvas.h,
         );
         logDebugOverlayInfo(debugOverlayInfo, pageWidth, pageHeight, transform, template.pageSize);
         assertDebugOverlayInfo(debugOverlayInfo, pageWidth, pageHeight, warn);
@@ -1265,6 +1313,14 @@ export async function renderTemplateToPdf(
         ? { ...tableElementToRender, y: adjustedTableY }
         : tableElementToRender;
 
+    if (debugEnabled) {
+      if (typeof headerBottomY === 'number') {
+        dbgFlipY('headerBottomY(tableLayout)', headerBottomY, 0);
+      }
+      if (typeof tableY === 'number') {
+        dbgFlipY('tableY(items)', tableY, tableHeaderHeight);
+      }
+    }
     warn('debug', 'table layout positions', {
       tableId: tableElementToRender.id,
       tableY,

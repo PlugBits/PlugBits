@@ -2475,6 +2475,7 @@ export default {
           templateForRender,
           body.companyProfile,
         );
+        const templatePageInfo = getTemplatePageInfo(templateForRender);
         const mappingSummaryMode =
           templateForRender.mapping &&
           typeof templateForRender.mapping === "object" &&
@@ -2572,7 +2573,23 @@ export default {
             templateForRender,
             dataForRender as TemplateDataRecord | undefined,
             fonts,
-            { debug, previewMode },
+            {
+              debug,
+              previewMode,
+              requestId,
+              onPageInfo: debug
+                ? ({ pdfPageW, pdfPageH }) => {
+                    console.debug('[DBG_PAGE]', {
+                      requestId,
+                      pageSize: templateForRender.pageSize ?? null,
+                      templatePageW: templatePageInfo.width,
+                      templatePageH: templatePageInfo.height,
+                      pdfPageW,
+                      pdfPageH,
+                    });
+                  }
+                : undefined,
+            },
           );
 
           const pdfBytes = new Uint8Array(rawPdfBytes);
