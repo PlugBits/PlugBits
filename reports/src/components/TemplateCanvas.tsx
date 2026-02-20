@@ -681,7 +681,7 @@ const TemplateCanvas = ({
           <div
             key={element.id}
             className="canvas-element-wrapper"
-            data-element-id={element.id}
+            data-element-id={slotId ?? element.id}
             style={{
               ...mergedStyle,
               zIndex: selectedElementId === element.id ? 50 : highlightedElementIds?.has(element.id) ? 40 : undefined,

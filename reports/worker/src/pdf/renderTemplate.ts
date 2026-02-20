@@ -1711,6 +1711,8 @@ function drawLabel(
   pagePadding: number,
   transform: PdfTransform,
   warn?: WarnFn,
+  debugEnabled = false,
+  onTextBaseline?: (entry: TextBaselineDebug) => void,
 ) {
   const fontSizeCanvas = (element.fontSize ?? 12) * fontScale;
   const fontSize = fontSizeCanvas * transform.scaleY;
@@ -1739,6 +1741,30 @@ function drawLabel(
   yStart = clampPdfY(yStart, transform.pageHeightPt - lineHeight);
   const xCanvas = resolveAlignedX(element, transform.canvasWidth, maxWidthCanvas, pagePadding);
   const x = transform.toPdfX(xCanvas);
+  const slotId = (element as any).slotId as string | undefined;
+  const elementKey = slotId ?? element.id;
+  const shouldLogBaseline = debugEnabled && DBG_TEXT_BASELINE_TARGETS.has(elementKey);
+  const fontAny = fontToUse as unknown as {
+    ascentAtSize?: (size: number) => number;
+    descentAtSize?: (size: number) => number;
+  };
+  const ascent =
+    typeof fontAny.ascentAtSize === 'function' ? fontAny.ascentAtSize(fontSize) : null;
+  const descent =
+    typeof fontAny.descentAtSize === 'function' ? fontAny.descentAtSize(fontSize) : null;
+  if (shouldLogBaseline) {
+    const entry = {
+      elementId: elementKey,
+      rectTopY: yBottom + boxHeight,
+      rectBottomY: yBottom,
+      fontSize,
+      ascent,
+      descent,
+      computedDrawY: yStart,
+    };
+    console.log('[DBG_TEXT_BASELINE]', entry);
+    onTextBaseline?.(entry);
+  }
   if (typeof fillGray === 'number') {
     page.drawRectangle({
       x,
@@ -1981,6 +2007,8 @@ function drawHeaderElements(
           adjust.pagePadding,
           transform,
           warn,
+          debugEnabled,
+          onTextBaseline,
         );
         break;
 
@@ -2062,6 +2090,8 @@ function drawFooterElements(
           adjust.pagePadding,
           transform,
           warn,
+          debugEnabled,
+          onTextBaseline,
         );
         break;
 
