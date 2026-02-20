@@ -63,12 +63,13 @@ const GRID_SIZE = 5;
 const ALIGN_PADDING = 12;
 type TextElement = Extract<TemplateElement, { type: 'text' }>;
 type TableElement = Extract<TemplateElement, { type: 'table' }>;
+const TABLE_CELL_DEBUG_ID = 'items:row0:item_name';
 const DBG_TEXT_TARGETS = new Set([
   'doc_title',
   'doc_no',
   'date_label',
   'issue_date',
-  'items:row0:item_name',
+  TABLE_CELL_DEBUG_ID,
 ]);
 
 const resolvePagePadding = resolvePagePaddingPreset;
@@ -145,7 +146,7 @@ const resolveTableDebugCell = (template: TemplateDefinition) => {
   const rowHeight = table.rowHeight ?? 18;
   return {
     tableId: table.id,
-    elementId: 'items:row0:item_name',
+    elementId: TABLE_CELL_DEBUG_ID,
     x: baseX + offsetX,
     y: baseY + headerHeight,
     width: typeof itemColumn.width === 'number' ? itemColumn.width : 1,
@@ -296,6 +297,33 @@ const TemplateCanvas = ({
         .map((el) => el.dataset.elementId)
         .filter((elementId): elementId is string => !!elementId);
       console.log('[DBG_CANVAS_MARKERS]', { ids: markerIds });
+      const tableCellEl = root.querySelector<HTMLElement>(
+        `[data-element-id="${TABLE_CELL_DEBUG_ID}"]`,
+      );
+      const tableCellRect = tableCellEl?.getBoundingClientRect();
+      if (tableCellRect) {
+        const cellTop = tableCellRect.top - rootRect.top;
+        console.log('[DBG_TABLE_CELL_CANVAS]', {
+          elementId: TABLE_CELL_DEBUG_ID,
+          cellTop,
+          cellHeight: tableCellRect.height,
+        });
+      }
+      const tableTextEl = root.querySelector<HTMLElement>(
+        `[data-text-element-id="${TABLE_CELL_DEBUG_ID}"]`,
+      );
+      if (tableTextEl) {
+        const rect = tableTextEl.getBoundingClientRect();
+        const textTop = rect.top - rootRect.top;
+        const cellTop = tableCellRect ? tableCellRect.top - rootRect.top : null;
+        console.log('[DBG_TABLE_TEXT_CANVAS]', {
+          elementId: TABLE_CELL_DEBUG_ID,
+          textTop,
+          textHeight: rect.height,
+          computedOffsetInCell:
+            typeof cellTop === 'number' ? textTop - cellTop : null,
+        });
+      }
       root.querySelectorAll<HTMLElement>('[data-element-id]').forEach((el) => {
         const elementId = el.dataset.elementId;
         if (!elementId || !DBG_TEXT_TARGETS.has(elementId)) return;
@@ -611,7 +639,21 @@ const TemplateCanvas = ({
             pointerEvents: 'none',
             opacity: 0,
           }}
-        />
+        >
+          <span
+            data-text-element-id={tableDebugCell.elementId}
+            style={{
+              position: 'absolute',
+              left: '6px',
+              top: '4px',
+              fontSize: '10px',
+              lineHeight: '1.2',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            品名
+          </span>
+        </span>
       ) : null}
       {resolvedAdminMode && showGuides ? (
         <div className="canvas-region-guides">

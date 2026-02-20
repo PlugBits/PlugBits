@@ -41,6 +41,9 @@ type TextBaselineDebug = {
   computedDrawY: number;
 };
 
+// NOTE(2026-02-20):
+// Header text alignment between Canvas(DOM) and PDF is within ~±1px (acceptable, frozen).
+// Table cell text alignment differs (e.g. items:row0:item_name diff = -5px), handled in table phase separately.
 const DBG_TEXT_BASELINE_TARGETS = new Set([
   'doc_title',
   'doc_no',
@@ -3129,6 +3132,29 @@ function drawTable(
     console.log('[DBG_TEXT_BASELINE]', entry);
     onTextBaseline?.(entry);
   };
+  const emitTableCellPdfLog = (
+    elementId: string,
+    rectTopY: number,
+    rectBottomY: number,
+    fontSize: number,
+    computedDrawY: number,
+  ) => {
+    if (!debugEnabled) return;
+    const cellHeight = rectTopY - rectBottomY;
+    const cellTop = pageHeight - rectTopY;
+    const cellBottom = cellTop + cellHeight;
+    const baselineOffset = computedDrawY - rectBottomY;
+    console.log('[DBG_TABLE_CELL_PDF]', {
+      elementId,
+      cellTop,
+      cellBottom,
+      fontSize,
+      lineHeight,
+      computedDrawY,
+      baselineOffset,
+      cellPaddingY: paddingY,
+    });
+  };
 
   const emitSubtotalIfNeeded = () => {
     if (summaryMode !== 'everyPageSubtotal+lastTotal') return;
@@ -3366,6 +3392,13 @@ function drawTable(
             yStart,
             fontForCell,
           );
+          emitTableCellPdfLog(
+            tableCellElementId,
+            rectTopY,
+            rectBottomY,
+            baseFontSize,
+            yStart,
+          );
         }
         for (let idx = 0; idx < lines.length; idx += 1) {
           const line = lines[idx];
@@ -3402,6 +3435,13 @@ function drawTable(
             drawY,
             fontForCell,
           );
+          emitTableCellPdfLog(
+            tableCellElementId,
+            rectTopY,
+            rectBottomY,
+            baseFontSize,
+            drawY,
+          );
         }
         drawAlignedText(
           currentPage,
@@ -3427,6 +3467,13 @@ function drawTable(
             baseFontSize,
             drawY,
             fontForCell,
+          );
+          emitTableCellPdfLog(
+            tableCellElementId,
+            rectTopY,
+            rectBottomY,
+            baseFontSize,
+            drawY,
           );
         }
         drawAlignedText(
@@ -3461,6 +3508,13 @@ function drawTable(
             shrinkFontSize,
             drawY,
             fontForCell,
+          );
+          emitTableCellPdfLog(
+            tableCellElementId,
+            rectTopY,
+            rectBottomY,
+            shrinkFontSize,
+            drawY,
           );
         }
         drawCellText(
