@@ -228,6 +228,7 @@ const TemplateCanvas = ({
   const debugLabelsEnabled = useMemo(() => isDebugEnabled(), []);
   const companyBlockEnabled = template.settings?.companyBlock?.enabled !== false;
   const loggedEstimateRef = useRef(false);
+  const canvasRef = useRef<HTMLDivElement | null>(null);
   useEffect(() => {
     if (!import.meta.env.DEV) return;
     if (!isEstimate || loggedEstimateRef.current) return;
@@ -256,7 +257,7 @@ const TemplateCanvas = ({
       (window as any).__DBG_CANVAS_TOP__ = map;
     });
     return () => window.cancelAnimationFrame(raf);
-  }, [debugLabelsEnabled, template, canvasWidth, canvasHeight, visibleElements]);
+  }, [debugLabelsEnabled, template, canvasWidth, canvasHeight]);
   const isDocumentMetaElement = (element: TemplateElement) => {
     if (isEstimate) return false;
     const slotId = (element as any).slotId as string | undefined;
@@ -327,7 +328,6 @@ const TemplateCanvas = ({
     return true;
   });
 
-  const canvasRef = useRef<HTMLDivElement | null>(null);
   const [dragState, setDragState] = useState<DragState | null>(null);
   const [resizeState, setResizeState] = useState<ResizeState | null>(null);
   const [hint, setHint] = useState<string | null>(null);
@@ -681,7 +681,7 @@ const TemplateCanvas = ({
           <div
             key={element.id}
             className="canvas-element-wrapper"
-            data-element-id={slotId ?? element.id}
+            data-element-id={element.id}
             style={{
               ...mergedStyle,
               zIndex: selectedElementId === element.id ? 50 : highlightedElementIds?.has(element.id) ? 40 : undefined,
