@@ -134,11 +134,21 @@ const resolveTableDebugCell = (template: TemplateDefinition) => {
   if (!table.columns || table.columns.length === 0) return null;
   const itemColumn = table.columns.find(isItemNameColumn) ?? table.columns[0];
   if (!itemColumn) return null;
+  const itemColumnIndex = table.columns.indexOf(itemColumn);
+  const offsetX = table.columns.slice(0, itemColumnIndex).reduce((sum, column) => {
+    const width = typeof column.width === 'number' ? column.width : 0;
+    return sum + width;
+  }, 0);
+  const baseX = Number.isFinite(table.x) ? table.x : 0;
+  const baseY = Number.isFinite(table.y) ? table.y : 0;
   const headerHeight = table.headerHeight ?? table.rowHeight ?? 18;
   const rowHeight = table.rowHeight ?? 18;
   return {
     tableId: table.id,
     elementId: 'items:row0:item_name',
+    x: baseX + offsetX,
+    y: baseY + headerHeight,
+    width: typeof itemColumn.width === 'number' ? itemColumn.width : 1,
     headerHeight,
     rowHeight,
   };
@@ -275,6 +285,17 @@ const TemplateCanvas = ({
       if (!root) return;
       const rootRect = root.getBoundingClientRect();
       const map = (window as any).__DBG_CANVAS_TOP__ ?? {};
+      const markers = root.querySelectorAll('[data-dbg-marker="1"]');
+      console.log('[DBG_MARKER_PRESENT]', {
+        found: markers.length > 0,
+        count: markers.length,
+      });
+      const markerIds = Array.from(
+        root.querySelectorAll<HTMLElement>('[data-element-id]'),
+      )
+        .map((el) => el.dataset.elementId)
+        .filter((elementId): elementId is string => !!elementId);
+      console.log('[DBG_CANVAS_MARKERS]', { ids: markerIds });
       root.querySelectorAll<HTMLElement>('[data-element-id]').forEach((el) => {
         const elementId = el.dataset.elementId;
         if (!elementId || !DBG_TEXT_TARGETS.has(elementId)) return;
@@ -577,6 +598,21 @@ const TemplateCanvas = ({
 
   return (
     <div className="template-canvas" style={canvasStyle} onMouseDown={handleCanvasMouseDown} ref={canvasRef}>
+      {debugLabelsEnabled && tableDebugCell ? (
+        <span
+          data-element-id={tableDebugCell.elementId}
+          data-dbg-marker="1"
+          style={{
+            position: 'absolute',
+            left: `${tableDebugCell.x}px`,
+            top: `${tableDebugCell.y}px`,
+            width: `${tableDebugCell.width}px`,
+            height: `${tableDebugCell.rowHeight}px`,
+            pointerEvents: 'none',
+            opacity: 0,
+          }}
+        />
+      ) : null}
       {resolvedAdminMode && showGuides ? (
         <div className="canvas-region-guides">
           {(['header', 'body', 'footer'] as const).flatMap((region) => {
@@ -721,20 +757,6 @@ const TemplateCanvas = ({
             }}
             onMouseDown={(event) => handleElementMouseDown(event, element)}
           >
-            {debugLabelsEnabled && tableDebugCell && element.type === 'table' && element.id === tableDebugCell.tableId ? (
-              <span
-                data-element-id={tableDebugCell.elementId}
-                style={{
-                  position: 'absolute',
-                  left: 0,
-                  top: `${tableDebugCell.headerHeight}px`,
-                  width: '1px',
-                  height: `${tableDebugCell.rowHeight}px`,
-                  pointerEvents: 'none',
-                  opacity: 0,
-                }}
-              />
-            ) : null}
             <div
               className={[
                 'canvas-element',
