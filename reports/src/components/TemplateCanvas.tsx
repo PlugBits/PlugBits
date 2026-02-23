@@ -346,25 +346,27 @@ const TemplateCanvas = ({
       );
       const tableCellRect = tableCellEl?.getBoundingClientRect();
       if (tableCellRect) {
-        const measuredTopRect = tableCellRect.top - rootRect.top;
+        const relativeTop = tableCellRect.top - rootRect.top - root.clientTop;
+        const measuredTop = relativeTop;
         const measuredTopOffset =
           tableCellEl && root
             ? tableCellEl.offsetTop - root.clientTop
-            : measuredTopRect;
+            : measuredTop;
         const cellTop =
           typeof tableDebugCell?.cellTopDraw === 'number'
             ? tableDebugCell.cellTopDraw
             : snapPixel(
-                measuredTopOffset,
+                measuredTop,
                 'stroke',
                 tableDebugCell?.dpr ?? window.devicePixelRatio ?? 1,
               );
         const markerStyle = tableCellEl ? window.getComputedStyle(tableCellEl) : null;
         const offsetParent = tableCellEl?.offsetParent as HTMLElement | null;
         const offsetParentStyle = offsetParent ? window.getComputedStyle(offsetParent) : null;
+        const rootStyle = window.getComputedStyle(root);
         console.log('[DBG_TABLE_CELL_CANVAS]', {
           elementId: TABLE_CELL_DEBUG_ID,
-          cellTop: measuredTopOffset,
+          cellTop: measuredTop,
           cellHeight: tableCellRect.height,
         });
         console.log('[DBG_TABLE_MEASURE_CANVAS]', {
@@ -374,22 +376,24 @@ const TemplateCanvas = ({
           markerTop: tableCellRect.top,
           markerOffsetTop: tableCellEl?.offsetTop ?? null,
           markerClientTop: tableCellEl?.clientTop ?? null,
-          measuredTopRect,
+          relativeTop,
           measuredTopOffset,
           markerCssTop: markerStyle?.top ?? null,
           offsetParentTag: offsetParent?.tagName ?? null,
           offsetParentClass: offsetParent?.className ?? null,
           offsetParentPaddingTop: offsetParentStyle?.paddingTop ?? null,
           offsetParentBorderTopWidth: offsetParentStyle?.borderTopWidth ?? null,
+          clientTop: root.clientTop,
+          borderTop: rootStyle.borderTopWidth,
           scrollTop: root.scrollTop,
           devicePixelRatio: window.devicePixelRatio,
         });
         if (tableDebugCell) {
           console.log('[DBG_TABLE_CANVAS_DELTA]', {
             drawCellTop: tableDebugCell.cellTopDraw,
-            measuredTop: measuredTopOffset,
-            delta: measuredTopOffset - tableDebugCell.cellTopDraw,
-            deltaRect: measuredTopRect - tableDebugCell.cellTopDraw,
+            measuredTop,
+            delta: measuredTop - tableDebugCell.cellTopDraw,
+            deltaOffset: measuredTopOffset - tableDebugCell.cellTopDraw,
           });
         }
       }
