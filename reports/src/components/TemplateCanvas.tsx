@@ -321,7 +321,8 @@ const TemplateCanvas = ({
       );
       const tableCellRect = tableCellEl?.getBoundingClientRect();
       if (tableCellRect) {
-        const cellTop = tableCellRect.top - rootRect.top;
+        const relativeTop = tableCellRect.top - rootRect.top;
+        const cellTop = Math.round(relativeTop);
         console.log('[DBG_TABLE_CELL_CANVAS]', {
           elementId: TABLE_CELL_DEBUG_ID,
           cellTop,
@@ -330,10 +331,17 @@ const TemplateCanvas = ({
         console.log('[DBG_TABLE_MEASURE_CANVAS]', {
           canvasRootTop: rootRect.top,
           markerTop: tableCellRect.top,
-          relativeTop: cellTop,
+          relativeTop,
           scrollTop: root.scrollTop,
           devicePixelRatio: window.devicePixelRatio,
         });
+        if (tableDebugCell) {
+          console.log('[DBG_TABLE_CANVAS_DELTA]', {
+            drawCellTop: tableDebugCell.computedRowTop,
+            measuredTop: cellTop,
+            delta: cellTop - tableDebugCell.computedRowTop,
+          });
+        }
       }
       const tableTextEl = root.querySelector<HTMLElement>(
         `[data-text-element-id="${TABLE_CELL_DEBUG_ID}"]`,
@@ -341,7 +349,7 @@ const TemplateCanvas = ({
       if (tableTextEl) {
         const rect = tableTextEl.getBoundingClientRect();
         const textTop = rect.top - rootRect.top;
-        const cellTop = tableCellRect ? tableCellRect.top - rootRect.top : null;
+        const cellTop = tableCellRect ? Math.round(tableCellRect.top - rootRect.top) : null;
         console.log('[DBG_TABLE_TEXT_CANVAS]', {
           elementId: TABLE_CELL_DEBUG_ID,
           textTop,
