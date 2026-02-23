@@ -2665,6 +2665,7 @@ function drawTable(
   const gridBorderWidthCanvas = (element as any).borderWidth ?? 0.5;
   const strokeScale = Math.min(transform.scaleX, transform.scaleY);
   const gridBorderWidth = gridBorderWidthCanvas * strokeScale;
+  const PDF_TABLE_Y_NUDGE = 1;
 
   const rowHeight = transform.toPdfH(rowHeightCanvas);
   const headerHeight = transform.toPdfH(headerHeightCanvas);
@@ -3030,7 +3031,7 @@ function drawTable(
       });
     }
 
-    cursorY = rowYBottom;
+    cursorY = rowYBottomLayout;
   };
 
   const getSummaryRows = (kind: 'subtotal' | 'total') =>
@@ -3104,6 +3105,7 @@ function drawTable(
   let invalidRowWarnCount = 0;
   let pageRowCount = 0;
   let rowMathLogged = false;
+  let nudgeLogged = false;
   const emitTableCellBaseline = (
     elementId: string,
     rectTopY: number,
@@ -3304,10 +3306,10 @@ function drawTable(
       }
     }
 
-    let rowYBottom = cursorY - effectiveRowHeight;
+    let rowYBottomLayout = cursorY - effectiveRowHeight;
 
     // 下余白を割りそうなら改ページ
-    if (rowYBottom < bottomMargin) {
+    if (rowYBottomLayout < bottomMargin) {
       emitSubtotalIfNeeded();
       pageRowCount = 0;
 
@@ -3344,9 +3346,10 @@ function drawTable(
 
       drawTableHeaderRow(currentPage, headerY);
 
-      rowYBottom = cursorY - effectiveRowHeight;
+      rowYBottomLayout = cursorY - effectiveRowHeight;
     }
 
+    const rowYBottomDraw = rowYBottomLayout + PDF_TABLE_Y_NUDGE;
     let currentX = originX;
 
     for (const cell of cells) {
@@ -3364,7 +3367,7 @@ function drawTable(
       if (element.showGrid) {
         currentPage.drawRectangle({
           x: currentX,
-          y: rowYBottom,
+          y: rowYBottomDraw,
           width: colWidth,
           height: effectiveRowHeight,
           borderColor: rgb(gridBorderGray, gridBorderGray, gridBorderGray),
@@ -3377,8 +3380,18 @@ function drawTable(
       const minFontSize = spec.minFontSize * transform.scaleY;
       const shouldLogTableCell = debugEnabled && i === 0 && spec.isItemName;
       const tableCellElementId = `${element.id}:row0:${columnId}`;
-      const rectTopY = rowYBottom + effectiveRowHeight;
-      const rectBottomY = rowYBottom;
+      const rectTopY = rowYBottomDraw + effectiveRowHeight;
+      const rectBottomY = rowYBottomDraw;
+      if (shouldLogTableCell && !nudgeLogged) {
+        const rowTopBefore = rowYBottomLayout + effectiveRowHeight;
+        const rowTopAfter = rowYBottomDraw + effectiveRowHeight;
+        console.log('[DBG_TABLE_PDF_NUDGE]', {
+          rowTopBefore,
+          rowTopAfter,
+          nudge: PDF_TABLE_Y_NUDGE,
+        });
+        nudgeLogged = true;
+      }
       if (shouldLogTableCell && !rowMathLogged) {
         const tableYUi = typeof element.y === 'number' ? element.y : 0;
         const tableYPdfRaw = transform.toPdfYBox(tableYUi, headerHeightCanvas);
@@ -3411,7 +3424,7 @@ function drawTable(
       if (spec.overflow === 'wrap' && maxCellWidth > 0) {
         const maxLinesByHeight = Math.floor((effectiveRowHeight - paddingY * 2) / lineHeight);
         const lines = linesToDraw.slice(0, Math.max(0, maxLinesByHeight));
-        const yStart = rowYBottom + effectiveRowHeight - paddingY - lineHeight;
+        const yStart = rowYBottomDraw + effectiveRowHeight - paddingY - lineHeight;
         if (shouldLogTableCell && lines.length > 0) {
           emitTableCellBaseline(
             tableCellElementId,
@@ -3455,7 +3468,7 @@ function drawTable(
       } else if (spec.overflow === 'ellipsis') {
         const clipped = ellipsisTextToWidth(cellText, fontForCell, baseFontSize, maxCellWidth);
         if (shouldLogTableCell && clipped) {
-          const drawY = rowYBottom + effectiveRowHeight / 2 - baseFontSize / 2;
+          const drawY = rowYBottomDraw + effectiveRowHeight / 2 - baseFontSize / 2;
           emitTableCellBaseline(
             tableCellElementId,
             rectTopY,
@@ -3478,7 +3491,7 @@ function drawTable(
           fontForCell,
           baseFontSize,
           currentX,
-          rowYBottom,
+          rowYBottomDraw,
           colWidth,
           effectiveRowHeight,
           align,
@@ -3488,7 +3501,7 @@ function drawTable(
         );
       } else if (spec.overflow === 'clip') {
         if (shouldLogTableCell && cellText) {
-          const drawY = rowYBottom + effectiveRowHeight / 2 - baseFontSize / 2;
+          const drawY = rowYBottomDraw + effectiveRowHeight / 2 - baseFontSize / 2;
           emitTableCellBaseline(
             tableCellElementId,
             rectTopY,
@@ -3511,7 +3524,7 @@ function drawTable(
           fontForCell,
           baseFontSize,
           currentX,
-          rowYBottom,
+          rowYBottomDraw,
           colWidth,
           effectiveRowHeight,
           align,
@@ -3529,7 +3542,7 @@ function drawTable(
             availableW,
             minFontSize,
           );
-          const drawY = rowYBottom + effectiveRowHeight / 2 - shrinkFontSize / 2;
+          const drawY = rowYBottomDraw + effectiveRowHeight / 2 - shrinkFontSize / 2;
           emitTableCellBaseline(
             tableCellElementId,
             rectTopY,
@@ -3552,7 +3565,7 @@ function drawTable(
           fontForCell,
           baseFontSize,
           currentX,
-          rowYBottom,
+          rowYBottomDraw,
           colWidth,
           effectiveRowHeight,
           align,
@@ -3624,7 +3637,7 @@ function drawTable(
       }
     }
 
-    cursorY = rowYBottom;
+    cursorY = rowYBottomLayout;
     pageRowCount += 1;
   }
 
