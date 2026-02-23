@@ -2852,7 +2852,13 @@ function drawTable(
       });
     }
 
-    const rowYBottom = cursorY - summaryRowHeight;
+    const rowYBottomLayout = cursorY - summaryRowHeight;
+    if (!Number.isFinite(rowYBottomLayout) || !Number.isFinite(summaryRowHeight)) {
+      throw new Error(
+        `[renderTable] summary layout missing: rowTop=${cursorY} rowH=${summaryRowHeight}`,
+      );
+    }
+    const rowYBottom = rowYBottomLayout;
     const sumValue =
       kind === 'subtotal'
         ? { value: state.sumPageValue, scale: state.sumPageScale }
