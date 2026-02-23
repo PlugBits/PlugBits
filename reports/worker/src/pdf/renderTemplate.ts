@@ -18,7 +18,6 @@ import {
   getPageDimensions,
 } from '../../../shared/template.js';
 import { buildPdfTransform, type PdfTransform } from '../../../shared/pdfTransform.js';
-import { snapPixel } from '../../../shared/pixelSnap.js';
 import { computeDocumentMetaLayout, applyFrameToTextElement } from '../../../shared/documentMetaLayout.js';
 import type { PDFImage } from 'pdf-lib'; // 先頭の import に追加
 
@@ -55,6 +54,13 @@ const DBG_TEXT_BASELINE_TARGETS = new Set([
 const hasNonAscii = (text: string) => /[^\u0000-\u007F]/.test(text);
 const pickFont = (text: string, latinFont: PDFFont, jpFont: PDFFont) =>
   hasNonAscii(text) ? jpFont : latinFont;
+
+const snapPdfStroke = (value: number, stroke: number) => {
+  if (!Number.isFinite(value)) return value;
+  const thickness = Number.isFinite(stroke) ? stroke : 0;
+  if (thickness <= 0) return Math.round(value);
+  return Math.round(value + thickness / 2) - thickness / 2;
+};
 
 const safeDrawText = (
   page: PDFPage,
@@ -2858,7 +2864,7 @@ function drawTable(
         `[renderTable] summary layout missing: rowTop=${cursorY} rowH=${summaryRowHeight}`,
       );
     }
-    const rowYBottomDraw = snapPixel(rowYBottomLayout, 'stroke', 1);
+  const rowYBottomDraw = snapPdfStroke(rowYBottomLayout, gridBorderWidth);
     const sumValue =
       kind === 'subtotal'
         ? { value: state.sumPageValue, scale: state.sumPageScale }
@@ -3154,6 +3160,15 @@ function drawTable(
     const cellTop = pageHeight - rectTopY;
     const cellBottom = cellTop + cellHeight;
     const baselineOffset = computedDrawY - rectBottomY;
+    console.log('[DBG_TABLE_PDF_COORDS]', {
+      elementId,
+      rowTop_pdf_final: rectTopY,
+      cellTop_pdf: rectTopY,
+      cellBottom_pdf: rectBottomY,
+      paddingY,
+      baselineOffset,
+      textBaseline_pdf: computedDrawY,
+    });
     console.log('[DBG_TABLE_CELL_PDF]', {
       elementId,
       cellTop,
@@ -3357,7 +3372,7 @@ function drawTable(
       rowYBottomLayout = cursorY - effectiveRowHeight;
     }
 
-    const rowYBottomDraw = snapPixel(rowYBottomLayout, 'stroke', 1);
+  const rowYBottomDraw = snapPdfStroke(rowYBottomLayout, gridBorderWidth);
     let currentX = originX;
 
     for (const cell of cells) {
@@ -3414,6 +3429,14 @@ function drawTable(
       if (shouldLogTableCell && !nudgeLogged) {
         const rowTopBefore = rowYBottomLayout + effectiveRowHeight;
         const rowTopAfter = rowYBottomDraw + effectiveRowHeight;
+        console.log('[DBG_TABLE_PDF_NUDGE_REASON]', {
+          rowIndex: i,
+          rowTop_pdf_raw: rowTopBefore,
+          gridBorderWidth,
+          paddingY,
+          nudgeBeforeClamp: rowTopAfter - rowTopBefore,
+          rule: 'snapPdfStroke(rowTop, gridBorderWidth)',
+        });
         console.log('[DBG_TABLE_PDF_NUDGE]', {
           rowTopBefore,
           rowTopAfter,

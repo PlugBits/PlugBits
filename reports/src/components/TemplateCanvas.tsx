@@ -393,7 +393,7 @@ const TemplateCanvas = ({
             drawCellTop: tableDebugCell.cellTopDraw,
             measuredTop,
             delta: measuredTop - tableDebugCell.cellTopDraw,
-            deltaOffset: measuredTopOffset - tableDebugCell.cellTopDraw,
+            deltaOffsetInfo: measuredTopOffset - tableDebugCell.cellTopDraw,
           });
         }
       }
