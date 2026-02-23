@@ -3103,6 +3103,7 @@ function drawTable(
   const missingFieldCodes = new Set<string>();
   let invalidRowWarnCount = 0;
   let pageRowCount = 0;
+  let rowMathLogged = false;
   const emitTableCellBaseline = (
     elementId: string,
     rectTopY: number,
@@ -3378,6 +3379,34 @@ function drawTable(
       const tableCellElementId = `${element.id}:row0:${columnId}`;
       const rectTopY = rowYBottom + effectiveRowHeight;
       const rectBottomY = rowYBottom;
+      if (shouldLogTableCell && !rowMathLogged) {
+        const tableYUi = typeof element.y === 'number' ? element.y : 0;
+        const tableYPdfRaw = transform.toPdfYBox(tableYUi, headerHeightCanvas);
+        const rowTopUi = tableYUi + headerHeightCanvas + headerRowGapCanvas;
+        const rowTopPdfRaw = transform.toPdfTop(rowTopUi, 0);
+        const rowTopPdfFinal = rectTopY;
+        console.log('[DBG_TABLE_ROW_MATH]', {
+          tableY_ui: tableYUi,
+          tableY_pdf: tableYPdfRaw,
+          rowIndex: i,
+          rowTop_ui: rowTopUi,
+          rowTop_pdf_raw: rowTopPdfRaw,
+          rowTop_pdf_final: rowTopPdfFinal,
+          appliedOffsets: {
+            headerHeightCanvas,
+            headerHeight,
+            headerRowGapCanvas,
+            headerRowGap,
+            rowHeightCanvas,
+            effectiveRowHeight,
+            gridBorderWidth,
+            paddingY,
+            clampHeaderY: headerY,
+            cursorY,
+          },
+        });
+        rowMathLogged = true;
+      }
 
       if (spec.overflow === 'wrap' && maxCellWidth > 0) {
         const maxLinesByHeight = Math.floor((effectiveRowHeight - paddingY * 2) / lineHeight);
