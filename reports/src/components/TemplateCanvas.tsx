@@ -282,12 +282,17 @@ const TemplateCanvas = ({
     if (!tableDebugCellRaw) return null;
     const dpr =
       typeof window === 'undefined' ? 1 : Number(window.devicePixelRatio ?? 1);
-    const snappedTop = snapPixel(tableDebugCellRaw.computedRowTop, 'stroke', dpr);
+    const rawRowTop = tableDebugCellRaw.computedRowTop;
+    const snapInput = rawRowTop + tableDebugCellRaw.gridBorderWidth;
+    const snappedTop = snapPixel(snapInput, 'stroke', dpr);
+    const cellTopDraw = Math.round(snappedTop);
     return {
       ...tableDebugCellRaw,
-      computedRowTopRaw: tableDebugCellRaw.computedRowTop,
+      computedRowTopRaw: rawRowTop,
+      snapInput,
       computedRowTopSnapped: snappedTop,
-      y: snappedTop,
+      cellTopDraw,
+      y: cellTopDraw,
       dpr,
     };
   }, [tableDebugCellRaw]);
@@ -319,14 +324,20 @@ const TemplateCanvas = ({
         .filter((elementId): elementId is string => !!elementId);
       console.log('[DBG_CANVAS_MARKERS]', { ids: markerIds });
       if (tableDebugCell) {
+        const snapDelta = tableDebugCell.cellTopDraw - tableDebugCell.computedRowTopRaw;
         console.log('[DBG_TABLE_DRAW_COORDS_CANVAS]', {
           tableY_ui: tableDebugCell.tableY,
           headerHeightUsed: tableDebugCell.headerHeight,
           headerRowGapUsed: tableDebugCell.headerRowGap,
-          computedRowTopUsed: tableDebugCell.computedRowTopSnapped,
-          computedCellTopUsed: tableDebugCell.computedRowTopSnapped,
+          computedRowTopUsed: tableDebugCell.cellTopDraw,
+          computedCellTopUsed: tableDebugCell.cellTopDraw,
           rowHeightUsed: tableDebugCell.rowHeight,
           gridBorderWidthUsed: tableDebugCell.gridBorderWidth,
+          rawRowTop: tableDebugCell.computedRowTopRaw,
+          snapInput: tableDebugCell.snapInput,
+          snapMode: 'stroke',
+          snapDelta,
+          cellTopDraw: tableDebugCell.cellTopDraw,
           note: 'these are the coordinates used to draw the first row cell frame',
         });
       }
@@ -336,11 +347,14 @@ const TemplateCanvas = ({
       const tableCellRect = tableCellEl?.getBoundingClientRect();
       if (tableCellRect) {
         const relativeTop = tableCellRect.top - rootRect.top;
-        const cellTop = snapPixel(
-          relativeTop,
-          'stroke',
-          tableDebugCell?.dpr ?? window.devicePixelRatio ?? 1,
-        );
+        const cellTop =
+          typeof tableDebugCell?.cellTopDraw === 'number'
+            ? tableDebugCell.cellTopDraw
+            : snapPixel(
+                relativeTop,
+                'stroke',
+                tableDebugCell?.dpr ?? window.devicePixelRatio ?? 1,
+              );
         console.log('[DBG_TABLE_CELL_CANVAS]', {
           elementId: TABLE_CELL_DEBUG_ID,
           cellTop,
@@ -355,9 +369,9 @@ const TemplateCanvas = ({
         });
         if (tableDebugCell) {
           console.log('[DBG_TABLE_CANVAS_DELTA]', {
-            drawCellTop: tableDebugCell.computedRowTopSnapped,
+            drawCellTop: tableDebugCell.cellTopDraw,
             measuredTop: cellTop,
-            delta: cellTop - tableDebugCell.computedRowTopSnapped,
+            delta: cellTop - tableDebugCell.cellTopDraw,
           });
         }
       }
@@ -368,11 +382,13 @@ const TemplateCanvas = ({
         const rect = tableTextEl.getBoundingClientRect();
         const textTop = rect.top - rootRect.top;
         const cellTop = tableCellRect
-          ? snapPixel(
-              tableCellRect.top - rootRect.top,
-              'stroke',
-              tableDebugCell?.dpr ?? window.devicePixelRatio ?? 1,
-            )
+          ? typeof tableDebugCell?.cellTopDraw === 'number'
+            ? tableDebugCell.cellTopDraw
+            : snapPixel(
+                tableCellRect.top - rootRect.top,
+                'stroke',
+                tableDebugCell?.dpr ?? window.devicePixelRatio ?? 1,
+              )
           : null;
         console.log('[DBG_TABLE_TEXT_CANVAS]', {
           elementId: TABLE_CELL_DEBUG_ID,
@@ -397,7 +413,14 @@ const TemplateCanvas = ({
       (window as any).__DBG_CANVAS_TOP__ = map;
     });
     return () => window.cancelAnimationFrame(raf);
-  }, [debugLabelsEnabled, template, canvasWidth, canvasHeight, tableDebugCell?.elementId]);
+  }, [
+    debugLabelsEnabled,
+    template,
+    canvasWidth,
+    canvasHeight,
+    tableDebugCell?.elementId,
+    tableDebugCell?.cellTopDraw,
+  ]);
   const isDocumentMetaElement = (element: TemplateElement) => {
     if (isEstimate) return false;
     const slotId = (element as any).slotId as string | undefined;
