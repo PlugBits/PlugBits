@@ -144,14 +144,21 @@ const resolveTableDebugCell = (template: TemplateDefinition) => {
   const baseY = Number.isFinite(table.y) ? table.y : 0;
   const headerHeight = table.headerHeight ?? table.rowHeight ?? 18;
   const rowHeight = table.rowHeight ?? 18;
+  const headerRowGap = Math.min(8, Math.max(4, Math.round(rowHeight * 0.3)));
+  const gridBorderWidth = (table as any).borderWidth ?? 0.5;
+  const computedRowTop = baseY + headerHeight + headerRowGap;
   return {
     tableId: table.id,
     elementId: TABLE_CELL_DEBUG_ID,
     x: baseX + offsetX,
-    y: baseY + headerHeight,
+    y: computedRowTop,
     width: typeof itemColumn.width === 'number' ? itemColumn.width : 1,
     headerHeight,
+    headerRowGap,
     rowHeight,
+    gridBorderWidth,
+    tableY: baseY,
+    computedRowTop,
   };
 };
 
@@ -297,6 +304,18 @@ const TemplateCanvas = ({
         .map((el) => el.dataset.elementId)
         .filter((elementId): elementId is string => !!elementId);
       console.log('[DBG_CANVAS_MARKERS]', { ids: markerIds });
+      if (tableDebugCell) {
+        console.log('[DBG_TABLE_DRAW_COORDS_CANVAS]', {
+          tableY_ui: tableDebugCell.tableY,
+          headerHeightUsed: tableDebugCell.headerHeight,
+          headerRowGapUsed: tableDebugCell.headerRowGap,
+          computedRowTopUsed: tableDebugCell.computedRowTop,
+          computedCellTopUsed: tableDebugCell.computedRowTop,
+          rowHeightUsed: tableDebugCell.rowHeight,
+          gridBorderWidthUsed: tableDebugCell.gridBorderWidth,
+          note: 'these are the coordinates used to draw the first row cell frame',
+        });
+      }
       const tableCellEl = root.querySelector<HTMLElement>(
         `[data-element-id="${TABLE_CELL_DEBUG_ID}"]`,
       );
@@ -307,6 +326,13 @@ const TemplateCanvas = ({
           elementId: TABLE_CELL_DEBUG_ID,
           cellTop,
           cellHeight: tableCellRect.height,
+        });
+        console.log('[DBG_TABLE_MEASURE_CANVAS]', {
+          canvasRootTop: rootRect.top,
+          markerTop: tableCellRect.top,
+          relativeTop: cellTop,
+          scrollTop: root.scrollTop,
+          devicePixelRatio: window.devicePixelRatio,
         });
       }
       const tableTextEl = root.querySelector<HTMLElement>(
