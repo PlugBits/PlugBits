@@ -2864,7 +2864,9 @@ function drawTable(
         `[renderTable] summary layout missing: rowTop=${cursorY} rowH=${summaryRowHeight}`,
       );
     }
-  const rowYBottomDraw = snapPdfStroke(rowYBottomLayout, gridBorderWidth);
+    const rowTopPdfRaw = rowYBottomLayout + summaryRowHeight;
+    const rowTopPdfDraw = snapPdfStroke(rowTopPdfRaw, gridBorderWidth);
+    const rowYBottomDraw = rowTopPdfDraw - summaryRowHeight;
     const sumValue =
       kind === 'subtotal'
         ? { value: state.sumPageValue, scale: state.sumPageScale }
@@ -2986,7 +2988,7 @@ function drawTable(
         } else if (spec.overflow === 'wrap') {
           const lines = wrapTextToLines(cellText, fontForCell, baseFontSize, maxCellWidth);
           const maxLinesByHeight = Math.floor((summaryRowHeight - paddingY * 2) / lineHeight);
-          const yStart = rowYBottomDraw + summaryRowHeight - paddingY - lineHeight;
+          const yStart = rowTopPdfDraw - paddingY - lineHeight;
           for (let idx = 0; idx < Math.min(lines.length, maxLinesByHeight); idx += 1) {
             const line = lines[idx];
             const lineWidth = fontForCell.widthOfTextAtSize(line, baseFontSize);
@@ -3001,7 +3003,7 @@ function drawTable(
               line,
               {
                 x,
-                y: rowYBottomDraw + summaryRowHeight - paddingY - lineHeight - idx * lineHeight,
+                y: rowTopPdfDraw - paddingY - lineHeight - idx * lineHeight,
                 size: baseFontSize,
                 font: fontForCell,
                 color: rgb(0, 0, 0),
@@ -3153,18 +3155,33 @@ function drawTable(
     rectBottomY: number,
     fontSize: number,
     computedDrawY: number,
-    meta?: Record<string, unknown>,
+    meta?: {
+      rowTop_pdf_raw?: number;
+      rowTop_pdf_draw?: number;
+      rowBottom_pdf_draw?: number;
+      cellInnerTop_pdf?: number;
+    } & Record<string, unknown>,
   ) => {
     if (!debugEnabled) return;
     const cellHeight = rectTopY - rectBottomY;
     const cellTop = pageHeight - rectTopY;
     const cellBottom = cellTop + cellHeight;
     const baselineOffset = computedDrawY - rectBottomY;
+    const rowTopPdfRaw = meta?.rowTop_pdf_raw ?? rectTopY;
+    const rowTopPdfDraw = meta?.rowTop_pdf_draw ?? rectTopY;
+    const rowBottomPdfDraw = meta?.rowBottom_pdf_draw ?? rectBottomY;
+    const cellFrameTopPdf = rowTopPdfDraw;
+    const cellInnerTopPdf =
+      typeof meta?.cellInnerTop_pdf === 'number'
+        ? meta.cellInnerTop_pdf
+        : rowTopPdfDraw - paddingY;
     console.log('[DBG_TABLE_PDF_COORDS]', {
       elementId,
-      rowTop_pdf_final: rectTopY,
-      cellTop_pdf: rectTopY,
-      cellBottom_pdf: rectBottomY,
+      rowTop_pdf_raw: rowTopPdfRaw,
+      rowTop_pdf_draw: rowTopPdfDraw,
+      rowBottom_pdf_draw: rowBottomPdfDraw,
+      cellFrameTop_pdf: cellFrameTopPdf,
+      cellInnerTop_pdf: cellInnerTopPdf,
       paddingY,
       baselineOffset,
       textBaseline_pdf: computedDrawY,
@@ -3372,7 +3389,9 @@ function drawTable(
       rowYBottomLayout = cursorY - effectiveRowHeight;
     }
 
-  const rowYBottomDraw = snapPdfStroke(rowYBottomLayout, gridBorderWidth);
+    const rowTopPdfRaw = rowYBottomLayout + effectiveRowHeight;
+    const rowTopPdfDraw = snapPdfStroke(rowTopPdfRaw, gridBorderWidth);
+    const rowYBottomDraw = rowTopPdfDraw - effectiveRowHeight;
     let currentX = originX;
 
     for (const cell of cells) {
@@ -3403,35 +3422,39 @@ function drawTable(
       const minFontSize = spec.minFontSize * transform.scaleY;
       const shouldLogTableCell = debugEnabled && i === 0 && spec.isItemName;
       const tableCellElementId = `${element.id}:row0:${columnId}`;
-      const rectTopY = rowYBottomDraw + effectiveRowHeight;
+      const rectTopY = rowTopPdfDraw;
       const rectBottomY = rowYBottomDraw;
       const tableCellLogMeta = shouldLogTableCell
         ? (() => {
             const tableYUi = typeof element.y === 'number' ? element.y : 0;
             const rowTopUi = tableYUi + headerHeightCanvas + headerRowGapCanvas;
-            const rowTopPdfRaw = transform.toPdfTop(rowTopUi, 0);
-            const rowTopPdfFinal = rectTopY;
+            const rowTopPdfFromUi = transform.toPdfTop(rowTopUi, 0);
+            const rowTopPdfFinal = rowTopPdfDraw;
             const cellTopUiRaw = rowTopUi;
             const cellTopUiSnapped = snapPdfStroke(
               cellTopUiRaw,
               gridBorderWidthCanvas ?? 0,
             );
-            const cellTopPdfRaw = pageHeight - (rowYBottomLayout + effectiveRowHeight);
+            const cellTopPdfRaw = pageHeight - rowTopPdfRaw;
             const cellTopPdfFinal = pageHeight - rectTopY;
             return {
               rowTop_ui: rowTopUi,
               rowTop_pdf_raw: rowTopPdfRaw,
+              rowTop_pdf_from_ui: rowTopPdfFromUi,
               rowTop_pdf_final: rowTopPdfFinal,
               cellTop_ui_raw: cellTopUiRaw,
               cellTop_ui_snapped: cellTopUiSnapped,
               cellTop_pdf_raw: cellTopPdfRaw,
               cellTop_pdf_final: cellTopPdfFinal,
+              rowTop_pdf_draw: rowTopPdfDraw,
+              rowBottom_pdf_draw: rowYBottomDraw,
+              cellInnerTop_pdf: rowTopPdfDraw - paddingY,
             };
           })()
         : null;
       if (shouldLogTableCell && !nudgeLogged) {
-        const rowTopBefore = rowYBottomLayout + effectiveRowHeight;
-        const rowTopAfter = rowYBottomDraw + effectiveRowHeight;
+        const rowTopBefore = rowTopPdfRaw;
+        const rowTopAfter = rowTopPdfDraw;
         console.log('[DBG_TABLE_PDF_NUDGE_REASON]', {
           rowIndex: i,
           rowTop_pdf_raw: rowTopBefore,
@@ -3443,7 +3466,7 @@ function drawTable(
         console.log('[DBG_TABLE_PDF_NUDGE]', {
           rowTopBefore,
           rowTopAfter,
-          nudge: rowYBottomDraw - rowYBottomLayout,
+          nudge: rowTopAfter - rowTopBefore,
           mode: 'stroke',
         });
         nudgeLogged = true;
@@ -3452,14 +3475,16 @@ function drawTable(
         const tableYUi = typeof element.y === 'number' ? element.y : 0;
         const tableYPdfRaw = transform.toPdfYBox(tableYUi, headerHeightCanvas);
         const rowTopUi = tableYUi + headerHeightCanvas + headerRowGapCanvas;
-        const rowTopPdfRaw = transform.toPdfTop(rowTopUi, 0);
-        const rowTopPdfFinal = rectTopY;
+        const rowTopPdfFromUi = transform.toPdfTop(rowTopUi, 0);
+        const rowTopPdfFinal = rowTopPdfDraw;
         console.log('[DBG_TABLE_ROW_MATH]', {
           tableY_ui: tableYUi,
           tableY_pdf: tableYPdfRaw,
           rowIndex: i,
           rowTop_ui: rowTopUi,
           rowTop_pdf_raw: rowTopPdfRaw,
+          rowTop_pdf_from_ui: rowTopPdfFromUi,
+          rowTop_pdf_draw: rowTopPdfDraw,
           rowTop_pdf_final: rowTopPdfFinal,
           appliedOffsets: {
             headerHeightCanvas,
