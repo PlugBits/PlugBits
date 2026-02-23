@@ -3412,7 +3412,10 @@ function drawTable(
             const rowTopPdfRaw = transform.toPdfTop(rowTopUi, 0);
             const rowTopPdfFinal = rectTopY;
             const cellTopUiRaw = rowTopUi;
-            const cellTopUiSnapped = snapPixel(cellTopUiRaw, 'stroke', 1);
+            const cellTopUiSnapped = snapPdfStroke(
+              cellTopUiRaw,
+              gridBorderWidthCanvas ?? 0,
+            );
             const cellTopPdfRaw = pageHeight - (rowYBottomLayout + effectiveRowHeight);
             const cellTopPdfFinal = pageHeight - rectTopY;
             return {
