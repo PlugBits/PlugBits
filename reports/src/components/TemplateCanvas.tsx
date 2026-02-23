@@ -17,6 +17,7 @@ import {
   clamp,
   clampYToRegion,
 } from '../utils/regionBounds';
+import { snapPixel } from '@shared/pixelSnap';
 import {
   isElementHiddenByEasyAdjust,
   normalizeEasyAdjustBlockSettings,
@@ -273,10 +274,23 @@ const TemplateCanvas = ({
   );
   const activeBoundsTop = activeRegionBounds;
   const debugLabelsEnabled = useMemo(() => isDebugEnabled(), []);
-  const tableDebugCell = useMemo(
+  const tableDebugCellRaw = useMemo(
     () => (debugLabelsEnabled ? resolveTableDebugCell(template) : null),
     [debugLabelsEnabled, template],
   );
+  const tableDebugCell = useMemo(() => {
+    if (!tableDebugCellRaw) return null;
+    const dpr =
+      typeof window === 'undefined' ? 1 : Number(window.devicePixelRatio ?? 1);
+    const snappedTop = snapPixel(tableDebugCellRaw.computedRowTop, 'stroke', dpr);
+    return {
+      ...tableDebugCellRaw,
+      computedRowTopRaw: tableDebugCellRaw.computedRowTop,
+      computedRowTopSnapped: snappedTop,
+      y: snappedTop,
+      dpr,
+    };
+  }, [tableDebugCellRaw]);
   const companyBlockEnabled = template.settings?.companyBlock?.enabled !== false;
   const loggedEstimateRef = useRef(false);
   const canvasRef = useRef<HTMLDivElement | null>(null);
@@ -309,8 +323,8 @@ const TemplateCanvas = ({
           tableY_ui: tableDebugCell.tableY,
           headerHeightUsed: tableDebugCell.headerHeight,
           headerRowGapUsed: tableDebugCell.headerRowGap,
-          computedRowTopUsed: tableDebugCell.computedRowTop,
-          computedCellTopUsed: tableDebugCell.computedRowTop,
+          computedRowTopUsed: tableDebugCell.computedRowTopSnapped,
+          computedCellTopUsed: tableDebugCell.computedRowTopSnapped,
           rowHeightUsed: tableDebugCell.rowHeight,
           gridBorderWidthUsed: tableDebugCell.gridBorderWidth,
           note: 'these are the coordinates used to draw the first row cell frame',
@@ -322,7 +336,11 @@ const TemplateCanvas = ({
       const tableCellRect = tableCellEl?.getBoundingClientRect();
       if (tableCellRect) {
         const relativeTop = tableCellRect.top - rootRect.top;
-        const cellTop = Math.round(relativeTop);
+        const cellTop = snapPixel(
+          relativeTop,
+          'stroke',
+          tableDebugCell?.dpr ?? window.devicePixelRatio ?? 1,
+        );
         console.log('[DBG_TABLE_CELL_CANVAS]', {
           elementId: TABLE_CELL_DEBUG_ID,
           cellTop,
@@ -337,9 +355,9 @@ const TemplateCanvas = ({
         });
         if (tableDebugCell) {
           console.log('[DBG_TABLE_CANVAS_DELTA]', {
-            drawCellTop: tableDebugCell.computedRowTop,
+            drawCellTop: tableDebugCell.computedRowTopSnapped,
             measuredTop: cellTop,
-            delta: cellTop - tableDebugCell.computedRowTop,
+            delta: cellTop - tableDebugCell.computedRowTopSnapped,
           });
         }
       }
@@ -349,7 +367,13 @@ const TemplateCanvas = ({
       if (tableTextEl) {
         const rect = tableTextEl.getBoundingClientRect();
         const textTop = rect.top - rootRect.top;
-        const cellTop = tableCellRect ? Math.round(tableCellRect.top - rootRect.top) : null;
+        const cellTop = tableCellRect
+          ? snapPixel(
+              tableCellRect.top - rootRect.top,
+              'stroke',
+              tableDebugCell?.dpr ?? window.devicePixelRatio ?? 1,
+            )
+          : null;
         console.log('[DBG_TABLE_TEXT_CANVAS]', {
           elementId: TABLE_CELL_DEBUG_ID,
           textTop,

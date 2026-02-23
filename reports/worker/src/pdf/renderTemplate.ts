@@ -18,6 +18,7 @@ import {
   getPageDimensions,
 } from '../../../shared/template.js';
 import { buildPdfTransform, type PdfTransform } from '../../../shared/pdfTransform.js';
+import { snapPixel } from '../../../shared/pixelSnap.js';
 import { computeDocumentMetaLayout, applyFrameToTextElement } from '../../../shared/documentMetaLayout.js';
 import type { PDFImage } from 'pdf-lib'; // 先頭の import に追加
 
@@ -2665,7 +2666,6 @@ function drawTable(
   const gridBorderWidthCanvas = (element as any).borderWidth ?? 0.5;
   const strokeScale = Math.min(transform.scaleX, transform.scaleY);
   const gridBorderWidth = gridBorderWidthCanvas * strokeScale;
-  const PDF_TABLE_Y_NUDGE = 1;
 
   const rowHeight = transform.toPdfH(rowHeightCanvas);
   const headerHeight = transform.toPdfH(headerHeightCanvas);
@@ -2858,7 +2858,7 @@ function drawTable(
         `[renderTable] summary layout missing: rowTop=${cursorY} rowH=${summaryRowHeight}`,
       );
     }
-    const rowYBottom = rowYBottomLayout;
+    const rowYBottomDraw = snapPixel(rowYBottomLayout, 'stroke', 1);
     const sumValue =
       kind === 'subtotal'
         ? { value: state.sumPageValue, scale: state.sumPageScale }
@@ -2887,7 +2887,7 @@ function drawTable(
           : summaryStyle.subtotalFillGray ?? 0.96;
       currentPage.drawRectangle({
         x: originX,
-        y: rowYBottom,
+        y: rowYBottomDraw,
         width: tableWidth,
         height: summaryRowHeight,
         color: rgb(fillGray, fillGray, fillGray),
@@ -2910,7 +2910,7 @@ function drawTable(
         const borderGray = summaryStyle?.borderColorGray ?? gridBorderGray;
         currentPage.drawRectangle({
           x: currentX,
-          y: rowYBottom,
+          y: rowYBottomDraw,
           width: colWidth,
           height: summaryRowHeight,
           borderColor: rgb(borderGray, borderGray, borderGray),
@@ -2934,7 +2934,7 @@ function drawTable(
             fontForCell,
             baseFontSize,
             currentX,
-            rowYBottom,
+            rowYBottomDraw,
             colWidth,
             summaryRowHeight,
             align,
@@ -2949,7 +2949,7 @@ function drawTable(
             fontForCell,
             baseFontSize,
             currentX,
-            rowYBottom,
+            rowYBottomDraw,
             colWidth,
             summaryRowHeight,
             align,
@@ -2969,7 +2969,7 @@ function drawTable(
             fontForCell,
             baseFontSize,
             currentX,
-            rowYBottom,
+            rowYBottomDraw,
             colWidth,
             summaryRowHeight,
             align,
@@ -2980,7 +2980,7 @@ function drawTable(
         } else if (spec.overflow === 'wrap') {
           const lines = wrapTextToLines(cellText, fontForCell, baseFontSize, maxCellWidth);
           const maxLinesByHeight = Math.floor((summaryRowHeight - paddingY * 2) / lineHeight);
-          const yStart = rowYBottom + summaryRowHeight - paddingY - lineHeight;
+          const yStart = rowYBottomDraw + summaryRowHeight - paddingY - lineHeight;
           for (let idx = 0; idx < Math.min(lines.length, maxLinesByHeight); idx += 1) {
             const line = lines[idx];
             const lineWidth = fontForCell.widthOfTextAtSize(line, baseFontSize);
@@ -2995,7 +2995,7 @@ function drawTable(
               line,
               {
                 x,
-                y: yStart - idx * lineHeight,
+                y: rowYBottomDraw + summaryRowHeight - paddingY - lineHeight - idx * lineHeight,
                 size: baseFontSize,
                 font: fontForCell,
                 color: rgb(0, 0, 0),
@@ -3011,7 +3011,7 @@ function drawTable(
             fontForCell,
             baseFontSize,
             currentX,
-            rowYBottom,
+            rowYBottomDraw,
             colWidth,
             summaryRowHeight,
             align,
@@ -3030,8 +3030,8 @@ function drawTable(
       const thicknessCanvas = summaryStyle.totalTopBorderWidth ?? 1.5;
       const thickness = thicknessCanvas * strokeScale;
       currentPage.drawLine({
-        start: { x: originX, y: rowYBottom + summaryRowHeight },
-        end: { x: originX + tableWidth, y: rowYBottom + summaryRowHeight },
+        start: { x: originX, y: rowYBottomDraw + summaryRowHeight },
+        end: { x: originX + tableWidth, y: rowYBottomDraw + summaryRowHeight },
         thickness,
         color: rgb(borderGray, borderGray, borderGray),
       });
@@ -3147,6 +3147,7 @@ function drawTable(
     rectBottomY: number,
     fontSize: number,
     computedDrawY: number,
+    meta?: Record<string, unknown>,
   ) => {
     if (!debugEnabled) return;
     const cellHeight = rectTopY - rectBottomY;
@@ -3162,6 +3163,7 @@ function drawTable(
       computedDrawY,
       baselineOffset,
       cellPaddingY: paddingY,
+      ...(meta ?? {}),
     });
   };
 
@@ -3355,7 +3357,7 @@ function drawTable(
       rowYBottomLayout = cursorY - effectiveRowHeight;
     }
 
-    const rowYBottomDraw = rowYBottomLayout + PDF_TABLE_Y_NUDGE;
+    const rowYBottomDraw = snapPixel(rowYBottomLayout, 'stroke', 1);
     let currentX = originX;
 
     for (const cell of cells) {
@@ -3388,13 +3390,35 @@ function drawTable(
       const tableCellElementId = `${element.id}:row0:${columnId}`;
       const rectTopY = rowYBottomDraw + effectiveRowHeight;
       const rectBottomY = rowYBottomDraw;
+      const tableCellLogMeta = shouldLogTableCell
+        ? (() => {
+            const tableYUi = typeof element.y === 'number' ? element.y : 0;
+            const rowTopUi = tableYUi + headerHeightCanvas + headerRowGapCanvas;
+            const rowTopPdfRaw = transform.toPdfTop(rowTopUi, 0);
+            const rowTopPdfFinal = rectTopY;
+            const cellTopUiRaw = rowTopUi;
+            const cellTopUiSnapped = snapPixel(cellTopUiRaw, 'stroke', 1);
+            const cellTopPdfRaw = pageHeight - (rowYBottomLayout + effectiveRowHeight);
+            const cellTopPdfFinal = pageHeight - rectTopY;
+            return {
+              rowTop_ui: rowTopUi,
+              rowTop_pdf_raw: rowTopPdfRaw,
+              rowTop_pdf_final: rowTopPdfFinal,
+              cellTop_ui_raw: cellTopUiRaw,
+              cellTop_ui_snapped: cellTopUiSnapped,
+              cellTop_pdf_raw: cellTopPdfRaw,
+              cellTop_pdf_final: cellTopPdfFinal,
+            };
+          })()
+        : null;
       if (shouldLogTableCell && !nudgeLogged) {
         const rowTopBefore = rowYBottomLayout + effectiveRowHeight;
         const rowTopAfter = rowYBottomDraw + effectiveRowHeight;
         console.log('[DBG_TABLE_PDF_NUDGE]', {
           rowTopBefore,
           rowTopAfter,
-          nudge: PDF_TABLE_Y_NUDGE,
+          nudge: rowYBottomDraw - rowYBottomLayout,
+          mode: 'stroke',
         });
         nudgeLogged = true;
       }
@@ -3446,6 +3470,7 @@ function drawTable(
             rectBottomY,
             baseFontSize,
             yStart,
+            tableCellLogMeta ?? undefined,
           );
         }
         for (let idx = 0; idx < lines.length; idx += 1) {
@@ -3489,6 +3514,7 @@ function drawTable(
             rectBottomY,
             baseFontSize,
             drawY,
+            tableCellLogMeta ?? undefined,
           );
         }
         drawAlignedText(
@@ -3522,6 +3548,7 @@ function drawTable(
             rectBottomY,
             baseFontSize,
             drawY,
+            tableCellLogMeta ?? undefined,
           );
         }
         drawAlignedText(
@@ -3563,6 +3590,7 @@ function drawTable(
             rectBottomY,
             shrinkFontSize,
             drawY,
+            tableCellLogMeta ?? undefined,
           );
         }
         drawCellText(
