@@ -78,6 +78,38 @@ const CORS_HEADERS: Record<string, string> = {
 };
 
 const SESSION_TTL_SECONDS = 60 * 60;
+const DEBUG_PATTERN = /(^|[?#&])debug=(1|true)($|[&#])/i;
+
+const parseDebugFlags = (url: URL) => {
+  const debugFromQuery = DEBUG_PATTERN.test(url.search ?? "");
+  const debugFromHash = DEBUG_PATTERN.test(url.hash ?? "");
+  return {
+    debugFromQuery,
+    debugFromHash,
+    debugEffective: debugFromQuery || debugFromHash,
+  };
+};
+
+const buildRenderErrorResponse = (
+  status: number,
+  payload: Record<string, unknown>,
+) =>
+  new Response(JSON.stringify(payload), {
+    status,
+    headers: {
+      ...CORS_HEADERS,
+      "Content-Type": "application/json",
+    },
+  });
+
+const resolveRenderHint = (error: unknown): string => {
+  const message = error instanceof Error ? error.message : String(error);
+  if (/font/i.test(message)) return "Font load failed.";
+  if (/template/i.test(message)) return "Template missing or invalid.";
+  if (/json/i.test(message)) return "Request JSON body is invalid.";
+  if (/kv/i.test(message)) return "Template KV lookup failed.";
+  return "Check worker logs with requestId for details.";
+};
 
 const truncateHeaderValue = (value: string, maxLength = 200) =>
   value.length > maxLength ? value.slice(0, maxLength) : value;
@@ -856,8 +888,9 @@ export default {
       const url = new URL(request.url);
       const requestId = typeof crypto !== "undefined" && "randomUUID" in crypto
         ? crypto.randomUUID()
-        : undefined;
-      const debugEnabled = url.searchParams.get("debug") === "1";
+        : `req_${Date.now()}_${Math.random().toString(16).slice(2, 8)}`;
+      const { debugFromQuery, debugFromHash, debugEffective } = parseDebugFlags(url);
+      const debugEnabled = debugEffective;
 
       // CORS preflight
       if (request.method === "OPTIONS") {
@@ -2312,86 +2345,153 @@ export default {
         (url.pathname === "/render" || url.pathname === "/render-preview") &&
         request.method === "POST"
       ) {
-        let body: RenderRequestBody;
-
-        // JSON パース
         try {
-          body = (await request.json()) as RenderRequestBody;
-        } catch {
-          return new Response("Invalid JSON body", {
-            status: 400,
-            headers: CORS_HEADERS,
-          });
-        }
-
-        const debug = debugEnabled;
-        const previewMode =
-          body.previewMode === "fieldCode" ? "fieldCode" : "record";
-        if (url.pathname === "/render") {
-          console.info("[render] debugFlag", { debug: url.searchParams.get("debug"), requestId });
-        }
-
-        // template / templateId のどちらかから TemplateDefinition を決定
-        let template: TemplateDefinition<TemplateDataRecord>;
-        let templateSource: "body.template" | "templateId" = "templateId";
-
-        if (body.template) {
-          template = body.template;
-          templateSource = "body.template";
-        } else if (body.templateId) {
-          const isUserTemplate = body.templateId.startsWith("tpl_");
-          if (!isUserTemplate && !TEMPLATE_IDS.has(body.templateId)) {
-            return new Response("Unknown templateId", {
-              status: 400,
-              headers: CORS_HEADERS,
-            });
-          }
-          if (
-            !isUserTemplate &&
-            body.templateId !== "list_v1" &&
-            body.templateId !== "estimate_v1" &&
-            body.templateId !== "cards_v1" &&
-            body.templateId !== "cards_v2" &&
-            body.templateId !== "label_standard_v1" &&
-            body.templateId !== "label_compact_v1" &&
-            body.templateId !== "label_logistics_v1"
-          ) {
-            return new Response(
-              JSON.stringify({
-                ok: false,
-                code: "UNSUPPORTED_TEMPLATE",
-                message: `templateId ${body.templateId} is not supported yet`,
-              }),
-              {
-                status: 400,
-                headers: {
-                  ...CORS_HEADERS,
-                  "Content-Type": "application/json",
-                },
-              },
-            );
-          }
+          let body: RenderRequestBody | undefined;
           try {
-            template = isUserTemplate
-              ? await resolveUserTemplate(body.templateId, env, body.kintone as any)
-              : await getBaseTemplateById(body.templateId, env);
-          } catch (err) {
-            const msg =
-              err instanceof Error ? err.message : "Unknown templateId";
-            return new Response(msg, {
-              status: 400,
-              headers: CORS_HEADERS,
+            body = (await request.json()) as RenderRequestBody;
+          } catch (error) {
+            console.error("[ERR_RENDER]", {
+              requestId,
+              message: "Invalid JSON body",
+              error: error instanceof Error ? error.message : String(error),
+            });
+            return buildRenderErrorResponse(400, {
+              error: "Bad Request: Invalid JSON body",
+              requestId,
+              missing: ["body"],
             });
           }
-        } else {
-          return new Response(
-            "Missing 'template' or 'templateId' in request body",
-            {
-              status: 400,
-              headers: CORS_HEADERS,
-            },
-          );
-        }
+
+          if (debugEnabled) {
+            console.info("[DBG_DEBUG_FLAGS]", {
+              url: request.url,
+              debugFromQuery,
+              debugFromHash,
+              debugEffective: debugEnabled,
+            });
+          }
+
+          const debug = debugEnabled;
+          const previewMode =
+            body?.previewMode === "fieldCode" ? "fieldCode" : "record";
+
+          const missing: string[] = [];
+          if (!body || typeof body !== "object") {
+            missing.push("body");
+          }
+          if (!body?.template && !body?.templateId) {
+            missing.push("template", "templateId");
+          }
+          if (missing.length > 0) {
+            return buildRenderErrorResponse(400, {
+              error: `Bad Request: missing ${missing.join(", ")}`,
+              requestId,
+              missing,
+            });
+          }
+
+          if (url.pathname === "/render") {
+            console.info("[render] debugFlag", {
+              debug: debugEnabled,
+              requestId,
+            });
+          }
+
+          const authHeader = request.headers.get("authorization");
+          const sessionToken =
+            request.headers.get("x-session-token") ??
+            url.searchParams.get("sessionToken") ??
+            (body as { sessionToken?: string } | undefined)?.sessionToken ??
+            null;
+          const hasSessionToken = Boolean(sessionToken || authHeader);
+          const templateIdInBody = body?.templateId ?? body?.template?.id ?? "";
+          const isUserTemplateId = templateIdInBody.startsWith("tpl_");
+
+          // template / templateId のどちらかから TemplateDefinition を決定
+          let template: TemplateDefinition<TemplateDataRecord>;
+          let templateSource: "body.template" | "templateId" = "templateId";
+
+          if (body?.template) {
+            template = body.template;
+            templateSource = "body.template";
+          } else if (body?.templateId) {
+            const isUserTemplate = body.templateId.startsWith("tpl_");
+            if (!isUserTemplate && !TEMPLATE_IDS.has(body.templateId)) {
+              return buildRenderErrorResponse(400, {
+                error: "Bad Request: Unknown templateId",
+                requestId,
+                missing: [],
+              });
+            }
+            if (
+              !isUserTemplate &&
+              body.templateId !== "list_v1" &&
+              body.templateId !== "estimate_v1" &&
+              body.templateId !== "cards_v1" &&
+              body.templateId !== "cards_v2" &&
+              body.templateId !== "label_standard_v1" &&
+              body.templateId !== "label_compact_v1" &&
+              body.templateId !== "label_logistics_v1"
+            ) {
+              return buildRenderErrorResponse(400, {
+                error: `Bad Request: templateId ${body.templateId} is not supported yet`,
+                requestId,
+                missing: [],
+              });
+            }
+            try {
+              template = isUserTemplate
+                ? await resolveUserTemplate(body.templateId, env, body.kintone as any)
+                : await getBaseTemplateById(body.templateId, env);
+            } catch (err) {
+              const msg =
+                err instanceof Error ? err.message : "Unknown templateId";
+              return buildRenderErrorResponse(400, {
+                error: `Bad Request: ${msg}`,
+                requestId,
+                missing: [],
+              });
+            }
+          } else {
+            return buildRenderErrorResponse(400, {
+              error: "Bad Request: Missing 'template' or 'templateId' in request body",
+              requestId,
+              missing: ["template", "templateId"],
+            });
+          }
+
+          const mappingKeysCount = (() => {
+            const mapping = (template as any)?.mapping;
+            if (!mapping || typeof mapping !== "object") return 0;
+            return Object.keys(mapping).length;
+          })();
+          const tableConfigSummary = (() => {
+            const tables =
+              template?.elements?.filter((el) => el.type === "table") ?? [];
+            return tables.map((table) => ({
+              tableId: table.id ?? "",
+              rowHeight: (table as any).rowHeight ?? null,
+              headerHeight: (table as any).headerHeight ?? null,
+              columns: Array.isArray((table as any).columns)
+                ? (table as any).columns.length
+                : 0,
+              dataSource: (table as any).dataSource?.type ?? null,
+              fieldCode: (table as any).dataSource?.fieldCode ?? null,
+            }));
+          })();
+
+          console.info("[render] request", {
+            requestId,
+            method: request.method,
+            url: request.url,
+            origin: url.origin,
+            debug: debugEnabled,
+            templateId: templateIdInBody,
+            userTemplateId: isUserTemplateId ? templateIdInBody : null,
+            hasSessionToken,
+            mappingKeysCount,
+            tableConfigSummary,
+          });
 
         const fixtureName = url.searchParams.get("fixture");
         console.log("fixture=", fixtureName);
@@ -2569,76 +2669,113 @@ export default {
             "latinFont length:", fonts.latin.length,
           );
         } catch (err) {
-          console.error("Failed to load font:", err);
-          return new Response("Failed to load font", {
-            status: 500,
-            headers: CORS_HEADERS,
+          const message = err instanceof Error ? err.message : String(err);
+          console.error("[ERR_RENDER]", {
+            requestId,
+            message,
+            stack: err instanceof Error ? err.stack : undefined,
           });
+          const responseBody = debug
+            ? {
+                error: message,
+                requestId,
+                stack: truncateHeaderValue(err instanceof Error ? err.stack ?? "" : ""),
+                hint: resolveRenderHint(err),
+              }
+            : { error: "Render failed", requestId };
+          return buildRenderErrorResponse(500, responseBody);
         }
 
-        // PDF 生成
-        try {
-          const { bytes: rawPdfBytes, warnings } = await renderTemplateToPdf(
-            templateForRender,
-            dataForRender as TemplateDataRecord | undefined,
-            fonts,
-            {
-              debug,
-              previewMode,
-              requestId,
-              onTextBaseline: debug
-                ? (entry) => {
-                    debugTextBaseline.push(entry);
-                  }
-                : undefined,
-              onPageInfo: debug
-                ? ({ pdfPageW, pdfPageH }) => {
-                    console.debug('[DBG_PAGE]', {
-                      requestId,
-                      pageSize: templateForRender.pageSize ?? null,
-                      templatePageW: templatePageInfo.width,
-                      templatePageH: templatePageInfo.height,
-                      pdfPageW,
-                      pdfPageH,
-                    });
-                  }
-                : undefined,
-            },
-          );
-
-          const pdfBytes = new Uint8Array(rawPdfBytes);
-          const combinedWarnings = [...issueWarnings, ...dataWarnings, ...warnings];
-          const warnCount = combinedWarnings.length;
-          const headers: Record<string, string> = {
-            ...CORS_HEADERS,
-            "Content-Type": "application/pdf",
-            "X-Debug-Fixture": fixtureName ?? "(none)",
-            "X-Debug-Rows": String(rowsCount),
-            "X-Warn-Count": String(warnCount),
-            "X-Template-Schema-Version": schemaHeaderValue,
-          };
-          if (didMigrate) headers["X-Template-Migrated"] = "1";
-
-          if (debug && warnCount > 0) {
-            headers["X-Debug-Warn-Sample"] = truncateHeaderValue(combinedWarnings[0]);
-          }
-          if (debug && debugTextBaseline.length > 0) {
-            headers["X-Debug-Text-Baseline"] = truncateHeaderValue(
-              JSON.stringify(debugTextBaseline),
-              1000,
+          // PDF 生成
+          try {
+            const { bytes: rawPdfBytes, warnings } = await renderTemplateToPdf(
+              templateForRender,
+              dataForRender as TemplateDataRecord | undefined,
+              fonts,
+              {
+                debug,
+                previewMode,
+                requestId,
+                onTextBaseline: debug
+                  ? (entry) => {
+                      debugTextBaseline.push(entry);
+                    }
+                  : undefined,
+                onPageInfo: debug
+                  ? ({ pdfPageW, pdfPageH }) => {
+                      console.debug('[DBG_PAGE]', {
+                        requestId,
+                        pageSize: templateForRender.pageSize ?? null,
+                        templatePageW: templatePageInfo.width,
+                        templatePageH: templatePageInfo.height,
+                        pdfPageW,
+                        pdfPageH,
+                      });
+                    }
+                  : undefined,
+              },
             );
-          }
 
-          return new Response(pdfBytes, {
-            status: 200,
-            headers,
-          });
+            const pdfBytes = new Uint8Array(rawPdfBytes);
+            const combinedWarnings = [...issueWarnings, ...dataWarnings, ...warnings];
+            const warnCount = combinedWarnings.length;
+            const headers: Record<string, string> = {
+              ...CORS_HEADERS,
+              "Content-Type": "application/pdf",
+              "X-Debug-Fixture": fixtureName ?? "(none)",
+              "X-Debug-Rows": String(rowsCount),
+              "X-Warn-Count": String(warnCount),
+              "X-Template-Schema-Version": schemaHeaderValue,
+            };
+            if (didMigrate) headers["X-Template-Migrated"] = "1";
+
+            if (debug && warnCount > 0) {
+              headers["X-Debug-Warn-Sample"] = truncateHeaderValue(combinedWarnings[0]);
+            }
+            if (debug && debugTextBaseline.length > 0) {
+              headers["X-Debug-Text-Baseline"] = truncateHeaderValue(
+                JSON.stringify(debugTextBaseline),
+                1000,
+              );
+            }
+
+            return new Response(pdfBytes, {
+              status: 200,
+              headers,
+            });
+          } catch (err) {
+            const message = err instanceof Error ? err.message : String(err);
+            console.error("[ERR_RENDER]", {
+              requestId,
+              message,
+              stack: err instanceof Error ? err.stack : undefined,
+            });
+            const responseBody = debug
+              ? {
+                  error: message,
+                  requestId,
+                  stack: truncateHeaderValue(err instanceof Error ? err.stack ?? "" : ""),
+                  hint: resolveRenderHint(err),
+                }
+              : { error: "Render failed", requestId };
+            return buildRenderErrorResponse(500, responseBody);
+          }
         } catch (err) {
-          console.error("Failed to render template:", err);
-          return new Response("Failed to render template", {
-            status: 500,
-            headers: CORS_HEADERS,
+          const message = err instanceof Error ? err.message : String(err);
+          console.error("[ERR_RENDER]", {
+            requestId,
+            message,
+            stack: err instanceof Error ? err.stack : undefined,
           });
+          const responseBody = debugEnabled
+            ? {
+                error: message,
+                requestId,
+                stack: truncateHeaderValue(err instanceof Error ? err.stack ?? "" : ""),
+                hint: resolveRenderHint(err),
+              }
+            : { error: "Render failed", requestId };
+          return buildRenderErrorResponse(500, responseBody);
         }
       }
 
