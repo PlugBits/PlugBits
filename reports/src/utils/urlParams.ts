@@ -1,14 +1,19 @@
 export const getQueryParams = (locationSearch?: string, locationHash?: string) => {
+  const qs = locationSearch ?? '';
+  const searchParams = qs && qs !== '?'
+    ? new URLSearchParams(qs.startsWith('?') ? qs : `?${qs}`)
+    : new URLSearchParams();
+
   const hash = locationHash ?? window.location.hash ?? '';
   const hashIndex = hash.indexOf('?');
   if (hashIndex >= 0) {
-    return new URLSearchParams(hash.slice(hashIndex + 1));
+    const hashParams = new URLSearchParams(hash.slice(hashIndex + 1));
+    hashParams.forEach((value, key) => {
+      searchParams.set(key, value);
+    });
   }
 
-  const qs = locationSearch ?? '';
-  if (!qs || qs === '?') return new URLSearchParams();
-
-  return new URLSearchParams(qs.startsWith('?') ? qs : `?${qs}`);
+  return searchParams;
 };
 
 export const getKintoneContextFromParams = (params: URLSearchParams) => {

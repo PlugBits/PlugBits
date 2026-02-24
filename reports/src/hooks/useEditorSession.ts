@@ -24,13 +24,18 @@ export const useEditorSession = () => {
     [params],
   );
   const kintoneTokenSource = useMemo(() => {
-    if (kintoneApiToken) {
-      if (params.has('kintoneApiToken')) return 'fromQuery:kintoneApiToken';
-      if (params.has('apiToken')) return 'fromQuery:apiToken';
-      return 'fromParams:unknownKey';
-    }
+    const searchParams = new URLSearchParams(location.search ?? '');
+    const hash = location.hash ?? '';
+    const hashIndex = hash.indexOf('?');
+    const hashParams =
+      hashIndex >= 0 ? new URLSearchParams(hash.slice(hashIndex + 1)) : new URLSearchParams();
+    if (searchParams.has('kintoneApiToken')) return 'query:search:kintoneApiToken';
+    if (searchParams.has('apiToken')) return 'query:search:apiToken';
+    if (hashParams.has('kintoneApiToken')) return 'query:hash:kintoneApiToken';
+    if (hashParams.has('apiToken')) return 'query:hash:apiToken';
+    if (kintoneApiToken) return 'query:merged';
     return 'missing';
-  }, [kintoneApiToken, params]);
+  }, [kintoneApiToken, location.hash, location.search]);
   const companyProfileFromParams = useMemo(
     () => getCompanyProfileFromParams(params),
     [params],
@@ -97,6 +102,8 @@ export const useEditorSession = () => {
             hasKintoneApiToken: Boolean(kintoneApiToken),
             tokenLength: kintoneApiToken?.length ?? 0,
             source: kintoneTokenSource,
+            appId,
+            tenantId: kintoneBaseUrl && appId ? `${kintoneBaseUrl}__${appId}` : '',
           });
           exchangeLogRef.current = true;
         }
