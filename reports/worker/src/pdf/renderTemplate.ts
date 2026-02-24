@@ -3390,6 +3390,12 @@ function drawTable(
     const rowTopPdfRaw = rowYBottomLayout + effectiveRowHeight;
     const rowTopPdfDraw = rowTopPdfRaw;
     const rowYBottomDraw = rowTopPdfDraw - effectiveRowHeight;
+    const tableYUi = typeof element.y === 'number' ? element.y : 0;
+    const rowTopUiRaw = tableYUi + headerHeightCanvas + headerRowGapCanvas;
+    const uiSnapInput =
+      rowTopUiRaw + (Number.isFinite(gridBorderWidthCanvas) ? gridBorderWidthCanvas : 0);
+    const rowTopUiDraw = Math.round(Math.floor(uiSnapInput) + 0.5);
+    const rowTopPdfFromUi = transform.toPdfTop(rowTopUiRaw, 0);
     let currentX = originX;
 
     for (const cell of cells) {
@@ -3424,13 +3430,7 @@ function drawTable(
       const rectBottomY = rowYBottomDraw;
       const tableCellLogMeta = shouldLogTableCell
         ? (() => {
-            const tableYUi = typeof element.y === 'number' ? element.y : 0;
-            const rowTopUiRaw = tableYUi + headerHeightCanvas + headerRowGapCanvas;
-            const uiSnapInput =
-              rowTopUiRaw + (Number.isFinite(gridBorderWidthCanvas) ? gridBorderWidthCanvas : 0);
-            const rowTopUiDraw = Math.round(Math.floor(uiSnapInput) + 0.5);
             const cellTopUiDraw = rowTopUiDraw;
-            const rowTopPdfFromUi = transform.toPdfTop(rowTopUiDraw, 0);
             const rowTopPdfFinal = rowTopPdfDraw;
             const cellTopUiForPdf = cellTopUiDraw;
             const cellTopPdfPageY = rowTopPdfDraw;
@@ -3469,13 +3469,7 @@ function drawTable(
         nudgeLogged = true;
       }
       if (shouldLogTableCell && !rowMathLogged) {
-        const tableYUi = typeof element.y === 'number' ? element.y : 0;
         const tableYPdfRaw = transform.toPdfYBox(tableYUi, headerHeightCanvas);
-        const rowTopUiRaw = tableYUi + headerHeightCanvas + headerRowGapCanvas;
-        const uiSnapInput =
-          rowTopUiRaw + (Number.isFinite(gridBorderWidthCanvas) ? gridBorderWidthCanvas : 0);
-        const rowTopUiDraw = Math.round(Math.floor(uiSnapInput) + 0.5);
-        const rowTopPdfFromUi = transform.toPdfTop(rowTopUiRaw, 0);
         const rowTopPdfFinal = rowTopPdfDraw;
         console.log('[DBG_TABLE_ROW_MATH]', {
           tableY_ui: tableYUi,
