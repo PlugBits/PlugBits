@@ -3475,7 +3475,7 @@ function drawTable(
         const uiSnapInput =
           rowTopUiRaw + (Number.isFinite(gridBorderWidthCanvas) ? gridBorderWidthCanvas : 0);
         const rowTopUiDraw = Math.round(Math.floor(uiSnapInput) + 0.5);
-        const rowTopPdfFromUi = transform.toPdfTop(rowTopUiDraw, 0);
+        const rowTopPdfFromUi = transform.toPdfTop(rowTopUiRaw, 0);
         const rowTopPdfFinal = rowTopPdfDraw;
         console.log('[DBG_TABLE_ROW_MATH]', {
           tableY_ui: tableYUi,
