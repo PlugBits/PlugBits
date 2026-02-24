@@ -3153,13 +3153,18 @@ function drawTable(
       rowTop_pdf_draw?: number;
       rowBottom_pdf_draw?: number;
       cellInnerTop_pdf?: number;
+      rowTop_ui_raw?: number;
+      rowTop_ui_draw?: number;
+      cellTop_ui_draw?: number;
+      cellTop_ui_for_pdf?: number;
+      cellTop_pdf_pageY?: number;
     } & Record<string, unknown>,
   ) => {
     if (!debugEnabled) return;
     const cellHeight = rectTopY - rectBottomY;
     const baselineOffset = computedDrawY - rectBottomY;
-    const uiRowTop = meta?.rowTop_ui ?? null;
-    const uiCellTop = meta?.cellTop_ui_snapped ?? meta?.cellTop_ui_raw ?? null;
+    const uiRowTop = meta?.rowTop_ui_draw ?? meta?.rowTop_ui_raw ?? null;
+    const uiCellTop = meta?.cellTop_ui_draw ?? null;
     const cellFrameTopPdf = rectTopY;
     const cellInnerTopPdf =
       typeof meta?.cellInnerTop_pdf === 'number'
@@ -3420,22 +3425,24 @@ function drawTable(
       const tableCellLogMeta = shouldLogTableCell
         ? (() => {
             const tableYUi = typeof element.y === 'number' ? element.y : 0;
-            const rowTopUi = tableYUi + headerHeightCanvas + headerRowGapCanvas;
-            const rowTopPdfFromUi = transform.toPdfTop(rowTopUi, 0);
+            const rowTopUiRaw = tableYUi + headerHeightCanvas + headerRowGapCanvas;
+            const uiSnapInput =
+              rowTopUiRaw + (Number.isFinite(gridBorderWidthCanvas) ? gridBorderWidthCanvas : 0);
+            const rowTopUiDraw = Math.round(Math.floor(uiSnapInput) + 0.5);
+            const cellTopUiDraw = rowTopUiDraw;
+            const rowTopPdfFromUi = transform.toPdfTop(rowTopUiRaw, 0);
             const rowTopPdfFinal = rowTopPdfDraw;
-            const cellTopUiRaw = rowTopUi;
-            const cellTopUiSnapped = cellTopUiRaw;
-            const cellTopPdfRaw = pageHeight - rowTopPdfRaw;
-            const cellTopPdfFinal = pageHeight - rectTopY;
+            const cellTopUiForPdf = pageHeight - rowTopPdfRaw;
+            const cellTopPdfPageY = rowTopPdfDraw;
             return {
-              rowTop_ui: rowTopUi,
+              rowTop_ui_raw: rowTopUiRaw,
+              rowTop_ui_draw: rowTopUiDraw,
+              cellTop_ui_draw: cellTopUiDraw,
               rowTop_pdf_raw: rowTopPdfRaw,
               rowTop_pdf_from_ui: rowTopPdfFromUi,
               rowTop_pdf_final: rowTopPdfFinal,
-              cellTop_ui_raw: cellTopUiRaw,
-              cellTop_ui_snapped: cellTopUiSnapped,
-              cellTop_pdf_raw: cellTopPdfRaw,
-              cellTop_pdf_final: cellTopPdfFinal,
+              cellTop_ui_for_pdf: cellTopUiForPdf,
+              cellTop_pdf_pageY: cellTopPdfPageY,
               rowTop_pdf_draw: rowTopPdfDraw,
               rowBottom_pdf_draw: rowYBottomDraw,
               cellInnerTop_pdf: rowTopPdfDraw - paddingY,
@@ -3464,14 +3471,18 @@ function drawTable(
       if (shouldLogTableCell && !rowMathLogged) {
         const tableYUi = typeof element.y === 'number' ? element.y : 0;
         const tableYPdfRaw = transform.toPdfYBox(tableYUi, headerHeightCanvas);
-        const rowTopUi = tableYUi + headerHeightCanvas + headerRowGapCanvas;
-        const rowTopPdfFromUi = transform.toPdfTop(rowTopUi, 0);
+        const rowTopUiRaw = tableYUi + headerHeightCanvas + headerRowGapCanvas;
+        const uiSnapInput =
+          rowTopUiRaw + (Number.isFinite(gridBorderWidthCanvas) ? gridBorderWidthCanvas : 0);
+        const rowTopUiDraw = Math.round(Math.floor(uiSnapInput) + 0.5);
+        const rowTopPdfFromUi = transform.toPdfTop(rowTopUiRaw, 0);
         const rowTopPdfFinal = rowTopPdfDraw;
         console.log('[DBG_TABLE_ROW_MATH]', {
           tableY_ui: tableYUi,
           tableY_pdf: tableYPdfRaw,
           rowIndex: i,
-          rowTop_ui: rowTopUi,
+          rowTop_ui_raw: rowTopUiRaw,
+          rowTop_ui_draw: rowTopUiDraw,
           rowTop_pdf_raw: rowTopPdfRaw,
           rowTop_pdf_from_ui: rowTopPdfFromUi,
           rowTop_pdf_draw: rowTopPdfDraw,
