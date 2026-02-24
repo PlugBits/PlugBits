@@ -27,10 +27,18 @@ export const getKintoneContextFromParams = (params: URLSearchParams) => {
     params.get('kintoneAppId') ??
     '';
 
-  const kintoneApiToken =
+  const paramToken =
     params.get('kintoneApiToken') ??
     params.get('apiToken') ??
     '';
+  let storageToken = '';
+  if (!paramToken && typeof window !== 'undefined') {
+    storageToken =
+      window.sessionStorage.getItem('kintoneApiToken') ??
+      window.localStorage.getItem('kintoneApiToken') ??
+      '';
+  }
+  const kintoneApiToken = paramToken || storageToken;
 
   return {
     kintoneBaseUrl,

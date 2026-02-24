@@ -29,10 +29,16 @@ export const useEditorSession = () => {
     const hashIndex = hash.indexOf('?');
     const hashParams =
       hashIndex >= 0 ? new URLSearchParams(hash.slice(hashIndex + 1)) : new URLSearchParams();
+    const sessionStorageToken =
+      typeof window === 'undefined' ? '' : window.sessionStorage.getItem('kintoneApiToken') ?? '';
+    const localStorageToken =
+      typeof window === 'undefined' ? '' : window.localStorage.getItem('kintoneApiToken') ?? '';
     if (searchParams.has('kintoneApiToken')) return 'query:search:kintoneApiToken';
     if (searchParams.has('apiToken')) return 'query:search:apiToken';
     if (hashParams.has('kintoneApiToken')) return 'query:hash:kintoneApiToken';
     if (hashParams.has('apiToken')) return 'query:hash:apiToken';
+    if (sessionStorageToken) return 'storage:session';
+    if (localStorageToken) return 'storage:local';
     if (kintoneApiToken) return 'query:merged';
     return 'missing';
   }, [kintoneApiToken, location.hash, location.search]);
