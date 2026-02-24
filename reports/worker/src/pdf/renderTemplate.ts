@@ -55,13 +55,6 @@ const hasNonAscii = (text: string) => /[^\u0000-\u007F]/.test(text);
 const pickFont = (text: string, latinFont: PDFFont, jpFont: PDFFont) =>
   hasNonAscii(text) ? jpFont : latinFont;
 
-const snapPdfStroke = (value: number, stroke: number) => {
-  if (!Number.isFinite(value)) return value;
-  const thickness = Number.isFinite(stroke) ? stroke : 0;
-  if (thickness <= 0) return Math.round(value);
-  return Math.round(value + thickness / 2) - thickness / 2;
-};
-
 const safeDrawText = (
   page: PDFPage,
   text: string,
@@ -2865,7 +2858,7 @@ function drawTable(
       );
     }
     const rowTopPdfRaw = rowYBottomLayout + summaryRowHeight;
-    const rowTopPdfDraw = snapPdfStroke(rowTopPdfRaw, gridBorderWidth);
+    const rowTopPdfDraw = rowTopPdfRaw;
     const rowYBottomDraw = rowTopPdfDraw - summaryRowHeight;
     const sumValue =
       kind === 'subtotal'
@@ -3164,32 +3157,32 @@ function drawTable(
   ) => {
     if (!debugEnabled) return;
     const cellHeight = rectTopY - rectBottomY;
-    const cellTop = pageHeight - rectTopY;
-    const cellBottom = cellTop + cellHeight;
     const baselineOffset = computedDrawY - rectBottomY;
-    const rowTopPdfRaw = meta?.rowTop_pdf_raw ?? rectTopY;
-    const rowTopPdfDraw = meta?.rowTop_pdf_draw ?? rectTopY;
-    const rowBottomPdfDraw = meta?.rowBottom_pdf_draw ?? rectBottomY;
-    const cellFrameTopPdf = rowTopPdfDraw;
+    const uiRowTop = meta?.rowTop_ui ?? null;
+    const uiCellTop = meta?.cellTop_ui_snapped ?? meta?.cellTop_ui_raw ?? null;
+    const cellFrameTopPdf = rectTopY;
     const cellInnerTopPdf =
       typeof meta?.cellInnerTop_pdf === 'number'
         ? meta.cellInnerTop_pdf
-        : rowTopPdfDraw - paddingY;
-    console.log('[DBG_TABLE_PDF_COORDS]', {
+        : rectTopY - paddingY;
+    console.log('[DBG_TABLE_CELL_COORDS]', {
       elementId,
-      rowTop_pdf_raw: rowTopPdfRaw,
-      rowTop_pdf_draw: rowTopPdfDraw,
-      rowBottom_pdf_draw: rowBottomPdfDraw,
-      cellFrameTop_pdf: cellFrameTopPdf,
-      cellInnerTop_pdf: cellInnerTopPdf,
-      paddingY,
-      baselineOffset,
-      textBaseline_pdf: computedDrawY,
+      ui: {
+        rowTop: uiRowTop,
+        cellTop: uiCellTop,
+      },
+      pdf: {
+        rowTop: rectTopY,
+        cellFrameTop: cellFrameTopPdf,
+        cellInnerTop: cellInnerTopPdf,
+        textBaseline: computedDrawY,
+      },
     });
     console.log('[DBG_TABLE_CELL_PDF]', {
       elementId,
-      cellTop,
-      cellBottom,
+      rectTopY,
+      rectBottomY,
+      cellHeight,
       fontSize,
       lineHeight,
       computedDrawY,
@@ -3390,7 +3383,7 @@ function drawTable(
     }
 
     const rowTopPdfRaw = rowYBottomLayout + effectiveRowHeight;
-    const rowTopPdfDraw = snapPdfStroke(rowTopPdfRaw, gridBorderWidth);
+    const rowTopPdfDraw = rowTopPdfRaw;
     const rowYBottomDraw = rowTopPdfDraw - effectiveRowHeight;
     let currentX = originX;
 
@@ -3431,10 +3424,7 @@ function drawTable(
             const rowTopPdfFromUi = transform.toPdfTop(rowTopUi, 0);
             const rowTopPdfFinal = rowTopPdfDraw;
             const cellTopUiRaw = rowTopUi;
-            const cellTopUiSnapped = snapPdfStroke(
-              cellTopUiRaw,
-              gridBorderWidthCanvas ?? 0,
-            );
+            const cellTopUiSnapped = cellTopUiRaw;
             const cellTopPdfRaw = pageHeight - rowTopPdfRaw;
             const cellTopPdfFinal = pageHeight - rectTopY;
             return {
@@ -3461,7 +3451,7 @@ function drawTable(
           gridBorderWidth,
           paddingY,
           nudgeBeforeClamp: rowTopAfter - rowTopBefore,
-          rule: 'snapPdfStroke(rowTop, gridBorderWidth)',
+          rule: 'rowTop_pdf_draw = rowTop_pdf_raw (no snap)',
         });
         console.log('[DBG_TABLE_PDF_NUDGE]', {
           rowTopBefore,
