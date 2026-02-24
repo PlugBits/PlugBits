@@ -151,8 +151,9 @@ button:disabled {
   height: 842px;
   margin: 0 auto;
   background: #fff;
-  border: 1px solid #d0d5dd;
   border-radius: 0.75rem;
+  border: 0;
+  outline: none;
   overflow: hidden;
 }
 
