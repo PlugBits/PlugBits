@@ -1035,9 +1035,9 @@ export default {
           });
         }
 
-        let payload: { token?: string };
+        let payload: { token?: string; kintoneApiToken?: string };
         try {
-          payload = (await request.json()) as { token?: string };
+          payload = (await request.json()) as { token?: string; kintoneApiToken?: string };
         } catch {
           return new Response("Invalid JSON body", {
             status: 400,
@@ -1046,10 +1046,28 @@ export default {
         }
 
         const token = payload?.token ?? "";
+        console.info("[editor/session] exchange payload", {
+          hasKintoneApiToken: Boolean(payload?.kintoneApiToken),
+          tokenLength: payload?.kintoneApiToken?.length ?? 0,
+        });
         const loaded = await loadEditorSession(env, token);
         if ("error" in loaded) return loaded.error;
 
         const session = loaded.session;
+        const incomingToken = payload?.kintoneApiToken?.trim() ?? "";
+        if (incomingToken && incomingToken !== session.kintoneApiToken) {
+          const key = `editor_session:${token}`;
+          const ttlSeconds = Math.max(
+            1,
+            Math.floor((session.expiresAt - Date.now()) / 1000),
+          );
+          await env.SESSIONS_KV.put(
+            key,
+            JSON.stringify({ ...session, kintoneApiToken: incomingToken }),
+            { expirationTtl: ttlSeconds },
+          );
+          session.kintoneApiToken = incomingToken;
+        }
         let canonicalBaseUrl = "";
         let canonicalAppId = "";
         let tenantId = "";

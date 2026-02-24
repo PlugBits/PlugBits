@@ -3666,6 +3666,9 @@ function drawTable(
       phase = 'summary';
       for (const state of summaryStates) {
         if (state.row.op !== 'sum') continue;
+        if (previewMode === 'fieldCode') {
+          continue;
+        }
         const rawVal = resolveFieldValue(
           state.row.fieldCode,
           row as Record<string, unknown>,
@@ -3696,6 +3699,9 @@ function drawTable(
       }
     }
     if (needsFallbackTotal && amountFieldCode) {
+      if (previewMode === 'fieldCode') {
+        continue;
+      }
       const rawVal = resolveFieldValue(
         amountFieldCode,
         row as Record<string, unknown>,

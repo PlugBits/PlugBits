@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import {
   getKintoneContextFromParams,
@@ -19,10 +19,18 @@ export const useEditorSession = () => {
   );
   const sessionToken = useMemo(() => getSessionTokenFromParams(params), [params]);
   const workerBaseUrl = useMemo(() => getReportsApiBaseUrlFromParams(params), [params]);
-  const { kintoneBaseUrl, appId } = useMemo(
+  const { kintoneBaseUrl, appId, kintoneApiToken } = useMemo(
     () => getKintoneContextFromParams(params),
     [params],
   );
+  const kintoneTokenSource = useMemo(() => {
+    if (kintoneApiToken) {
+      if (params.has('kintoneApiToken')) return 'fromQuery:kintoneApiToken';
+      if (params.has('apiToken')) return 'fromQuery:apiToken';
+      return 'fromParams:unknownKey';
+    }
+    return 'missing';
+  }, [kintoneApiToken, params]);
   const companyProfileFromParams = useMemo(
     () => getCompanyProfileFromParams(params),
     [params],
@@ -32,6 +40,7 @@ export const useEditorSession = () => {
   const setTenantContext = useTenantStore((state) => state.setTenantContext);
   const clearTenantContext = useTenantStore((state) => state.clearTenantContext);
   const [authState, setAuthState] = useState<EditorAuthState>('checking');
+  const exchangeLogRef = useRef(false);
   const [sessionError, setSessionError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -83,10 +92,21 @@ export const useEditorSession = () => {
           };
         };
 
+        if (!exchangeLogRef.current) {
+          console.log('[editor session] exchange payload', {
+            hasKintoneApiToken: Boolean(kintoneApiToken),
+            tokenLength: kintoneApiToken?.length ?? 0,
+            source: kintoneTokenSource,
+          });
+          exchangeLogRef.current = true;
+        }
         const exchangeRes = await fetch(`${normalizedWorkerBaseUrl}/editor/session/exchange`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ token: sessionToken }),
+          body: JSON.stringify({
+            token: sessionToken,
+            kintoneApiToken: kintoneApiToken || undefined,
+          }),
           cache: 'no-store',
           signal: controller.signal,
         });
