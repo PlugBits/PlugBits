@@ -963,7 +963,10 @@ const TemplateEditorPage = () => {
       await previewPdf(template, { source: previewSource });
       setToast({ type: 'success', message: 'PDFを出力しました' });
     } catch (error) {
-      setToast({ type: 'error', message: '処理に失敗しました。もう一度お試しください。' });
+      setToast({
+        type: 'error',
+        message: error instanceof Error ? error.message : '処理に失敗しました。もう一度お試しください。',
+      });
     }
   };
 

@@ -38,6 +38,10 @@ export async function previewPdf(
     renderUrl,
     source,
   });
+  const kintone =
+    tenantContext.kintoneBaseUrl && tenantContext.appId
+      ? { baseUrl: tenantContext.kintoneBaseUrl, appId: tenantContext.appId }
+      : undefined;
   const body =
     source === 'draft'
       ? {
@@ -46,12 +50,14 @@ export async function previewPdf(
           data: template.sampleData,
           previewMode: 'fieldCode',
           companyProfile: tenantContext.companyProfile,
+          kintone,
         }
       : {
           templateId: template.id,
           data: template.sampleData,
           previewMode: 'fieldCode',
           companyProfile: tenantContext.companyProfile,
+          kintone,
         };
   const res = await fetch(renderUrl, {
     method: 'POST',
@@ -60,7 +66,14 @@ export async function previewPdf(
   });
 
   if (!res.ok) {
-    throw new Error('処理に失敗しました。もう一度お試しください。');
+    const raw = await res.text();
+    let detail = raw;
+    try {
+      detail = JSON.stringify(JSON.parse(raw));
+    } catch {
+      // keep raw text
+    }
+    throw new Error(`プレビューに失敗しました (${res.status}): ${detail || 'unknown error'}`);
   }
 
   if (debugEnabled) {
