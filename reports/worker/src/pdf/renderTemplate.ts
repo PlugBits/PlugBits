@@ -927,8 +927,16 @@ export async function renderTemplateToPdf(
   const pdfDoc = await PDFDocument.create();
   pdfDoc.registerFontkit(fontkit);
 
-  if (debugEnabled && template.structureType === 'estimate_v1') {
-    console.debug('[render] estimate_v1 passthrough');
+  if (debugEnabled) {
+    const passthrough = template.structureType === 'estimate_v1';
+    console.debug('[DBG_ESTIMATE_PASSTHROUGH]', {
+      passthrough,
+      reason: passthrough
+        ? 'structureType=estimate_v1'
+        : `structureType=${template.structureType ?? 'unknown'}`,
+      templateId: template.id ?? '',
+      baseTemplateId: template.baseTemplateId ?? null,
+    });
   }
 
   const [pageWidth, pageHeight] = getPageSize(template);

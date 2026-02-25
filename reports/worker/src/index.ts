@@ -2393,6 +2393,35 @@ export default {
           const previewMode =
             body?.previewMode === "fieldCode" ? "fieldCode" : "record";
 
+          const authHeader = request.headers.get("authorization");
+          const sessionToken =
+            request.headers.get("x-session-token") ??
+            url.searchParams.get("sessionToken") ??
+            (body as { sessionToken?: string } | undefined)?.sessionToken ??
+            null;
+          const hasSessionToken = Boolean(sessionToken || authHeader);
+
+          const templateIdInBody = body?.templateId ?? body?.template?.id ?? "";
+          const userTemplateIdInBody = templateIdInBody.startsWith("tpl_")
+            ? templateIdInBody
+            : null;
+          const bodyBaseTemplateId =
+            (body as { baseTemplateId?: string } | undefined)?.baseTemplateId ??
+            body?.template?.baseTemplateId ??
+            null;
+          const hasBodyTemplate = Boolean(body?.template);
+          if (debugEnabled) {
+            console.info("[DBG_RENDER_INCOMING]", {
+              requestId,
+              templateId: templateIdInBody,
+              userTemplateId: userTemplateIdInBody,
+              baseTemplateId: bodyBaseTemplateId,
+              hasSessionToken,
+              previewMode,
+              hasBodyTemplate,
+            });
+          }
+
           const missing: string[] = [];
           if (!body || typeof body !== "object") {
             missing.push("body");
@@ -2415,25 +2444,21 @@ export default {
             });
           }
 
-          const authHeader = request.headers.get("authorization");
-          const sessionToken =
-            request.headers.get("x-session-token") ??
-            url.searchParams.get("sessionToken") ??
-            (body as { sessionToken?: string } | undefined)?.sessionToken ??
-            null;
-          const hasSessionToken = Boolean(sessionToken || authHeader);
-          const templateIdInBody = body?.templateId ?? body?.template?.id ?? "";
           const isUserTemplateId = templateIdInBody.startsWith("tpl_");
 
           // template / templateId のどちらかから TemplateDefinition を決定
           let template: TemplateDefinition<TemplateDataRecord>;
           let templateSource: "body.template" | "templateId" = "templateId";
+          let resolvedSource: "body.template" | "userTemplate" | "baseTemplate" =
+            "baseTemplate";
 
           if (body?.template) {
             template = body.template;
             templateSource = "body.template";
+            resolvedSource = "body.template";
           } else if (body?.templateId) {
             const isUserTemplate = body.templateId.startsWith("tpl_");
+            resolvedSource = isUserTemplate ? "userTemplate" : "baseTemplate";
             if (!isUserTemplate && !TEMPLATE_IDS.has(body.templateId)) {
               return buildRenderErrorResponse(400, {
                 error: "Bad Request: Unknown templateId",
@@ -2475,6 +2500,33 @@ export default {
               error: "Bad Request: Missing 'template' or 'templateId' in request body",
               requestId,
               missing: ["template", "templateId"],
+            });
+          }
+
+          if (debugEnabled) {
+            const fingerprint = await buildTemplateFingerprint(template as TemplateDefinition);
+            const elementIds = Array.isArray(template.elements)
+              ? template.elements.map((el) => el.id ?? "").filter(Boolean)
+              : [];
+            const updatedAt =
+              (template as any).updatedAt ??
+              (template as any).meta?.updatedAt ??
+              null;
+            const revision =
+              (template as any).revision ??
+              (template as any).meta?.revision ??
+              null;
+            console.info("[DBG_RENDER_RESOLVED]", {
+              requestId,
+              resolvedSource,
+              resolvedTemplateId: template.id ?? templateIdInBody ?? "",
+              resolvedBaseTemplateId: (template as any).baseTemplateId ?? null,
+              resolvedTemplateHash: fingerprint.hash,
+              resolvedHashType: fingerprint.hashType,
+              resolvedElementsCount: fingerprint.elements,
+              resolvedElementIdsSample: elementIds.slice(0, 10),
+              resolvedUpdatedAt: updatedAt,
+              resolvedRevision: revision,
             });
           }
 
