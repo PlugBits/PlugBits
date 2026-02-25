@@ -11,8 +11,12 @@ const DBG_TEXT_TARGETS = new Set([
   'items:row0:item_name',
 ]);
 const TABLE_DEBUG_PDF_TOP = 842;
+type PreviewSource = 'saved' | 'draft';
 
-export async function previewPdf(template: TemplateDefinition) {
+export async function previewPdf(
+  template: TemplateDefinition,
+  options?: { source?: PreviewSource },
+) {
   const tenantContext = getTenantContext();
   if (!tenantContext?.workerBaseUrl) {
     throw new Error('設定画面から開き直してください。');
@@ -28,16 +32,31 @@ export async function previewPdf(template: TemplateDefinition) {
     `${tenantContext.workerBaseUrl.replace(/\/$/, '')}/render`,
     debugEnabled,
   );
-  console.log('[DBG_PREVIEWPDF_CALL]', { enabled: debugEnabled, renderUrl });
+  const source: PreviewSource = options?.source ?? 'saved';
+  console.log('[DBG_PREVIEWPDF_CALL]', {
+    enabled: debugEnabled,
+    renderUrl,
+    source,
+  });
+  const body =
+    source === 'draft'
+      ? {
+          templateId: template.id,
+          template,
+          data: template.sampleData,
+          previewMode: 'fieldCode',
+          companyProfile: tenantContext.companyProfile,
+        }
+      : {
+          templateId: template.id,
+          data: template.sampleData,
+          previewMode: 'fieldCode',
+          companyProfile: tenantContext.companyProfile,
+        };
   const res = await fetch(renderUrl, {
     method: 'POST',
     headers,
-    body: JSON.stringify({
-      template,
-      data: template.sampleData,
-      previewMode: 'fieldCode',
-      companyProfile: tenantContext.companyProfile,
-    }),
+    body: JSON.stringify(body),
   });
 
   if (!res.ok) {

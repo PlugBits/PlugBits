@@ -64,6 +64,7 @@ const TemplateEditorPage = () => {
   const [guideVisible, setGuideVisible] = useState(true);
   const [advancedLayoutEditing, setAdvancedLayoutEditing] = useState(!!template?.advancedLayoutEditing);
   const [activeTab, setActiveTab] = useState<'adjust' | 'mapping'>('mapping');
+  const [previewSource, setPreviewSource] = useState<'saved' | 'draft'>('saved');
   const [cloneModalOpen, setCloneModalOpen] = useState(false);
   const [clonePresetId, setClonePresetId] = useState<'estimate_v1' | 'invoice_v1'>('invoice_v1');
   const [isCloning, setIsCloning] = useState(false);
@@ -959,7 +960,7 @@ const TemplateEditorPage = () => {
       return;
     }
     try {
-      await previewPdf(template);
+      await previewPdf(template, { source: previewSource });
       setToast({ type: 'success', message: 'PDFを出力しました' });
     } catch (error) {
       setToast({ type: 'error', message: '処理に失敗しました。もう一度お試しください。' });
@@ -1413,6 +1414,29 @@ const TemplateEditorPage = () => {
               <button className="primary" onClick={handlePreviewClick} disabled={missingCount > 0}>
                 PDFプレビュー
               </button>
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: 11, color: '#667085' }}>
+                <span>Preview source:</span>
+                <label style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                  <input
+                    type="radio"
+                    name="preview-source"
+                    value="saved"
+                    checked={previewSource === 'saved'}
+                    onChange={() => setPreviewSource('saved')}
+                  />
+                  Saved template (KV)
+                </label>
+                <label style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                  <input
+                    type="radio"
+                    name="preview-source"
+                    value="draft"
+                    checked={previewSource === 'draft'}
+                    onChange={() => setPreviewSource('draft')}
+                  />
+                  Current draft (body)
+                </label>
+              </div>
               {missingCount > 0 && (
                 <div style={{ fontSize: 11, color: '#667085' }}>
                   必須項目を設定するとプレビューできます

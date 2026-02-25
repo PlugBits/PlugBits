@@ -34,7 +34,6 @@ export async function requestPreviewPdf(
     headers: buildHeaders(),
     body: JSON.stringify({
       templateId: template.id,
-      template,
       data,
       previewMode: "fieldCode",
       companyProfile: tenantContext.companyProfile,
