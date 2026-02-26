@@ -2429,6 +2429,14 @@ export default {
           if (!body?.template && !body?.templateId) {
             missing.push("template", "templateId");
           }
+          const requiresKintone =
+            !body?.template && templateIdInBody.startsWith("tpl_");
+          if (requiresKintone) {
+            const kBaseUrl = (body as any)?.kintone?.baseUrl ?? "";
+            const kAppId = (body as any)?.kintone?.appId ?? "";
+            if (!kBaseUrl) missing.push("kintone.baseUrl");
+            if (!kAppId) missing.push("kintone.appId");
+          }
           if (missing.length > 0) {
             return buildRenderErrorResponse(400, {
               error: `Bad Request: missing ${missing.join(", ")}`,
