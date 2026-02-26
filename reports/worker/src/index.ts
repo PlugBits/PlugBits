@@ -2049,6 +2049,79 @@ export default {
               buildTemplateFingerprint(draftObj),
               buildTemplateFingerprint(storedObj),
             ]);
+            const DIFF_KEYS = [
+              "x",
+              "y",
+              "width",
+              "height",
+              "fontSize",
+              "lineHeight",
+              "alignX",
+              "align",
+              "valign",
+              "paddingX",
+              "paddingY",
+              "region",
+              "type",
+              "slotId",
+              "dataSource",
+              "style",
+            ];
+            const round3 = (value: unknown) => {
+              if (typeof value !== "number" || !Number.isFinite(value)) return value;
+              return Math.round(value * 1000) / 1000;
+            };
+            const normalizeValue = (value: unknown): unknown => {
+              if (value === null || value === undefined) return value;
+              if (typeof value === "number") return round3(value);
+              if (typeof value !== "object") return value;
+              if (Array.isArray(value)) return value.map(normalizeValue);
+              const obj = value as Record<string, unknown>;
+              const keys = Object.keys(obj).sort();
+              const out: Record<string, unknown> = {};
+              for (const key of keys) {
+                out[key] = normalizeValue(obj[key]);
+              }
+              return out;
+            };
+            const readField = (obj: unknown, key: string) => {
+              if (!obj || typeof obj !== "object") {
+                return { present: false, value: undefined };
+              }
+              const has = Object.prototype.hasOwnProperty.call(obj, key);
+              if (!has) return { present: false, value: undefined };
+              return { present: true, value: (obj as any)[key] };
+            };
+            const representField = (obj: unknown, key: string) => {
+              const { present, value } = readField(obj, key);
+              if (!present) return "__MISSING__";
+              if (value === undefined) return "__UNDEFINED__";
+              return normalizeValue(value);
+            };
+            const compareField = (a: unknown, b: unknown) =>
+              stableStringify(a) === stableStringify(b);
+            const pickElement = (t: TemplateDefinition, targetId: string) =>
+              t.elements?.find((e) => e.id === targetId) ??
+              t.elements?.find((e) => (e as any).slotId === targetId);
+            const pickElementId = (t: TemplateDefinition, id: string) =>
+              pickElement(t, id)?.id ?? id;
+            const toElemDiffEntry = (
+              elementId: string,
+              draftEl: TemplateElement | undefined,
+              storedEl: TemplateElement | undefined,
+            ) => {
+              const draftFields: Record<string, unknown> = {};
+              const storedFields: Record<string, unknown> = {};
+              const changedKeys: string[] = [];
+              for (const key of DIFF_KEYS) {
+                const draftVal = representField(draftEl, key);
+                const storedVal = representField(storedEl, key);
+                draftFields[key] = draftVal;
+                storedFields[key] = storedVal;
+                if (!compareField(draftVal, storedVal)) changedKeys.push(key);
+              }
+              return { draftFields, storedFields, changedKeys };
+            };
             const pickElementSample = (
               t: TemplateDefinition,
               targetId: string,
@@ -2133,6 +2206,42 @@ export default {
               regionBoundsDiffSample,
               sheetSettingsDiffSample,
             });
+            const elementIdsToCheck = new Set<string>([
+              "doc_title",
+              "items",
+              "total",
+              "remarks",
+            ]);
+            const allDraftIds = (draftObj.elements ?? []).map((el) => el.id ?? "");
+            const allStoredIds = (storedObj.elements ?? []).map((el) => el.id ?? "");
+            for (const id of [...allDraftIds, ...allStoredIds]) {
+              if (id) elementIdsToCheck.add(id);
+            }
+            for (const targetId of elementIdsToCheck) {
+              const draftEl = pickElement(draftObj, targetId);
+              const storedEl = pickElement(storedObj, targetId);
+              const elementId = pickElementId(draftObj, targetId);
+              const { draftFields, storedFields, changedKeys } = toElemDiffEntry(
+                elementId,
+                draftEl,
+                storedEl,
+              );
+              if (changedKeys.length > 0) {
+                console.info("[DBG_SAVE_ELEM_DIFF]", {
+                  elementId,
+                  changedKeys,
+                  draft: draftFields,
+                  stored: storedFields,
+                });
+              } else if (
+                targetId === "doc_title" ||
+                targetId === "items" ||
+                targetId === "total" ||
+                targetId === "remarks"
+              ) {
+                console.info("[DBG_SAVE_ELEM_SAME]", { elementId });
+              }
+            }
             if (draftFingerprint.hash !== storedFingerprint.hash) {
               const missingInStored = topLevelKeysDraft.filter(
                 (key) => !topLevelKeysStored.includes(key),

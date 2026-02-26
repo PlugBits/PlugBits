@@ -149,6 +149,79 @@ export const useTemplateStore = create<TemplateStore>((set, get) => ({
           const ok =
             Boolean(draftFingerprint.hash) &&
             draftFingerprint.hash === savedFingerprint.hash;
+          const DIFF_KEYS = [
+            'x',
+            'y',
+            'width',
+            'height',
+            'fontSize',
+            'lineHeight',
+            'alignX',
+            'align',
+            'valign',
+            'paddingX',
+            'paddingY',
+            'region',
+            'type',
+            'slotId',
+            'dataSource',
+            'style',
+          ];
+          const round3 = (value: unknown) => {
+            if (typeof value !== 'number' || !Number.isFinite(value)) return value;
+            return Math.round(value * 1000) / 1000;
+          };
+          const normalizeValue = (value: unknown): unknown => {
+            if (value === null || value === undefined) return value;
+            if (typeof value === 'number') return round3(value);
+            if (typeof value !== 'object') return value;
+            if (Array.isArray(value)) return value.map(normalizeValue);
+            const obj = value as Record<string, unknown>;
+            const keys = Object.keys(obj).sort();
+            const out: Record<string, unknown> = {};
+            for (const key of keys) {
+              out[key] = normalizeValue(obj[key]);
+            }
+            return out;
+          };
+          const readField = (obj: unknown, key: string) => {
+            if (!obj || typeof obj !== 'object') {
+              return { present: false, value: undefined };
+            }
+            const has = Object.prototype.hasOwnProperty.call(obj, key);
+            if (!has) return { present: false, value: undefined };
+            return { present: true, value: (obj as any)[key] };
+          };
+          const representField = (obj: unknown, key: string) => {
+            const { present, value } = readField(obj, key);
+            if (!present) return '__MISSING__';
+            if (value === undefined) return '__UNDEFINED__';
+            return normalizeValue(value);
+          };
+          const compareField = (a: unknown, b: unknown) =>
+            JSON.stringify(a) === JSON.stringify(b);
+          const pickElement = (t: TemplateDefinition, targetId: string) =>
+            t.elements?.find((e) => e.id === targetId) ??
+            t.elements?.find((e) => (e as any).slotId === targetId);
+          const pickElementId = (t: TemplateDefinition, id: string) =>
+            pickElement(t, id)?.id ?? id;
+          const toElemDiffEntry = (
+            elementId: string,
+            draftEl: TemplateElement | undefined,
+            savedEl: TemplateElement | undefined,
+          ) => {
+            const draftFields: Record<string, unknown> = {};
+            const savedFields: Record<string, unknown> = {};
+            const changedKeys: string[] = [];
+            for (const key of DIFF_KEYS) {
+              const draftVal = representField(draftEl, key);
+              const savedVal = representField(savedEl, key);
+              draftFields[key] = draftVal;
+              savedFields[key] = savedVal;
+              if (!compareField(draftVal, savedVal)) changedKeys.push(key);
+            }
+            return { draftFields, savedFields, changedKeys };
+          };
           const pickElementSample = (t: TemplateDefinition, targetId: string) => {
             const el =
               t.elements?.find((e) => e.id === targetId) ??
@@ -221,6 +294,42 @@ export const useTemplateStore = create<TemplateStore>((set, get) => ({
             regionBoundsDiffSample,
             sheetSettingsDiffSample,
           });
+          const elementIdsToCheck = new Set<string>([
+            'doc_title',
+            'items',
+            'total',
+            'remarks',
+          ]);
+          const allDraftIds = (toSave.elements ?? []).map((el) => el.id ?? '');
+          const allSavedIds = (savedTemplate.elements ?? []).map((el) => el.id ?? '');
+          for (const id of [...allDraftIds, ...allSavedIds]) {
+            if (id) elementIdsToCheck.add(id);
+          }
+          for (const targetId of elementIdsToCheck) {
+            const draftEl = pickElement(toSave, targetId);
+            const savedEl = pickElement(savedTemplate, targetId);
+            const elementId = pickElementId(toSave, targetId);
+            const { draftFields, savedFields, changedKeys } = toElemDiffEntry(
+              elementId,
+              draftEl,
+              savedEl,
+            );
+            if (changedKeys.length > 0) {
+              console.log('[DBG_ELEM_DIFF]', {
+                elementId,
+                changedKeys,
+                draft: draftFields,
+                saved: savedFields,
+              });
+            } else if (
+              targetId === 'doc_title' ||
+              targetId === 'items' ||
+              targetId === 'total' ||
+              targetId === 'remarks'
+            ) {
+              console.log('[DBG_ELEM_SAME]', { elementId });
+            }
+          }
         } catch (error) {
           console.debug('[DBG_CLIENT_SAVE_VERIFY] failed', {
             templateId,
