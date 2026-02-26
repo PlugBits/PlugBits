@@ -27,6 +27,11 @@ export type SlotLayoutOverride = {
   fontSize?: number;
   fontWeight?: "normal" | "bold";
   alignX?: "left" | "center" | "right";
+  lineHeight?: number;
+  paddingX?: number;
+  paddingY?: number;
+  valign?: "top" | "middle" | "bottom";
+  style?: Record<string, unknown>;
 };
 
 export type UserTemplateOverrides = {
@@ -77,6 +82,11 @@ const ensureTextElement = (
   fontSize: base.fontSize,
   fontWeight: base.fontWeight,
   alignX: base.alignX,
+  lineHeight: (base as any).lineHeight,
+  paddingX: (base as any).paddingX,
+  paddingY: (base as any).paddingY,
+  valign: (base as any).valign,
+  style: (base as any).style,
   dataSource,
 });
 
@@ -125,6 +135,11 @@ export const applySlotLayoutOverrides = (
       fontSize: override.fontSize ?? base?.fontSize,
       fontWeight: override.fontWeight ?? base?.fontWeight,
       alignX: override.alignX ?? base?.alignX,
+      lineHeight: override.lineHeight ?? base?.lineHeight,
+      paddingX: override.paddingX ?? base?.paddingX,
+      paddingY: override.paddingY ?? base?.paddingY,
+      valign: override.valign ?? base?.valign,
+      style: override.style ?? base?.style,
     };
 
     const existingDataSource =

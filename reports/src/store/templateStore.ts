@@ -167,6 +167,7 @@ export const useTemplateStore = create<TemplateStore>((set, get) => ({
             'dataSource',
             'style',
           ];
+          const diffKeyCounts: Record<string, number> = {};
           const round3 = (value: unknown) => {
             if (typeof value !== 'number' || !Number.isFinite(value)) return value;
             return Math.round(value * 1000) / 1000;
@@ -321,6 +322,9 @@ export const useTemplateStore = create<TemplateStore>((set, get) => ({
                 draft: draftFields,
                 saved: savedFields,
               });
+              for (const key of changedKeys) {
+                diffKeyCounts[key] = (diffKeyCounts[key] ?? 0) + 1;
+              }
             } else if (
               targetId === 'doc_title' ||
               targetId === 'items' ||
@@ -329,6 +333,16 @@ export const useTemplateStore = create<TemplateStore>((set, get) => ({
             ) {
               console.log('[DBG_ELEM_SAME]', { elementId });
             }
+          }
+          const summaryKeys = Object.keys(diffKeyCounts).sort(
+            (a, b) => diffKeyCounts[b] - diffKeyCounts[a],
+          );
+          if (summaryKeys.length > 0) {
+            const keysSummary: Record<string, number> = {};
+            for (const key of summaryKeys) {
+              keysSummary[key] = diffKeyCounts[key];
+            }
+            console.log('[DBG_DIFF_KEYS_SUMMARY]', { keys: keysSummary });
           }
         } catch (error) {
           console.debug('[DBG_CLIENT_SAVE_VERIFY] failed', {
