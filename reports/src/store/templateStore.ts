@@ -149,6 +149,64 @@ export const useTemplateStore = create<TemplateStore>((set, get) => ({
           const ok =
             Boolean(draftFingerprint.hash) &&
             draftFingerprint.hash === savedFingerprint.hash;
+          const pickElementSample = (t: TemplateDefinition, targetId: string) => {
+            const el =
+              t.elements?.find((e) => e.id === targetId) ??
+              t.elements?.find((e) => (e as any).slotId === targetId);
+            if (!el) return null;
+            return {
+              id: el.id ?? targetId,
+              slotId: (el as any).slotId ?? null,
+              type: el.type,
+              x: (el as any).x ?? null,
+              y: (el as any).y ?? null,
+              width: (el as any).width ?? null,
+              height: (el as any).height ?? null,
+              fontSize: (el as any).fontSize ?? null,
+              alignX: (el as any).alignX ?? null,
+            };
+          };
+          const elementSampleIds = ['doc_title', 'items', 'total', 'remarks'];
+          const elementsDiffSample = elementSampleIds.reduce(
+            (acc, id) => {
+              acc[id] = {
+                draft: pickElementSample(toSave, id),
+                saved: pickElementSample(savedTemplate, id),
+              };
+              return acc;
+            },
+            {} as Record<string, { draft: Record<string, unknown> | null; saved: Record<string, unknown> | null }>,
+          );
+          const settingsDiffSample = {
+            draft: {
+              coordSystem: (toSave as any).settings?.coordSystem ?? null,
+              yMode: (toSave as any).settings?.yMode ?? null,
+              presetId: (toSave as any).settings?.presetId ?? null,
+              presetRevision: (toSave as any).settings?.presetRevision ?? null,
+            },
+            saved: {
+              coordSystem: (savedTemplate as any).settings?.coordSystem ?? null,
+              yMode: (savedTemplate as any).settings?.yMode ?? null,
+              presetId: (savedTemplate as any).settings?.presetId ?? null,
+              presetRevision: (savedTemplate as any).settings?.presetRevision ?? null,
+            },
+          };
+          const regionBoundsDiffSample = {
+            draft: (toSave as any).regionBounds ?? null,
+            saved: (savedTemplate as any).regionBounds ?? null,
+          };
+          const sheetSettingsDraft = (toSave as any).sheetSettings;
+          const sheetSettingsSaved = (savedTemplate as any).sheetSettings;
+          const sheetSettingsDiffSample = {
+            draft: {
+              exists: Boolean(sheetSettingsDraft),
+              keys: sheetSettingsDraft ? Object.keys(sheetSettingsDraft) : [],
+            },
+            saved: {
+              exists: Boolean(sheetSettingsSaved),
+              keys: sheetSettingsSaved ? Object.keys(sheetSettingsSaved) : [],
+            },
+          };
           console.log('[DBG_CLIENT_SAVE_VERIFY]', {
             templateId,
             hashDraft: draftFingerprint.hash,
@@ -158,6 +216,10 @@ export const useTemplateStore = create<TemplateStore>((set, get) => ({
             jsonLenSaved: savedFingerprint.jsonLen,
             elementsCountDraft: draftFingerprint.elements,
             elementsCountSaved: savedFingerprint.elements,
+            elementsDiffSample,
+            settingsDiffSample,
+            regionBoundsDiffSample,
+            sheetSettingsDiffSample,
           });
         } catch (error) {
           console.debug('[DBG_CLIENT_SAVE_VERIFY] failed', {

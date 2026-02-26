@@ -163,8 +163,26 @@ const sha256Hex = async (input: string): Promise<string | null> => {
   }
 };
 
+const canonicalizeTemplateForFingerprint = (template: TemplateDefinition) => ({
+  schemaVersion: template.schemaVersion ?? null,
+  pageSize: template.pageSize ?? null,
+  orientation: template.orientation ?? null,
+  structureType: template.structureType ?? null,
+  settings: template.settings ?? null,
+  regionBounds: template.regionBounds ?? null,
+  slotSchema: (template as any).slotSchema ?? null,
+  footerRepeatMode: (template as any).footerRepeatMode ?? null,
+  footerReserveHeight: (template as any).footerReserveHeight ?? null,
+  elements: Array.isArray(template.elements) ? template.elements : null,
+  mapping: (template as any).mapping ?? null,
+  sheetSettings:
+    template.structureType === 'label_v1'
+      ? (template as any).sheetSettings ?? null
+      : null,
+});
+
 export const buildTemplateFingerprint = async (template: TemplateDefinition) => {
-  const json = stableStringify(template);
+  const json = stableStringify(canonicalizeTemplateForFingerprint(template));
   const hash = await sha256Hex(json);
   return {
     jsonLen: json.length,

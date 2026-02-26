@@ -179,8 +179,27 @@ const sha256Hex = async (input: string): Promise<string | null> => {
   }
 };
 
+const canonicalizeTemplateForFingerprint = (template: TemplateDefinition) => ({
+  schemaVersion: template.schemaVersion ?? null,
+  pageSize: template.pageSize ?? null,
+  orientation: template.orientation ?? null,
+  structureType: template.structureType ?? null,
+  settings: template.settings ?? null,
+  regionBounds: template.regionBounds ?? null,
+  slotSchema: (template as any).slotSchema ?? null,
+  footerRepeatMode: (template as any).footerRepeatMode ?? null,
+  footerReserveHeight: (template as any).footerReserveHeight ?? null,
+  elements: Array.isArray(template.elements) ? template.elements : null,
+  mapping: (template as any).mapping ?? null,
+  sheetSettings:
+    template.structureType === "label_v1"
+      ? (template as any).sheetSettings ?? null
+      : null,
+});
+
 const buildTemplateFingerprint = async (template: TemplateDefinition) => {
-  const json = stableStringify(template);
+  const canonical = canonicalizeTemplateForFingerprint(template);
+  const json = stableStringify(canonical);
   const hash = await sha256Hex(json);
   return {
     jsonLen: json.length,
@@ -2030,6 +2049,72 @@ export default {
               buildTemplateFingerprint(draftObj),
               buildTemplateFingerprint(storedObj),
             ]);
+            const pickElementSample = (
+              t: TemplateDefinition,
+              targetId: string,
+            ) => {
+              const el =
+                t.elements?.find((e) => e.id === targetId) ??
+                t.elements?.find(
+                  (e) => (e as any).slotId === targetId,
+                );
+              if (!el) return null;
+              return {
+                id: el.id ?? targetId,
+                slotId: (el as any).slotId ?? null,
+                type: el.type,
+                x: (el as any).x ?? null,
+                y: (el as any).y ?? null,
+                width: (el as any).width ?? null,
+                height: (el as any).height ?? null,
+                fontSize: (el as any).fontSize ?? null,
+                alignX: (el as any).alignX ?? null,
+              };
+            };
+            const elementSampleIds = ["doc_title", "items", "total", "remarks"];
+            const elementsDiffSample = elementSampleIds.reduce(
+              (acc, id) => {
+                acc[id] = {
+                  draft: pickElementSample(draftObj, id),
+                  stored: pickElementSample(storedObj, id),
+                };
+                return acc;
+              },
+              {} as Record<
+                string,
+                { draft: Record<string, unknown> | null; stored: Record<string, unknown> | null }
+              >,
+            );
+            const settingsDiffSample = {
+              draft: {
+                coordSystem: (draftObj as any).settings?.coordSystem ?? null,
+                yMode: (draftObj as any).settings?.yMode ?? null,
+                presetId: (draftObj as any).settings?.presetId ?? null,
+                presetRevision: (draftObj as any).settings?.presetRevision ?? null,
+              },
+              stored: {
+                coordSystem: (storedObj as any).settings?.coordSystem ?? null,
+                yMode: (storedObj as any).settings?.yMode ?? null,
+                presetId: (storedObj as any).settings?.presetId ?? null,
+                presetRevision: (storedObj as any).settings?.presetRevision ?? null,
+              },
+            };
+            const regionBoundsDiffSample = {
+              draft: (draftObj as any).regionBounds ?? null,
+              stored: (storedObj as any).regionBounds ?? null,
+            };
+            const sheetSettingsDraft = (draftObj as any).sheetSettings;
+            const sheetSettingsStored = (storedObj as any).sheetSettings;
+            const sheetSettingsDiffSample = {
+              draft: {
+                exists: Boolean(sheetSettingsDraft),
+                keys: sheetSettingsDraft ? Object.keys(sheetSettingsDraft) : [],
+              },
+              stored: {
+                exists: Boolean(sheetSettingsStored),
+                keys: sheetSettingsStored ? Object.keys(sheetSettingsStored) : [],
+              },
+            };
             const topLevelKeysDraft = Object.keys(draftObj).sort();
             const topLevelKeysStored = Object.keys(storedObj).sort();
             console.info("[DBG_SAVE_COMPARE]", {
@@ -2043,6 +2128,10 @@ export default {
               elementsCountStored: storedFingerprint.elements,
               topLevelKeysDraft,
               topLevelKeysStored,
+              elementsDiffSample,
+              settingsDiffSample,
+              regionBoundsDiffSample,
+              sheetSettingsDiffSample,
             });
             if (draftFingerprint.hash !== storedFingerprint.hash) {
               const missingInStored = topLevelKeysDraft.filter(
