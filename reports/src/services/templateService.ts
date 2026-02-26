@@ -163,7 +163,7 @@ const sha256Hex = async (input: string): Promise<string | null> => {
   }
 };
 
-const buildTemplateFingerprint = async (template: TemplateDefinition) => {
+export const buildTemplateFingerprint = async (template: TemplateDefinition) => {
   const json = stableStringify(template);
   const hash = await sha256Hex(json);
   return {

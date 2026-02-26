@@ -3,9 +3,11 @@
 import { create } from 'zustand';
 import type { TemplateDefinition, TemplateElement } from '@shared/template';
 import { SAMPLE_TEMPLATE } from '@shared/template';
+import { isDebugEnabled } from '../shared/debugFlag';
 import {
   createUserTemplateFromBase,
   createTemplateRemote,
+  buildTemplateFingerprint,
   fetchTemplateById,
   softDeleteTemplate,
 } from '../services/templateService';
@@ -139,6 +141,31 @@ export const useTemplateStore = create<TemplateStore>((set, get) => ({
       const normalizedName = opts?.nameOverride?.trim();
       const toSave = normalizedName ? { ...template, name: normalizedName } : template;
       const saved = await createTemplateRemote(toSave);
+      if (isDebugEnabled()) {
+        try {
+          const draftFingerprint = await buildTemplateFingerprint(toSave);
+          const savedTemplate = await fetchTemplateById(templateId);
+          const savedFingerprint = await buildTemplateFingerprint(savedTemplate);
+          const ok =
+            Boolean(draftFingerprint.hash) &&
+            draftFingerprint.hash === savedFingerprint.hash;
+          console.log('[DBG_CLIENT_SAVE_VERIFY]', {
+            templateId,
+            hashDraft: draftFingerprint.hash,
+            hashSaved: savedFingerprint.hash,
+            ok,
+            jsonLenDraft: draftFingerprint.jsonLen,
+            jsonLenSaved: savedFingerprint.jsonLen,
+            elementsCountDraft: draftFingerprint.elements,
+            elementsCountSaved: savedFingerprint.elements,
+          });
+        } catch (error) {
+          console.debug('[DBG_CLIENT_SAVE_VERIFY] failed', {
+            templateId,
+            error: error instanceof Error ? error.message : String(error),
+          });
+        }
+      }
       set((state) => {
         const current = state.templates[templateId];
         if (!current) return state;

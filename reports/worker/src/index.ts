@@ -1947,6 +1947,7 @@ export default {
           let rawPayload: unknown;
           let payload: UserTemplatePayload | null = null;
           let templateBody: TemplateDefinition | null = null;
+          let draftTemplateObj: TemplateDefinition | null = null;
           try {
             rawPayload = await request.json();
           } catch {
@@ -1959,6 +1960,7 @@ export default {
           const normalized = normalizeTemplatePayload(rawPayload);
           if (normalized.ok) {
             templateBody = normalized.template;
+            draftTemplateObj = normalized.template;
           } else {
             payload = rawPayload as UserTemplatePayload;
           }
@@ -2004,6 +2006,7 @@ export default {
               ...dataApplied,
               pageSize,
             };
+            draftTemplateObj = templateBody;
           }
 
           const nextName =
@@ -2019,6 +2022,41 @@ export default {
             sheetSettings: payload?.sheetSettings ?? templateBody.sheetSettings,
             settings: payload?.settings ?? templateBody.settings,
           };
+
+          if (debugEnabled) {
+            const draftObj = draftTemplateObj ?? nextTemplate;
+            const storedObj = nextTemplate;
+            const [draftFingerprint, storedFingerprint] = await Promise.all([
+              buildTemplateFingerprint(draftObj),
+              buildTemplateFingerprint(storedObj),
+            ]);
+            const topLevelKeysDraft = Object.keys(draftObj).sort();
+            const topLevelKeysStored = Object.keys(storedObj).sort();
+            console.info("[DBG_SAVE_COMPARE]", {
+              templateId,
+              baseTemplateId: draftObj.baseTemplateId ?? storedObj.baseTemplateId ?? null,
+              hashDraft: draftFingerprint.hash,
+              hashStored: storedFingerprint.hash,
+              jsonLenDraft: draftFingerprint.jsonLen,
+              jsonLenStored: storedFingerprint.jsonLen,
+              elementsCountDraft: draftFingerprint.elements,
+              elementsCountStored: storedFingerprint.elements,
+              topLevelKeysDraft,
+              topLevelKeysStored,
+            });
+            if (draftFingerprint.hash !== storedFingerprint.hash) {
+              const missingInStored = topLevelKeysDraft.filter(
+                (key) => !topLevelKeysStored.includes(key),
+              );
+              const extraInStored = topLevelKeysStored.filter(
+                (key) => !topLevelKeysDraft.includes(key),
+              );
+              console.info("[DBG_SAVE_DIFF_KEYS]", {
+                missingInStored,
+                extraInStored,
+              });
+            }
+          }
 
           const payloadSummaryMode =
             payload?.mapping &&
