@@ -316,11 +316,17 @@ export const useTemplateStore = create<TemplateStore>((set, get) => ({
               savedEl,
             );
             if (changedKeys.length > 0) {
+              const values: Record<string, { draft: unknown; saved: unknown }> = {};
+              for (const key of changedKeys) {
+                values[key] = {
+                  draft: draftFields[key],
+                  saved: savedFields[key],
+                };
+              }
               console.log('[DBG_ELEM_DIFF]', {
                 elementId,
                 changedKeys,
-                draft: draftFields,
-                saved: savedFields,
+                values,
               });
               for (const key of changedKeys) {
                 diffKeyCounts[key] = (diffKeyCounts[key] ?? 0) + 1;
@@ -342,7 +348,7 @@ export const useTemplateStore = create<TemplateStore>((set, get) => ({
             for (const key of summaryKeys) {
               keysSummary[key] = diffKeyCounts[key];
             }
-            console.log('[DBG_DIFF_KEYS_SUMMARY]', { keys: keysSummary });
+            console.log('[DBG_DIFF_KEYS_SUMMARY]', keysSummary);
           }
         } catch (error) {
           console.debug('[DBG_CLIENT_SAVE_VERIFY] failed', {

@@ -2218,6 +2218,8 @@ export default {
             for (const id of [...allDraftIds, ...allStoredIds]) {
               if (id) elementIdsToCheck.add(id);
             }
+            let diffLogCount = 0;
+            const maxDiffLogs = 10;
             for (const targetId of elementIdsToCheck) {
               const draftEl = pickElement(draftObj, targetId);
               const storedEl = pickElement(storedObj, targetId);
@@ -2228,12 +2230,21 @@ export default {
                 storedEl,
               );
               if (changedKeys.length > 0) {
-                console.info("[DBG_SAVE_ELEM_DIFF]", {
-                  elementId,
-                  changedKeys,
-                  draft: draftFields,
-                  stored: storedFields,
-                });
+                if (diffLogCount < maxDiffLogs) {
+                  const values: Record<string, { draft: unknown; stored: unknown }> = {};
+                  for (const key of changedKeys) {
+                    values[key] = {
+                      draft: draftFields[key],
+                      stored: storedFields[key],
+                    };
+                  }
+                  console.info("[DBG_SAVE_ELEM_DIFF]", {
+                    elementId,
+                    changedKeys,
+                    values,
+                  });
+                  diffLogCount += 1;
+                }
                 for (const key of changedKeys) {
                   diffKeyCounts[key] = (diffKeyCounts[key] ?? 0) + 1;
                 }
@@ -2254,7 +2265,7 @@ export default {
               for (const key of summaryKeys) {
                 keysSummary[key] = diffKeyCounts[key];
               }
-              console.info("[DBG_DIFF_KEYS_SUMMARY]", { keys: keysSummary });
+              console.info("[DBG_DIFF_KEYS_SUMMARY]", keysSummary);
             }
             if (draftFingerprint.hash !== storedFingerprint.hash) {
               const missingInStored = topLevelKeysDraft.filter(
