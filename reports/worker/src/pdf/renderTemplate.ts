@@ -1177,14 +1177,17 @@ export async function renderTemplateToPdf(
     }
   }
 
-  // フッター：全ページに出すもの（デフォルト）
+  const resolveFooterRepeatMode = (element: TemplateElement) =>
+    element.footerRepeatMode ?? template.footerRepeatMode ?? 'last';
+
+  // フッター：全ページに出すもの
   const footerAllPages = footerElements.filter(
-    (e) => e.footerRepeatMode !== 'last',
+    (e) => resolveFooterRepeatMode(e) === 'all',
   );
 
-  // フッター：最終ページのみに出すもの
+  // フッター：最終ページのみに出すもの（デフォルト）
   const footerLastPageOnly = footerElements.filter(
-    (e) => e.footerRepeatMode === 'last',
+    (e) => resolveFooterRepeatMode(e) === 'last',
   );
 
      // --- フッター領域高さを計算 ---
