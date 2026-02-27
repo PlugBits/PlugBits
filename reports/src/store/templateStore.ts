@@ -200,7 +200,10 @@ export const useTemplateStore = create<TemplateStore>((set, get) => ({
           const representField = (obj: unknown, key: string) => {
             const { present, value } = readField(obj, key);
             if (!present) return '__MISSING__';
-            if (value === undefined) return '__UNDEFINED__';
+            if (value === undefined) return '__MISSING__';
+            if (key === 'slotId' && (value === null || value === undefined)) {
+              return '__MISSING__';
+            }
             return normalizeValue(value);
           };
           const compareField = (a: unknown, b: unknown) =>
@@ -210,6 +213,8 @@ export const useTemplateStore = create<TemplateStore>((set, get) => ({
             t.elements?.find((e) => (e as any).slotId === targetId);
           const pickElementId = (t: TemplateDefinition, id: string) =>
             pickElement(t, id)?.id ?? id;
+          const isTextLike = (el: TemplateElement | undefined) =>
+            el?.type === 'text' || el?.type === 'label';
           const toElemDiffEntry = (
             elementId: string,
             draftEl: TemplateElement | undefined,
@@ -218,7 +223,22 @@ export const useTemplateStore = create<TemplateStore>((set, get) => ({
             const draftFields: Record<string, unknown> = {};
             const savedFields: Record<string, unknown> = {};
             const changedKeys: string[] = [];
+            const textLike = isTextLike(draftEl) || isTextLike(savedEl);
             for (const key of DIFF_KEYS) {
+              if (!textLike) {
+                if (
+                  key === 'fontSize' ||
+                  key === 'lineHeight' ||
+                  key === 'alignX' ||
+                  key === 'align' ||
+                  key === 'valign' ||
+                  key === 'paddingX' ||
+                  key === 'paddingY' ||
+                  key === 'style'
+                ) {
+                  continue;
+                }
+              }
               const draftVal = representField(draftEl, key);
               const savedVal = representField(savedEl, key);
               draftFields[key] = draftVal;

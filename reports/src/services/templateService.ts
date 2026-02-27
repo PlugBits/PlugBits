@@ -134,6 +134,9 @@ export const canonicalizeTemplateForStorage = (
   const elements = Array.isArray(clone.elements) ? clone.elements : [];
   const canonicalized = elements.map((element) => {
     const next = { ...element } as any;
+    if (next.slotId === null || next.slotId === undefined) {
+      delete next.slotId;
+    }
     if (next.type === 'text' || next.type === 'label') {
       if (next.alignX === null || next.alignX === undefined || next.alignX === 'left') {
         delete next.alignX;
@@ -153,6 +156,15 @@ export const canonicalizeTemplateForStorage = (
       if (next.style && typeof next.style === 'object' && Object.keys(next.style).length === 0) {
         delete next.style;
       }
+    } else {
+      delete next.fontSize;
+      delete next.lineHeight;
+      delete next.alignX;
+      delete next.align;
+      delete next.valign;
+      delete next.paddingX;
+      delete next.paddingY;
+      delete next.style;
     }
     if (next.type === 'image') {
       if (next.fitMode === null || next.fitMode === undefined || next.fitMode === 'fit') {

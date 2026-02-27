@@ -161,6 +161,9 @@ const canonicalizeElementDefaults = (
   element: TemplateElement,
 ): TemplateElement => {
   const next = { ...element } as any;
+  if (next.slotId === null || next.slotId === undefined) {
+    delete next.slotId;
+  }
   if (next.type === "text" || next.type === "label") {
     if (next.alignX === null || next.alignX === undefined || next.alignX === "left") {
       delete next.alignX;
@@ -180,6 +183,15 @@ const canonicalizeElementDefaults = (
     if (next.style && typeof next.style === "object" && Object.keys(next.style).length === 0) {
       delete next.style;
     }
+  } else {
+    delete next.fontSize;
+    delete next.lineHeight;
+    delete next.alignX;
+    delete next.align;
+    delete next.valign;
+    delete next.paddingX;
+    delete next.paddingY;
+    delete next.style;
   }
   if (next.type === "image") {
     if (next.fitMode === null || next.fitMode === undefined || next.fitMode === "fit") {
@@ -2148,11 +2160,16 @@ export default {
             const representField = (obj: unknown, key: string) => {
               const { present, value } = readField(obj, key);
               if (!present) return "__MISSING__";
-              if (value === undefined) return "__UNDEFINED__";
+              if (value === undefined) return "__MISSING__";
+              if (key === "slotId" && (value === null || value === undefined)) {
+                return "__MISSING__";
+              }
               return normalizeValue(value);
             };
             const compareField = (a: unknown, b: unknown) =>
               stableStringify(a) === stableStringify(b);
+            const isTextLike = (el: TemplateElement | undefined) =>
+              el?.type === "text" || el?.type === "label";
             const pickElement = (t: TemplateDefinition, targetId: string) =>
               t.elements?.find((e) => e.id === targetId) ??
               t.elements?.find((e) => (e as any).slotId === targetId);
@@ -2166,7 +2183,22 @@ export default {
               const draftFields: Record<string, unknown> = {};
               const storedFields: Record<string, unknown> = {};
               const changedKeys: string[] = [];
+              const textLike = isTextLike(draftEl) || isTextLike(storedEl);
               for (const key of DIFF_KEYS) {
+                if (!textLike) {
+                  if (
+                    key === "fontSize" ||
+                    key === "lineHeight" ||
+                    key === "alignX" ||
+                    key === "align" ||
+                    key === "valign" ||
+                    key === "paddingX" ||
+                    key === "paddingY" ||
+                    key === "style"
+                  ) {
+                    continue;
+                  }
+                }
                 const draftVal = representField(draftEl, key);
                 const storedVal = representField(storedEl, key);
                 draftFields[key] = draftVal;
