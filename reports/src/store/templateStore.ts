@@ -209,6 +209,21 @@ export const useTemplateStore = create<TemplateStore>((set, get) => ({
             if (value == null) return MISSING;
             return normalizeValue(value);
           };
+          const stableStringify = (input: unknown): string => {
+            if (input === null) return 'null';
+            const type = typeof input;
+            if (type === 'string') return JSON.stringify(input);
+            if (type === 'number' || type === 'boolean') return String(input);
+            if (type !== 'object') return JSON.stringify(input);
+            if (Array.isArray(input)) {
+              return `[${input.map(stableStringify).join(',')}]`;
+            }
+            const obj = input as Record<string, unknown>;
+            const keys = Object.keys(obj).sort();
+            return `{${keys
+              .map((key) => `${JSON.stringify(key)}:${stableStringify(obj[key])}`)
+              .join(',')}}`;
+          };
           const canonicalizePlainObject = (input: unknown): unknown => {
             if (input == null) return input;
             if (Array.isArray(input)) return input.map(canonicalizePlainObject);
@@ -223,25 +238,29 @@ export const useTemplateStore = create<TemplateStore>((set, get) => ({
             }
             return out;
           };
-          const getNormDataSource = (el: unknown) => {
-            if (!hasOwn(el, 'dataSource')) return MISSING;
-            const ds = (el as any).dataSource;
-            if (ds == null) return MISSING;
-            const type = ds.type ?? ds.kind ?? null;
-            if (!type) return MISSING;
+          const canonicalizeDataSource = (ds: unknown) => {
+            if (ds == null || typeof ds !== 'object') return null;
+            const source = ds as Record<string, unknown>;
+            const type = source.type ?? source.kind ?? null;
+            if (!type || typeof type !== 'string') return null;
             let picked: Record<string, unknown> = { type };
             if (type === 'static') {
-              picked.value = ds.value ?? ds.text ?? '';
+              picked.value = source.value ?? source.text ?? '';
             } else if (type === 'kintone' || type === 'recordField') {
-              picked.fieldCode = ds.fieldCode ?? ds.code ?? '';
+              picked.fieldCode = source.fieldCode ?? source.code ?? '';
             } else if (type === 'kintoneSubtable') {
-              picked.fieldCode = ds.fieldCode ?? '';
+              picked.fieldCode = source.fieldCode ?? '';
             } else if (type === 'templateField') {
-              picked.field = ds.field ?? ds.name ?? '';
+              picked.field = source.field ?? source.name ?? '';
             } else {
-              picked = { type, ...ds };
+              picked = { type, ...source };
             }
             return canonicalizePlainObject(picked);
+          };
+          const eqDataSource = (a: unknown, b: unknown) => {
+            const normA = canonicalizeDataSource(a);
+            const normB = canonicalizeDataSource(b);
+            return stableStringify(normA) === stableStringify(normB);
           };
           const isTextElement = (el: TemplateElement | undefined) =>
             el?.type === 'text' || el?.type === 'label';
@@ -281,8 +300,13 @@ export const useTemplateStore = create<TemplateStore>((set, get) => ({
                 draftVal = getNormSlotId(draftEl);
                 savedVal = getNormSlotId(savedEl);
               } else if (key === 'dataSource') {
-                draftVal = getNormDataSource(draftEl);
-                savedVal = getNormDataSource(savedEl);
+                const draftDs = draftEl ? (draftEl as any).dataSource : undefined;
+                const savedDs = savedEl ? (savedEl as any).dataSource : undefined;
+                if (eqDataSource(draftDs, savedDs)) {
+                  continue;
+                }
+                draftVal = canonicalizeDataSource(draftDs) ?? MISSING;
+                savedVal = canonicalizeDataSource(savedDs) ?? MISSING;
               } else if (isTextElement(draftEl ?? savedEl) && key === 'alignX') {
                 draftVal = getNormTextAlignX(draftEl);
                 savedVal = getNormTextAlignX(savedEl);
@@ -398,14 +422,15 @@ export const useTemplateStore = create<TemplateStore>((set, get) => ({
                 console.log('[DBG_DS_RAW]', {
                   draft: draftRaw?.dataSource,
                   saved: savedRaw?.dataSource,
-                  normDraft: getNormDataSource(draftRaw),
-                  normSaved: getNormDataSource(savedRaw),
+                  normDraft: canonicalizeDataSource(draftRaw?.dataSource),
+                  normSaved: canonicalizeDataSource(savedRaw?.dataSource),
                 });
               }
               elementDiffs.push(diffEntry);
             }
           }
-          if (!(ok && elementDiffs.length === 0)) {
+          const hasAnyDiff = elementDiffs.length > 0;
+          if (!(ok && !hasAnyDiff)) {
             for (const entry of elementDiffs) {
               const changedKeys = entry.diffs.map((diff) => diff.key);
               const values: Record<string, { draft: unknown; saved: unknown }> = {};
