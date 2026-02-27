@@ -152,11 +152,20 @@ export const useTemplateStore = create<TemplateStore>((set, get) => ({
           const ok =
             Boolean(draftFingerprint.hash) &&
             draftFingerprint.hash === savedFingerprint.hash;
-          const DIFF_KEYS = [
+          const DIFF_KEYS_COMMON = [
+            'id',
+            'type',
             'x',
             'y',
             'width',
             'height',
+            'rotation',
+            'region',
+            'slotId',
+            'dataSource',
+            'fitMode',
+          ] as const;
+          const DIFF_KEYS_TEXT_ONLY = [
             'fontSize',
             'lineHeight',
             'alignX',
@@ -164,14 +173,11 @@ export const useTemplateStore = create<TemplateStore>((set, get) => ({
             'valign',
             'paddingX',
             'paddingY',
-            'region',
-            'type',
-            'slotId',
-            'dataSource',
+            'text',
             'style',
-            'fitMode',
-          ];
+          ] as const;
           const diffKeyCounts: Record<string, number> = {};
+          const MISSING = '__MISSING__' as const;
           const round3 = (value: unknown) => {
             if (typeof value !== 'number' || !Number.isFinite(value)) return value;
             return Math.round(value * 1000) / 1000;
@@ -189,63 +195,72 @@ export const useTemplateStore = create<TemplateStore>((set, get) => ({
             }
             return out;
           };
-          const readField = (obj: unknown, key: string) => {
-            if (!obj || typeof obj !== 'object') {
-              return { present: false, value: undefined };
-            }
-            const has = Object.prototype.hasOwnProperty.call(obj, key);
-            if (!has) return { present: false, value: undefined };
-            return { present: true, value: (obj as any)[key] };
-          };
-          const representField = (obj: unknown, key: string) => {
-            const { present, value } = readField(obj, key);
-            if (!present) return '__MISSING__';
-            if (value === undefined) return '__MISSING__';
-            if (key === 'slotId' && (value === null || value === undefined)) {
-              return '__MISSING__';
-            }
+          const hasOwn = (obj: unknown, key: string) =>
+            obj != null && Object.prototype.hasOwnProperty.call(obj as any, key);
+          const getNorm = (obj: unknown, key: string) => {
+            if (!hasOwn(obj, key)) return MISSING;
+            const value = (obj as any)[key];
+            if (value === undefined) return MISSING;
             return normalizeValue(value);
           };
-          const compareField = (a: unknown, b: unknown) =>
-            JSON.stringify(a) === JSON.stringify(b);
+          const getNormSlotId = (obj: unknown) => {
+            if (!hasOwn(obj, 'slotId')) return MISSING;
+            const value = (obj as any).slotId;
+            if (value == null) return MISSING;
+            return normalizeValue(value);
+          };
+          const isTextElement = (el: TemplateElement | undefined) =>
+            el?.type === 'text' || el?.type === 'label';
+          const getNormTextAlignX = (obj: unknown) => {
+            if (!hasOwn(obj, 'alignX')) return 'left';
+            const value = (obj as any).alignX;
+            if (value == null) return 'left';
+            return normalizeValue(value);
+          };
+          const getNormTextFontSize = (obj: unknown) => {
+            if (!hasOwn(obj, 'fontSize')) return 12;
+            const value = (obj as any).fontSize;
+            if (value == null) return 12;
+            return normalizeValue(value);
+          };
+          const getComparableKeys = (el: TemplateElement | undefined) => {
+            const keys = [...DIFF_KEYS_COMMON];
+            if (isTextElement(el)) keys.push(...DIFF_KEYS_TEXT_ONLY);
+            return keys;
+          };
           const pickElement = (t: TemplateDefinition, targetId: string) =>
             t.elements?.find((e) => e.id === targetId) ??
             t.elements?.find((e) => (e as any).slotId === targetId);
           const pickElementId = (t: TemplateDefinition, id: string) =>
             pickElement(t, id)?.id ?? id;
-          const isTextLike = (el: TemplateElement | undefined) =>
-            el?.type === 'text' || el?.type === 'label';
-          const toElemDiffEntry = (
+          const diffElementNormalized = (
             elementId: string,
             draftEl: TemplateElement | undefined,
             savedEl: TemplateElement | undefined,
           ) => {
-            const draftFields: Record<string, unknown> = {};
-            const savedFields: Record<string, unknown> = {};
-            const changedKeys: string[] = [];
-            const textLike = isTextLike(draftEl) || isTextLike(savedEl);
-            for (const key of DIFF_KEYS) {
-              if (!textLike) {
-                if (
-                  key === 'fontSize' ||
-                  key === 'lineHeight' ||
-                  key === 'alignX' ||
-                  key === 'align' ||
-                  key === 'valign' ||
-                  key === 'paddingX' ||
-                  key === 'paddingY' ||
-                  key === 'style'
-                ) {
-                  continue;
-                }
+            const keys = getComparableKeys(draftEl ?? savedEl);
+            const diffs: Array<{ key: string; draft: unknown; saved: unknown }> = [];
+            for (const key of keys) {
+              let draftVal: unknown;
+              let savedVal: unknown;
+              if (key === 'slotId') {
+                draftVal = getNormSlotId(draftEl);
+                savedVal = getNormSlotId(savedEl);
+              } else if (isTextElement(draftEl ?? savedEl) && key === 'alignX') {
+                draftVal = getNormTextAlignX(draftEl);
+                savedVal = getNormTextAlignX(savedEl);
+              } else if (isTextElement(draftEl ?? savedEl) && key === 'fontSize') {
+                draftVal = getNormTextFontSize(draftEl);
+                savedVal = getNormTextFontSize(savedEl);
+              } else {
+                draftVal = getNorm(draftEl, key);
+                savedVal = getNorm(savedEl, key);
               }
-              const draftVal = representField(draftEl, key);
-              const savedVal = representField(savedEl, key);
-              draftFields[key] = draftVal;
-              savedFields[key] = savedVal;
-              if (!compareField(draftVal, savedVal)) changedKeys.push(key);
+              if (!Object.is(draftVal, savedVal)) {
+                diffs.push({ key, draft: draftVal, saved: savedVal });
+              }
             }
-            return { draftFields, savedFields, changedKeys };
+            return { elementId, diffs };
           };
           const pickElementSample = (t: TemplateDefinition, targetId: string) => {
             const el =
@@ -330,49 +345,46 @@ export const useTemplateStore = create<TemplateStore>((set, get) => ({
           for (const id of [...allDraftIds, ...allSavedIds]) {
             if (id) elementIdsToCheck.add(id);
           }
+          const elementDiffs: Array<{
+            elementId: string;
+            diffs: Array<{ key: string; draft: unknown; saved: unknown }>;
+          }> = [];
           for (const targetId of elementIdsToCheck) {
             const draftEl = pickElement(canonicalDraft, targetId);
             const savedEl = pickElement(canonicalSaved, targetId);
             const elementId = pickElementId(canonicalDraft, targetId);
-            const { draftFields, savedFields, changedKeys } = toElemDiffEntry(
-              elementId,
-              draftEl,
-              savedEl,
-            );
-            if (changedKeys.length > 0) {
+            const diffEntry = diffElementNormalized(elementId, draftEl, savedEl);
+            if (diffEntry.diffs.length > 0) {
+              elementDiffs.push(diffEntry);
+            }
+          }
+          if (!(ok && elementDiffs.length === 0)) {
+            for (const entry of elementDiffs) {
+              const changedKeys = entry.diffs.map((diff) => diff.key);
               const values: Record<string, { draft: unknown; saved: unknown }> = {};
-              for (const key of changedKeys) {
-                values[key] = {
-                  draft: draftFields[key],
-                  saved: savedFields[key],
+              for (const diff of entry.diffs) {
+                values[diff.key] = {
+                  draft: diff.draft,
+                  saved: diff.saved,
                 };
+                diffKeyCounts[diff.key] = (diffKeyCounts[diff.key] ?? 0) + 1;
               }
               console.log('[DBG_ELEM_DIFF]', {
-                elementId,
+                elementId: entry.elementId,
                 changedKeys,
                 values,
               });
-              for (const key of changedKeys) {
-                diffKeyCounts[key] = (diffKeyCounts[key] ?? 0) + 1;
+            }
+            const summaryKeys = Object.keys(diffKeyCounts).sort(
+              (a, b) => diffKeyCounts[b] - diffKeyCounts[a],
+            );
+            if (summaryKeys.length > 0) {
+              const keysSummary: Record<string, number> = {};
+              for (const key of summaryKeys) {
+                keysSummary[key] = diffKeyCounts[key];
               }
-            } else if (
-              targetId === 'doc_title' ||
-              targetId === 'items' ||
-              targetId === 'total' ||
-              targetId === 'remarks'
-            ) {
-              console.log('[DBG_ELEM_SAME]', { elementId });
+              console.log('[DBG_DIFF_KEYS_SUMMARY]', keysSummary);
             }
-          }
-          const summaryKeys = Object.keys(diffKeyCounts).sort(
-            (a, b) => diffKeyCounts[b] - diffKeyCounts[a],
-          );
-          if (summaryKeys.length > 0) {
-            const keysSummary: Record<string, number> = {};
-            for (const key of summaryKeys) {
-              keysSummary[key] = diffKeyCounts[key];
-            }
-            console.log('[DBG_DIFF_KEYS_SUMMARY]', keysSummary);
           }
         } catch (error) {
           console.debug('[DBG_CLIENT_SAVE_VERIFY] failed', {
