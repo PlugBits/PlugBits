@@ -162,7 +162,6 @@ export const useTemplateStore = create<TemplateStore>((set, get) => ({
             'rotation',
             'region',
             'slotId',
-            'dataSource',
             'fitMode',
           ] as const;
           const DIFF_KEYS_TEXT_ONLY = [
@@ -175,6 +174,7 @@ export const useTemplateStore = create<TemplateStore>((set, get) => ({
             'paddingY',
             'text',
             'style',
+            'dataSource',
           ] as const;
           const diffKeyCounts: Record<string, number> = {};
           const MISSING = '__MISSING__' as const;
@@ -208,6 +208,40 @@ export const useTemplateStore = create<TemplateStore>((set, get) => ({
             const value = (obj as any).slotId;
             if (value == null) return MISSING;
             return normalizeValue(value);
+          };
+          const canonicalizePlainObject = (input: unknown): unknown => {
+            if (input == null) return input;
+            if (Array.isArray(input)) return input.map(canonicalizePlainObject);
+            if (typeof input !== 'object') return input;
+            const obj = input as Record<string, unknown>;
+            const out: Record<string, unknown> = {};
+            const keys = Object.keys(obj).sort();
+            for (const key of keys) {
+              const value = obj[key];
+              if (value === undefined || value === null) continue;
+              out[key] = canonicalizePlainObject(value);
+            }
+            return out;
+          };
+          const getNormDataSource = (el: unknown) => {
+            if (!hasOwn(el, 'dataSource')) return MISSING;
+            const ds = (el as any).dataSource;
+            if (ds == null) return MISSING;
+            const type = ds.type ?? ds.kind ?? null;
+            if (!type) return MISSING;
+            let picked: Record<string, unknown> = { type };
+            if (type === 'static') {
+              picked.value = ds.value ?? ds.text ?? '';
+            } else if (type === 'kintone' || type === 'recordField') {
+              picked.fieldCode = ds.fieldCode ?? ds.code ?? '';
+            } else if (type === 'kintoneSubtable') {
+              picked.fieldCode = ds.fieldCode ?? '';
+            } else if (type === 'templateField') {
+              picked.field = ds.field ?? ds.name ?? '';
+            } else {
+              picked = { type, ...ds };
+            }
+            return canonicalizePlainObject(picked);
           };
           const isTextElement = (el: TemplateElement | undefined) =>
             el?.type === 'text' || el?.type === 'label';
@@ -246,6 +280,9 @@ export const useTemplateStore = create<TemplateStore>((set, get) => ({
               if (key === 'slotId') {
                 draftVal = getNormSlotId(draftEl);
                 savedVal = getNormSlotId(savedEl);
+              } else if (key === 'dataSource') {
+                draftVal = getNormDataSource(draftEl);
+                savedVal = getNormDataSource(savedEl);
               } else if (isTextElement(draftEl ?? savedEl) && key === 'alignX') {
                 draftVal = getNormTextAlignX(draftEl);
                 savedVal = getNormTextAlignX(savedEl);
@@ -355,6 +392,16 @@ export const useTemplateStore = create<TemplateStore>((set, get) => ({
             const elementId = pickElementId(canonicalDraft, targetId);
             const diffEntry = diffElementNormalized(elementId, draftEl, savedEl);
             if (diffEntry.diffs.length > 0) {
+              if (elementId === 'doc_title') {
+                const draftRaw = pickElement(toSave, targetId);
+                const savedRaw = pickElement(savedTemplate, targetId);
+                console.log('[DBG_DS_RAW]', {
+                  draft: draftRaw?.dataSource,
+                  saved: savedRaw?.dataSource,
+                  normDraft: getNormDataSource(draftRaw),
+                  normSaved: getNormDataSource(savedRaw),
+                });
+              }
               elementDiffs.push(diffEntry);
             }
           }
