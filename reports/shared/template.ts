@@ -174,6 +174,11 @@ export interface TextElement extends BaseElement {
   type: 'text';
   fontSize?: number;
   fontWeight?: 'normal' | 'bold';
+  lineHeight?: number;
+  paddingX?: number;
+  paddingY?: number;
+  valign?: 'top' | 'middle' | 'bottom';
+  style?: Record<string, unknown>;
   text?: string;
   dataSource?: DataSource;
 }

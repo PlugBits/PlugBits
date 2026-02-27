@@ -32,6 +32,7 @@ export type SlotLayoutOverride = {
   paddingY?: number;
   valign?: "top" | "middle" | "bottom";
   style?: Record<string, unknown>;
+  fitMode?: "fit" | "fill";
 };
 
 export type UserTemplateOverrides = {
@@ -102,6 +103,7 @@ const ensureImageElement = (
   y: base.y ?? 0,
   width: base.width,
   height: base.height,
+  fitMode: (base as any).fitMode,
   dataSource,
 });
 
@@ -140,6 +142,7 @@ export const applySlotLayoutOverrides = (
       paddingY: override.paddingY ?? base?.paddingY,
       valign: override.valign ?? base?.valign,
       style: override.style ?? base?.style,
+      fitMode: override.fitMode ?? base?.fitMode,
     };
 
     const existingDataSource =

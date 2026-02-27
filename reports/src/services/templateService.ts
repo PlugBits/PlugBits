@@ -1,12 +1,6 @@
 // src/services/templateService.ts
 
-import type {
-  LabelMapping,
-  TemplateDefinition,
-  TemplateMeta,
-  TemplateStatus,
-  TableElement,
-} from '@shared/template';
+import type { TemplateDefinition, TemplateMeta, TemplateStatus, TableElement } from '@shared/template';
 import { getPageDimensions } from '@shared/template';
 import { isDebugEnabled } from '../shared/debugFlag';
 import {
@@ -14,7 +8,6 @@ import {
   applySlotLayoutOverrides,
   extractSlotDataOverrides,
   extractSlotLayoutOverrides,
-  type UserTemplatePayload,
 } from './userTemplateUtils';
 import { getTenantContext as getTenantContextFromStore } from '../store/tenantStore';
 
@@ -87,25 +80,6 @@ const getSummarySnapshot = (template: TemplateDefinition) => {
       columnId: row.columnId,
       fieldCode: 'fieldCode' in row ? row.fieldCode : undefined,
     })) ?? [],
-  };
-};
-
-const normalizeLabelMappingForSave = (raw: unknown): LabelMapping => {
-  const source = raw && typeof raw === 'object' ? (raw as Record<string, unknown>) : {};
-  const slots = source.slots && typeof source.slots === 'object'
-    ? (source.slots as Record<string, unknown>)
-    : {};
-  const normalizeField = (value: unknown) =>
-    typeof value === 'string' && value.trim() !== '' ? value.trim() : null;
-  return {
-    slots: {
-      title: normalizeField(slots.title),
-      code: normalizeField(slots.code),
-      qty: normalizeField(slots.qty),
-      qr: normalizeField(slots.qr),
-      extra: normalizeField(slots.extra),
-    },
-    copiesFieldCode: normalizeField(source.copiesFieldCode),
   };
 };
 
@@ -367,26 +341,8 @@ export async function createTemplateRemote(
     ...getSummarySnapshot(template),
   });
   const updatedAt = new Date().toISOString();
-  const baseTemplateId = template.baseTemplateId ?? 'list_v1';
-  const structureType = template.structureType ?? 'list_v1';
-  const mapping =
-    structureType === 'label_v1'
-      ? normalizeLabelMappingForSave(template.mapping)
-      : template.mapping ?? null;
-  const payload: UserTemplatePayload = {
-    baseTemplateId,
-    pageSize: template.pageSize,
-    sheetSettings: template.sheetSettings,
-    mapping,
-    overrides: {
-      layout: extractSlotLayoutOverrides(template),
-      slots: extractSlotDataOverrides(template),
-    },
-    settings: template.settings,
-    meta: {
-      name: template.name,
-      updatedAt,
-    },
+  const payload: { template: TemplateDefinition } = {
+    template,
   };
 
   const url = buildUrl(`/user-templates/${template.id}`, buildDebugParams());
@@ -419,7 +375,7 @@ export async function createTemplateRemote(
         `updatedAt=${updatedAt} etag=${etag ?? ''} revision=${revision ?? ''} schema=${schemaVersion ?? ''}`,
     );
   }
-  return { ...template, baseTemplateId };
+  return template;
 }
 
 export const createUserTemplateFromBase = async (

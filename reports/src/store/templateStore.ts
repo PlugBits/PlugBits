@@ -166,6 +166,7 @@ export const useTemplateStore = create<TemplateStore>((set, get) => ({
             'slotId',
             'dataSource',
             'style',
+            'fitMode',
           ];
           const diffKeyCounts: Record<string, number> = {};
           const round3 = (value: unknown) => {
