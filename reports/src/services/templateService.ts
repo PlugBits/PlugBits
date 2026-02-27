@@ -124,6 +124,46 @@ const stableStringify = (value: unknown): string => {
   return stringify(value);
 };
 
+export const canonicalizeTemplateForStorage = (
+  template: TemplateDefinition,
+): TemplateDefinition => {
+  const clone =
+    typeof structuredClone === 'function'
+      ? structuredClone(template)
+      : JSON.parse(JSON.stringify(template));
+  const elements = Array.isArray(clone.elements) ? clone.elements : [];
+  const canonicalized = elements.map((element) => {
+    const next = { ...element } as any;
+    if (next.type === 'text' || next.type === 'label') {
+      if (next.alignX === null || next.alignX === undefined || next.alignX === 'left') {
+        delete next.alignX;
+      }
+      if (next.valign === null || next.valign === undefined || next.valign === 'middle') {
+        delete next.valign;
+      }
+      if (next.paddingX === null || next.paddingX === undefined || next.paddingX === 0) {
+        delete next.paddingX;
+      }
+      if (next.paddingY === null || next.paddingY === undefined || next.paddingY === 0) {
+        delete next.paddingY;
+      }
+      if (next.lineHeight === null || next.lineHeight === undefined || next.lineHeight === 0) {
+        delete next.lineHeight;
+      }
+      if (next.style && typeof next.style === 'object' && Object.keys(next.style).length === 0) {
+        delete next.style;
+      }
+    }
+    if (next.type === 'image') {
+      if (next.fitMode === null || next.fitMode === undefined || next.fitMode === 'fit') {
+        delete next.fitMode;
+      }
+    }
+    return next as TemplateDefinition['elements'][number];
+  });
+  return { ...clone, elements: canonicalized };
+};
+
 const sha256Hex = async (input: string): Promise<string | null> => {
   if (typeof crypto === 'undefined' || !crypto.subtle) return null;
   try {
@@ -156,7 +196,8 @@ const canonicalizeTemplateForFingerprint = (template: TemplateDefinition) => ({
 });
 
 export const buildTemplateFingerprint = async (template: TemplateDefinition) => {
-  const json = stableStringify(canonicalizeTemplateForFingerprint(template));
+  const normalized = canonicalizeTemplateForStorage(template);
+  const json = stableStringify(canonicalizeTemplateForFingerprint(normalized));
   const hash = await sha256Hex(json);
   return {
     jsonLen: json.length,
@@ -341,8 +382,9 @@ export async function createTemplateRemote(
     ...getSummarySnapshot(template),
   });
   const updatedAt = new Date().toISOString();
+  const canonicalTemplate = canonicalizeTemplateForStorage(template);
   const payload: { template: TemplateDefinition } = {
-    template,
+    template: canonicalTemplate,
   };
 
   const url = buildUrl(`/user-templates/${template.id}`, buildDebugParams());

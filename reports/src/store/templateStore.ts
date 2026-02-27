@@ -7,6 +7,7 @@ import { isDebugEnabled } from '../shared/debugFlag';
 import {
   createUserTemplateFromBase,
   createTemplateRemote,
+  canonicalizeTemplateForStorage,
   buildTemplateFingerprint,
   fetchTemplateById,
   softDeleteTemplate,
@@ -143,9 +144,11 @@ export const useTemplateStore = create<TemplateStore>((set, get) => ({
       const saved = await createTemplateRemote(toSave);
       if (isDebugEnabled()) {
         try {
-          const draftFingerprint = await buildTemplateFingerprint(toSave);
+          const canonicalDraft = canonicalizeTemplateForStorage(toSave);
           const savedTemplate = await fetchTemplateById(templateId);
-          const savedFingerprint = await buildTemplateFingerprint(savedTemplate);
+          const canonicalSaved = canonicalizeTemplateForStorage(savedTemplate);
+          const draftFingerprint = await buildTemplateFingerprint(canonicalDraft);
+          const savedFingerprint = await buildTemplateFingerprint(canonicalSaved);
           const ok =
             Boolean(draftFingerprint.hash) &&
             draftFingerprint.hash === savedFingerprint.hash;
@@ -302,15 +305,15 @@ export const useTemplateStore = create<TemplateStore>((set, get) => ({
             'total',
             'remarks',
           ]);
-          const allDraftIds = (toSave.elements ?? []).map((el) => el.id ?? '');
-          const allSavedIds = (savedTemplate.elements ?? []).map((el) => el.id ?? '');
+          const allDraftIds = (canonicalDraft.elements ?? []).map((el) => el.id ?? '');
+          const allSavedIds = (canonicalSaved.elements ?? []).map((el) => el.id ?? '');
           for (const id of [...allDraftIds, ...allSavedIds]) {
             if (id) elementIdsToCheck.add(id);
           }
           for (const targetId of elementIdsToCheck) {
-            const draftEl = pickElement(toSave, targetId);
-            const savedEl = pickElement(savedTemplate, targetId);
-            const elementId = pickElementId(toSave, targetId);
+            const draftEl = pickElement(canonicalDraft, targetId);
+            const savedEl = pickElement(canonicalSaved, targetId);
+            const elementId = pickElementId(canonicalDraft, targetId);
             const { draftFields, savedFields, changedKeys } = toElemDiffEntry(
               elementId,
               draftEl,

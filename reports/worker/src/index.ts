@@ -157,6 +157,52 @@ const stableStringify = (value: unknown): string => {
   return stringify(value);
 };
 
+const canonicalizeElementDefaults = (
+  element: TemplateElement,
+): TemplateElement => {
+  const next = { ...element } as any;
+  if (next.type === "text" || next.type === "label") {
+    if (next.alignX === null || next.alignX === undefined || next.alignX === "left") {
+      delete next.alignX;
+    }
+    if (next.valign === null || next.valign === undefined || next.valign === "middle") {
+      delete next.valign;
+    }
+    if (next.paddingX === null || next.paddingX === undefined || next.paddingX === 0) {
+      delete next.paddingX;
+    }
+    if (next.paddingY === null || next.paddingY === undefined || next.paddingY === 0) {
+      delete next.paddingY;
+    }
+    if (next.lineHeight === null || next.lineHeight === undefined || next.lineHeight === 0) {
+      delete next.lineHeight;
+    }
+    if (next.style && typeof next.style === "object" && Object.keys(next.style).length === 0) {
+      delete next.style;
+    }
+  }
+  if (next.type === "image") {
+    if (next.fitMode === null || next.fitMode === undefined || next.fitMode === "fit") {
+      delete next.fitMode;
+    }
+  }
+  return next as TemplateElement;
+};
+
+const canonicalizeTemplateForStorage = (
+  template: TemplateDefinition,
+): TemplateDefinition => {
+  const clone =
+    typeof structuredClone === "function"
+      ? structuredClone(template)
+      : JSON.parse(JSON.stringify(template));
+  const elements = Array.isArray(clone.elements) ? clone.elements : [];
+  return {
+    ...clone,
+    elements: elements.map(canonicalizeElementDefaults),
+  };
+};
+
 const hashStringFNV1a = (input: string): string => {
   let hash = 0x811c9dc5;
   for (let i = 0; i < input.length; i += 1) {
@@ -198,7 +244,8 @@ const canonicalizeTemplateForFingerprint = (template: TemplateDefinition) => ({
 });
 
 const buildTemplateFingerprint = async (template: TemplateDefinition) => {
-  const canonical = canonicalizeTemplateForFingerprint(template);
+  const normalized = canonicalizeTemplateForStorage(template);
+  const canonical = canonicalizeTemplateForFingerprint(normalized);
   const json = stableStringify(canonical);
   const hash = await sha256Hex(json);
   return {
@@ -2028,13 +2075,17 @@ export default {
             draftTemplateObj = templateBody;
           }
 
+          const canonicalDraft = canonicalizeTemplateForStorage(
+            (draftTemplateObj ?? templateBody) as TemplateDefinition,
+          );
+
           const nextName =
             payload?.meta?.name ||
             templateBody.name ||
             "名称未設定";
 
           const nextTemplate: TemplateDefinition = {
-            ...templateBody,
+            ...canonicalDraft,
             id: templateId,
             name: nextName,
             baseTemplateId,
@@ -2043,7 +2094,7 @@ export default {
           };
 
           if (debugEnabled) {
-            const draftObj = draftTemplateObj ?? nextTemplate;
+            const draftObj = canonicalDraft;
             const storedObj = nextTemplate;
             const [draftFingerprint, storedFingerprint] = await Promise.all([
               buildTemplateFingerprint(draftObj),
