@@ -224,13 +224,6 @@ export const useTemplateStore = create<TemplateStore>((set, get) => ({
               .map((key) => `${JSON.stringify(key)}:${stableStringify(obj[key])}`)
               .join(',')}}`;
           };
-          const firstDiffIndex = (a: string, b: string): number => {
-            const n = Math.min(a.length, b.length);
-            for (let i = 0; i < n; i += 1) {
-              if (a.charCodeAt(i) !== b.charCodeAt(i)) return i;
-            }
-            return a.length === b.length ? -1 : n;
-          };
           const canonicalizePlainObject = (input: unknown): unknown => {
             if (input == null) return input;
             if (Array.isArray(input)) return input.map(canonicalizePlainObject);
@@ -250,43 +243,24 @@ export const useTemplateStore = create<TemplateStore>((set, get) => ({
             const source = ds as Record<string, unknown>;
             const type = source.type ?? source.kind ?? null;
             if (!type || typeof type !== 'string') return null;
-            let picked: Record<string, unknown> = { type };
+            // representation-only diff除去のため、意味のあるキーだけに正規化する
             if (type === 'static') {
-              picked.value = source.value ?? source.text ?? '';
-            } else if (type === 'kintone' || type === 'recordField') {
-              picked.fieldCode = source.fieldCode ?? source.code ?? '';
-            } else if (type === 'kintoneSubtable') {
-              picked.fieldCode = source.fieldCode ?? '';
-            } else if (type === 'templateField') {
-              picked.field = source.field ?? source.name ?? '';
-            } else {
-              picked = { type, ...source };
-            }
-            return canonicalizePlainObject(picked);
-          };
-          const dbgCompareDataSource = (elementId: string, draftDs: unknown, savedDs: unknown) => {
-            const normDraft = canonicalizeDataSource(draftDs);
-            const normSaved = canonicalizeDataSource(savedDs);
-            const sa = stableStringify(normDraft);
-            const sb = stableStringify(normSaved);
-            const same = sa === sb;
-            if (!same) {
-              const idx = firstDiffIndex(sa, sb);
-              console.log('[DBG_DS_EQ_FALSE]', {
-                elementId,
-                saLen: sa.length,
-                sbLen: sb.length,
-                idx,
-                saSlice: sa.slice(Math.max(0, idx - 20), idx + 40),
-                sbSlice: sb.slice(Math.max(0, idx - 20), idx + 40),
-                normDraft,
-                normSaved,
+              return canonicalizePlainObject({
+                type: 'static',
+                value: source.value ?? source.text ?? '',
               });
-            } else if (elementId === 'doc_title') {
-              console.log('[DBG_DS_EQ_TRUE]', { elementId, sa });
             }
-            return same;
+            if (type === 'recordField' || type === 'kintone') {
+              return canonicalizePlainObject({
+                type: 'recordField',
+                fieldCode: source.fieldCode ?? source.code ?? '',
+              });
+            }
+            return canonicalizePlainObject({ type, ...source });
           };
+          const eqDataSource = (a: unknown, b: unknown) =>
+            stableStringify(canonicalizeDataSource(a)) ===
+            stableStringify(canonicalizeDataSource(b));
           const isTextElement = (el: TemplateElement | undefined) =>
             el?.type === 'text' || el?.type === 'label';
           const getNormTextAlignX = (obj: unknown) => {
@@ -327,13 +301,9 @@ export const useTemplateStore = create<TemplateStore>((set, get) => ({
               } else if (key === 'dataSource') {
                 const draftDs = draftEl ? (draftEl as any).dataSource : undefined;
                 const savedDs = savedEl ? (savedEl as any).dataSource : undefined;
-                const same = dbgCompareDataSource(elementId, draftDs, savedDs);
-                if (!same) {
-                  draftVal = canonicalizeDataSource(draftDs) ?? MISSING;
-                  savedVal = canonicalizeDataSource(savedDs) ?? MISSING;
-                } else {
-                  continue;
-                }
+                if (eqDataSource(draftDs, savedDs)) continue;
+                draftVal = canonicalizeDataSource(draftDs) ?? MISSING;
+                savedVal = canonicalizeDataSource(savedDs) ?? MISSING;
               } else if (isTextElement(draftEl ?? savedEl) && key === 'alignX') {
                 draftVal = getNormTextAlignX(draftEl);
                 savedVal = getNormTextAlignX(savedEl);
@@ -443,16 +413,6 @@ export const useTemplateStore = create<TemplateStore>((set, get) => ({
             const elementId = pickElementId(canonicalDraft, targetId);
             const diffEntry = diffElementNormalized(elementId, draftEl, savedEl);
             if (diffEntry.diffs.length > 0) {
-              if (elementId === 'doc_title') {
-                const draftRaw = pickElement(toSave, targetId);
-                const savedRaw = pickElement(savedTemplate, targetId);
-                console.log('[DBG_DS_RAW]', {
-                  draft: draftRaw?.dataSource,
-                  saved: savedRaw?.dataSource,
-                  normDraft: canonicalizeDataSource(draftRaw?.dataSource),
-                  normSaved: canonicalizeDataSource(savedRaw?.dataSource),
-                });
-              }
               elementDiffs.push(diffEntry);
             }
           }
@@ -467,15 +427,6 @@ export const useTemplateStore = create<TemplateStore>((set, get) => ({
                   saved: diff.saved,
                 };
                 diffKeyCounts[diff.key] = (diffKeyCounts[diff.key] ?? 0) + 1;
-              }
-              if (
-                draftFingerprint.hash === savedFingerprint.hash &&
-                !changedKeys.length
-              ) {
-                continue;
-              }
-              if (changedKeys.includes('dataSource')) {
-                console.log('[DBG_ELEM_DIFF_STACK]', new Error('DBG_ELEM_DIFF').stack);
               }
               console.log('[DBG_ELEM_DIFF]', {
                 elementId: entry.elementId,
