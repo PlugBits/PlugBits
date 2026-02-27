@@ -224,6 +224,13 @@ export const useTemplateStore = create<TemplateStore>((set, get) => ({
               .map((key) => `${JSON.stringify(key)}:${stableStringify(obj[key])}`)
               .join(',')}}`;
           };
+          const firstDiffIndex = (a: string, b: string): number => {
+            const n = Math.min(a.length, b.length);
+            for (let i = 0; i < n; i += 1) {
+              if (a.charCodeAt(i) !== b.charCodeAt(i)) return i;
+            }
+            return a.length === b.length ? -1 : n;
+          };
           const canonicalizePlainObject = (input: unknown): unknown => {
             if (input == null) return input;
             if (Array.isArray(input)) return input.map(canonicalizePlainObject);
@@ -257,10 +264,28 @@ export const useTemplateStore = create<TemplateStore>((set, get) => ({
             }
             return canonicalizePlainObject(picked);
           };
-          const eqDataSource = (a: unknown, b: unknown) => {
-            const normA = canonicalizeDataSource(a);
-            const normB = canonicalizeDataSource(b);
-            return stableStringify(normA) === stableStringify(normB);
+          const dbgCompareDataSource = (elementId: string, draftDs: unknown, savedDs: unknown) => {
+            const normDraft = canonicalizeDataSource(draftDs);
+            const normSaved = canonicalizeDataSource(savedDs);
+            const sa = stableStringify(normDraft);
+            const sb = stableStringify(normSaved);
+            const same = sa === sb;
+            if (!same) {
+              const idx = firstDiffIndex(sa, sb);
+              console.log('[DBG_DS_EQ_FALSE]', {
+                elementId,
+                saLen: sa.length,
+                sbLen: sb.length,
+                idx,
+                saSlice: sa.slice(Math.max(0, idx - 20), idx + 40),
+                sbSlice: sb.slice(Math.max(0, idx - 20), idx + 40),
+                normDraft,
+                normSaved,
+              });
+            } else if (elementId === 'doc_title') {
+              console.log('[DBG_DS_EQ_TRUE]', { elementId, sa });
+            }
+            return same;
           };
           const isTextElement = (el: TemplateElement | undefined) =>
             el?.type === 'text' || el?.type === 'label';
@@ -302,11 +327,13 @@ export const useTemplateStore = create<TemplateStore>((set, get) => ({
               } else if (key === 'dataSource') {
                 const draftDs = draftEl ? (draftEl as any).dataSource : undefined;
                 const savedDs = savedEl ? (savedEl as any).dataSource : undefined;
-                if (eqDataSource(draftDs, savedDs)) {
+                const same = dbgCompareDataSource(elementId, draftDs, savedDs);
+                if (!same) {
+                  draftVal = canonicalizeDataSource(draftDs) ?? MISSING;
+                  savedVal = canonicalizeDataSource(savedDs) ?? MISSING;
+                } else {
                   continue;
                 }
-                draftVal = canonicalizeDataSource(draftDs) ?? MISSING;
-                savedVal = canonicalizeDataSource(savedDs) ?? MISSING;
               } else if (isTextElement(draftEl ?? savedEl) && key === 'alignX') {
                 draftVal = getNormTextAlignX(draftEl);
                 savedVal = getNormTextAlignX(savedEl);
@@ -440,6 +467,15 @@ export const useTemplateStore = create<TemplateStore>((set, get) => ({
                   saved: diff.saved,
                 };
                 diffKeyCounts[diff.key] = (diffKeyCounts[diff.key] ?? 0) + 1;
+              }
+              if (
+                draftFingerprint.hash === savedFingerprint.hash &&
+                !changedKeys.length
+              ) {
+                continue;
+              }
+              if (changedKeys.includes('dataSource')) {
+                console.log('[DBG_ELEM_DIFF_STACK]', new Error('DBG_ELEM_DIFF').stack);
               }
               console.log('[DBG_ELEM_DIFF]', {
                 elementId: entry.elementId,
