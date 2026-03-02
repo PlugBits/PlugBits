@@ -9,12 +9,7 @@ import type {
 } from '@shared/template';
 import { getPageDimensions } from '@shared/template';
 import { isDebugEnabled } from '../shared/debugFlag';
-import {
-  applySlotDataOverrides,
-  applySlotLayoutOverrides,
-  extractSlotDataOverrides,
-  extractSlotLayoutOverrides,
-} from './userTemplateUtils';
+// userTemplateUtils no longer needed here after lossless base copy
 import { getTenantContext as getTenantContextFromStore } from '../store/tenantStore';
 
 export type TemplateCatalogItem = {
@@ -463,32 +458,57 @@ export const createUserTemplateFromBase = async (
 ): Promise<TemplateDefinition> => {
   const base = await fetchBaseTemplate(baseTemplateId);
   const structureType = base.structureType ?? 'list_v1';
-  let mapped: TemplateDefinition;
-  if (structureType === 'label_v1') {
-    mapped = { ...base, structureType };
-  } else {
-    const adapter = (await import('../editor/Mapping/adapters/getAdapter')).getAdapter(
-      structureType,
-    );
-    const mapping = base.mapping ?? adapter.createDefaultMapping();
-    mapped = adapter.applyMappingToTemplate(
-      { ...base, structureType, mapping },
-      mapping,
-    );
-  }
+  const normalizeDocMetaSlotIds = (template: TemplateDefinition): TemplateDefinition => {
+    if (!Array.isArray(template.elements)) return template;
+    let changed = false;
+    const nextElements = template.elements.map((el) => {
+      if (el.id === 'doc_no_label' || el.id === 'date_label') {
+        const slotId = (el as any).slotId as string | undefined;
+        if (!slotId) {
+          changed = true;
+          return { ...el, slotId: el.id } as TemplateElement;
+        }
+      }
+      return el;
+    });
+    return changed ? { ...template, elements: nextElements } : template;
+  };
+  const baseTemplate = normalizeDocMetaSlotIds(structuredClone(base));
 
   const id = generateUserTemplateId();
   const template: TemplateDefinition = {
-    ...mapped,
+    ...baseTemplate,
     id,
     name: name ?? base.name,
     baseTemplateId,
-    mapping: mapped.mapping ?? base.mapping,
-    sheetSettings: mapped.sheetSettings ?? base.sheetSettings,
+    mapping: baseTemplate.mapping ?? base.mapping,
+    sheetSettings: baseTemplate.sheetSettings ?? base.sheetSettings,
+    structureType,
   };
 
+  if (isDebugEnabled()) {
+    const pickMeta = (els: TemplateElement[]) =>
+      els
+        .filter((e) => {
+          const slotId = (e as any).slotId as string | undefined;
+          return (
+            ['doc_no_label', 'date_label', 'doc_no', 'issue_date'].includes(e.id) ||
+            (slotId ? ['doc_no_label', 'date_label', 'doc_no', 'issue_date'].includes(slotId) : false)
+          );
+        })
+        .map((e) => ({
+          id: e.id,
+          slotId: (e as any).slotId ?? null,
+          x: (e as any).x,
+          y: (e as any).y,
+          region: e.region ?? null,
+        }));
+    console.log('[DBG_DUP_COPY_DOCMETA]', {
+      base: pickMeta(baseTemplate.elements ?? []),
+      tpl: pickMeta(template.elements ?? []),
+    });
+  }
+
   const saved = await createTemplateRemote(template);
-  const layoutApplied = applySlotLayoutOverrides(template, extractSlotLayoutOverrides(template));
-  const dataApplied = applySlotDataOverrides(layoutApplied, extractSlotDataOverrides(template));
-  return { ...dataApplied, ...saved };
+  return saved;
 };
