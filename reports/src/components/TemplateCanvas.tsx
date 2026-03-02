@@ -838,11 +838,16 @@ const TemplateCanvas = ({
             slotId === 'doc_no' ||
             slotId === 'issue_date')
         ) {
-          console.log('[DBG_CANVAS_ELEM_POS]', {
+          const usedX =
+            typeof mergedStyle.left === 'string' ? parseFloat(mergedStyle.left) : mergedStyle.left ?? null;
+          const usedY =
+            typeof mergedStyle.top === 'string' ? parseFloat(mergedStyle.top) : mergedStyle.top ?? null;
+          console.log('[DBG_CANVAS_DOCMETA_SRC]', {
             id: element.id,
             slotId: (element as any).slotId ?? null,
-            templateXY: { x: element.x, y: element.y },
-            usedXY: { left: mergedStyle.left ?? null, top: mergedStyle.top ?? null },
+            elementXY: { x: element.x, y: element.y },
+            usedXY: { x: usedX, y: usedY },
+            source: 'elements',
           });
         }
         return (

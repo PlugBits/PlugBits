@@ -1935,12 +1935,13 @@ function drawText(
       slotId === 'doc_no' ||
       slotId === 'issue_date')
   ) {
-    console.log('[DBG_PDF_USE_ELEM_POS]', {
+    console.log('[DBG_PDF_DOCMETA_SRC]', {
       id: element.id,
       slotId: slotId ?? null,
       region: element.region ?? null,
-      templateXY: { x: element.x, y: element.y },
+      elementXY: { x: element.x, y: element.y },
       usedXY: { x, y: yStart },
+      source: 'elements',
     });
   }
   const shouldLogBaseline = debugEnabled && DBG_TEXT_BASELINE_TARGETS.has(elementKey);
