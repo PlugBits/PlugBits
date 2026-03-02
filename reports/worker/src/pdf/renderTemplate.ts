@@ -1606,14 +1606,15 @@ const resolveAlignedX = (
   return element.x;
 };
 
-const applyDocumentMetaLayout = (
-  elements: TemplateElement[],
-  template: TemplateDefinition,
-  pageWidth: number,
-): TemplateElement[] => {
-  if (template.structureType === 'estimate_v1') return elements;
-  const docMetaSettings = normalizeEasyAdjustBlockSettings(template, 'documentMeta');
-  if (!docMetaSettings.docNoVisible && !docMetaSettings.dateVisible) return elements;
+  const applyDocumentMetaLayout = (
+    elements: TemplateElement[],
+    template: TemplateDefinition,
+    pageWidth: number,
+  ): TemplateElement[] => {
+    if (template.structureType === 'estimate_v1') return elements;
+    const AUTO_LAYOUT_EXCLUDE_IDS = new Set(['doc_no_label', 'date_label']);
+    const docMetaSettings = normalizeEasyAdjustBlockSettings(template, 'documentMeta');
+    if (!docMetaSettings.docNoVisible && !docMetaSettings.dateVisible) return elements;
 
   const logo = elements.find(
     (el) => el.type === 'image' && ((el as any).slotId === 'logo' || el.id === 'logo'),
@@ -1664,13 +1665,19 @@ const applyDocumentMetaLayout = (
   });
 
   const nextElements = elements.map((el) => {
+    if (AUTO_LAYOUT_EXCLUDE_IDS.has(el.id)) return el;
     if (el.id === 'doc_no_label' && layout.docNoLabel && el.type === 'text') {
       return applyFrameToTextElement(el, layout.docNoLabel);
     }
     if ((el as any).slotId === 'doc_no' && layout.docNoValue && el.type === 'text') {
       return applyFrameToTextElement(el, layout.docNoValue);
     }
-    if ((el as any).slotId === 'date_label' && layout.dateLabel && el.type === 'text') {
+    if (
+      !AUTO_LAYOUT_EXCLUDE_IDS.has(el.id) &&
+      (el as any).slotId === 'date_label' &&
+      layout.dateLabel &&
+      el.type === 'text'
+    ) {
       return applyFrameToTextElement(el, layout.dateLabel);
     }
     if ((el as any).slotId === 'issue_date' && layout.dateValue && el.type === 'text') {
