@@ -624,6 +624,7 @@ const TemplateEditorPage = () => {
     const docNoLabelText = presetId === 'invoice_v1' ? '請求番号' : '見積番号';
 
     const shouldAutoLayoutDocMeta = template.structureType !== 'estimate_v1';
+    const allowManualDocMeta = !!template.advancedLayoutEditing;
     if ((docNo || issueDate) && shouldAutoLayoutDocMeta) {
       const { width: canvasWidth } = getCanvasDimensions(template);
       const headerSettings = normalizeEasyAdjustBlockSettings(template, 'header');
@@ -729,7 +730,7 @@ const TemplateEditorPage = () => {
       });
 
       const docNoLabelEl = findBySlotOrId('doc_no_label') as TextElement | undefined;
-      if (docNoLabelEl && layout.docNoLabel) {
+      if (docNoLabelEl && layout.docNoLabel && !allowManualDocMeta) {
         updateElement(docNoLabelEl, {
           region: 'header',
           x: layout.docNoLabel.x,
@@ -751,7 +752,7 @@ const TemplateEditorPage = () => {
         });
       }
       const dateLabelEl = findBySlotOrId('date_label') as TextElement | undefined;
-      if (dateLabelEl && layout.dateLabel) {
+      if (dateLabelEl && layout.dateLabel && !allowManualDocMeta) {
         updateElement(dateLabelEl, {
           region: 'header',
           x: layout.dateLabel.x,
@@ -853,9 +854,16 @@ const TemplateEditorPage = () => {
   const isDocumentMetaElement = (element: TemplateElement | null | undefined) => {
     if (!element) return false;
     const slotId = (element as any).slotId as string | undefined;
+    if (
+      element.id === 'doc_no_label' ||
+      element.id === 'date_label' ||
+      slotId === 'doc_no_label' ||
+      slotId === 'date_label'
+    ) {
+      return false;
+    }
     return (
       slotId === 'doc_no' ||
-      slotId === 'date_label' ||
       slotId === 'issue_date' ||
       element.id === 'doc_no_label'
     );

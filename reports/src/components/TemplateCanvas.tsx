@@ -493,14 +493,15 @@ const TemplateCanvas = ({
     return String(ds.value ?? '').trim().length === 0;
   })();
 
+  const allowMetaLabels = resolvedAdminMode || isAdvanced;
   const visibleElements = template.elements.filter((el) => {
     if (resolvedAdminMode) return true;
     if (isElementHiddenByEasyAdjust(el, template)) return false;
     const slotId = (el as any).slotId as string | undefined;
     const slotMeta = slotId ? slotMetaById.get(slotId) : undefined;
     if (el.hidden && !slotMeta) return false;
-    if (!isEstimate) {
-      if (el.id === 'doc_no_label') return false;
+    if (!isEstimate && !allowMetaLabels) {
+      if (el.id === 'doc_no_label' || slotId === 'doc_no_label') return false;
       if (slotId === 'date_label' || el.id === 'date_label') return false;
     }
     if (!companyBlockEnabled && slotId && slotId.startsWith('company_')) return false;
