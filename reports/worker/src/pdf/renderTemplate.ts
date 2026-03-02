@@ -1063,11 +1063,7 @@ export async function renderTemplateToPdf(
         .map(dump),
     );
   }
-  const headerCandidates = applyDocumentMetaLayout(
-    headerSource,
-    template,
-    canvasWidth,
-  );
+  const headerCandidates = headerSource;
   if (debugEnabled) {
     const dump = (el: TemplateElement) => ({
       id: el.id,
@@ -1934,15 +1930,17 @@ function drawText(
   const align = (element as any).alignX as 'left' | 'center' | 'right' | undefined;
   if (
     debugEnabled &&
-    (element.id === 'doc_no_label' || element.id === 'date_label')
+    (element.id === 'doc_no_label' ||
+      element.id === 'date_label' ||
+      slotId === 'doc_no' ||
+      slotId === 'issue_date')
   ) {
-    console.log('[DBG_PDF_ELEM_POS]', {
+    console.log('[DBG_PDF_USE_ELEM_POS]', {
       id: element.id,
       slotId: slotId ?? null,
       region: element.region ?? null,
       templateXY: { x: element.x, y: element.y },
       usedXY: { x, y: yStart },
-      source: 'elements',
     });
   }
   const shouldLogBaseline = debugEnabled && DBG_TEXT_BASELINE_TARGETS.has(elementKey);

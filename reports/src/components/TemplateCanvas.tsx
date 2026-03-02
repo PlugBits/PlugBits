@@ -833,7 +833,10 @@ const TemplateCanvas = ({
         const hasHeight = mergedStyle.height !== undefined;
         if (
           debugLabelsEnabled &&
-          (element.id === 'doc_no_label' || element.id === 'date_label')
+          (element.id === 'doc_no_label' ||
+            element.id === 'date_label' ||
+            slotId === 'doc_no' ||
+            slotId === 'issue_date')
         ) {
           console.log('[DBG_CANVAS_ELEM_POS]', {
             id: element.id,

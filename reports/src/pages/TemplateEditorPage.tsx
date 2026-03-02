@@ -19,7 +19,6 @@ import {
   isElementHiddenByEasyAdjust,
 } from '../utils/easyAdjust';
 import { clampYToRegion, getCanvasDimensions } from '../utils/regionBounds';
-import { computeDocumentMetaLayout } from '@shared/documentMetaLayout';
 import { getAdapter, getAdapterOrNull } from '../editor/Mapping/adapters/getAdapter';
 import { useEditorSession } from '../hooks/useEditorSession';
 import {
@@ -126,6 +125,26 @@ const TemplateEditorPage = () => {
       })),
     });
   }, [template?.id, template?.structureType]);
+  useEffect(() => {
+    if (!template || !isDebugEnabled()) return;
+    const pickMeta = (els: TemplateElement[]) =>
+      els
+        .filter((e) => {
+          const slotId = (e as any).slotId as string | undefined;
+          return (
+            ['doc_no_label', 'date_label', 'doc_no', 'issue_date'].includes(e.id) ||
+            (slotId ? ['doc_no_label', 'date_label', 'doc_no', 'issue_date'].includes(slotId) : false)
+          );
+        })
+        .map((e) => ({
+          id: e.id,
+          slotId: (e as any).slotId ?? null,
+          x: e.x,
+          y: e.y,
+          region: e.region ?? null,
+        }));
+    console.log('[DBG_EDITOR_ELEM_POS]', pickMeta(template.elements));
+  }, [template]);
   const isUnsupportedStructure =
     !!template && !isLabelTemplate && !isCardTemplate && !adapterForTemplate;
   const presetId = useMemo(
@@ -630,9 +649,6 @@ const TemplateEditorPage = () => {
       const headerSettings = normalizeEasyAdjustBlockSettings(template, 'header');
       const headerFontScale = resolveFontScalePreset(headerSettings.fontPreset);
       const headerPadding = resolvePagePaddingPreset(headerSettings.paddingPreset);
-      const docNoFontSize = (docNo?.fontSize ?? 10) * headerFontScale;
-      const dateFontSize = (issueDate?.fontSize ?? 10) * headerFontScale;
-      const labelFontSize = 9 * headerFontScale;
       const blockWidth = Math.min(280, Math.max(200, logoW));
       const blockRight = canvasWidth - headerPadding;
       const blockX = Math.max(headerPadding, blockRight - blockWidth);
@@ -699,55 +715,6 @@ const TemplateEditorPage = () => {
       }
       if (docMetaSettings.dateVisible) {
         ensureDateLabel();
-      }
-
-      const layout = computeDocumentMetaLayout({
-        logoX,
-        logoY,
-        logoWidth: logoW,
-        logoHeight: logoH,
-        blockX,
-        blockWidth,
-        gap: 12,
-        labelWidth: 56,
-        columnGap: 8,
-        rowGap: 6,
-        minValueWidth: 80,
-        docNoVisible: docMetaSettings.docNoVisible,
-        dateVisible: docMetaSettings.dateVisible,
-        fontSizes: {
-          docNoLabel: labelFontSize,
-          docNoValue: docNoFontSize,
-          dateLabel: labelFontSize,
-          dateValue: dateFontSize,
-        },
-        heights: {
-          docNoLabel: (findBySlotOrId('doc_no_label') as TextElement | undefined)?.height,
-          docNoValue: docNo?.height,
-          dateLabel: (findBySlotOrId('date_label') as TextElement | undefined)?.height,
-          dateValue: issueDate?.height,
-        },
-      });
-
-      if (docNo && layout.docNoValue) {
-        updateElement(docNo, {
-          region: 'header',
-          x: layout.docNoValue.x,
-          y: layout.docNoValue.y,
-          width: layout.docNoValue.width,
-          height: layout.docNoValue.height,
-          repeatOnEveryPage: true,
-        });
-      }
-      if (issueDate && layout.dateValue) {
-        updateElement(issueDate, {
-          region: 'header',
-          x: layout.dateValue.x,
-          y: layout.dateValue.y,
-          width: layout.dateValue.width,
-          height: layout.dateValue.height,
-          repeatOnEveryPage: true,
-        });
       }
     }
 
@@ -829,19 +796,7 @@ const TemplateEditorPage = () => {
 
   const isDocumentMetaElement = (element: TemplateElement | null | undefined) => {
     if (!element) return false;
-    const slotId = (element as any).slotId as string | undefined;
-    if (
-      element.id === 'doc_no_label' ||
-      element.id === 'date_label' ||
-      slotId === 'doc_no_label' ||
-      slotId === 'date_label'
-    ) {
-      return false;
-    }
-    return (
-      slotId === 'doc_no' ||
-      slotId === 'issue_date'
-    );
+    return false;
   };
 
 
