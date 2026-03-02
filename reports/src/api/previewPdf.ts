@@ -59,6 +59,25 @@ export async function previewPdf(
           companyProfile: tenantContext.companyProfile,
           kintone,
         };
+  if (debugEnabled) {
+    const pickMeta = (els?: TemplateDefinition['elements']) =>
+      (els ?? [])
+        .filter((e) => {
+          const slotId = (e as any).slotId as string | undefined;
+          return (
+            ['doc_no_label', 'date_label', 'doc_no', 'issue_date'].includes(e.id) ||
+            (slotId ? ['doc_no_label', 'date_label'].includes(slotId) : false)
+          );
+        })
+        .map((e) => ({
+          id: e.id,
+          slotId: (e as any).slotId ?? null,
+          x: (e as any).x,
+          y: (e as any).y,
+          region: e.region ?? null,
+        }));
+    console.log('[DBG_RENDER_REQ_TEMPLATE]', pickMeta(body.template?.elements));
+  }
   const res = await fetch(renderUrl, {
     method: 'POST',
     headers,

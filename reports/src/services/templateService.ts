@@ -1,6 +1,12 @@
 // src/services/templateService.ts
 
-import type { TemplateDefinition, TemplateMeta, TemplateStatus, TableElement } from '@shared/template';
+import type {
+  TemplateDefinition,
+  TemplateMeta,
+  TemplateStatus,
+  TableElement,
+  TemplateElement,
+} from '@shared/template';
 import { getPageDimensions } from '@shared/template';
 import { isDebugEnabled } from '../shared/debugFlag';
 import {
@@ -398,6 +404,25 @@ export async function createTemplateRemote(
   const payload: { template: TemplateDefinition } = {
     template: canonicalTemplate,
   };
+  if (debugEnabled) {
+    const pickMeta = (els: TemplateElement[]) =>
+      els
+        .filter((e) => {
+          const slotId = (e as any).slotId as string | undefined;
+          return (
+            ['doc_no_label', 'date_label', 'doc_no', 'issue_date'].includes(e.id) ||
+            (slotId ? ['doc_no_label', 'date_label'].includes(slotId) : false)
+          );
+        })
+        .map((e) => ({
+          id: e.id,
+          slotId: (e as any).slotId ?? null,
+          x: (e as any).x,
+          y: (e as any).y,
+          region: e.region ?? null,
+        }));
+    console.log('[DBG_TUNER_SAVE_PAYLOAD]', pickMeta(payload.template.elements));
+  }
 
   const url = buildUrl(`/user-templates/${template.id}`, buildDebugParams());
   console.log('[templateService] save user template request', {

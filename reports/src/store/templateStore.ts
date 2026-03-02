@@ -45,6 +45,37 @@ export type TemplateStore = {
 // ---- 共通ユーティリティ ----
 
 const cloneTemplate = <T>(template: T): T => structuredClone(template);
+const DOC_META_PICK_IDS = new Set(['doc_no_label', 'date_label', 'doc_no', 'issue_date']);
+
+const normalizeDocMetaSlotIds = (template: TemplateDefinition): TemplateDefinition => {
+  if (!Array.isArray(template.elements)) return template;
+  let changed = false;
+  const nextElements = template.elements.map((el) => {
+    if (el.id === 'doc_no_label' || el.id === 'date_label') {
+      const slotId = (el as any).slotId as string | undefined;
+      if (!slotId) {
+        changed = true;
+        return { ...el, slotId: el.id } as TemplateElement;
+      }
+    }
+    return el;
+  });
+  return changed ? { ...template, elements: nextElements } : template;
+};
+
+const pickDocMeta = (elements: TemplateElement[]) =>
+  elements
+    .filter((e) => {
+      const slotId = (e as any).slotId as string | undefined;
+      return DOC_META_PICK_IDS.has(e.id) || (slotId ? DOC_META_PICK_IDS.has(slotId) : false);
+    })
+    .map((e) => ({
+      id: e.id,
+      slotId: (e as any).slotId ?? null,
+      x: (e as any).x,
+      y: (e as any).y,
+      region: e.region ?? null,
+    }));
 
 // ---- Zustand store ----
 
@@ -73,7 +104,7 @@ export const useTemplateStore = create<TemplateStore>((set, get) => ({
     set({ loading: true, error: null, fetchSeq: seq });
 
     try {
-      const template = await fetchTemplateById(templateId);
+      const template = normalizeDocMetaSlotIds(await fetchTemplateById(templateId));
 
       if (get().fetchSeq !== seq) {
         console.warn('[templateStore.loadTemplate] stale fetch skipped', { seq });
@@ -125,10 +156,11 @@ export const useTemplateStore = create<TemplateStore>((set, get) => ({
   },
 
   updateTemplate: (template) => {
+    const normalized = normalizeDocMetaSlotIds(template);
     set((state) => ({
       templates: {
         ...state.templates,
-        [template.id]: template,
+        [normalized.id]: normalized,
       },
     }));
   },
@@ -504,11 +536,12 @@ export const useTemplateStore = create<TemplateStore>((set, get) => ({
       ...template,
       elements: [...template.elements, element],
     };
+    const normalized = normalizeDocMetaSlotIds(nextTemplate);
 
     set((state) => ({
       templates: {
         ...state.templates,
-        [templateId]: nextTemplate,
+        [templateId]: normalized,
       },
     }));
   },
@@ -530,10 +563,14 @@ export const useTemplateStore = create<TemplateStore>((set, get) => ({
       elements: nextElements,
     };
 
+    const normalized = normalizeDocMetaSlotIds(nextTemplate);
+    if (isDebugEnabled() && DOC_META_PICK_IDS.has(elementId)) {
+      console.log('[DBG_TUNER_STATE]', pickDocMeta(normalized.elements));
+    }
     set((state) => ({
       templates: {
         ...state.templates,
-        [templateId]: nextTemplate,
+        [templateId]: normalized,
       },
     }));
   },

@@ -738,15 +738,28 @@ export const migrateTemplate = (
 
   const patched = applyEstimateV1PresetPatch(migratedTemplate);
   const normalized = normalizeTemplateForPageSize(patched, debug);
+  const slotNormalizedElements = (normalized.template.elements ?? []).map((el) => {
+    if (el.id === 'doc_no_label' && (!(el as any).slotId || (el as any).slotId === '')) {
+      return { ...el, slotId: 'doc_no_label' } as TemplateElement;
+    }
+    if (el.id === 'date_label' && (!(el as any).slotId || (el as any).slotId === '')) {
+      return { ...el, slotId: 'date_label' } as TemplateElement;
+    }
+    return el;
+  });
+  const slotNormalizedTemplate =
+    slotNormalizedElements !== normalized.template.elements
+      ? { ...normalized.template, elements: slotNormalizedElements }
+      : normalized.template;
   if (debugEnabled) {
-    const after = buildTemplateFingerprint(normalized.template);
+    const after = buildTemplateFingerprint(slotNormalizedTemplate);
     console.debug(
       `[DBG_MIGRATE] requestId=${debug?.requestId ?? ''} templateId=${templateId} ` +
         `reason=${debug?.reason ?? ''} didNormalize=${normalized.didNormalize} ` +
         `afterHash=${after.hash} afterJsonLen=${after.jsonLen}`,
     );
   }
-  return normalized.template;
+  return slotNormalizedTemplate;
 };
 
 export const validateTemplate = (template: TemplateDefinition): { ok: boolean; issues: TemplateIssue[] } => {
