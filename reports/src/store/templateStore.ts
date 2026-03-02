@@ -105,6 +105,9 @@ export const useTemplateStore = create<TemplateStore>((set, get) => ({
 
     try {
       const template = normalizeDocMetaSlotIds(await fetchTemplateById(templateId));
+      if (isDebugEnabled()) {
+        console.log('[DBG_TUNER_STATE_LOAD]', pickDocMeta(template.elements ?? []));
+      }
 
       if (get().fetchSeq !== seq) {
         console.warn('[templateStore.loadTemplate] stale fetch skipped', { seq });

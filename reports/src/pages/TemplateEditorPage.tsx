@@ -625,7 +625,7 @@ const TemplateEditorPage = () => {
 
     const shouldAutoLayoutDocMeta = template.structureType !== 'estimate_v1';
     const allowManualDocMeta = !!template.advancedLayoutEditing;
-    if ((docNo || issueDate) && shouldAutoLayoutDocMeta) {
+    if ((docNo || issueDate) && shouldAutoLayoutDocMeta && !allowManualDocMeta) {
       const { width: canvasWidth } = getCanvasDimensions(template);
       const headerSettings = normalizeEasyAdjustBlockSettings(template, 'header');
       const headerFontScale = resolveFontScalePreset(headerSettings.fontPreset);
@@ -730,7 +730,7 @@ const TemplateEditorPage = () => {
       });
 
       const docNoLabelEl = findBySlotOrId('doc_no_label') as TextElement | undefined;
-      if (docNoLabelEl && layout.docNoLabel && !allowManualDocMeta) {
+      if (docNoLabelEl && layout.docNoLabel) {
         updateElement(docNoLabelEl, {
           region: 'header',
           x: layout.docNoLabel.x,
@@ -752,7 +752,7 @@ const TemplateEditorPage = () => {
         });
       }
       const dateLabelEl = findBySlotOrId('date_label') as TextElement | undefined;
-      if (dateLabelEl && layout.dateLabel && !allowManualDocMeta) {
+      if (dateLabelEl && layout.dateLabel) {
         updateElement(dateLabelEl, {
           region: 'header',
           x: layout.dateLabel.x,
