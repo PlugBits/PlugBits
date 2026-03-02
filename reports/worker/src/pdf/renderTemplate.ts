@@ -1915,9 +1915,7 @@ function drawText(
   const textColor = isLabelText ? rgb(0.35, 0.35, 0.35) : rgb(0, 0, 0);
 
   const isDocMeta =
-    element.id === 'doc_no_label' ||
     slotId === 'doc_no' ||
-    slotId === 'date_label' ||
     slotId === 'issue_date';
   const xCanvas = resolveAlignedX(element, transform.canvasWidth, maxWidthCanvas, pagePadding);
   const x = transform.toPdfX(xCanvas);
@@ -1934,6 +1932,19 @@ function drawText(
   let yStart = yBottom + boxHeight - lineHeight;
   yStart = clampPdfY(yStart, transform.pageHeightPt - lineHeight);
   const align = (element as any).alignX as 'left' | 'center' | 'right' | undefined;
+  if (
+    debugEnabled &&
+    (element.id === 'doc_no_label' || element.id === 'date_label')
+  ) {
+    console.log('[DBG_PDF_ELEM_POS]', {
+      id: element.id,
+      slotId: slotId ?? null,
+      region: element.region ?? null,
+      templateXY: { x: element.x, y: element.y },
+      usedXY: { x, y: yStart },
+      source: 'elements',
+    });
+  }
   const shouldLogBaseline = debugEnabled && DBG_TEXT_BASELINE_TARGETS.has(elementKey);
   const fontAny = fontToUse as unknown as {
     ascentAtSize?: (size: number) => number;

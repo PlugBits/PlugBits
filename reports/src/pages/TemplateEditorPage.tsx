@@ -729,18 +729,6 @@ const TemplateEditorPage = () => {
         },
       });
 
-      const docNoLabelEl = findBySlotOrId('doc_no_label') as TextElement | undefined;
-      if (docNoLabelEl && layout.docNoLabel) {
-        updateElement(docNoLabelEl, {
-          region: 'header',
-          x: layout.docNoLabel.x,
-          y: layout.docNoLabel.y,
-          width: layout.docNoLabel.width,
-          height: layout.docNoLabel.height,
-          fontSize: 9,
-          repeatOnEveryPage: true,
-        });
-      }
       if (docNo && layout.docNoValue) {
         updateElement(docNo, {
           region: 'header',
@@ -748,18 +736,6 @@ const TemplateEditorPage = () => {
           y: layout.docNoValue.y,
           width: layout.docNoValue.width,
           height: layout.docNoValue.height,
-          repeatOnEveryPage: true,
-        });
-      }
-      const dateLabelEl = findBySlotOrId('date_label') as TextElement | undefined;
-      if (dateLabelEl && layout.dateLabel) {
-        updateElement(dateLabelEl, {
-          region: 'header',
-          x: layout.dateLabel.x,
-          y: layout.dateLabel.y,
-          width: layout.dateLabel.width,
-          height: layout.dateLabel.height,
-          fontSize: 9,
           repeatOnEveryPage: true,
         });
       }
@@ -864,8 +840,7 @@ const TemplateEditorPage = () => {
     }
     return (
       slotId === 'doc_no' ||
-      slotId === 'issue_date' ||
-      element.id === 'doc_no_label'
+      slotId === 'issue_date'
     );
   };
 

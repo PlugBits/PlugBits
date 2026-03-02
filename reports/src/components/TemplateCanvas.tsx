@@ -449,9 +449,7 @@ const TemplateCanvas = ({
     const slotId = (element as any).slotId as string | undefined;
     return (
       slotId === 'doc_no' ||
-      slotId === 'date_label' ||
-      slotId === 'issue_date' ||
-      element.id === 'doc_no_label'
+      slotId === 'issue_date'
     );
   };
   const getElementSettings = (element: TemplateElement) => {
@@ -462,15 +460,6 @@ const TemplateCanvas = ({
       pagePadding: resolvePagePadding(settings.paddingPreset),
     };
   };
-  const docNoLabelElement = !isEstimate
-    ? template.elements.find((el): el is TextElement => el.id === 'doc_no_label' && el.type === 'text')
-    : undefined;
-  const dateLabelElement = !isEstimate
-    ? template.elements.find((el): el is TextElement => {
-        const slotId = (el as any).slotId as string | undefined;
-        return el.type === 'text' && (slotId === 'date_label' || el.id === 'date_label');
-      })
-    : undefined;
   const companyNameElement = template.elements.find((el): el is TextElement => {
     const slotId = (el as any).slotId as string | undefined;
     return el.type === 'text' && slotId === 'company_name';
@@ -493,17 +482,12 @@ const TemplateCanvas = ({
     return String(ds.value ?? '').trim().length === 0;
   })();
 
-  const allowMetaLabels = resolvedAdminMode || isAdvanced;
   const visibleElements = template.elements.filter((el) => {
     if (resolvedAdminMode) return true;
     if (isElementHiddenByEasyAdjust(el, template)) return false;
     const slotId = (el as any).slotId as string | undefined;
     const slotMeta = slotId ? slotMetaById.get(slotId) : undefined;
     if (el.hidden && !slotMeta) return false;
-    if (!isEstimate && !allowMetaLabels) {
-      if (el.id === 'doc_no_label' || slotId === 'doc_no_label') return false;
-      if (slotId === 'date_label' || el.id === 'date_label') return false;
-    }
     if (!companyBlockEnabled && slotId && slotId.startsWith('company_')) return false;
     if (isCompanyNameEmpty && slotId && slotId.startsWith('company_')) return false;
     if (el.type === 'image' && (slotId === 'logo' || el.id === 'logo')) {
@@ -811,41 +795,6 @@ const TemplateCanvas = ({
         const isPlaceholder = placeholderText.length > 0;
         const hasMultiline = valueText.includes('\n');
         const isDocMeta = isDocumentMetaElement(element);
-        const isDocMetaValue = !isEstimate && (slotId === 'doc_no' || slotId === 'issue_date');
-        const docMetaLabelEl = isDocMetaValue
-          ? slotId === 'doc_no'
-            ? docNoLabelElement
-            : dateLabelElement
-          : undefined;
-        const docMetaLabelText = (() => {
-          const ds = (docMetaLabelEl as any)?.dataSource as DataSource | undefined;
-          if (ds?.type === 'static' && ds.value) return String(ds.value);
-          if ((docMetaLabelEl as any)?.text) return String((docMetaLabelEl as any).text);
-          if (slotId === 'doc_no') return '文書番号';
-          if (slotId === 'issue_date') return '日付';
-          return '';
-        })();
-        const docMetaLabelWidth = Number.isFinite(docMetaLabelEl?.width)
-          ? (docMetaLabelEl?.width as number)
-          : 56;
-        const resolveDocMetaBounds = () => {
-          if (!docMetaLabelEl || !('width' in element) || !element.width) return null;
-          const labelX = Number.isFinite(docMetaLabelEl.x) ? (docMetaLabelEl.x as number) : element.x;
-          const labelY = Number.isFinite(docMetaLabelEl.y) ? (docMetaLabelEl.y as number) : element.y;
-          const labelW = Number.isFinite(docMetaLabelEl.width) ? (docMetaLabelEl.width as number) : docMetaLabelWidth;
-          const valueX = Number.isFinite(element.x) ? element.x : labelX;
-          const valueW = Number.isFinite(element.width) ? (element.width as number) : 0;
-          const left = Math.min(labelX, valueX);
-          const right = Math.max(labelX + labelW, valueX + valueW);
-          const top = Math.min(labelY, element.y);
-          const height = Math.max(docMetaLabelEl.height ?? 0, element.height ?? 0);
-          return {
-            x: left,
-            y: top,
-            width: Math.max(0, right - left),
-            height,
-          };
-        };
         const metaTextStyle: CSSProperties | undefined = isDocMeta
           ? {
               whiteSpace: 'nowrap',
@@ -864,11 +813,8 @@ const TemplateCanvas = ({
           alignX === 'center' ? 'center' : alignX === 'right' ? 'right' : 'left';
         const justifySelf =
           alignX === 'center' ? 'center' : alignX === 'right' ? 'end' : 'start';
-        const docMetaBounds = isDocMetaValue ? resolveDocMetaBounds() : null;
         const valueMultilineStyle: CSSProperties | undefined =
-          !isDocMetaValue && hasMultiline
-            ? { whiteSpace: 'pre-line', lineHeight: '1.2' }
-            : undefined;
+          hasMultiline ? { whiteSpace: 'pre-line', lineHeight: '1.2' } : undefined;
         const elementWidthValue = getElementWidthValue(element);
         const elementHeightValue = getElementHeightValue(element);
         const debugInfo =
@@ -882,17 +828,20 @@ const TemplateCanvas = ({
             : debugLabelsEnabled
               ? element.type
               : '';
-        const mergedStyle = docMetaBounds
-          ? {
-              ...elementStyle,
-              left: `${docMetaBounds.x}px`,
-              top: `${docMetaBounds.y}px`,
-              width: `${docMetaBounds.width}px`,
-              height: `${docMetaBounds.height}px`,
-            }
-          : elementStyle;
+        const mergedStyle = elementStyle;
         const hasWidth = mergedStyle.width !== undefined;
         const hasHeight = mergedStyle.height !== undefined;
+        if (
+          debugLabelsEnabled &&
+          (element.id === 'doc_no_label' || element.id === 'date_label')
+        ) {
+          console.log('[DBG_CANVAS_ELEM_POS]', {
+            id: element.id,
+            slotId: (element as any).slotId ?? null,
+            templateXY: { x: element.x, y: element.y },
+            usedXY: { left: mergedStyle.left ?? null, top: mergedStyle.top ?? null },
+          });
+        }
         return (
           <div
             key={element.id}
@@ -971,106 +920,48 @@ const TemplateCanvas = ({
             {element.type !== 'cardList' && (
               <div
                 className="canvas-element-overlay"
-                style={
-                  isDocMetaValue
-                    ? {
-                        display: 'grid',
-                        gridTemplateColumns: docMetaLabelText ? `${docMetaLabelWidth}px 1fr` : '1fr',
-                        columnGap: 8,
-                        alignItems: 'center',
-                        textAlign,
-                      }
-                    : { textAlign }
-                }
+                style={{ textAlign }}
               >
-                {isDocMetaValue ? (
-                  <>
-                    {docMetaLabelText ? (
-                      <span
-                        className="canvas-element-label"
-                        style={{
-                          fontSize: '0.7rem',
-                          color: '#475467',
-                          textAlign,
-                          justifySelf,
-                          ...(metaTextStyle ?? {}),
-                        }}
-                      >
-                        {docMetaLabelText}
-                      </span>
-                    ) : null}
-                    <span
-                      className="canvas-element-value"
-                      style={{
-                        fontSize: `${0.85 * getElementSettings(element).fontScale}rem`,
-                        textAlign,
-                        justifySelf,
-                        color: isPlaceholder ? '#98a2b3' : undefined,
-                        opacity: isPlaceholder ? 0.7 : undefined,
-                        ...(metaTextStyle ?? {}),
-                        ...(valueMultilineStyle ?? {}),
-                      }}
-                    >
-                      {valueText}
-                    </span>
-                    {debugInfo ? (
-                      <span
-                        className="canvas-element-label"
-                        style={{
-                          gridColumn: '1 / -1',
-                          fontSize: '0.62rem',
-                          color: '#98a2b3',
-                          textAlign,
-                        }}
-                      >
-                        {debugInfo}
-                      </span>
-                    ) : null}
-                  </>
-                ) : (
-                  <>
-                    {labelText ? (
-                      <strong
-                        className="canvas-element-label"
-                        style={{
-                          display: 'block',
-                          fontSize: '0.7rem',
-                          color: slotLabels?.[(element as any).slotId] ? '#344054' : '#475467',
-                          textAlign,
-                          ...(metaTextStyle ?? {}),
-                        }}
-                      >
-                        {labelText}
-                      </strong>
-                    ) : null}
-                    {debugInfo ? (
-                      <span
-                        className="canvas-element-label"
-                        style={{
-                          display: 'block',
-                          fontSize: '0.62rem',
-                          color: '#98a2b3',
-                          textAlign,
-                        }}
-                      >
-                        {debugInfo}
-                      </span>
-                    ) : null}
-                    <span
-                      className="canvas-element-value"
-                      style={{
-                        fontSize: `${0.85 * getElementSettings(element).fontScale}rem`,
-                        textAlign,
-                        color: isPlaceholder ? '#98a2b3' : undefined,
-                        opacity: isPlaceholder ? 0.7 : undefined,
-                        ...(metaTextStyle ?? {}),
-                        ...(valueMultilineStyle ?? {}),
-                      }}
-                    >
-                      {valueText}
-                    </span>
-                  </>
-                )}
+                {labelText ? (
+                  <strong
+                    className="canvas-element-label"
+                    style={{
+                      display: 'block',
+                      fontSize: '0.7rem',
+                      color: slotLabels?.[(element as any).slotId] ? '#344054' : '#475467',
+                      textAlign,
+                      ...(metaTextStyle ?? {}),
+                    }}
+                  >
+                    {labelText}
+                  </strong>
+                ) : null}
+                {debugInfo ? (
+                  <span
+                    className="canvas-element-label"
+                    style={{
+                      display: 'block',
+                      fontSize: '0.62rem',
+                      color: '#98a2b3',
+                      textAlign,
+                    }}
+                  >
+                    {debugInfo}
+                  </span>
+                ) : null}
+                <span
+                  className="canvas-element-value"
+                  style={{
+                    fontSize: `${0.85 * getElementSettings(element).fontScale}rem`,
+                    textAlign,
+                    color: isPlaceholder ? '#98a2b3' : undefined,
+                    opacity: isPlaceholder ? 0.7 : undefined,
+                    ...(metaTextStyle ?? {}),
+                    ...(valueMultilineStyle ?? {}),
+                  }}
+                >
+                  {valueText}
+                </span>
               </div>
             )}
           </div>
