@@ -1039,13 +1039,56 @@ export async function renderTemplateToPdf(
   }
 
   // それ以外（region 未指定 or 'header' 'body'）はヘッダー候補として扱う
+  const headerSource = nonBodyElements.filter(
+    (e) => e.region !== 'footer',
+  );
+  if (debugEnabled) {
+    const dump = (el: TemplateElement) => ({
+      id: el.id,
+      slotId: (el as any).slotId ?? null,
+      x: el.x,
+      y: el.y,
+      region: el.region ?? null,
+    });
+    console.log(
+      '[DBG_META_BEFORE]',
+      headerSource
+        .filter((el) => {
+          const slotId = (el as any).slotId as string | undefined;
+          return (
+            ['doc_no_label', 'date_label', 'doc_no', 'issue_date'].includes(el.id) ||
+            (slotId ? ['doc_no_label', 'date_label', 'doc_no', 'issue_date'].includes(slotId) : false)
+          );
+        })
+        .map(dump),
+    );
+  }
   const headerCandidates = applyDocumentMetaLayout(
-    nonBodyElements.filter(
-      (e) => e.region !== 'footer',
-    ),
+    headerSource,
     template,
     canvasWidth,
   );
+  if (debugEnabled) {
+    const dump = (el: TemplateElement) => ({
+      id: el.id,
+      slotId: (el as any).slotId ?? null,
+      x: el.x,
+      y: el.y,
+      region: el.region ?? null,
+    });
+    console.log(
+      '[DBG_META_AFTER]',
+      headerCandidates
+        .filter((el) => {
+          const slotId = (el as any).slotId as string | undefined;
+          return (
+            ['doc_no_label', 'date_label', 'doc_no', 'issue_date'].includes(el.id) ||
+            (slotId ? ['doc_no_label', 'date_label', 'doc_no', 'issue_date'].includes(slotId) : false)
+          );
+        })
+        .map(dump),
+    );
+  }
   const isCompanySlot = (element: TemplateElement) => {
     const slotId = (element as any).slotId as string | undefined;
     return slotId ? slotId.startsWith('company_') : false;
@@ -1606,15 +1649,20 @@ const resolveAlignedX = (
   return element.x;
 };
 
-  const applyDocumentMetaLayout = (
-    elements: TemplateElement[],
-    template: TemplateDefinition,
-    pageWidth: number,
-  ): TemplateElement[] => {
-    if (template.structureType === 'estimate_v1') return elements;
-    const AUTO_LAYOUT_EXCLUDE_IDS = new Set(['doc_no_label', 'date_label']);
-    const docMetaSettings = normalizeEasyAdjustBlockSettings(template, 'documentMeta');
-    if (!docMetaSettings.docNoVisible && !docMetaSettings.dateVisible) return elements;
+const applyDocumentMetaLayout = (
+  elements: TemplateElement[],
+  template: TemplateDefinition,
+  pageWidth: number,
+): TemplateElement[] => {
+  if (template.structureType === 'estimate_v1') return elements;
+  const AUTO_LAYOUT_EXCLUDE_IDS = new Set(['doc_no_label', 'date_label']);
+  const AUTO_LAYOUT_EXCLUDE_SLOTS = new Set(['doc_no_label', 'date_label']);
+  const isExcluded = (el: TemplateElement) => {
+    const slotId = (el as any).slotId as string | undefined;
+    return AUTO_LAYOUT_EXCLUDE_IDS.has(el.id) || (slotId ? AUTO_LAYOUT_EXCLUDE_SLOTS.has(slotId) : false);
+  };
+  const docMetaSettings = normalizeEasyAdjustBlockSettings(template, 'documentMeta');
+  if (!docMetaSettings.docNoVisible && !docMetaSettings.dateVisible) return elements;
 
   const logo = elements.find(
     (el) => el.type === 'image' && ((el as any).slotId === 'logo' || el.id === 'logo'),
@@ -1665,19 +1713,14 @@ const resolveAlignedX = (
   });
 
   const nextElements = elements.map((el) => {
-    if (AUTO_LAYOUT_EXCLUDE_IDS.has(el.id)) return el;
+    if (isExcluded(el)) return el;
     if (el.id === 'doc_no_label' && layout.docNoLabel && el.type === 'text') {
       return applyFrameToTextElement(el, layout.docNoLabel);
     }
     if ((el as any).slotId === 'doc_no' && layout.docNoValue && el.type === 'text') {
       return applyFrameToTextElement(el, layout.docNoValue);
     }
-    if (
-      !AUTO_LAYOUT_EXCLUDE_IDS.has(el.id) &&
-      (el as any).slotId === 'date_label' &&
-      layout.dateLabel &&
-      el.type === 'text'
-    ) {
+    if ((el as any).slotId === 'date_label' && layout.dateLabel && el.type === 'text') {
       return applyFrameToTextElement(el, layout.dateLabel);
     }
     if ((el as any).slotId === 'issue_date' && layout.dateValue && el.type === 'text') {
@@ -1956,6 +1999,20 @@ function drawText(
         } else if (align === 'right') {
           xPos = x + Math.max(0, maxWidth - textWidth);
         }
+      }
+      if (
+        debugEnabled &&
+        (element.id.includes('doc') || element.id.includes('date') || element.id.includes('issue') ||
+          slotId === 'doc_no' || slotId === 'date_label' || slotId === 'issue_date')
+      ) {
+        console.log('[DBG_POS_USED]', {
+          id: element.id,
+          slotId: slotId ?? null,
+          region: element.region ?? null,
+          templateXY: { x: element.x, y: element.y },
+          usedXY: { x: xPos, y: yStart },
+          text: typeof line === 'string' ? line.slice(0, 30) : line,
+        });
       }
       safeDrawText(page, line, {
         x: xPos,
