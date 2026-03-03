@@ -315,18 +315,19 @@ export const applyEstimateV1MappingToTemplate = (
     slotId?: string,
   ) => {
     const idx = slotSyncedElements.findIndex((e) => e.id === id);
+    const base = idx >= 0 ? (slotSyncedElements[idx] as any) : undefined;
     const nextElement: TemplateElement = {
       id,
-      slotId,
+      slotId: slotId ?? base?.slotId,
       type: "label",
       region,
-      x: fallback.x,
-      y: fallback.y,
-      width: fallback.width,
-      height: fallback.height,
-      fontSize: fallback.fontSize,
-      fontWeight: fallback.fontWeight,
-      alignX: fallback.alignX,
+      x: base?.x ?? fallback.x,
+      y: base?.y ?? fallback.y,
+      width: base?.width ?? fallback.width,
+      height: base?.height ?? fallback.height,
+      fontSize: base?.fontSize ?? fallback.fontSize,
+      fontWeight: base?.fontWeight ?? fallback.fontWeight,
+      alignX: base?.alignX ?? fallback.alignX,
       text,
     } as any;
     if (idx >= 0) {
@@ -428,6 +429,7 @@ export const applyEstimateV1MappingToTemplate = (
     "header",
     "見積番号",
     { x: 360, y: 86, fontSize: 10, width: 60, height: 16, alignX: "right" },
+    "doc_no_label",
   );
 
   ensureLabelElement(

@@ -405,7 +405,7 @@ export async function createTemplateRemote(
         .filter((e) => {
           const slotId = (e as any).slotId as string | undefined;
           return (
-            ['doc_no_label', 'date_label', 'doc_no', 'issue_date'].includes(e.id) ||
+            ['doc_no_label', 'date_label'].includes(e.id) ||
             (slotId ? ['doc_no_label', 'date_label'].includes(slotId) : false)
           );
         })
@@ -416,7 +416,10 @@ export async function createTemplateRemote(
           y: (e as any).y,
           region: e.region ?? null,
         }));
-    console.log('[DBG_TUNER_SAVE_PAYLOAD]', pickMeta(payload.template.elements));
+    console.log('[DBG_SAVE_DOCMETA]', {
+      templateId: template.id,
+      elements: pickMeta(payload.template.elements),
+    });
   }
 
   const url = buildUrl(`/user-templates/${template.id}`, buildDebugParams());

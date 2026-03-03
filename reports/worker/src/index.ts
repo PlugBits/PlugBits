@@ -635,6 +635,8 @@ const SLOT_SCHEMA_ESTIMATE_V1 = {
     { slotId: "doc_title", label: "タイトル", kind: "text" as const },
     { slotId: "to_name", label: "宛先名", kind: "text" as const, required: true },
     { slotId: "to_honorific", label: "敬称", kind: "text" as const },
+    { slotId: "doc_no_label", label: "見積番号ラベル", kind: "text" as const },
+    { slotId: "date_label", label: "日付ラベル", kind: "text" as const },
     { slotId: "issue_date", label: "発行日", kind: "date" as const, required: true },
     { slotId: "doc_no", label: "見積番号", kind: "text" as const },
     { slotId: "logo", label: "ロゴ", kind: "image" as const },
@@ -722,16 +724,44 @@ const TEMPLATE_CATALOG = [
   },
 ];
 
+const pickDocMeta = (template?: TemplateDefinition | null) => {
+  if (!template || !Array.isArray(template.elements)) return [];
+  return template.elements
+    .filter((el) => {
+      const slotId = (el as any).slotId as string | undefined;
+      return (
+        ["doc_no_label", "date_label"].includes(el.id) ||
+        (slotId ? ["doc_no_label", "date_label"].includes(slotId) : false)
+      );
+    })
+    .map((el) => ({
+      id: el.id,
+      slotId: (el as any).slotId ?? null,
+      x: (el as any).x,
+      y: (el as any).y,
+      region: el.region ?? null,
+    }));
+};
+
 const getUserTemplateById = async (
   templateId: string,
   env: Env,
   tenantKey: string,
+  debug?: { enabled?: boolean; requestId?: string; path?: string },
 ): Promise<TemplateDefinition | null> => {
   const key = buildUserTemplateKey(tenantKey, templateId);
   const raw = await env.USER_TEMPLATES_KV.get(key);
   if (!raw) return null;
   try {
     const parsed = JSON.parse(raw) as any;
+    if (debug?.enabled) {
+      console.info("[DBG_FETCH_DOCMETA]", {
+        requestId: debug.requestId ?? null,
+        path: debug.path ?? null,
+        templateId,
+        elements: pickDocMeta(parsed as TemplateDefinition),
+      });
+    }
     if (parsed && Array.isArray(parsed.elements)) {
       return applyEstimateV1PresetPatch(parsed as TemplateDefinition);
     }
@@ -855,6 +885,7 @@ const resolveUserTemplate = async (
   templateId: string,
   env: Env,
   kintone?: { baseUrl?: string; appId?: string },
+  debug?: { enabled?: boolean; requestId?: string; path?: string },
 ): Promise<TemplateDefinition> => {
   const baseUrl = kintone?.baseUrl;
   const appId = kintone?.appId;
@@ -864,7 +895,7 @@ const resolveUserTemplate = async (
 
   const tenantKey = buildTenantKey(baseUrl, appId);
   await ensureUserTemplateActive(env, tenantKey, templateId);
-  const userTemplate = await getUserTemplateById(templateId, env, tenantKey);
+  const userTemplate = await getUserTemplateById(templateId, env, tenantKey, debug);
   if (!userTemplate) {
     throw new Error(`Unknown user templateId: ${templateId}`);
   }
@@ -2837,7 +2868,11 @@ export default {
             }
             try {
               template = isUserTemplate
-                ? await resolveUserTemplate(body.templateId, env, body.kintone as any)
+                ? await resolveUserTemplate(body.templateId, env, body.kintone as any, {
+                    enabled: debugEnabled,
+                    requestId,
+                    path: url.pathname,
+                  })
                 : await getBaseTemplateById(body.templateId, env);
             } catch (err) {
               const msg =
@@ -2880,6 +2915,11 @@ export default {
               resolvedElementIdsSample: elementIds.slice(0, 10),
               resolvedUpdatedAt: updatedAt,
               resolvedRevision: revision,
+            });
+            console.info("[DBG_RENDER_DOCMETA]", {
+              requestId,
+              templateId: template.id ?? templateIdInBody ?? "",
+              elements: pickDocMeta(template as TemplateDefinition),
             });
           }
 

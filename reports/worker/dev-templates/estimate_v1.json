@@ -29,6 +29,16 @@
         "kind": "text"
       },
       {
+        "slotId": "doc_no_label",
+        "label": "見積番号ラベル",
+        "kind": "text"
+      },
+      {
+        "slotId": "date_label",
+        "label": "日付ラベル",
+        "kind": "text"
+      },
+      {
         "slotId": "issue_date",
         "label": "発行日",
         "kind": "date",
@@ -122,6 +132,7 @@
     },
   {
     "id": "doc_no_label",
+    "slotId": "doc_no_label",
     "type": "label",
     "region": "header",
     "x": 360,
