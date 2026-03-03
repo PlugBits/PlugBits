@@ -305,7 +305,7 @@ export const migrateTemplate = (
     date_label: { x: 360, y: 96, width: 56, height: 16, fontSize: 10 },
     issue_date: { x: 420, y: 96, width: 150, height: 16, fontSize: 10 },
     doc_no: { x: 360, y: 74, width: 220, height: 18, fontSize: 10 },
-    logo: { x: 450, y: 2, width: 120, height: 60 },
+    company_logo: { x: 450, y: 2, width: 120, height: 60 },
   } as const;
   const HEADER_LEGACY = {
     doc_title: { x: 60, y: 30, width: 320 },
@@ -313,7 +313,7 @@ export const migrateTemplate = (
     date_label: { x: 350, y: 106 },
     issue_date: { x: 420, y: 106 },
     doc_no: { x: 300, y: 72 },
-    logo: { x: 450, y: 30 },
+    company_logo: { x: 450, y: 30 },
   } as const;
   const schemaVersion = template.schemaVersion ?? 0;
   const baseTemplateId = template.baseTemplateId ?? template.id;
@@ -349,8 +349,9 @@ export const migrateTemplate = (
     const bySlot = new Map<string, TemplateElement>();
     for (const el of elements) {
       if (region && el.region !== region) continue;
-      const slotId = (el as any).slotId ?? el.id;
-      if (slotId) {
+      const rawSlotId = (el as any).slotId ?? el.id;
+      if (rawSlotId) {
+        const slotId = rawSlotId === 'logo' ? 'company_logo' : rawSlotId;
         bySlot.set(String(slotId), el);
       }
     }
@@ -405,7 +406,7 @@ export const migrateTemplate = (
       const dateLabel = header.get('date_label');
       const issueDate = header.get('issue_date');
       const docNo = header.get('doc_no');
-      const logo = header.get('logo');
+      const logo = header.get('company_logo');
       if (!docTitle || !toName || !dateLabel || !issueDate || !docNo || !logo) return false;
       return (
         isNearHeader((docTitle as any).x, HEADER_LEGACY.doc_title.x) &&
@@ -420,8 +421,8 @@ export const migrateTemplate = (
         isNearHeader((issueDate as any).y, HEADER_LEGACY.issue_date.y) &&
         isNearHeader((docNo as any).x, HEADER_LEGACY.doc_no.x) &&
         isNearHeader((docNo as any).y, HEADER_LEGACY.doc_no.y) &&
-        isNearHeader((logo as any).x, HEADER_LEGACY.logo.x) &&
-        isNearHeader((logo as any).y, HEADER_LEGACY.logo.y)
+        isNearHeader((logo as any).x, HEADER_LEGACY.company_logo.x) &&
+        isNearHeader((logo as any).y, HEADER_LEGACY.company_logo.y)
       );
     })();
   const hasCardList = Array.isArray(template.elements)
@@ -474,6 +475,21 @@ export const migrateTemplate = (
     };
   });
 
+  const normalizedElements = migratedElements.map((element): TemplateElement => {
+    const slotId = (element as any).slotId ?? element.id;
+    if (slotId === 'logo' || slotId === 'company_logo') {
+      const next = { ...element, slotId: 'company_logo' } as any;
+      if ('dataSource' in next) {
+        delete next.dataSource;
+      }
+      if ('imageUrl' in next) {
+        delete next.imageUrl;
+      }
+      return next as TemplateElement;
+    }
+    return element;
+  });
+
   let mapping =
     template.mapping &&
     typeof template.mapping === 'object' &&
@@ -484,8 +500,15 @@ export const migrateTemplate = (
   if (!mapping || typeof mapping !== 'object') {
     mapping = {};
   }
+  if (mapping && typeof mapping === 'object') {
+    const header = (mapping as any).header;
+    if (header && typeof header === 'object') {
+      delete header.logo;
+      delete header.company_logo;
+    }
+  }
 
-  let nextElements = migratedElements;
+  let nextElements = normalizedElements;
 
   if (nextStructureType === 'list_v1') {
     const headerBottomY = resolveHeaderBottomY(nextElements);
@@ -565,7 +588,7 @@ export const migrateTemplate = (
     applyHeaderPatch('date_label');
     applyHeaderPatch('issue_date');
     applyHeaderPatch('doc_no');
-    applyHeaderPatch('logo');
+    applyHeaderPatch('company_logo');
 
     const companyIds = new Set(['company_name', 'company_address', 'company_tel', 'company_email']);
     const hasCompany = nextElements.some((el) => {
@@ -745,12 +768,63 @@ export const migrateTemplate = (
     if (el.id === 'date_label' && (!(el as any).slotId || (el as any).slotId === '')) {
       return { ...el, slotId: 'date_label' } as TemplateElement;
     }
+    const slotId = (el as any).slotId ?? el.id;
+    if (slotId === 'logo' || slotId === 'company_logo') {
+      const next = { ...el, slotId: 'company_logo' } as any;
+      if ('dataSource' in next) {
+        delete next.dataSource;
+      }
+      if ('imageUrl' in next) {
+        delete next.imageUrl;
+      }
+      return next as TemplateElement;
+    }
     return el;
   });
   const slotNormalizedTemplate =
     slotNormalizedElements !== normalized.template.elements
       ? { ...normalized.template, elements: slotNormalizedElements }
       : normalized.template;
+  const hasCompanyLogo = slotNormalizedElements.some((el) => {
+    const slotId = (el as any).slotId ?? el.id;
+    return slotId === 'company_logo' || el.id === 'logo' || el.id === 'company_logo';
+  });
+  const slotSchema = slotNormalizedTemplate.slotSchema as
+    | { header?: Array<{ slotId: string; label?: string; kind?: string }> }
+    | undefined;
+  if (slotSchema && slotSchema.header) {
+    const headerSlots = slotSchema.header.map((slot) => {
+      if (slot.slotId !== 'logo') return slot;
+      return {
+        ...slot,
+        slotId: 'company_logo',
+        label: slot.label === 'ロゴ' ? '会社ロゴ' : slot.label,
+      };
+    });
+    const hasCompanyLogoSlot = headerSlots.some((slot) => slot.slotId === 'company_logo');
+    const nextHeader =
+      hasCompanyLogo || hasCompanyLogoSlot
+        ? hasCompanyLogoSlot
+          ? headerSlots
+          : [
+              ...headerSlots,
+              { slotId: 'company_logo', label: '会社ロゴ', kind: 'image' },
+            ]
+        : headerSlots;
+    if (nextHeader !== slotSchema.header) {
+      const nextSchema = { ...slotSchema, header: nextHeader };
+      const nextTemplate = { ...slotNormalizedTemplate, slotSchema: nextSchema };
+      if (debugEnabled) {
+        const after = buildTemplateFingerprint(nextTemplate);
+        console.debug(
+          `[DBG_MIGRATE] requestId=${debug?.requestId ?? ''} templateId=${templateId} ` +
+            `reason=${debug?.reason ?? ''} didNormalize=${normalized.didNormalize} ` +
+            `afterHash=${after.hash} afterJsonLen=${after.jsonLen}`,
+        );
+      }
+      return nextTemplate;
+    }
+  }
   if (debugEnabled) {
     const after = buildTemplateFingerprint(slotNormalizedTemplate);
     console.debug(

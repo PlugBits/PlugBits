@@ -50,6 +50,18 @@ const DOC_META_PICK_IDS = new Set(['doc_no_label', 'date_label', 'doc_no', 'issu
 const normalizeDocMetaSlotIds = (template: TemplateDefinition): TemplateDefinition => {
   if (!Array.isArray(template.elements)) return template;
   let changed = false;
+  let mappingChanged = false;
+  const mapping = (template as any).mapping as Record<string, any> | undefined;
+  let nextMapping = mapping;
+  if (mapping?.header && typeof mapping.header === 'object') {
+    const header = { ...mapping.header };
+    if ('logo' in header || 'company_logo' in header) {
+      delete header.logo;
+      delete header.company_logo;
+      mappingChanged = true;
+    }
+    nextMapping = mappingChanged ? { ...mapping, header } : mapping;
+  }
   const nextElements = template.elements.map((el) => {
     if (el.id === 'doc_no_label' || el.id === 'date_label') {
       const slotId = (el as any).slotId as string | undefined;
@@ -58,9 +70,29 @@ const normalizeDocMetaSlotIds = (template: TemplateDefinition): TemplateDefiniti
         return { ...el, slotId: el.id } as TemplateElement;
       }
     }
+    if (el.id === 'logo' || (el as any).slotId === 'logo' || (el as any).slotId === 'company_logo') {
+      const next = { ...el, slotId: 'company_logo' } as any;
+      if ('dataSource' in next) {
+        delete next.dataSource;
+      }
+      if ('imageUrl' in next) {
+        delete next.imageUrl;
+      }
+      if (next.slotId !== (el as any).slotId || 'dataSource' in el) {
+        changed = true;
+      }
+      return next as TemplateElement;
+    }
     return el;
   });
-  return changed ? { ...template, elements: nextElements } : template;
+  if (changed || mappingChanged) {
+    return {
+      ...template,
+      elements: nextElements,
+      ...(mappingChanged ? { mapping: nextMapping } : {}),
+    };
+  }
+  return template;
 };
 
 const pickDocMeta = (elements: TemplateElement[]) =>

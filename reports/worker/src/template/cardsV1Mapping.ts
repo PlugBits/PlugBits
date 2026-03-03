@@ -36,6 +36,10 @@ export const applyCardsV1MappingToTemplate = (
     element: TemplateElement,
     ref: FieldRef | undefined,
   ): TemplateElement => {
+    const slotId = (element as any).slotId as string | undefined;
+    if (slotId === "company_logo" || element.id === "logo") {
+      return element;
+    }
     if (!ref) {
       if (element.type === "label") {
         return element.text === "" ? element : { ...element, text: "" };

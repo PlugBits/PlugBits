@@ -34,6 +34,7 @@ import {
   registerTenant,
   upsertTenantApiToken,
   verifyEditorToken,
+  updateTenantLogo,
 } from "./auth/tenantAuth.ts";
 import { canonicalizeAppId, canonicalizeKintoneBaseUrl } from "./utils/canonicalize.ts";
 
@@ -46,6 +47,7 @@ export interface Env {
   TEMPLATE_KV: KVNamespace;
   USER_TEMPLATES_KV: KVNamespace;
   SESSIONS_KV: KVNamespace;
+  TENANT_ASSETS?: R2Bucket;
 }
 
 // /render が受け取る JSON ボディ
@@ -114,6 +116,51 @@ const resolveRenderHint = (error: unknown): string => {
 const truncateHeaderValue = (value: string, maxLength = 200) =>
   value.length > maxLength ? value.slice(0, maxLength) : value;
 
+const LOGO_ALLOWED_TYPES = new Set([
+  "image/png",
+  "image/jpeg",
+  "image/jpg",
+  "image/webp",
+]);
+
+const buildTenantLogoKey = (tenantKey: string) => `tenants/${tenantKey}/logo`;
+
+const isValidLogoContentType = (contentType: string | null | undefined) => {
+  if (!contentType) return false;
+  return LOGO_ALLOWED_TYPES.has(contentType.toLowerCase());
+};
+
+const getTenantLogoBytes = async (
+  env: Env,
+  tenantKey: string,
+  logo: { objectKey: string; contentType: string },
+): Promise<{ bytes: Uint8Array; contentType: string } | null> => {
+  if (!env.TENANT_ASSETS) return null;
+  const cacheKey = new Request(`https://tenant-assets/${logo.objectKey}`);
+  const cached = await caches.default.match(cacheKey);
+  if (cached) {
+    const cachedBytes = new Uint8Array(await cached.arrayBuffer());
+    const cachedType = cached.headers.get("content-type") ?? logo.contentType;
+    return { bytes: cachedBytes, contentType: cachedType };
+  }
+
+  const object = await env.TENANT_ASSETS.get(logo.objectKey);
+  if (!object) return null;
+  const contentType =
+    object.httpMetadata?.contentType ??
+    logo.contentType ??
+    "image/png";
+  const bytes = new Uint8Array(await object.arrayBuffer());
+  const response = new Response(bytes, {
+    headers: {
+      "Content-Type": contentType,
+      "Cache-Control": "public, max-age=21600",
+    },
+  });
+  await caches.default.put(cacheKey, response.clone());
+  return { bytes, contentType };
+};
+
 const normalizeCompanyProfile = (profile?: CompanyProfile) => ({
   companyName: String(profile?.companyName ?? '').trim(),
   companyAddress: String(profile?.companyAddress ?? '').trim(),
@@ -161,6 +208,18 @@ const canonicalizeElementDefaults = (
   element: TemplateElement,
 ): TemplateElement => {
   const next = { ...element } as any;
+  const slotId = next.slotId ?? next.id;
+  const isCompanyLogo =
+    slotId === "company_logo" || slotId === "logo" || next.id === "company_logo" || next.id === "logo";
+  if (isCompanyLogo) {
+    next.slotId = "company_logo";
+    if ("dataSource" in next) {
+      delete next.dataSource;
+    }
+    if ("imageUrl" in next) {
+      delete next.imageUrl;
+    }
+  }
   if (next.slotId === null || next.slotId === undefined) {
     delete next.slotId;
   }
@@ -208,10 +267,40 @@ const canonicalizeTemplateForStorage = (
     typeof structuredClone === "function"
       ? structuredClone(template)
       : JSON.parse(JSON.stringify(template));
+  const mapping = (clone as any).mapping;
+  if (mapping?.header) {
+    delete mapping.header.logo;
+    delete mapping.header.company_logo;
+  }
   const elements = Array.isArray(clone.elements) ? clone.elements : [];
+  const canonicalized = elements.map(canonicalizeElementDefaults);
+  const hasCompanyLogo = canonicalized.some((el) => {
+    const slotId = (el as any).slotId ?? el.id;
+    return slotId === "company_logo" || el.id === "logo" || el.id === "company_logo";
+  });
+  const slotSchema = (clone as any).slotSchema as
+    | { header?: Array<{ slotId: string; label?: string; kind?: string }> }
+    | undefined;
+  let nextSlotSchema = slotSchema;
+  if (slotSchema?.header) {
+    const headerSlots = slotSchema.header.map((slot) => {
+      if (slot.slotId !== "logo") return slot;
+      return {
+        ...slot,
+        slotId: "company_logo",
+        label: slot.label === "ロゴ" ? "会社ロゴ" : slot.label,
+      };
+    });
+    const hasCompanyLogoSlot = headerSlots.some((slot) => slot.slotId === "company_logo");
+    if (hasCompanyLogo && !hasCompanyLogoSlot) {
+      headerSlots.push({ slotId: "company_logo", label: "会社ロゴ", kind: "image" });
+    }
+    nextSlotSchema = headerSlots !== slotSchema.header ? { ...slotSchema, header: headerSlots } : slotSchema;
+  }
   return {
     ...clone,
-    elements: elements.map(canonicalizeElementDefaults),
+    elements: canonicalized,
+    ...(nextSlotSchema ? { slotSchema: nextSlotSchema } : {}),
   };
 };
 
@@ -622,7 +711,7 @@ const SLOT_SCHEMA_LIST_V1 = {
     { slotId: "date_label", label: "日付ラベル", kind: "text" as const },
     { slotId: "issue_date", label: "日付", kind: "date" as const, required: true },
     { slotId: "doc_no", label: "文書番号", kind: "text" as const },
-    { slotId: "logo", label: "ロゴ", kind: "image" as const },
+    { slotId: "company_logo", label: "会社ロゴ", kind: "image" as const },
   ],
   footer: [
     { slotId: "remarks", label: "備考", kind: "text" as const },
@@ -639,7 +728,7 @@ const SLOT_SCHEMA_ESTIMATE_V1 = {
     { slotId: "date_label", label: "日付ラベル", kind: "text" as const },
     { slotId: "issue_date", label: "発行日", kind: "date" as const, required: true },
     { slotId: "doc_no", label: "見積番号", kind: "text" as const },
-    { slotId: "logo", label: "ロゴ", kind: "image" as const },
+    { slotId: "company_logo", label: "会社ロゴ", kind: "image" as const },
   ],
   footer: [
     { slotId: "remarks", label: "備考", kind: "text" as const },
@@ -1557,6 +1646,87 @@ export default {
               ...CORS_HEADERS,
               "Content-Type": "application/json",
               "Cache-Control": "no-store",
+            },
+          },
+        );
+      }
+
+      if (url.pathname === "/tenant/logo") {
+        if (request.method !== "PUT") {
+          return new Response("Method Not Allowed", {
+            status: 405,
+            headers: CORS_HEADERS,
+          });
+        }
+        if (env.ADMIN_API_KEY) {
+          const apiKey = request.headers.get("x-api-key");
+          if (apiKey !== env.ADMIN_API_KEY) {
+            return new Response("Unauthorized", {
+              status: 401,
+              headers: CORS_HEADERS,
+            });
+          }
+        }
+        if (!env.TENANT_ASSETS) {
+          return new Response("Tenant assets bucket not configured", {
+            status: 500,
+            headers: CORS_HEADERS,
+          });
+        }
+
+        const tenant = getTenantContext(url);
+        if ("error" in tenant) return tenant.error;
+
+        let form: FormData;
+        try {
+          form = await request.formData();
+        } catch {
+          return new Response("Invalid form data", {
+            status: 400,
+            headers: CORS_HEADERS,
+          });
+        }
+
+        const file = form.get("file") ?? form.get("logo");
+        if (!(file instanceof File)) {
+          return new Response("Missing logo file", {
+            status: 400,
+            headers: CORS_HEADERS,
+          });
+        }
+        const contentType = String(file.type ?? "").toLowerCase();
+        if (!isValidLogoContentType(contentType)) {
+          return new Response("Unsupported image type", {
+            status: 400,
+            headers: CORS_HEADERS,
+          });
+        }
+
+        const objectKey = buildTenantLogoKey(tenant.tenantKey);
+        const buf = await file.arrayBuffer();
+        await env.TENANT_ASSETS.put(objectKey, buf, {
+          httpMetadata: { contentType },
+        });
+        const updatedAt = new Date().toISOString();
+        const updated = await updateTenantLogo(env.USER_TEMPLATES_KV, tenant.tenantKey, {
+          objectKey,
+          contentType,
+          updatedAt,
+        });
+        if (!updated) {
+          return new Response("Tenant not found", {
+            status: 400,
+            headers: CORS_HEADERS,
+          });
+        }
+
+        return new Response(
+          JSON.stringify({ ok: true, logo: updated.logo }),
+          {
+            status: 200,
+            headers: {
+              ...CORS_HEADERS,
+              "Content-Type": "application/json",
             },
           },
         );
@@ -3123,6 +3293,27 @@ export default {
           return "(unknown)";
         })();
 
+        const tenantLogo = await (async () => {
+          try {
+            const kintone = body?.kintone as { baseUrl?: string; appId?: string } | undefined;
+            if (!kintone?.baseUrl || !kintone?.appId) return null;
+            const baseUrl = canonicalizeKintoneBaseUrl(kintone.baseUrl);
+            const appId = canonicalizeAppId(kintone.appId);
+            if (!appId) return null;
+            const tenantKey = buildTenantKey(baseUrl, appId);
+            const tenantRecord = await getTenantRecord(env.USER_TEMPLATES_KV, tenantKey);
+            if (!tenantRecord?.logo) return null;
+            const logo = await getTenantLogoBytes(env, tenantKey, tenantRecord.logo);
+            if (!logo) return null;
+            return {
+              ...logo,
+              objectKey: tenantRecord.logo.objectKey,
+            };
+          } catch {
+            return null;
+          }
+        })();
+
         // フォント読み込み
         let fonts: { jp: Uint8Array; latin: Uint8Array };  // ← これが大事！！
         try {
@@ -3159,6 +3350,7 @@ export default {
                 debug,
                 previewMode,
                 requestId,
+                tenantLogo: tenantLogo ?? undefined,
                 onTextBaseline: debug
                   ? (entry) => {
                       debugTextBaseline.push(entry);

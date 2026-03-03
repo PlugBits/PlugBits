@@ -490,7 +490,10 @@ const TemplateCanvas = ({
     if (el.hidden && !slotMeta) return false;
     if (!companyBlockEnabled && slotId && slotId.startsWith('company_')) return false;
     if (isCompanyNameEmpty && slotId && slotId.startsWith('company_')) return false;
-    if (el.type === 'image' && (slotId === 'logo' || el.id === 'logo')) {
+    if (el.type === 'image') {
+      const isCompanyLogo =
+        slotId === 'company_logo' || slotId === 'logo' || el.id === 'company_logo' || el.id === 'logo';
+      if (isCompanyLogo) return true;
       const ds = (el as any).dataSource as DataSource | undefined;
       const staticValue = ds?.type === 'static' ? String(ds.value ?? '').trim() : '';
       const kintoneField = ds?.type === 'kintone' ? String(ds.fieldCode ?? '').trim() : '';

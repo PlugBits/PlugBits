@@ -62,7 +62,7 @@ const HEADER_SLOT_IDS = new Set([
   "date_label",
   "issue_date",
   "doc_no",
-  "logo",
+  "company_logo",
 ]);
 const FOOTER_SLOT_IDS = new Set([
   "remarks",
@@ -86,7 +86,7 @@ export const listV1Adapter: StructureAdapter = {
         { id: "date_label", label: "日付ラベル", kind: "text", allowedSources: ["staticText", "recordField"] },
         { id: "issue_date", label: "日付", kind: "date", required: true, allowedSources: ["recordField"] },
         { id: "doc_no", label: "文書番号", kind: "text", allowedSources: ["recordField"] },
-        { id: "logo", label: "ロゴ", kind: "image", allowedSources: ["imageUrl"] },
+        { id: "company_logo", label: "会社ロゴ", kind: "image" },
       ],
     },
     {
@@ -284,6 +284,7 @@ export const listV1Adapter: StructureAdapter = {
       },
       ref: FieldRef | undefined,
     ) => {
+      const isCompanyLogo = slotId === "company_logo" || slotId === "logo";
       const mkDataSource = (): any => {
         if (!ref) return { type: "static", value: "" };
         if (ref.kind === "staticText") return { type: "static", value: ref.text ?? "" };
@@ -305,7 +306,7 @@ export const listV1Adapter: StructureAdapter = {
         // yが上に寄りすぎなら下げる（bottom座標なので「大きいほど上」）
         const nextY = typeof base.y === "number" && base.y > safetyY ? safetyY : base.y;
 
-        slotSyncedElements[idx] = {
+        const next = {
           ...base,
           slotId,
           region,
@@ -318,8 +319,12 @@ export const listV1Adapter: StructureAdapter = {
           fontWeight: base.fontWeight ?? fallback.fontWeight,
           alignX: base.alignX ?? fallback.alignX,
           ...(type === "text" ? { dataSource: mkDataSource() } : {}),
-          ...(type === "image" ? { dataSource: mkDataSource() } : {}),
+          ...(type === "image" && !isCompanyLogo ? { dataSource: mkDataSource() } : {}),
         } as any;
+        if (type === "image" && isCompanyLogo) {
+          delete next.dataSource;
+        }
+        slotSyncedElements[idx] = next;
         return;
       }
 
@@ -342,7 +347,7 @@ export const listV1Adapter: StructureAdapter = {
       }
 
       // image
-      slotSyncedElements.push({
+      const nextImage: any = {
         id: slotId,
         slotId,
         type: "image",
@@ -351,8 +356,11 @@ export const listV1Adapter: StructureAdapter = {
         y: fallback.y,
         width: fallback.width ?? 120,
         height: fallback.height ?? 60,
-        dataSource: mkDataSource(),
-      } as any);
+      };
+      if (!isCompanyLogo) {
+        nextImage.dataSource = mkDataSource();
+      }
+      slotSyncedElements.push(nextImage);
     };
 
     const headerRef = m?.header ?? {};
@@ -403,11 +411,11 @@ export const listV1Adapter: StructureAdapter = {
       );
     }
     ensureSlotElement(
-      "logo",
+      "company_logo",
       "header",
       "image",
       { x: 450, y: 2, width: 120, height: 60 },
-      headerRef["logo"],
+      headerRef["company_logo"],
     );
     ensureSlotElement(
       "date_label",

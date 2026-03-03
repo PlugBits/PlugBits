@@ -37,7 +37,7 @@ export const cardsV1Adapter: StructureAdapter = {
         { id: "date_label", label: "日付ラベル", kind: "text", allowedSources: ["staticText", "recordField"] },
         { id: "issue_date", label: "日付", kind: "date", required: true, allowedSources: ["recordField"] },
         { id: "doc_no", label: "文書番号", kind: "text", allowedSources: ["recordField"] },
-        { id: "logo", label: "ロゴ", kind: "image", allowedSources: ["imageUrl"] },
+        { id: "company_logo", label: "会社ロゴ", kind: "image" },
       ],
     },
     {
@@ -119,6 +119,10 @@ export const cardsV1Adapter: StructureAdapter = {
       element: TemplateElement,
       ref: FieldRef | undefined,
     ): TemplateElement => {
+      const slotId = (element as any).slotId as string | undefined;
+      if (slotId === "company_logo" || element.id === "logo") {
+        return element;
+      }
       if (!ref) {
         if (element.type === "label") {
           return element.text === "" ? element : { ...element, text: "" };

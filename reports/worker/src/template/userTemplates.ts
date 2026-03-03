@@ -118,11 +118,14 @@ export const applySlotLayoutOverrides = (
   const next = structuredClone(template);
   const elements = [...(next.elements ?? [])];
 
-  for (const slotId of Object.keys(overrides)) {
-    const override = overrides[slotId];
+  for (const rawSlotId of Object.keys(overrides)) {
+    const slotId = rawSlotId === "logo" ? "company_logo" : rawSlotId;
+    const override = overrides[rawSlotId];
     if (!override) continue;
 
-    const idx = elements.findIndex((el) => (el as any).slotId === slotId);
+    const idx = elements.findIndex(
+      (el) => (el as any).slotId === slotId || el.id === slotId,
+    );
     const region = override.region ?? normalizeSlotRegion(next, slotId);
     const base = idx >= 0 ? (elements[idx] as any) : null;
 
@@ -179,11 +182,15 @@ export const applySlotDataOverrides = (
   const next = structuredClone(template);
   const elements = [...(next.elements ?? [])];
 
-  for (const slotId of Object.keys(overrides)) {
-    const override = overrides[slotId];
+  for (const rawSlotId of Object.keys(overrides)) {
+    const slotId = rawSlotId === "logo" ? "company_logo" : rawSlotId;
+    const override = overrides[rawSlotId];
     if (!override) continue;
+    if (slotId === "company_logo") continue;
 
-    const idx = elements.findIndex((el) => (el as any).slotId === slotId);
+    const idx = elements.findIndex(
+      (el) => (el as any).slotId === slotId || el.id === slotId,
+    );
     const region = normalizeSlotRegion(next, slotId);
     const base = idx >= 0 ? (elements[idx] as any) : null;
 

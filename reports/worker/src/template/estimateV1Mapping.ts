@@ -47,7 +47,7 @@ const HEADER_SLOT_IDS = new Set([
   "to_honorific",
   "issue_date",
   "doc_no",
-  "logo",
+  "company_logo",
 ]);
 const FOOTER_SLOT_IDS = new Set([
   "remarks",
@@ -70,6 +70,10 @@ export const applyEstimateV1MappingToTemplate = (
     element: TemplateElement,
     ref: FieldRef | undefined,
   ): TemplateElement => {
+    const slotId = (element as any).slotId as string | undefined;
+    if (slotId === "company_logo" || element.id === "logo") {
+      return element;
+    }
     if (!ref) {
       if (element.type === "label") {
         const hasLabelText = String(element.text ?? "").trim().length > 0;
@@ -174,6 +178,7 @@ export const applyEstimateV1MappingToTemplate = (
     },
     ref: FieldRef | undefined,
   ) => {
+    const isCompanyLogo = slotId === "company_logo" || slotId === "logo";
     const mkDataSource = (): any => {
       if (!ref) return { type: "static", value: "" };
       if (ref.kind === "staticText") return { type: "static", value: ref.text ?? "" };
@@ -192,10 +197,10 @@ export const applyEstimateV1MappingToTemplate = (
         ? String(base.dataSource.value ?? "").trim()
         : "";
     const nextHidden = !ref && !baseStaticText;
-    const nextDataSource = ref ? mkDataSource() : base?.dataSource;
+    const nextDataSource = isCompanyLogo ? undefined : ref ? mkDataSource() : base?.dataSource;
 
     if (idx >= 0) {
-      slotSyncedElements[idx] = {
+      const next = {
         ...base,
         slotId,
         region,
@@ -213,8 +218,12 @@ export const applyEstimateV1MappingToTemplate = (
         borderColorGray: base.borderColorGray ?? fallback.borderColorGray,
         fillGray: base.fillGray ?? fallback.fillGray,
         ...(type === "text" ? { dataSource: nextDataSource ?? mkDataSource() } : {}),
-        ...(type === "image" ? { dataSource: nextDataSource ?? mkDataSource() } : {}),
+        ...(type === "image" && !isCompanyLogo ? { dataSource: nextDataSource ?? mkDataSource() } : {}),
       } as any;
+      if (type === "image" && isCompanyLogo) {
+        delete (next as any).dataSource;
+      }
+      slotSyncedElements[idx] = next;
       return;
     }
 
@@ -241,7 +250,7 @@ export const applyEstimateV1MappingToTemplate = (
       return;
     }
 
-    slotSyncedElements.push({
+    const nextImage: any = {
       id: slotId,
       slotId,
       type: "image",
@@ -255,8 +264,11 @@ export const applyEstimateV1MappingToTemplate = (
       borderWidth: fallback.borderWidth,
       borderColorGray: fallback.borderColorGray,
       fillGray: fallback.fillGray,
-      dataSource: mkDataSource(),
-    } as any);
+    };
+    if (!isCompanyLogo) {
+      nextImage.dataSource = mkDataSource();
+    }
+    slotSyncedElements.push(nextImage);
   };
 
   const ensureLabelElement = (
@@ -397,11 +409,11 @@ export const applyEstimateV1MappingToTemplate = (
     );
   }
   ensureSlotElement(
-    "logo",
+    "company_logo",
     "header",
     "image",
     { x: 40, y: 12, width: 120, height: 60, repeatOnEveryPage: true },
-    headerRef["logo"],
+    headerRef["company_logo"],
   );
   ensureFixedLabelElement(
     "date_label",

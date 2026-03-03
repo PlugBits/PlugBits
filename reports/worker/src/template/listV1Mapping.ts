@@ -48,7 +48,7 @@ const HEADER_SLOT_IDS = new Set([
   "date_label",
   "issue_date",
   "doc_no",
-  "logo",
+  "company_logo",
 ]);
 const FOOTER_SLOT_IDS = new Set([
   "remarks",
@@ -72,6 +72,10 @@ export const applyListV1MappingToTemplate = (
     element: TemplateElement,
     ref: FieldRef | undefined,
   ): TemplateElement => {
+    const slotId = (element as any).slotId as string | undefined;
+    if (slotId === "company_logo" || element.id === "logo") {
+      return element;
+    }
     if (!ref) {
       if (element.type === "label") {
         return element.text === "" ? element : { ...element, text: "" };
@@ -182,6 +186,7 @@ export const applyListV1MappingToTemplate = (
     },
     ref: FieldRef | undefined,
   ) => {
+    const isCompanyLogo = slotId === "company_logo" || slotId === "logo";
     const mkDataSource = (): any => {
       if (!ref) return { type: "static", value: "" };
       if (ref.kind === "staticText") return { type: "static", value: ref.text ?? "" };
@@ -200,7 +205,7 @@ export const applyListV1MappingToTemplate = (
       const base = slotSyncedElements[idx] as any;
       const nextY = typeof base.y === "number" && base.y > safetyY ? safetyY : base.y;
 
-      slotSyncedElements[idx] = {
+      const next = {
         ...base,
         slotId,
         region,
@@ -213,8 +218,12 @@ export const applyListV1MappingToTemplate = (
         fontWeight: base.fontWeight ?? fallback.fontWeight,
         alignX: base.alignX ?? fallback.alignX,
         ...(type === "text" ? { dataSource: mkDataSource() } : {}),
-        ...(type === "image" ? { dataSource: mkDataSource() } : {}),
+        ...(type === "image" && !isCompanyLogo ? { dataSource: mkDataSource() } : {}),
       } as any;
+      if (type === "image" && isCompanyLogo) {
+        delete next.dataSource;
+      }
+      slotSyncedElements[idx] = next;
       return;
     }
 
@@ -236,7 +245,7 @@ export const applyListV1MappingToTemplate = (
       return;
     }
 
-    slotSyncedElements.push({
+    const nextImage: any = {
       id: slotId,
       slotId,
       type: "image",
@@ -245,8 +254,11 @@ export const applyListV1MappingToTemplate = (
       y: fallback.y,
       width: fallback.width ?? 120,
       height: fallback.height ?? 60,
-      dataSource: mkDataSource(),
-    } as any);
+    };
+    if (!isCompanyLogo) {
+      nextImage.dataSource = mkDataSource();
+    }
+    slotSyncedElements.push(nextImage);
   };
 
   const headerRef = m?.header ?? {};
@@ -295,11 +307,11 @@ export const applyListV1MappingToTemplate = (
     );
   }
   ensureSlotElement(
-    "logo",
+    "company_logo",
     "header",
     "image",
     { x: 450, y: 2, width: 120, height: 60 },
-    headerRef["logo"],
+    headerRef["company_logo"],
   );
   ensureSlotElement(
     "date_label",

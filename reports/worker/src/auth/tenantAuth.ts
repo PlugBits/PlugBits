@@ -8,6 +8,11 @@ export type TenantRecord = {
   appId: string;
   kintoneApiToken?: string;
   tokensByAppId?: Record<string, string>;
+  logo?: {
+    objectKey: string;
+    contentType: string;
+    updatedAt: string;
+  };
   createdAt: string;
   updatedAt?: string;
 };
@@ -159,6 +164,22 @@ export const upsertTenantApiToken = async (
       existing.kintoneApiToken ?? (existing.appId === normalizedAppId ? kintoneApiToken : undefined),
     tokensByAppId: nextTokensByAppId,
     updatedAt: new Date().toISOString(),
+  };
+  await kv.put(buildTenantRecordKey(tenantId), JSON.stringify(updated));
+  return updated;
+};
+
+export const updateTenantLogo = async (
+  kv: KVNamespace,
+  tenantId: string,
+  logo: { objectKey: string; contentType: string; updatedAt: string },
+): Promise<TenantRecord | null> => {
+  const existing = await getTenantRecord(kv, tenantId);
+  if (!existing) return null;
+  const updated: TenantRecord = {
+    ...existing,
+    logo,
+    updatedAt: logo.updatedAt,
   };
   await kv.put(buildTenantRecordKey(tenantId), JSON.stringify(updated));
   return updated;

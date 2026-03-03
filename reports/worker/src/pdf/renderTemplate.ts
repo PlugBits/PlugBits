@@ -759,7 +759,14 @@ async function preloadImages(
   const map = new Map<string, PDFImage>();
 
   const imageElements = template.elements.filter(
-    (e) => e.type === 'image',
+    (e) => {
+      if (e.type !== 'image') return false;
+      const slotId = (e as any).slotId as string | undefined;
+      if (slotId === 'company_logo' || e.id === 'company_logo' || e.id === 'logo') {
+        return false;
+      }
+      return true;
+    },
   ) as ImageElement[];
 
   const urls = Array.from(
@@ -900,6 +907,7 @@ export async function renderTemplateToPdf(
     debug?: boolean;
     previewMode?: PreviewMode;
     requestId?: string;
+    tenantLogo?: { bytes: Uint8Array; contentType: string; objectKey: string };
     onPageInfo?: (info: { pdfPageW: number; pdfPageH: number }) => void;
     onTextBaseline?: (entry: TextBaselineDebug) => void;
   },
@@ -926,6 +934,17 @@ export async function renderTemplateToPdf(
 
   const pdfDoc = await PDFDocument.create();
   pdfDoc.registerFontkit(fontkit);
+
+  let tenantLogoImage: PDFImage | null = null;
+  if (options?.tenantLogo?.bytes) {
+    tenantLogoImage = await embedImageBuffer(
+      pdfDoc,
+      options.tenantLogo.bytes,
+      options.tenantLogo.objectKey,
+      options.tenantLogo.contentType,
+      warn,
+    );
+  }
 
   if (debugEnabled) {
     const passthrough = template.structureType === 'estimate_v1';
@@ -1333,6 +1352,7 @@ export async function renderTemplateToPdf(
     jpFont,
     latinFont,
     imageMap,
+    tenantLogoImage,
     resolveAdjust,
     transform,
     warn,
@@ -1357,6 +1377,7 @@ export async function renderTemplateToPdf(
       repeatingHeaderElements,
       footerReserveHeightPdf,
       imageMap,
+      tenantLogoImage,
       resolveAdjust,
       transform,
       warn,
@@ -1446,6 +1467,7 @@ export async function renderTemplateToPdf(
       repeatingHeaderElements,
       footerReserveHeightPdf,
       imageMap,
+      tenantLogoImage,
       resolveAdjust,
       transform,
       warn,
@@ -1476,6 +1498,7 @@ export async function renderTemplateToPdf(
       jpFont,
       latinFont,
       imageMap,
+      tenantLogoImage,
       resolveAdjust,
       transform,
       warn,
@@ -1661,7 +1684,9 @@ const applyDocumentMetaLayout = (
   if (!docMetaSettings.docNoVisible && !docMetaSettings.dateVisible) return elements;
 
   const logo = elements.find(
-    (el) => el.type === 'image' && ((el as any).slotId === 'logo' || el.id === 'logo'),
+    (el) =>
+      el.type === 'image' &&
+      (((el as any).slotId === 'company_logo') || (el as any).slotId === 'logo' || el.id === 'company_logo' || el.id === 'logo'),
   ) as ImageElement | undefined;
   const logoX = Number.isFinite(logo?.x) ? (logo?.x as number) : 450;
   const logoY = Number.isFinite(logo?.y) ? (logo?.y as number) : 752;
@@ -2075,6 +2100,7 @@ function drawHeaderElements(
   jpFont: PDFFont,
   latinFont: PDFFont,
   imageMap: Map<string, PDFImage>,
+  tenantLogoImage: PDFImage | null,
   resolveAdjust: (element: TemplateElement) => { fontScale: number; pagePadding: number; hidden: boolean },
   transform: PdfTransform,
   warn: WarnFn,
@@ -2127,6 +2153,7 @@ function drawHeaderElements(
           previewMode,
           adjust.pagePadding,
           imageMap,
+          tenantLogoImage,
           transform,
           warn,
         );
@@ -2158,6 +2185,7 @@ function drawFooterElements(
   jpFont: PDFFont,
   latinFont: PDFFont,
   imageMap: Map<string, PDFImage>,
+  tenantLogoImage: PDFImage | null,
   resolveAdjust: (element: TemplateElement) => { fontScale: number; pagePadding: number; hidden: boolean },
   transform: PdfTransform,
   warn: WarnFn,
@@ -2210,6 +2238,7 @@ function drawFooterElements(
           previewMode,
           adjust.pagePadding,
           imageMap,
+          tenantLogoImage,
           transform,
           warn,
         );
@@ -2726,6 +2755,7 @@ function drawTable(
   headerElements: TemplateElement[],
   footerReserveHeight: number,
   imageMap: Map<string, PDFImage>,
+  tenantLogoImage: PDFImage | null,
   resolveAdjust: (element: TemplateElement) => { fontScale: number; pagePadding: number; hidden: boolean },
   transform: PdfTransform,
   warn: WarnFn,
@@ -2899,6 +2929,7 @@ function drawTable(
       jpFont,
       latinFont,
       imageMap,
+      tenantLogoImage,
       resolveAdjust,
       transform,
       warn,
@@ -3144,6 +3175,7 @@ function drawTable(
       jpFont,
       latinFont,
       imageMap,
+      tenantLogoImage,
       resolveAdjust,
       transform,
       warn,
@@ -3409,6 +3441,7 @@ function drawTable(
           jpFont,
           latinFont,
           imageMap,
+          tenantLogoImage,
           resolveAdjust,
           transform,
           warn,
@@ -3448,6 +3481,7 @@ function drawTable(
         jpFont,
         latinFont,
         imageMap,
+        tenantLogoImage,
         resolveAdjust,
         transform,
         warn,
@@ -3920,6 +3954,7 @@ function drawCardList(
   headerElements: TemplateElement[],
   footerReserveHeight: number,
   imageMap: Map<string, PDFImage>,
+  tenantLogoImage: PDFImage | null,
   resolveAdjust: (element: TemplateElement) => { fontScale: number; pagePadding: number; hidden: boolean },
   transform: PdfTransform,
   warn: WarnFn,
@@ -4141,6 +4176,7 @@ function drawCardList(
       jpFont,
       latinFont,
       imageMap,
+      tenantLogoImage,
       resolveAdjust,
       transform,
       warn,
@@ -4532,23 +4568,41 @@ function drawImageElement(
   previewMode: PreviewMode,
   pagePadding: number,
   imageMap: Map<string, PDFImage>,
+  tenantLogoImage: PDFImage | null,
   transform: PdfTransform,
   warn: WarnFn,
 ) {
   const slotId = (element as any).slotId as string | undefined;
-  const isLogo = slotId === 'logo' || element.id === 'logo';
-  if (isLogo) {
-    const staticValue =
-      element.dataSource?.type === 'static'
-        ? String(element.dataSource.value ?? '').trim()
-        : '';
-    const kintoneField =
-      element.dataSource?.type === 'kintone'
-        ? String(element.dataSource.fieldCode ?? '').trim()
-        : '';
-    if (!staticValue && !kintoneField) {
-      return;
+  const isCompanyLogo =
+    slotId === 'company_logo' || element.id === 'company_logo' || element.id === 'logo';
+  if (isCompanyLogo) {
+    if (!tenantLogoImage) return;
+    const widthCanvas =
+      typeof element.width === 'number' ? element.width : tenantLogoImage.width / transform.scaleX;
+    const heightCanvas =
+      typeof element.height === 'number' ? element.height : tenantLogoImage.height / transform.scaleY;
+    const width = transform.toPdfW(widthCanvas);
+    const height = transform.toPdfH(heightCanvas);
+    let pdfY = transform.toPdfYBox(element.y, heightCanvas);
+    pdfY = clampPdfY(pdfY, transform.pageHeightPt - height);
+    const { width: imgW, height: imgH } = tenantLogoImage.size();
+    const fitMode = element.fitMode ?? 'fit';
+    let drawWidth = width;
+    let drawHeight = height;
+    if (fitMode === 'fit') {
+      const scale = Math.min(width / imgW, height / imgH);
+      drawWidth = imgW * scale;
+      drawHeight = imgH * scale;
     }
+    const drawXCanvas = resolveAlignedX(element, transform.canvasWidth, widthCanvas, pagePadding);
+    const drawX = transform.toPdfX(drawXCanvas);
+    page.drawImage(tenantLogoImage, {
+      x: drawX,
+      y: pdfY,
+      width: drawWidth,
+      height: drawHeight,
+    });
+    return;
   }
   if (previewMode === 'fieldCode') {
     const fieldCode =

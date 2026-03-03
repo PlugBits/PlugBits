@@ -132,9 +132,22 @@ export const canonicalizeTemplateForStorage = (
     typeof structuredClone === 'function'
       ? structuredClone(template)
       : JSON.parse(JSON.stringify(template));
+  const mapping = (clone as any).mapping;
+  if (mapping?.header) {
+    delete mapping.header.logo;
+    delete mapping.header.company_logo;
+  }
   const elements = Array.isArray(clone.elements) ? clone.elements : [];
   const canonicalized = elements.map((element) => {
     const next = { ...element } as any;
+    const slotId = next.slotId ?? next.id;
+    const isCompanyLogo =
+      slotId === 'company_logo' || slotId === 'logo' || next.id === 'company_logo' || next.id === 'logo';
+    if (isCompanyLogo) {
+      next.slotId = 'company_logo';
+      if ('dataSource' in next) delete next.dataSource;
+      if ('imageUrl' in next) delete next.imageUrl;
+    }
     if (next.slotId === null || next.slotId === undefined) {
       delete next.slotId;
     }
@@ -174,7 +187,30 @@ export const canonicalizeTemplateForStorage = (
     }
     return next as TemplateDefinition['elements'][number];
   });
-  return { ...clone, elements: canonicalized };
+  const hasCompanyLogo = canonicalized.some((el) => {
+    const slotId = (el as any).slotId ?? el.id;
+    return slotId === 'company_logo' || el.id === 'logo' || el.id === 'company_logo';
+  });
+  const slotSchema = (clone as any).slotSchema as
+    | { header?: Array<{ slotId: string; label?: string; kind?: string }> }
+    | undefined;
+  let nextSlotSchema = slotSchema;
+  if (slotSchema?.header) {
+    const headerSlots = slotSchema.header.map((slot) => {
+      if (slot.slotId !== 'logo') return slot;
+      return {
+        ...slot,
+        slotId: 'company_logo',
+        label: slot.label === 'ロゴ' ? '会社ロゴ' : slot.label,
+      };
+    });
+    const hasCompanyLogoSlot = headerSlots.some((slot) => slot.slotId === 'company_logo');
+    if (hasCompanyLogo && !hasCompanyLogoSlot) {
+      headerSlots.push({ slotId: 'company_logo', label: '会社ロゴ', kind: 'image' });
+    }
+    nextSlotSchema = headerSlots !== slotSchema.header ? { ...slotSchema, header: headerSlots } : slotSchema;
+  }
+  return { ...clone, elements: canonicalized, ...(nextSlotSchema ? { slotSchema: nextSlotSchema } : {}) };
 };
 
 const sha256Hex = async (input: string): Promise<string | null> => {
@@ -471,6 +507,17 @@ export const createUserTemplateFromBase = async (
           changed = true;
           return { ...el, slotId: el.id } as TemplateElement;
         }
+      }
+      if (el.id === 'logo') {
+        const slotId = (el as any).slotId as string | undefined;
+        if (slotId !== 'company_logo') {
+          changed = true;
+          return { ...el, slotId: 'company_logo' } as TemplateElement;
+        }
+      }
+      if ((el as any).slotId === 'logo') {
+        changed = true;
+        return { ...el, slotId: 'company_logo' } as TemplateElement;
       }
       return el;
     });

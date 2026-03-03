@@ -60,7 +60,7 @@ const HEADER_SLOT_IDS = new Set([
   "to_honorific",
   "issue_date",
   "doc_no",
-  "logo",
+  "company_logo",
 ]);
 const FOOTER_SLOT_IDS = new Set([
   "remarks",
@@ -82,7 +82,7 @@ export const estimateV1Adapter: StructureAdapter = {
         { id: "to_name", label: "宛先名", kind: "text", required: true, allowedSources: ["recordField"] },
         { id: "issue_date", label: "発行日", kind: "date", required: true, allowedSources: ["recordField"] },
         { id: "doc_no", label: "見積番号", kind: "text", allowedSources: ["recordField"] },
-        { id: "logo", label: "ロゴ", kind: "image", allowedSources: ["imageUrl"] },
+        { id: "company_logo", label: "会社ロゴ", kind: "image" },
       ],
     },
     {
@@ -272,6 +272,7 @@ export const estimateV1Adapter: StructureAdapter = {
       },
       ref: FieldRef | undefined,
     ) => {
+      const isCompanyLogo = slotId === "company_logo" || slotId === "logo";
       const mkDataSource = (): any => {
         if (!ref) return { type: "static", value: "" };
         if (ref.kind === "staticText") return { type: "static", value: ref.text ?? "" };
@@ -291,10 +292,10 @@ export const estimateV1Adapter: StructureAdapter = {
           ? String(base.dataSource.value ?? "").trim()
           : "";
       const nextHidden = !ref && !baseStaticText;
-      const nextDataSource = ref ? mkDataSource() : base?.dataSource;
+      const nextDataSource = isCompanyLogo ? undefined : ref ? mkDataSource() : base?.dataSource;
 
       if (idx >= 0) {
-        slotSyncedElements[idx] = {
+        const next = {
           ...base,
           slotId,
           region,
@@ -312,8 +313,12 @@ export const estimateV1Adapter: StructureAdapter = {
           borderColorGray: base.borderColorGray ?? fallback.borderColorGray,
           fillGray: base.fillGray ?? fallback.fillGray,
           ...(type === "text" ? { dataSource: nextDataSource ?? mkDataSource() } : {}),
-          ...(type === "image" ? { dataSource: nextDataSource ?? mkDataSource() } : {}),
+          ...(type === "image" && !isCompanyLogo ? { dataSource: nextDataSource ?? mkDataSource() } : {}),
         } as any;
+        if (type === "image" && isCompanyLogo) {
+          delete (next as any).dataSource;
+        }
+        slotSyncedElements[idx] = next;
         return;
       }
 
@@ -341,7 +346,7 @@ export const estimateV1Adapter: StructureAdapter = {
       }
 
       // image
-      slotSyncedElements.push({
+      const nextImage: any = {
         id: slotId,
         slotId,
         type: "image",
@@ -355,8 +360,11 @@ export const estimateV1Adapter: StructureAdapter = {
         borderWidth: fallback.borderWidth,
         borderColorGray: fallback.borderColorGray,
         fillGray: fallback.fillGray,
-        dataSource: mkDataSource(),
-      } as any);
+      };
+      if (!isCompanyLogo) {
+        nextImage.dataSource = mkDataSource();
+      }
+      slotSyncedElements.push(nextImage);
     };
 
     const ensureLabelElement = (
@@ -499,11 +507,11 @@ export const estimateV1Adapter: StructureAdapter = {
       );
     }
     ensureSlotElement(
-      "logo",
+      "company_logo",
       "header",
       "image",
       { x: 40, y: 12, width: 120, height: 60, repeatOnEveryPage: true },
-      headerRef["logo"],
+      headerRef["company_logo"],
     );
     ensureFixedLabelElement(
       "date_label",

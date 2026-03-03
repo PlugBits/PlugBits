@@ -20,3 +20,8 @@ preview_id = "9728047520804d4486176feac5b08d9b"
 binding = "SESSIONS_KV"
 id = "3b05d3d272654fd29b488466eead6069"
 preview_id = "3b05d3d272654fd29b488466eead6069"
+
+[[r2_buckets]]
+binding = "TENANT_ASSETS"
+bucket_name = "tenant-assets"
+preview_bucket_name = "tenant-assets"

@@ -632,7 +632,7 @@ const TemplateEditorPage = () => {
         | TemplateElement
         | undefined;
 
-    const logo = findBySlotOrId('logo') as ImageElement | undefined;
+    const logo = findBySlotOrId('company_logo') as ImageElement | undefined;
     const logoX = Number.isFinite(logo?.x) ? (logo?.x as number) : 450;
     const logoY = Number.isFinite(logo?.y) ? (logo?.y as number) : 752;
     const logoW = Number.isFinite(logo?.width) ? (logo?.width as number) : 120;
@@ -1029,7 +1029,7 @@ const TemplateEditorPage = () => {
     'to_name',
     'issue_date',
     'doc_no',
-    'logo',
+    'company_logo',
     'remarks',
     'subtotal',
     'tax',

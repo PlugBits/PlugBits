@@ -13,7 +13,7 @@
       { "slotId": "date_label", "label": "日付ラベル", "kind": "text" },
       { "slotId": "issue_date", "label": "日付", "kind": "date", "required": true },
       { "slotId": "doc_no", "label": "文書番号", "kind": "text" },
-      { "slotId": "logo", "label": "ロゴ", "kind": "image" }
+      { "slotId": "company_logo", "label": "会社ロゴ", "kind": "image" }
     ],
     "footer": [
       { "slotId": "remarks", "label": "備考", "kind": "text" },
@@ -90,7 +90,7 @@
     },
     {
       "id": "logo",
-      "slotId": "logo",
+      "slotId": "company_logo",
       "type": "image",
       "region": "header",
       "x": 450,
@@ -171,8 +171,7 @@
       "to_name": { "kind": "recordField", "fieldCode": "CustomerName" },
       "date_label": { "kind": "staticText", "text": "日付" },
       "issue_date": { "kind": "recordField", "fieldCode": "EstimateDate" },
-      "doc_no": { "kind": "staticText", "text": "" },
-      "logo": { "kind": "imageUrl", "url": "" }
+      "doc_no": { "kind": "staticText", "text": "" }
     },
     "cardList": {
       "source": { "kind": "subtable", "fieldCode": "Items" },

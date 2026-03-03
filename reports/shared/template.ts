@@ -429,7 +429,7 @@ export const SAMPLE_TEMPLATE: TemplateDefinition = {
     },
     {
       id: 'logo',
-      slotId: 'logo',
+      slotId: 'company_logo',
       type: 'image',
       region: 'header',
       x: 450,

@@ -36,8 +36,8 @@
         "kind": "text"
       },
       {
-        "slotId": "logo",
-        "label": "ロゴ",
+        "slotId": "company_logo",
+        "label": "会社ロゴ",
         "kind": "image"
       }
     ],
@@ -145,7 +145,7 @@
     },
     {
       "id": "logo",
-      "slotId": "logo",
+      "slotId": "company_logo",
       "type": "image",
       "region": "header",
       "x": 450,

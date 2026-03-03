@@ -216,6 +216,7 @@ const RegionMappingPanel: React.FC<Props> = ({
 
             const allowStaticText = slot.allowedSources?.includes('staticText');
             const allowImageUrl = slot.allowedSources?.includes('imageUrl');
+            const isCompanyLogo = slot.id === 'company_logo';
 
             const valueLabel = describeFieldRef(slotValue);
             const isEmpty = !slotValue;
@@ -259,27 +260,33 @@ const RegionMappingPanel: React.FC<Props> = ({
                           const next = setPath(mapping, [region.id, slot.id], undefined);
                           onChangeMapping(next);
                         }}
-                        disabled={!slotValue}
+                        disabled={!slotValue || isCompanyLogo}
                       >
                         解除
                       </button>
                     </div>
 
                     <div style={{ marginTop: 8 }}>
-                      <FieldPicker
-                        mode="record"
-                        recordOptions={schema.recordFields}
-                        recordAllowTypes={getRecordAllowTypesForSlot(slot.kind)}
-                        value={slotValue}
-                        onChange={(v) => {
-                          const next = setPath(mapping, [region.id, slot.id], v);
-                          onChangeMapping(next);
-                          onFocusFieldRef({ kind: 'slot', slotId: slot.id } as any);
-                        }}
-                        allowStaticText={allowStaticText}
-                        allowImageUrl={allowImageUrl}
-                        placeholderStaticText={slot.kind === 'date' ? '2025-12-14' : '固定文字'}
-                      />
+                      {isCompanyLogo ? (
+                        <div style={{ fontSize: '0.85rem', color: '#667085' }}>
+                          会社ロゴは会社設定（tenant）で管理されています。
+                        </div>
+                      ) : (
+                        <FieldPicker
+                          mode="record"
+                          recordOptions={schema.recordFields}
+                          recordAllowTypes={getRecordAllowTypesForSlot(slot.kind)}
+                          value={slotValue}
+                          onChange={(v) => {
+                            const next = setPath(mapping, [region.id, slot.id], v);
+                            onChangeMapping(next);
+                            onFocusFieldRef({ kind: 'slot', slotId: slot.id } as any);
+                          }}
+                          allowStaticText={allowStaticText}
+                          allowImageUrl={allowImageUrl}
+                          placeholderStaticText={slot.kind === 'date' ? '2025-12-14' : '固定文字'}
+                        />
+                      )}
                     </div>
                     {region.id === 'header' && slot.id === 'to_name' && (structureType === 'list_v1' || structureType === 'estimate_v1') && (() => {
                       const ref = mapping?.header?.to_honorific as FieldRef | undefined;
