@@ -11,33 +11,66 @@ async function fetchFont(url: string): Promise<Uint8Array> {
   return new Uint8Array(buf);
 }
 
+type FontBytes = { latin: Uint8Array | null; jp: Uint8Array | null };
+
+let cachedLatin: Uint8Array | null = null;
+let cachedJp: Uint8Array | null = null;
+let pendingLatin: Promise<Uint8Array> | null = null;
+let pendingJp: Promise<Uint8Array> | null = null;
+
+const fetchFontCached = async (
+  url: string,
+  kind: "latin" | "jp",
+): Promise<Uint8Array> => {
+  if (kind === "latin" && cachedLatin) return cachedLatin;
+  if (kind === "jp" && cachedJp) return cachedJp;
+
+  const pending = kind === "latin" ? pendingLatin : pendingJp;
+  if (pending) return pending;
+
+  const inflight = fetchFont(url).then((bytes) => {
+    if (kind === "latin") cachedLatin = bytes;
+    else cachedJp = bytes;
+    return bytes;
+  });
+  if (kind === "latin") pendingLatin = inflight;
+  else pendingJp = inflight;
+
+  try {
+    return await inflight;
+  } finally {
+    if (kind === "latin") pendingLatin = null;
+    else pendingJp = null;
+  }
+};
+
 // 既存のまま使うならこれ（互換）
 export async function getDefaultFontBytes(env: Env): Promise<Uint8Array> {
   if (!env.FONT_SOURCE_URL) {
     throw new Error("FONT_SOURCE_URL is not set");
   }
-  return fetchFont(env.FONT_SOURCE_URL);
+  return fetchFontCached(env.FONT_SOURCE_URL, "jp");
 }
 
 // ★ 追加：JP + Latin 両方返す
-export async function getFonts(env: Env): Promise<{
-  jp: Uint8Array;
-  latin: Uint8Array;
-}> {
-  if (!env.FONT_SOURCE_URL) {
-    throw new Error("FONT_SOURCE_URL is not set");
-  }
+export async function getFonts(
+  env: Env,
+  options?: { requireJp?: boolean },
+): Promise<FontBytes> {
+  const requireJp = options?.requireJp !== false;
 
-  const jpPromise = fetchFont(env.FONT_SOURCE_URL);
-
-  let latinPromise: Promise<Uint8Array>;
+  let latin: Uint8Array | null = null;
   if (env.LATIN_FONT_URL) {
-    latinPromise = fetchFont(env.LATIN_FONT_URL);
-  } else {
-    // 未設定ならとりあえずJPを使い回す
-    latinPromise = jpPromise;
+    latin = await fetchFontCached(env.LATIN_FONT_URL, "latin");
   }
 
-  const [jp, latin] = await Promise.all([jpPromise, latinPromise]);
-  return { jp, latin };
+  let jp: Uint8Array | null = null;
+  if (requireJp) {
+    if (!env.FONT_SOURCE_URL) {
+      throw new Error("FONT_SOURCE_URL is not set");
+    }
+    jp = await fetchFontCached(env.FONT_SOURCE_URL, "jp");
+  }
+
+  return { latin, jp };
 }

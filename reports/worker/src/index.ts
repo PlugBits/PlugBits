@@ -459,10 +459,72 @@ const applyCompanyProfileToTemplate = (
   return changed ? { ...template, elements: nextElements } : template;
 };
 
+const hasNonAscii = (text: string) => /[^\u0000-\u007F]/.test(text);
+
+const containsNonAsciiValue = (value: unknown, seen = new WeakSet<object>()): boolean => {
+  if (value === null || value === undefined) return false;
+  if (typeof value === "string") return hasNonAscii(value);
+  if (typeof value === "number" || typeof value === "boolean") return false;
+  if (value instanceof Date) return hasNonAscii(value.toISOString());
+
+  if (Array.isArray(value)) {
+    for (const item of value) {
+      if (containsNonAsciiValue(item, seen)) return true;
+    }
+    return false;
+  }
+
+  if (typeof value === "object") {
+    if (seen.has(value as object)) return false;
+    seen.add(value as object);
+    for (const v of Object.values(value as Record<string, unknown>)) {
+      if (containsNonAsciiValue(v, seen)) return true;
+    }
+  }
+  return false;
+};
+
+const templateHasNonAscii = (template: TemplateDefinition): boolean => {
+  for (const element of template.elements) {
+    if (typeof (element as any).text === "string" && hasNonAscii((element as any).text)) {
+      return true;
+    }
+    if (element.dataSource?.type === "static" && typeof element.dataSource.value === "string") {
+      if (hasNonAscii(element.dataSource.value)) return true;
+    }
+    if (element.type === "table") {
+      const table = element as TableElement;
+      for (const col of table.columns ?? []) {
+        if (typeof col.title === "string" && hasNonAscii(col.title)) return true;
+      }
+      const summaryRows = table.summary?.rows ?? [];
+      for (const row of summaryRows) {
+        if (typeof row.label === "string" && hasNonAscii(row.label)) return true;
+        if (typeof row.labelSubtotal === "string" && hasNonAscii(row.labelSubtotal)) return true;
+        if (typeof row.labelTotal === "string" && hasNonAscii(row.labelTotal)) return true;
+      }
+    }
+  }
+  return false;
+};
+
+const shouldUseJpFont = (
+  template: TemplateDefinition,
+  data: unknown,
+  renderMode: RenderMode,
+): boolean => {
+  if (renderMode !== "final") return false;
+  if (templateHasNonAscii(template)) return true;
+  if (containsNonAsciiValue(data)) return true;
+  return false;
+};
+
 // フォント読み込み（今はデフォルト埋め込みフォントだけ）
-async function loadFonts(env: Env): Promise<{ jp: Uint8Array; latin: Uint8Array }> {
-  // 将来 FONT_SOURCE_URL から外部フォントを読む場合はここに処理を追加
-  return getFonts(env);
+async function loadFonts(
+  env: Env,
+  options?: { requireJp?: boolean },
+): Promise<{ jp: Uint8Array | null; latin: Uint8Array | null }> {
+  return getFonts(env, options);
 }
 
 const requireEditorToken = async (
@@ -3532,6 +3594,19 @@ export default {
           return "(unknown)";
         })();
 
+        const nowMs = () =>
+          typeof performance !== "undefined" && typeof performance.now === "function"
+            ? performance.now()
+            : Date.now();
+        const logTiming = (phaseName: string, ms: number) => {
+          console.info("[DBG_RENDER_TIMING]", {
+            requestId,
+            phase: phaseName,
+            ms: Math.round(ms),
+          });
+        };
+
+        const logoStart = nowMs();
         const tenantLogo = await (async () => {
           try {
             if (!tenantRecordForRender?.logo) return null;
@@ -3545,18 +3620,25 @@ export default {
             return null;
           }
         })();
+        logTiming("load_logo", nowMs() - logoStart);
         hasLogoForDiag = Boolean(tenantLogo);
         logoBytesLenForDiag = tenantLogo?.bytes?.length ?? 0;
 
         // フォント読み込み
-        let fonts: { jp: Uint8Array; latin: Uint8Array };  // ← これが大事！！
+        const useJpFont = shouldUseJpFont(templateForRender, dataForRender, renderMode);
+        let fonts: { jp: Uint8Array | null; latin: Uint8Array | null };
         phase = "loadFonts";
         try {
-          fonts = await loadFonts(env);
-          console.log(
-            "jpFont length:", fonts.jp.length,
-            "latinFont length:", fonts.latin.length,
-          );
+          const fontStart = nowMs();
+          fonts = await loadFonts(env, { requireJp: useJpFont });
+          logTiming("load_fonts", nowMs() - fontStart);
+          console.info("[DBG_FONT_POLICY]", {
+            requestId,
+            renderMode,
+            useJpFont,
+            latinSource: fonts.latin ? "custom" : "standard",
+            jpBytes: fonts.jp?.length ?? 0,
+          });
         } catch (err) {
           const message = err instanceof Error ? err.message : String(err);
           console.error("[ERR_RENDER]", {
@@ -3587,6 +3669,7 @@ export default {
           // PDF 生成
           try {
             phase = "renderPdf";
+            const renderStart = nowMs();
             const { bytes: rawPdfBytes, warnings } = await renderTemplateToPdf(
               templateForRender,
               dataForRender as TemplateDataRecord | undefined,
@@ -3595,8 +3678,10 @@ export default {
                 debug,
                 previewMode,
                 renderMode,
+                useJpFont,
                 requestId,
                 tenantLogo: tenantLogo ?? undefined,
+                onTiming: (phaseName, ms) => logTiming(phaseName, ms),
                 onTextBaseline: debug
                   ? (entry) => {
                       debugTextBaseline.push(entry);
@@ -3616,6 +3701,7 @@ export default {
                   : undefined,
               },
             );
+            logTiming("build_pdf", nowMs() - renderStart);
 
             const pdfBytes = new Uint8Array(rawPdfBytes);
             const combinedWarnings = [...issueWarnings, ...dataWarnings, ...warnings];

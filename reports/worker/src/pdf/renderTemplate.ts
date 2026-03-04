@@ -903,15 +903,17 @@ function resolveDataSource(
 export async function renderTemplateToPdf(
   template: TemplateDefinition,
   data: TemplateDataRecord | undefined,
-  fonts: { jp: Uint8Array; latin: Uint8Array },
+  fonts: { jp: Uint8Array | null; latin: Uint8Array | null },
   options?: {
     debug?: boolean;
     previewMode?: PreviewMode;
     renderMode?: RenderMode;
+    useJpFont?: boolean;
     requestId?: string;
     tenantLogo?: { bytes: Uint8Array; contentType: string; objectKey: string };
     onPageInfo?: (info: { pdfPageW: number; pdfPageH: number }) => void;
     onTextBaseline?: (entry: TextBaselineDebug) => void;
+    onTiming?: (phase: string, ms: number) => void;
   },
 ): Promise<{ bytes: Uint8Array; warnings: string[] }> {
   const warnings = new Set<string>();
@@ -920,6 +922,7 @@ export async function renderTemplateToPdf(
   const requestId = options?.requestId;
   const onPageInfo = options?.onPageInfo;
   const onTextBaseline = options?.onTextBaseline;
+  const onTiming = options?.onTiming;
   const previewMode: PreviewMode = options?.previewMode ?? 'record';
   const renderMode: RenderMode = options?.renderMode ?? 'final';
   const warn: WarnFn = (category, message, context) => {
@@ -935,6 +938,10 @@ export async function renderTemplateToPdf(
     warnings.add(entry);
   };
 
+  const nowMs = () =>
+    typeof performance !== 'undefined' && typeof performance.now === 'function'
+      ? performance.now()
+      : Date.now();
   const pdfDoc = await PDFDocument.create();
   pdfDoc.registerFontkit(fontkit);
 
@@ -1013,7 +1020,9 @@ export async function renderTemplateToPdf(
   const resolveAdjust = (element: TemplateElement) =>
     resolveEasyAdjustForElement(element, template);
   let renderData = data ? structuredClone(data) : undefined;
+  const imageStart = nowMs();
   const imageMap = await preloadImages(pdfDoc, template, renderData, previewMode, warn);
+  onTiming?.('embed_images', nowMs() - imageStart);
 
   // ★ let にして、テーブル描画の途中で別ページに差し替えられるようにする
   let page = pdfDoc.addPage([pageWidth, pageHeight]);
@@ -1031,8 +1040,12 @@ export async function renderTemplateToPdf(
   }
 
   // フォント埋め込み
-  const jpFont = await pdfDoc.embedFont(fonts.jp, { subset: false });
-  const latinFont = await pdfDoc.embedFont(fonts.latin, { subset: false });
+  const latinFont = fonts.latin
+    ? await pdfDoc.embedFont(fonts.latin, { subset: false })
+    : await pdfDoc.embedFont(StandardFonts.Helvetica);
+  const jpFontEmbedded =
+    options?.useJpFont && fonts.jp ? await pdfDoc.embedFont(fonts.jp, { subset: false }) : null;
+  const jpFont = jpFontEmbedded ?? latinFont;
 
   if (template.structureType === 'label_v1') {
     drawLabelSheet(pdfDoc, page, template, renderData, previewMode, jpFont, latinFont, warn);
@@ -1466,6 +1479,7 @@ export async function renderTemplateToPdf(
     }
 
     // drawTable には「毎ページヘッダー」だけを渡す
+    const tableStart = nowMs();
     page = drawTable(
       pdfDoc,
       page,
@@ -1485,6 +1499,7 @@ export async function renderTemplateToPdf(
       debugEnabled,
       onTextBaseline,
     );
+    onTiming?.('render_table', nowMs() - tableStart);
   }
 
   const pages = pdfDoc.getPages();
@@ -1538,7 +1553,9 @@ export async function renderTemplateToPdf(
     drawDebugOverlay(pages[0], debugOverlayInfo, pageWidth, pageHeight);
   }
 
+  const saveStart = nowMs();
   const bytes = await pdfDoc.save();
+  onTiming?.('save_pdf', nowMs() - saveStart);
   const warningList = Array.from(warnings);
   if (warningList.length > 0) {
     console.warn('renderTemplateToPdf warnings', warningList);
