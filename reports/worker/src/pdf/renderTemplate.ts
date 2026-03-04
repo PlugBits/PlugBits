@@ -29,6 +29,7 @@ type WarnFn = (
   context?: Record<string, unknown>,
 ) => void;
 type PreviewMode = 'record' | 'fieldCode';
+type RenderMode = 'layout' | 'preview' | 'final';
 const MAX_TEXT_LENGTH = 200;
 type DrawTextOptions = Parameters<PDFPage['drawText']>[1];
 type TextBaselineDebug = {
@@ -906,6 +907,7 @@ export async function renderTemplateToPdf(
   options?: {
     debug?: boolean;
     previewMode?: PreviewMode;
+    renderMode?: RenderMode;
     requestId?: string;
     tenantLogo?: { bytes: Uint8Array; contentType: string; objectKey: string };
     onPageInfo?: (info: { pdfPageW: number; pdfPageH: number }) => void;
@@ -919,6 +921,7 @@ export async function renderTemplateToPdf(
   const onPageInfo = options?.onPageInfo;
   const onTextBaseline = options?.onTextBaseline;
   const previewMode: PreviewMode = options?.previewMode ?? 'record';
+  const renderMode: RenderMode = options?.renderMode ?? 'final';
   const warn: WarnFn = (category, message, context) => {
     if (category === 'debug' && !debugEnabled) return;
     let entry = `[${category}] ${message}`;
@@ -1124,7 +1127,7 @@ export async function renderTemplateToPdf(
   const companyNameValue = resolveTextValue(companyNameEl);
   const companyBlockEnabled = template.settings?.companyBlock?.enabled !== false;
   const shouldHideCompanyBlock =
-    !companyBlockEnabled || (!!companyNameEl && !companyNameValue && previewMode !== 'fieldCode');
+    !companyBlockEnabled || (renderMode === 'final' && !!companyNameEl && !companyNameValue);
   const docNoEl = headerCandidates.find(
     (el) => (el as any).slotId === 'doc_no',
   ) as TextElement | undefined;
@@ -1349,6 +1352,7 @@ export async function renderTemplateToPdf(
     [...repeatingHeaderElements, ...firstPageOnlyHeaderElements],
     renderData,
     previewMode,
+    renderMode,
     jpFont,
     latinFont,
     imageMap,
@@ -1495,6 +1499,7 @@ export async function renderTemplateToPdf(
       footerElementsForThisPage,
       renderData,
       previewMode,
+      renderMode,
       jpFont,
       latinFont,
       imageMap,
@@ -1905,6 +1910,7 @@ function drawText(
   latinFont: PDFFont,
   data: TemplateDataRecord | undefined,
   previewMode: PreviewMode,
+  renderMode: RenderMode,
   fontScale: number,
   pagePadding: number,
   transform: PdfTransform,
@@ -1932,8 +1938,14 @@ function drawText(
   const slotId = (element as any).slotId as string | undefined;
   const isCompanySlot = slotId ? slotId.startsWith('company_') : false;
   let text = resolved || element.text || '';
-  if (previewMode === 'fieldCode' && isCompanySlot && !text) {
-    text = `{{${slotId}}}`;
+  if (isCompanySlot && slotId) {
+    if (renderMode === 'layout') {
+      text = `{{${slotId}}}`;
+    } else if (renderMode === 'preview') {
+      text = text || `{{${slotId}}}`;
+    } else if (renderMode === 'final') {
+      text = resolved || '';
+    }
   }
   const fontToUse = pickFont(text, latinFont, jpFont);
   const elementKey = slotId ?? element.id;
@@ -2106,6 +2118,7 @@ function drawHeaderElements(
   headerElements: TemplateElement[],
   data: TemplateDataRecord | undefined,
   previewMode: PreviewMode,
+  renderMode: RenderMode,
   jpFont: PDFFont,
   latinFont: PDFFont,
   imageMap: Map<string, PDFImage>,
@@ -2143,6 +2156,7 @@ function drawHeaderElements(
           latinFont,
           data,
           previewMode,
+          renderMode,
           adjust.fontScale,
           adjust.pagePadding,
           transform,
@@ -2160,6 +2174,7 @@ function drawHeaderElements(
           latinFont,
           data,
           previewMode,
+          renderMode,
           adjust.pagePadding,
           imageMap,
           tenantLogoImage,
@@ -2191,6 +2206,7 @@ function drawFooterElements(
   footerElements: TemplateElement[],
   data: TemplateDataRecord | undefined,
   previewMode: PreviewMode,
+  renderMode: RenderMode,
   jpFont: PDFFont,
   latinFont: PDFFont,
   imageMap: Map<string, PDFImage>,
@@ -2228,6 +2244,7 @@ function drawFooterElements(
           latinFont,
           data,
           previewMode,
+          renderMode,
           adjust.fontScale,
           adjust.pagePadding,
           transform,
@@ -2245,6 +2262,7 @@ function drawFooterElements(
           latinFont,
           data,
           previewMode,
+          renderMode,
           adjust.pagePadding,
           imageMap,
           tenantLogoImage,
@@ -2935,6 +2953,7 @@ function drawTable(
       headerElements,
       data,
       previewMode,
+      renderMode,
       jpFont,
       latinFont,
       imageMap,
@@ -3181,6 +3200,7 @@ function drawTable(
       headerElements,
       data,
       previewMode,
+      renderMode,
       jpFont,
       latinFont,
       imageMap,
@@ -3447,6 +3467,7 @@ function drawTable(
           headerElements,
           data,
           previewMode,
+          renderMode,
           jpFont,
           latinFont,
           imageMap,
@@ -3487,6 +3508,7 @@ function drawTable(
         headerElements,
         data,
         previewMode,
+        renderMode,
         jpFont,
         latinFont,
         imageMap,
@@ -4182,6 +4204,7 @@ function drawCardList(
       headerElements,
       data,
       previewMode,
+      renderMode,
       jpFont,
       latinFont,
       imageMap,
@@ -4575,6 +4598,7 @@ function drawImageElement(
   latinFont: PDFFont,
   data: TemplateDataRecord | undefined,
   previewMode: PreviewMode,
+  renderMode: RenderMode,
   pagePadding: number,
   imageMap: Map<string, PDFImage>,
   tenantLogoImage: PDFImage | null,
@@ -4585,8 +4609,14 @@ function drawImageElement(
   const isCompanyLogo =
     slotId === 'company_logo' || element.id === 'company_logo' || element.id === 'logo';
   if (isCompanyLogo) {
-    if (!tenantLogoImage) {
+    if (renderMode === 'layout') {
       drawImagePlaceholder(page, element, jpFont, latinFont, pagePadding, transform, warn, 'LOGO');
+      return;
+    }
+    if (!tenantLogoImage) {
+      if (renderMode === 'preview') {
+        drawImagePlaceholder(page, element, jpFont, latinFont, pagePadding, transform, warn, 'LOGO');
+      }
       return;
     }
     const widthCanvas =

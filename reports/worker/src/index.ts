@@ -35,6 +35,7 @@ import {
   upsertTenantApiToken,
   verifyEditorToken,
   updateTenantLogo,
+  updateTenantSettings,
 } from "./auth/tenantAuth.ts";
 import { canonicalizeAppId, canonicalizeKintoneBaseUrl } from "./utils/canonicalize.ts";
 
@@ -67,9 +68,14 @@ type RenderRequestBody = {
   // 編集UI向け: fieldCode可視化モード
   previewMode?: "record" | "fieldCode";
 
+  // 表示モード（layout/preview/final）
+  mode?: "layout" | "preview" | "final";
+
   // 自社情報（プラグイン設定由来）
   companyProfile?: CompanyProfile;
 };
+
+type RenderMode = "layout" | "preview" | "final";
 
 // CORS 設定
 const CORS_HEADERS: Record<string, string> = {
@@ -211,6 +217,7 @@ const canonicalizeElementDefaults = (
   const slotId = next.slotId ?? next.id;
   const isCompanyLogo =
     slotId === "company_logo" || slotId === "logo" || next.id === "company_logo" || next.id === "logo";
+  const isCompanySlot = typeof slotId === "string" && slotId.startsWith("company_");
   if (isCompanyLogo) {
     next.slotId = "company_logo";
     next.hidden = false;
@@ -219,6 +226,14 @@ const canonicalizeElementDefaults = (
     }
     if ("imageUrl" in next) {
       delete next.imageUrl;
+    }
+  }
+  if (isCompanySlot && !isCompanyLogo) {
+    if ("dataSource" in next) {
+      delete next.dataSource;
+    }
+    if ("text" in next) {
+      delete next.text;
     }
   }
   if (next.slotId === null || next.slotId === undefined) {
@@ -272,12 +287,26 @@ const canonicalizeTemplateForStorage = (
   if (mapping?.header) {
     delete mapping.header.logo;
     delete mapping.header.company_logo;
+    delete mapping.header.company_name;
+    delete mapping.header.company_address;
+    delete mapping.header.company_tel;
+    delete mapping.header.company_email;
   }
   const elements = Array.isArray(clone.elements) ? clone.elements : [];
   const canonicalized = elements.map(canonicalizeElementDefaults);
   const hasCompanyLogo = canonicalized.some((el) => {
     const slotId = (el as any).slotId ?? el.id;
     return slotId === "company_logo" || el.id === "logo" || el.id === "company_logo";
+  });
+  const companySlotDefs = [
+    { slotId: "company_name", label: "会社名", kind: "text" },
+    { slotId: "company_address", label: "住所", kind: "text" },
+    { slotId: "company_tel", label: "TEL", kind: "text" },
+    { slotId: "company_email", label: "Email", kind: "text" },
+  ] as const;
+  const hasCompanySlots = canonicalized.some((el) => {
+    const slotId = (el as any).slotId ?? el.id;
+    return typeof slotId === "string" && slotId.startsWith("company_") && slotId !== "company_logo";
   });
   const slotSchema = (clone as any).slotSchema as
     | { header?: Array<{ slotId: string; label?: string; kind?: string }> }
@@ -295,6 +324,14 @@ const canonicalizeTemplateForStorage = (
     const hasCompanyLogoSlot = headerSlots.some((slot) => slot.slotId === "company_logo");
     if (hasCompanyLogo && !hasCompanyLogoSlot) {
       headerSlots.push({ slotId: "company_logo", label: "会社ロゴ", kind: "image" });
+    }
+    if (hasCompanySlots) {
+      const existing = new Set(headerSlots.map((slot) => slot.slotId));
+      for (const slot of companySlotDefs) {
+        if (!existing.has(slot.slotId)) {
+          headerSlots.push({ ...slot });
+        }
+      }
     }
     nextSlotSchema = headerSlots !== slotSchema.header ? { ...slotSchema, header: headerSlots } : slotSchema;
   }
@@ -690,6 +727,16 @@ const getTenantContext = (
       }),
     };
   }
+};
+
+const resolveRenderMode = (
+  input: unknown,
+  previewMode: "record" | "fieldCode",
+): RenderMode => {
+  if (input === "layout" || input === "preview" || input === "final") {
+    return input;
+  }
+  return previewMode === "fieldCode" ? "preview" : "final";
 };
 
  // templateId から TemplateDefinition を引く関数
@@ -1207,13 +1254,25 @@ export default {
 
         console.info("[editor/session] verified", { sessionToken: token.slice(0, 8) });
         const session = loaded.session;
+        let tenantProfile: CompanyProfile | undefined;
+        try {
+          const baseUrl = canonicalizeKintoneBaseUrl(session.kintoneBaseUrl);
+          const appId = canonicalizeAppId(session.appId);
+          if (appId) {
+            const tenantId = buildTenantKey(baseUrl, appId);
+            const record = await getTenantRecord(env.USER_TEMPLATES_KV, tenantId);
+            tenantProfile = record?.companyProfile;
+          }
+        } catch {
+          tenantProfile = undefined;
+        }
 
         return new Response(
           JSON.stringify({
             ok: true,
             kintoneBaseUrl: session.kintoneBaseUrl ?? "",
             appId: session.appId ?? "",
-            companyProfile: normalizeCompanyProfile(session.companyProfile),
+            companyProfile: normalizeCompanyProfile(tenantProfile ?? session.companyProfile),
           }),
           {
             status: 200,
@@ -1328,7 +1387,7 @@ export default {
             kintoneBaseUrl: record.kintoneBaseUrl,
             appId: record.appId,
             tenantId: record.tenantId,
-            companyProfile: normalizeCompanyProfile(session.companyProfile),
+            companyProfile: normalizeCompanyProfile(record.companyProfile ?? session.companyProfile),
           }),
           {
             status: 200,
@@ -1755,6 +1814,89 @@ export default {
 
         return new Response(
           JSON.stringify({ ok: true, logo: updated.logo }),
+          {
+            status: 200,
+            headers: {
+              ...CORS_HEADERS,
+              "Content-Type": "application/json",
+            },
+          },
+        );
+      }
+
+      if (url.pathname === "/tenant/settings") {
+        if (request.method === "GET") {
+          const tenant = getTenantContext(url);
+          if ("error" in tenant) return tenant.error;
+          const record = await getTenantRecord(env.USER_TEMPLATES_KV, tenant.tenantKey);
+          if (!record) {
+            return new Response("Tenant not found", {
+              status: 400,
+              headers: CORS_HEADERS,
+            });
+          }
+          return new Response(
+            JSON.stringify({
+              ok: true,
+              tenantId: record.tenantId,
+              companyProfile: normalizeCompanyProfile(record.companyProfile),
+            }),
+            {
+              status: 200,
+              headers: {
+                ...CORS_HEADERS,
+                "Content-Type": "application/json",
+                "Cache-Control": "no-store",
+              },
+            },
+          );
+        }
+
+        if (request.method !== "PUT") {
+          return new Response("Method Not Allowed", {
+            status: 405,
+            headers: CORS_HEADERS,
+          });
+        }
+
+        if (env.ADMIN_API_KEY) {
+          const apiKey = request.headers.get("x-api-key");
+          if (apiKey !== env.ADMIN_API_KEY) {
+            return new Response("Unauthorized", {
+              status: 401,
+              headers: CORS_HEADERS,
+            });
+          }
+        }
+
+        const tenant = getTenantContext(url);
+        if ("error" in tenant) return tenant.error;
+
+        let payload: CompanyProfile | undefined;
+        try {
+          payload = (await request.json()) as CompanyProfile;
+        } catch {
+          return new Response("Invalid JSON body", {
+            status: 400,
+            headers: CORS_HEADERS,
+          });
+        }
+
+        const normalizedProfile = normalizeCompanyProfile(payload);
+        const updated = await updateTenantSettings(
+          env.USER_TEMPLATES_KV,
+          tenant.tenantKey,
+          normalizedProfile,
+        );
+        if (!updated) {
+          return new Response("Tenant not found", {
+            status: 400,
+            headers: CORS_HEADERS,
+          });
+        }
+
+        return new Response(
+          JSON.stringify({ ok: true, companyProfile: normalizeCompanyProfile(updated.companyProfile) }),
           {
             status: 200,
             headers: {
@@ -2971,6 +3113,24 @@ export default {
           const debug = debugEnabled;
           const previewMode =
             body?.previewMode === "fieldCode" ? "fieldCode" : "record";
+          const renderMode = resolveRenderMode(
+            (body as { mode?: string } | undefined)?.mode ?? url.searchParams.get("mode"),
+            previewMode,
+          );
+          let tenantRecordForRender: Awaited<ReturnType<typeof getTenantRecord>> | null = null;
+          const kintoneForRender = body?.kintone as { baseUrl?: string; appId?: string } | undefined;
+          if (kintoneForRender?.baseUrl && kintoneForRender?.appId) {
+            try {
+              const baseUrl = canonicalizeKintoneBaseUrl(kintoneForRender.baseUrl);
+              const appId = canonicalizeAppId(kintoneForRender.appId);
+              if (appId) {
+                const tenantKey = buildTenantKey(baseUrl, appId);
+                tenantRecordForRender = await getTenantRecord(env.USER_TEMPLATES_KV, tenantKey);
+              }
+            } catch {
+              tenantRecordForRender = null;
+            }
+          }
 
           const authHeader = request.headers.get("authorization");
           const sessionToken =
@@ -2997,6 +3157,7 @@ export default {
               baseTemplateId: bodyBaseTemplateId,
               hasSessionToken,
               previewMode,
+              renderMode,
               hasBodyTemplate,
             });
           }
@@ -3212,7 +3373,7 @@ export default {
           const templateId = template.id ?? body.templateId ?? "";
           console.info(
             `[DBG_RENDER_START] requestId=${requestId ?? ""} templateId=${templateId} source=${templateSource} ` +
-              `pageSize=${migratedTemplate.pageSize} previewMode=${previewMode} ` +
+              `pageSize=${migratedTemplate.pageSize} previewMode=${previewMode} renderMode=${renderMode} ` +
               `fetchedHash=${fingerprint.hash} hashType=${fingerprint.hashType} fetchedEtag= ` +
               `fetchedJsonLen=${fingerprint.jsonLen} fetchedElements=${fingerprint.elements} ` +
               `pdfPageW=${dims.width} pdfPageH=${dims.height}`,
@@ -3237,9 +3398,13 @@ export default {
             }
           : migratedTemplate;
         templateForRender = applyListV1SummaryFromMapping(templateForRender);
+        const renderCompanyProfile =
+          renderMode === "layout"
+            ? undefined
+            : normalizeCompanyProfile(tenantRecordForRender?.companyProfile);
         templateForRender = applyCompanyProfileToTemplate(
           templateForRender,
-          body.companyProfile,
+          renderCompanyProfile,
         );
         const templatePageInfo = getTemplatePageInfo(templateForRender);
         const mappingSummaryMode =
@@ -3328,19 +3493,12 @@ export default {
 
         const tenantLogo = await (async () => {
           try {
-            const kintone = body?.kintone as { baseUrl?: string; appId?: string } | undefined;
-            if (!kintone?.baseUrl || !kintone?.appId) return null;
-            const baseUrl = canonicalizeKintoneBaseUrl(kintone.baseUrl);
-            const appId = canonicalizeAppId(kintone.appId);
-            if (!appId) return null;
-            const tenantKey = buildTenantKey(baseUrl, appId);
-            const tenantRecord = await getTenantRecord(env.USER_TEMPLATES_KV, tenantKey);
-            if (!tenantRecord?.logo) return null;
-            const logo = await getTenantLogoBytes(env, tenantKey, tenantRecord.logo);
+            if (!tenantRecordForRender?.logo) return null;
+            const logo = await getTenantLogoBytes(env, tenantRecordForRender.tenantId, tenantRecordForRender.logo);
             if (!logo) return null;
             return {
               ...logo,
-              objectKey: tenantRecord.logo.objectKey,
+              objectKey: tenantRecordForRender.logo.objectKey,
             };
           } catch {
             return null;
@@ -3382,6 +3540,7 @@ export default {
               {
                 debug,
                 previewMode,
+                renderMode,
                 requestId,
                 tenantLogo: tenantLogo ?? undefined,
                 onTextBaseline: debug

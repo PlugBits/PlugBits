@@ -60,6 +60,13 @@ const normalizeDocMetaSlotIds = (template: TemplateDefinition): TemplateDefiniti
       delete header.company_logo;
       mappingChanged = true;
     }
+    if ('company_name' in header || 'company_address' in header || 'company_tel' in header || 'company_email' in header) {
+      delete header.company_name;
+      delete header.company_address;
+      delete header.company_tel;
+      delete header.company_email;
+      mappingChanged = true;
+    }
     nextMapping = mappingChanged ? { ...mapping, header } : mapping;
   }
   const nextElements = template.elements.map((el) => {
@@ -80,6 +87,19 @@ const normalizeDocMetaSlotIds = (template: TemplateDefinition): TemplateDefiniti
         delete next.imageUrl;
       }
       if (next.slotId !== (el as any).slotId || 'dataSource' in el) {
+        changed = true;
+      }
+      return next as TemplateElement;
+    }
+    const slotId = (el as any).slotId ?? el.id;
+    if (typeof slotId === 'string' && slotId.startsWith('company_') && slotId !== 'company_logo') {
+      const next = { ...el } as any;
+      if ('dataSource' in next) {
+        delete next.dataSource;
+        changed = true;
+      }
+      if ('text' in next) {
+        delete next.text;
         changed = true;
       }
       return next as TemplateElement;

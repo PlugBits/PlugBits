@@ -1495,6 +1495,7 @@ const TemplateEditorPage = () => {
               showGuides={guideVisible}
               highlightedElementIds={highlightedElementIds}
               slotLabels={slotLabelMap}
+              displayMode="layout"
             />
           </div>
           <div

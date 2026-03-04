@@ -136,6 +136,10 @@ export const canonicalizeTemplateForStorage = (
   if (mapping?.header) {
     delete mapping.header.logo;
     delete mapping.header.company_logo;
+    delete mapping.header.company_name;
+    delete mapping.header.company_address;
+    delete mapping.header.company_tel;
+    delete mapping.header.company_email;
   }
   const elements = Array.isArray(clone.elements) ? clone.elements : [];
   const canonicalized = elements.map((element) => {
@@ -143,11 +147,16 @@ export const canonicalizeTemplateForStorage = (
     const slotId = next.slotId ?? next.id;
     const isCompanyLogo =
       slotId === 'company_logo' || slotId === 'logo' || next.id === 'company_logo' || next.id === 'logo';
+    const isCompanySlot = typeof slotId === 'string' && slotId.startsWith('company_');
     if (isCompanyLogo) {
       next.slotId = 'company_logo';
       next.hidden = false;
       if ('dataSource' in next) delete next.dataSource;
       if ('imageUrl' in next) delete next.imageUrl;
+    }
+    if (isCompanySlot && !isCompanyLogo) {
+      if ('dataSource' in next) delete next.dataSource;
+      if ('text' in next) delete next.text;
     }
     if (next.slotId === null || next.slotId === undefined) {
       delete next.slotId;
@@ -192,6 +201,16 @@ export const canonicalizeTemplateForStorage = (
     const slotId = (el as any).slotId ?? el.id;
     return slotId === 'company_logo' || el.id === 'logo' || el.id === 'company_logo';
   });
+  const companySlotDefs = [
+    { slotId: 'company_name', label: '会社名', kind: 'text' },
+    { slotId: 'company_address', label: '住所', kind: 'text' },
+    { slotId: 'company_tel', label: 'TEL', kind: 'text' },
+    { slotId: 'company_email', label: 'Email', kind: 'text' },
+  ] as const;
+  const hasCompanySlots = canonicalized.some((el) => {
+    const slotId = (el as any).slotId ?? el.id;
+    return typeof slotId === 'string' && slotId.startsWith('company_') && slotId !== 'company_logo';
+  });
   const slotSchema = (clone as any).slotSchema as
     | { header?: Array<{ slotId: string; label?: string; kind?: string }> }
     | undefined;
@@ -208,6 +227,14 @@ export const canonicalizeTemplateForStorage = (
     const hasCompanyLogoSlot = headerSlots.some((slot) => slot.slotId === 'company_logo');
     if (hasCompanyLogo && !hasCompanyLogoSlot) {
       headerSlots.push({ slotId: 'company_logo', label: '会社ロゴ', kind: 'image' });
+    }
+    if (hasCompanySlots) {
+      const existing = new Set(headerSlots.map((slot) => slot.slotId));
+      for (const slot of companySlotDefs) {
+        if (!existing.has(slot.slotId)) {
+          headerSlots.push({ ...slot });
+        }
+      }
     }
     nextSlotSchema = headerSlots !== slotSchema.header ? { ...slotSchema, header: headerSlots } : slotSchema;
   }

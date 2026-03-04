@@ -49,6 +49,7 @@ export async function previewPdf(
           template,
           data: template.sampleData,
           previewMode: 'fieldCode',
+          mode: 'preview',
           companyProfile: tenantContext.companyProfile,
           kintone,
         }
@@ -56,6 +57,7 @@ export async function previewPdf(
           templateId: template.id,
           data: template.sampleData,
           previewMode: 'fieldCode',
+          mode: 'preview',
           companyProfile: tenantContext.companyProfile,
           kintone,
         };

@@ -364,6 +364,7 @@ const AdminTemplateTunerPage = () => {
             adminMode
             regionBounds={activeRegionBounds}
             errorElementIds={errorElementIds}
+            displayMode="layout"
           />
         </div>
         <div className="adminTunerPanel">

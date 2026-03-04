@@ -41,6 +41,7 @@ type CanvasProps = {
   adminMode?: boolean;
   regionBounds?: RegionBounds;
   errorElementIds?: Set<string>;
+  displayMode?: 'layout' | 'preview';
 
 };
 
@@ -193,10 +194,12 @@ const getElementStyle = (
 
 const describeDataSource = (
   element: TemplateElement,
-  companyProfile?: CompanyProfile,
+  companyProfile: CompanyProfile | undefined,
+  displayMode: 'layout' | 'preview',
 ) => {
   const slotId = (element as any).slotId as string | undefined;
   if (slotId && slotId.startsWith('company_')) {
+    if (displayMode === 'layout') return `{{${slotId}}}`;
     const value =
       slotId === 'company_name'
         ? companyProfile?.companyName
@@ -259,6 +262,7 @@ const TemplateCanvas = ({
   adminMode,
   regionBounds,
   errorElementIds,
+  displayMode = 'layout',
 }: CanvasProps) => {
   const resolvedAdminMode = useMemo(() => {
     if (adminMode !== undefined) return adminMode;
@@ -272,6 +276,13 @@ const TemplateCanvas = ({
   const companyProfile = tenantContext?.companyProfile;
   const [tenantLogoUrl, setTenantLogoUrl] = useState<string | null>(null);
   useEffect(() => {
+    if (displayMode !== 'preview') {
+      setTenantLogoUrl((prev) => {
+        if (prev) URL.revokeObjectURL(prev);
+        return null;
+      });
+      return;
+    }
     if (!tenantContext?.workerBaseUrl || !tenantContext.kintoneBaseUrl || !tenantContext.appId) {
       setTenantLogoUrl((prev) => {
         if (prev) URL.revokeObjectURL(prev);
@@ -312,7 +323,7 @@ const TemplateCanvas = ({
       }
     })();
     return () => controller.abort();
-  }, [tenantContext?.workerBaseUrl, tenantContext?.kintoneBaseUrl, tenantContext?.appId, tenantContext?.editorToken]);
+  }, [displayMode, tenantContext?.workerBaseUrl, tenantContext?.kintoneBaseUrl, tenantContext?.appId, tenantContext?.editorToken]);
   const { width: canvasWidth, height: canvasHeight } = useMemo(
     () => getCanvasDimensions(template),
     [template],
@@ -832,7 +843,7 @@ const TemplateCanvas = ({
           const label = slotMeta.label || slotId || '未設定';
           return `{{${label}}}`;
         })();
-        const valueText = placeholderText || describeDataSource(element, companyProfile);
+        const valueText = placeholderText || describeDataSource(element, companyProfile, displayMode);
         const isPlaceholder = placeholderText.length > 0;
         const hasMultiline = valueText.includes('\n');
         const isDocMeta = isDocumentMetaElement(element);
@@ -1000,7 +1011,7 @@ const TemplateCanvas = ({
                 ) : null}
                 {element.type === 'image' ? (
                   (slotId === 'company_logo' || slotId === 'logo' || element.id === 'company_logo' || element.id === 'logo') ? (
-                    tenantLogoUrl ? (
+                    displayMode === 'preview' && tenantLogoUrl ? (
                       <img
                         src={tenantLogoUrl}
                         alt="company logo"

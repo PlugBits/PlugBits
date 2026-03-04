@@ -488,6 +488,16 @@ export const migrateTemplate = (
       }
       return next as TemplateElement;
     }
+    if (typeof slotId === 'string' && slotId.startsWith('company_') && slotId !== 'company_logo') {
+      const next = { ...element } as any;
+      if ('dataSource' in next) {
+        delete next.dataSource;
+      }
+      if ('text' in next) {
+        delete next.text;
+      }
+      return next as TemplateElement;
+    }
     return element;
   });
 
@@ -506,6 +516,10 @@ export const migrateTemplate = (
     if (header && typeof header === 'object') {
       delete header.logo;
       delete header.company_logo;
+      delete header.company_name;
+      delete header.company_address;
+      delete header.company_tel;
+      delete header.company_email;
     }
   }
 
@@ -609,7 +623,6 @@ export const migrateTemplate = (
           height: 14,
           fontSize: 10,
           fontWeight: 'bold',
-          dataSource: { type: 'static', value: '' },
         },
         {
           id: 'company_address',
@@ -621,7 +634,6 @@ export const migrateTemplate = (
           width: 200,
           height: 12,
           fontSize: 9,
-          dataSource: { type: 'static', value: '' },
         },
         {
           id: 'company_tel',
@@ -633,7 +645,6 @@ export const migrateTemplate = (
           width: 200,
           height: 12,
           fontSize: 9,
-          dataSource: { type: 'static', value: '' },
         },
         {
           id: 'company_email',
@@ -781,6 +792,16 @@ export const migrateTemplate = (
       }
       return next as TemplateElement;
     }
+    if (typeof slotId === 'string' && slotId.startsWith('company_') && slotId !== 'company_logo') {
+      const next = { ...el } as any;
+      if ('dataSource' in next) {
+        delete next.dataSource;
+      }
+      if ('text' in next) {
+        delete next.text;
+      }
+      return next as TemplateElement;
+    }
     return el;
   });
   const slotNormalizedTemplate =
@@ -790,6 +811,16 @@ export const migrateTemplate = (
   const hasCompanyLogo = slotNormalizedElements.some((el) => {
     const slotId = (el as any).slotId ?? el.id;
     return slotId === 'company_logo' || el.id === 'logo' || el.id === 'company_logo';
+  });
+  const companySlotDefs = [
+    { slotId: 'company_name', label: '会社名', kind: 'text' },
+    { slotId: 'company_address', label: '住所', kind: 'text' },
+    { slotId: 'company_tel', label: 'TEL', kind: 'text' },
+    { slotId: 'company_email', label: 'Email', kind: 'text' },
+  ] as const;
+  const hasCompanySlots = slotNormalizedElements.some((el) => {
+    const slotId = (el as any).slotId ?? el.id;
+    return typeof slotId === 'string' && slotId.startsWith('company_') && slotId !== 'company_logo';
   });
   const slotSchema = slotNormalizedTemplate.slotSchema as
     | { header?: Array<{ slotId: string; label?: string; kind?: string }> }
@@ -804,7 +835,7 @@ export const migrateTemplate = (
       };
     });
     const hasCompanyLogoSlot = headerSlots.some((slot) => slot.slotId === 'company_logo');
-    const nextHeader =
+    let nextHeader =
       hasCompanyLogo || hasCompanyLogoSlot
         ? hasCompanyLogoSlot
           ? headerSlots
@@ -813,6 +844,14 @@ export const migrateTemplate = (
               { slotId: 'company_logo', label: '会社ロゴ', kind: 'image' },
             ]
         : headerSlots;
+    if (hasCompanySlots) {
+      const existing = new Set(nextHeader.map((slot) => slot.slotId));
+      for (const slot of companySlotDefs) {
+        if (!existing.has(slot.slotId)) {
+          nextHeader = [...nextHeader, { ...slot }];
+        }
+      }
+    }
     if (nextHeader !== slotSchema.header) {
       const nextSchema = { ...slotSchema, header: nextHeader };
       const nextTemplate = { ...slotNormalizedTemplate, slotSchema: nextSchema };

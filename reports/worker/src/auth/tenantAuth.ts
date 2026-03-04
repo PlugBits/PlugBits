@@ -8,6 +8,12 @@ export type TenantRecord = {
   appId: string;
   kintoneApiToken?: string;
   tokensByAppId?: Record<string, string>;
+  companyProfile?: {
+    companyName?: string;
+    companyAddress?: string;
+    companyTel?: string;
+    companyEmail?: string;
+  };
   logo?: {
     objectKey: string;
     contentType: string;
@@ -180,6 +186,27 @@ export const updateTenantLogo = async (
     ...existing,
     logo,
     updatedAt: logo.updatedAt,
+  };
+  await kv.put(buildTenantRecordKey(tenantId), JSON.stringify(updated));
+  return updated;
+};
+
+export const updateTenantSettings = async (
+  kv: KVNamespace,
+  tenantId: string,
+  companyProfile: {
+    companyName?: string;
+    companyAddress?: string;
+    companyTel?: string;
+    companyEmail?: string;
+  },
+): Promise<TenantRecord | null> => {
+  const existing = await getTenantRecord(kv, tenantId);
+  if (!existing) return null;
+  const updated: TenantRecord = {
+    ...existing,
+    companyProfile: { ...companyProfile },
+    updatedAt: new Date().toISOString(),
   };
   await kv.put(buildTenantRecordKey(tenantId), JSON.stringify(updated));
   return updated;

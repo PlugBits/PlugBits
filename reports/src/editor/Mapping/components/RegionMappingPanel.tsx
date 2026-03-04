@@ -216,7 +216,7 @@ const RegionMappingPanel: React.FC<Props> = ({
 
             const allowStaticText = slot.allowedSources?.includes('staticText');
             const allowImageUrl = slot.allowedSources?.includes('imageUrl');
-            const isCompanyLogo = slot.id === 'company_logo';
+            const isTenantManaged = slot.id === 'company_logo' || slot.id.startsWith('company_');
 
             const valueLabel = describeFieldRef(slotValue);
             const isEmpty = !slotValue;
@@ -260,16 +260,16 @@ const RegionMappingPanel: React.FC<Props> = ({
                           const next = setPath(mapping, [region.id, slot.id], undefined);
                           onChangeMapping(next);
                         }}
-                        disabled={!slotValue || isCompanyLogo}
+                        disabled={!slotValue || isTenantManaged}
                       >
                         解除
                       </button>
                     </div>
 
                     <div style={{ marginTop: 8 }}>
-                      {isCompanyLogo ? (
+                      {isTenantManaged ? (
                         <div style={{ fontSize: '0.85rem', color: '#667085' }}>
-                          会社ロゴは会社設定（tenant）で管理されています。
+                          会社情報は会社設定（tenant）で管理されています。
                         </div>
                       ) : (
                         <FieldPicker

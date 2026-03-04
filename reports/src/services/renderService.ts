@@ -40,6 +40,7 @@ export async function requestPreviewPdf(
       templateId: template.id,
       data,
       previewMode: "fieldCode",
+      mode: "preview",
       companyProfile: tenantContext.companyProfile,
       kintone,
     }),
