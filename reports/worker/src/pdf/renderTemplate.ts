@@ -940,13 +940,20 @@ export async function renderTemplateToPdf(
 
   let tenantLogoImage: PDFImage | null = null;
   if (options?.tenantLogo?.bytes) {
-    tenantLogoImage = await embedImageBuffer(
-      pdfDoc,
-      options.tenantLogo.bytes,
-      options.tenantLogo.objectKey,
-      options.tenantLogo.contentType,
-      warn,
-    );
+    try {
+      tenantLogoImage = await embedImageBuffer(
+        pdfDoc,
+        options.tenantLogo.bytes,
+        options.tenantLogo.objectKey,
+        options.tenantLogo.contentType,
+        warn,
+      );
+    } catch (error) {
+      warn('image', 'tenant logo embed failed', {
+        message: error instanceof Error ? error.message : String(error),
+      });
+      tenantLogoImage = null;
+    }
   }
 
   if (debugEnabled) {

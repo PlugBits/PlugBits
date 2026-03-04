@@ -3085,6 +3085,12 @@ export default {
         request.method === "POST"
       ) {
         try {
+          let phase = "parse";
+          let tenantKeyForDiag: string | null = null;
+          let hasLogoForDiag = false;
+          let logoBytesLenForDiag = 0;
+          let resolvedTemplateIdForDiag: string | null = null;
+          let resolvedBaseTemplateIdForDiag: string | null = null;
           let body: RenderRequestBody | undefined;
           try {
             body = (await request.json()) as RenderRequestBody;
@@ -3095,8 +3101,10 @@ export default {
               error: error instanceof Error ? error.message : String(error),
             });
             return buildRenderErrorResponse(400, {
+              errorCode: "INVALID_JSON",
               error: "Bad Request: Invalid JSON body",
               requestId,
+              phase,
               missing: ["body"],
             });
           }
@@ -3125,6 +3133,7 @@ export default {
               const appId = canonicalizeAppId(kintoneForRender.appId);
               if (appId) {
                 const tenantKey = buildTenantKey(baseUrl, appId);
+                tenantKeyForDiag = tenantKey;
                 tenantRecordForRender = await getTenantRecord(env.USER_TEMPLATES_KV, tenantKey);
               }
             } catch {
@@ -3139,6 +3148,17 @@ export default {
             (body as { sessionToken?: string } | undefined)?.sessionToken ??
             null;
           const hasSessionToken = Boolean(sessionToken || authHeader);
+
+          const buildDiagnostics = () =>
+            debugEnabled
+              ? {
+                  tenantKey: tenantKeyForDiag,
+                  hasLogo: hasLogoForDiag,
+                  logoBytesLen: logoBytesLenForDiag,
+                  templateId: resolvedTemplateIdForDiag ?? templateIdInBody ?? null,
+                  baseTemplateId: resolvedBaseTemplateIdForDiag,
+                }
+              : undefined;
 
           const templateIdInBody = body?.templateId ?? body?.template?.id ?? "";
           const userTemplateIdInBody = templateIdInBody.startsWith("tpl_")
@@ -3162,6 +3182,7 @@ export default {
             });
           }
 
+          phase = "validate";
           const missing: string[] = [];
           if (!body || typeof body !== "object") {
             missing.push("body");
@@ -3179,8 +3200,11 @@ export default {
           }
           if (missing.length > 0) {
             return buildRenderErrorResponse(400, {
+              errorCode: "MISSING_FIELDS",
               error: `Bad Request: missing ${missing.join(", ")}`,
               requestId,
+              phase,
+              diagnostics: buildDiagnostics(),
               missing,
             });
           }
@@ -3200,6 +3224,7 @@ export default {
           let resolvedSource: "body.template" | "userTemplate" | "baseTemplate" =
             "baseTemplate";
 
+          phase = "resolveTemplate";
           if (body?.template) {
             template = body.template;
             templateSource = "body.template";
@@ -3209,8 +3234,11 @@ export default {
             resolvedSource = isUserTemplate ? "userTemplate" : "baseTemplate";
             if (!isUserTemplate && !TEMPLATE_IDS.has(body.templateId)) {
               return buildRenderErrorResponse(400, {
+                errorCode: "UNKNOWN_TEMPLATE",
                 error: "Bad Request: Unknown templateId",
                 requestId,
+                phase,
+                diagnostics: buildDiagnostics(),
                 missing: [],
               });
             }
@@ -3225,8 +3253,11 @@ export default {
               body.templateId !== "label_logistics_v1"
             ) {
               return buildRenderErrorResponse(400, {
+                errorCode: "UNSUPPORTED_TEMPLATE",
                 error: `Bad Request: templateId ${body.templateId} is not supported yet`,
                 requestId,
+                phase,
+                diagnostics: buildDiagnostics(),
                 missing: [],
               });
             }
@@ -3242,18 +3273,26 @@ export default {
               const msg =
                 err instanceof Error ? err.message : "Unknown templateId";
               return buildRenderErrorResponse(400, {
+                errorCode: "TEMPLATE_RESOLVE_FAILED",
                 error: `Bad Request: ${msg}`,
                 requestId,
+                phase,
+                diagnostics: buildDiagnostics(),
                 missing: [],
               });
             }
           } else {
             return buildRenderErrorResponse(400, {
+              errorCode: "MISSING_TEMPLATE",
               error: "Bad Request: Missing 'template' or 'templateId' in request body",
               requestId,
+              phase,
+              diagnostics: buildDiagnostics(),
               missing: ["template", "templateId"],
             });
           }
+          resolvedTemplateIdForDiag = template.id ?? templateIdInBody ?? null;
+          resolvedBaseTemplateIdForDiag = (template as any).baseTemplateId ?? bodyBaseTemplateId ?? null;
 
           if (debugEnabled) {
             const fingerprint = await buildTemplateFingerprint(template as TemplateDefinition);
@@ -3320,22 +3359,23 @@ export default {
             tableConfigSummary,
           });
 
-        const fixtureName = url.searchParams.get("fixture");
-        console.log("fixture=", fixtureName);
-        const fixtureData = fixtureName ? getFixtureData(fixtureName) : undefined;
-        if (fixtureName && !fixtureData) {
-          return new Response(`Unknown fixture: ${fixtureName}`, {
-            status: 400,
-            headers: CORS_HEADERS,
+          const fixtureName = url.searchParams.get("fixture");
+          console.log("fixture=", fixtureName);
+          const fixtureData = fixtureName ? getFixtureData(fixtureName) : undefined;
+          if (fixtureName && !fixtureData) {
+            return new Response(`Unknown fixture: ${fixtureName}`, {
+              status: 400,
+              headers: CORS_HEADERS,
+            });
+          }
+          phase = "migrate";
+          const schemaVersionBefore = template.schemaVersion ?? 0;
+          const migratedTemplate = migrateTemplate(template, {
+            enabled: debug,
+            requestId,
+            reason: "render",
+            templateId: template.id ?? body.templateId ?? "",
           });
-        }
-        const schemaVersionBefore = template.schemaVersion ?? 0;
-        const migratedTemplate = migrateTemplate(template, {
-          enabled: debug,
-          requestId,
-          reason: "render",
-          templateId: template.id ?? body.templateId ?? "",
-        });
         const didMigrate = schemaVersionBefore < TEMPLATE_SCHEMA_VERSION;
         const { ok, issues } = validateTemplate(migratedTemplate);
         const issueWarnings = issues.map((issue) => {
@@ -3380,6 +3420,7 @@ export default {
           );
         }
 
+        phase = "prepareRender";
         const rowHeightParam = url.searchParams.get("rowHeight");
         const rowHeightOverride = rowHeightParam ? Number(rowHeightParam) : undefined;
         const hasRowHeightOverride =
@@ -3504,9 +3545,12 @@ export default {
             return null;
           }
         })();
+        hasLogoForDiag = Boolean(tenantLogo);
+        logoBytesLenForDiag = tenantLogo?.bytes?.length ?? 0;
 
         // フォント読み込み
         let fonts: { jp: Uint8Array; latin: Uint8Array };  // ← これが大事！！
+        phase = "loadFonts";
         try {
           fonts = await loadFonts(env);
           console.log(
@@ -3522,17 +3566,27 @@ export default {
           });
           const responseBody = debug
             ? {
+                errorCode: "FONT_LOAD_FAILED",
                 error: message,
                 requestId,
+                phase,
+                diagnostics: {
+                  tenantKey: tenantKeyForDiag,
+                  hasLogo: hasLogoForDiag,
+                  logoBytesLen: logoBytesLenForDiag,
+                  templateId: resolvedTemplateIdForDiag ?? templateIdInBody ?? null,
+                  baseTemplateId: resolvedBaseTemplateIdForDiag,
+                },
                 stack: truncateHeaderValue(err instanceof Error ? err.stack ?? "" : ""),
                 hint: resolveRenderHint(err),
               }
-            : { error: "Render failed", requestId };
+            : { errorCode: "RENDER_FAILED", error: "Render failed", requestId, phase };
           return buildRenderErrorResponse(500, responseBody);
         }
 
           // PDF 生成
           try {
+            phase = "renderPdf";
             const { bytes: rawPdfBytes, warnings } = await renderTemplateToPdf(
               templateForRender,
               dataForRender as TemplateDataRecord | undefined,
@@ -3599,12 +3653,21 @@ export default {
             });
             const responseBody = debug
               ? {
+                  errorCode: "RENDER_FAILED",
                   error: message,
                   requestId,
+                  phase,
+                  diagnostics: {
+                    tenantKey: tenantKeyForDiag,
+                    hasLogo: hasLogoForDiag,
+                    logoBytesLen: logoBytesLenForDiag,
+                    templateId: resolvedTemplateIdForDiag ?? templateIdInBody ?? null,
+                    baseTemplateId: resolvedBaseTemplateIdForDiag,
+                  },
                   stack: truncateHeaderValue(err instanceof Error ? err.stack ?? "" : ""),
                   hint: resolveRenderHint(err),
                 }
-              : { error: "Render failed", requestId };
+              : { errorCode: "RENDER_FAILED", error: "Render failed", requestId, phase };
             return buildRenderErrorResponse(500, responseBody);
           }
         } catch (err) {
@@ -3616,12 +3679,21 @@ export default {
           });
           const responseBody = debugEnabled
             ? {
+                errorCode: "RENDER_FAILED",
                 error: message,
                 requestId,
+                phase,
+                diagnostics: {
+                  tenantKey: tenantKeyForDiag,
+                  hasLogo: hasLogoForDiag,
+                  logoBytesLen: logoBytesLenForDiag,
+                  templateId: resolvedTemplateIdForDiag ?? templateIdInBody ?? null,
+                  baseTemplateId: resolvedBaseTemplateIdForDiag,
+                },
                 stack: truncateHeaderValue(err instanceof Error ? err.stack ?? "" : ""),
                 hint: resolveRenderHint(err),
               }
-            : { error: "Render failed", requestId };
+            : { errorCode: "RENDER_FAILED", error: "Render failed", requestId, phase };
           return buildRenderErrorResponse(500, responseBody);
         }
       }
