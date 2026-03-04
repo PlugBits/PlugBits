@@ -196,18 +196,18 @@ const describeDataSource = (
   companyProfile?: CompanyProfile,
 ) => {
   const slotId = (element as any).slotId as string | undefined;
-  if (slotId && slotId.startsWith('company_') && companyProfile) {
+  if (slotId && slotId.startsWith('company_')) {
     const value =
       slotId === 'company_name'
-        ? companyProfile.companyName
+        ? companyProfile?.companyName
         : slotId === 'company_address'
-          ? companyProfile.companyAddress
+          ? companyProfile?.companyAddress
           : slotId === 'company_tel'
-            ? companyProfile.companyTel
+            ? companyProfile?.companyTel
             : slotId === 'company_email'
-              ? companyProfile.companyEmail
+              ? companyProfile?.companyEmail
               : '';
-    return value ?? '';
+    return value && String(value).trim().length > 0 ? String(value) : `{{${slotId}}}`;
   }
   // table
   if (element.type === 'table') {
@@ -226,7 +226,12 @@ const describeDataSource = (
 
   // text / image など dataSource を持つ可能性がある要素
   const ds = (element as any).dataSource as DataSource | undefined;
-  if (!ds) return '';
+  if (!ds) {
+    if (slotId === 'company_logo' || slotId === 'logo' || element.id === 'company_logo' || element.id === 'logo') {
+      return 'LOGO';
+    }
+    return '';
+  }
 
   if (ds.type === 'static') {
     return ds.value ?? '';
@@ -460,10 +465,6 @@ const TemplateCanvas = ({
       pagePadding: resolvePagePadding(settings.paddingPreset),
     };
   };
-  const companyNameElement = template.elements.find((el): el is TextElement => {
-    const slotId = (el as any).slotId as string | undefined;
-    return el.type === 'text' && slotId === 'company_name';
-  });
   const slotMetaById = useMemo(() => {
     const map = new Map<string, { label: string; required?: boolean }>();
     template.slotSchema?.header?.forEach((slot) => {
@@ -474,13 +475,6 @@ const TemplateCanvas = ({
     });
     return map;
   }, [template.slotSchema]);
-  const isCompanyNameEmpty = (() => {
-    const profileName = String(companyProfile?.companyName ?? '').trim();
-    if (profileName) return false;
-    const ds = (companyNameElement as any)?.dataSource as DataSource | undefined;
-    if (ds?.type !== 'static') return true;
-    return String(ds.value ?? '').trim().length === 0;
-  })();
 
   const visibleElements = template.elements.filter((el) => {
     if (resolvedAdminMode) return true;
@@ -491,7 +485,7 @@ const TemplateCanvas = ({
     const slotMeta = slotId ? slotMetaById.get(slotId) : undefined;
     if (el.hidden && !slotMeta && !isCompanyLogo) return false;
     if (!companyBlockEnabled && slotId && slotId.startsWith('company_')) return false;
-    if (isCompanyNameEmpty && slotId && slotId.startsWith('company_')) return false;
+    // Keep company_* visible in editor for layout, even when values are empty.
     if (el.type === 'image') {
       if (isCompanyLogo) return true;
       const ds = (el as any).dataSource as DataSource | undefined;

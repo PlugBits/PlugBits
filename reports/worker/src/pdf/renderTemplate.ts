@@ -1124,7 +1124,7 @@ export async function renderTemplateToPdf(
   const companyNameValue = resolveTextValue(companyNameEl);
   const companyBlockEnabled = template.settings?.companyBlock?.enabled !== false;
   const shouldHideCompanyBlock =
-    !companyBlockEnabled || (!!companyNameEl && !companyNameValue);
+    !companyBlockEnabled || (!!companyNameEl && !companyNameValue && previewMode !== 'fieldCode');
   const docNoEl = headerCandidates.find(
     (el) => (el as any).slotId === 'doc_no',
   ) as TextElement | undefined;
@@ -1929,9 +1929,13 @@ function drawText(
     warn,
     { elementId: element.id },
   );
-  const text = resolved || element.text || '';
-  const fontToUse = pickFont(text, latinFont, jpFont);
   const slotId = (element as any).slotId as string | undefined;
+  const isCompanySlot = slotId ? slotId.startsWith('company_') : false;
+  let text = resolved || element.text || '';
+  if (previewMode === 'fieldCode' && isCompanySlot && !text) {
+    text = `{{${slotId}}}`;
+  }
+  const fontToUse = pickFont(text, latinFont, jpFont);
   const elementKey = slotId ?? element.id;
   const isLabelText =
     element.id.endsWith('_label') ||
@@ -4581,7 +4585,12 @@ function drawImageElement(
   const isCompanyLogo =
     slotId === 'company_logo' || element.id === 'company_logo' || element.id === 'logo';
   if (isCompanyLogo) {
-    if (!tenantLogoImage) return;
+    if (!tenantLogoImage) {
+      if (previewMode === 'fieldCode') {
+        drawImagePlaceholder(page, element, jpFont, latinFont, pagePadding, transform, warn, 'LOGO');
+      }
+      return;
+    }
     const widthCanvas =
       typeof element.width === 'number' ? element.width : tenantLogoImage.width / transform.scaleX;
     const heightCanvas =
@@ -4688,6 +4697,7 @@ function drawImagePlaceholder(
   pagePadding: number,
   transform: PdfTransform,
   warn?: WarnFn,
+  labelText = 'IMAGE',
 ) {
   const widthCanvas = element.width ?? 120;
   const heightCanvas = element.height ?? 80;
@@ -4710,7 +4720,6 @@ function drawImagePlaceholder(
     borderWidth: 1 * strokeScale,
   });
 
-  const labelText = 'IMAGE';
   const labelFont = pickFont(labelText, latinFont, jpFont);
   const labelSize = 10 * transform.scaleY;
   safeDrawText(
