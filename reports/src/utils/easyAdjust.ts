@@ -94,7 +94,10 @@ export const isElementHiddenByEasyAdjust = (
   element: TemplateElement,
   template: TemplateDefinition,
 ) => {
-  if ((element as any).hidden) return true;
+  const slotId = (element as any).slotId as string | undefined;
+  const isCompanyLogo =
+    slotId === 'company_logo' || slotId === 'logo' || element.id === 'company_logo' || element.id === 'logo';
+  if (!isCompanyLogo && (element as any).hidden) return true;
   const block = resolveElementBlock(element, template);
   const settings = normalizeEasyAdjustBlockSettings(template, block);
   if (!settings.enabled && block !== 'documentMeta') return true;
@@ -102,7 +105,6 @@ export const isElementHiddenByEasyAdjust = (
     const headerSettings = normalizeEasyAdjustBlockSettings(template, 'header');
     if (!headerSettings.enabled) return true;
   }
-  const slotId = (element as any).slotId as string | undefined;
   if (block === 'documentMeta') {
     if (!settings.docNoVisible && (slotId === 'doc_no' || element.id === 'doc_no_label')) {
       return true;

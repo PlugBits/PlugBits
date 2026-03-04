@@ -479,6 +479,7 @@ export const migrateTemplate = (
     const slotId = (element as any).slotId ?? element.id;
     if (slotId === 'logo' || slotId === 'company_logo') {
       const next = { ...element, slotId: 'company_logo' } as any;
+      next.hidden = false;
       if ('dataSource' in next) {
         delete next.dataSource;
       }
@@ -771,6 +772,7 @@ export const migrateTemplate = (
     const slotId = (el as any).slotId ?? el.id;
     if (slotId === 'logo' || slotId === 'company_logo') {
       const next = { ...el, slotId: 'company_logo' } as any;
+      next.hidden = false;
       if ('dataSource' in next) {
         delete next.dataSource;
       }

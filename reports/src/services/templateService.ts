@@ -145,6 +145,7 @@ export const canonicalizeTemplateForStorage = (
       slotId === 'company_logo' || slotId === 'logo' || next.id === 'company_logo' || next.id === 'logo';
     if (isCompanyLogo) {
       next.slotId = 'company_logo';
+      next.hidden = false;
       if ('dataSource' in next) delete next.dataSource;
       if ('imageUrl' in next) delete next.imageUrl;
     }

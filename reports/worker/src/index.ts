@@ -213,6 +213,7 @@ const canonicalizeElementDefaults = (
     slotId === "company_logo" || slotId === "logo" || next.id === "company_logo" || next.id === "logo";
   if (isCompanyLogo) {
     next.slotId = "company_logo";
+    next.hidden = false;
     if ("dataSource" in next) {
       delete next.dataSource;
     }

@@ -72,6 +72,7 @@ const normalizeDocMetaSlotIds = (template: TemplateDefinition): TemplateDefiniti
     }
     if (el.id === 'logo' || (el as any).slotId === 'logo' || (el as any).slotId === 'company_logo') {
       const next = { ...el, slotId: 'company_logo' } as any;
+      next.hidden = false;
       if ('dataSource' in next) {
         delete next.dataSource;
       }

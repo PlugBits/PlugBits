@@ -1626,6 +1626,8 @@ const resolveEasyAdjustForElement = (
   const block = resolveEasyAdjustBlock(element, template);
   const settings = normalizeEasyAdjustBlockSettings(template, block);
   const slotId = (element as any).slotId as string | undefined;
+  const isCompanyLogo =
+    slotId === 'company_logo' || slotId === 'logo' || element.id === 'company_logo' || element.id === 'logo';
   let hidden = (element as any).hidden === true;
   if (!hidden && block !== 'documentMeta' && settings.enabled === false) {
     hidden = true;
@@ -1641,6 +1643,9 @@ const resolveEasyAdjustForElement = (
     if (!settings.dateVisible && (slotId === 'date_label' || slotId === 'issue_date')) {
       hidden = true;
     }
+  }
+  if (isCompanyLogo) {
+    hidden = false;
   }
   return {
     fontScale: resolveFontScale(settings.fontPreset),
