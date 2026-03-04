@@ -508,13 +508,65 @@ const templateHasNonAscii = (template: TemplateDefinition): boolean => {
   return false;
 };
 
+const collectTemplateTextCandidates = (
+  template: TemplateDefinition,
+  previewMode: "record" | "fieldCode",
+): string[] => {
+  const texts: string[] = [];
+  for (const element of template.elements) {
+    if (typeof (element as any).text === "string") {
+      texts.push((element as any).text);
+    }
+    if (element.dataSource?.type === "static" && typeof element.dataSource.value === "string") {
+      texts.push(element.dataSource.value);
+    }
+    if (previewMode === "fieldCode" && element.dataSource?.type === "kintone") {
+      if (typeof element.dataSource.fieldCode === "string") {
+        texts.push(element.dataSource.fieldCode);
+        texts.push(`{{${element.dataSource.fieldCode}}}`);
+      }
+    }
+    if (element.type === "table") {
+      const table = element as TableElement;
+      for (const col of table.columns ?? []) {
+        if (typeof col.title === "string") texts.push(col.title);
+        if (previewMode === "fieldCode" && typeof col.fieldCode === "string") {
+          texts.push(col.fieldCode);
+          texts.push(`{{${col.fieldCode}}}`);
+        }
+      }
+      const summaryRows = table.summary?.rows ?? [];
+      for (const row of summaryRows) {
+        if (typeof row.label === "string") texts.push(row.label);
+        if (typeof row.labelSubtotal === "string") texts.push(row.labelSubtotal);
+        if (typeof row.labelTotal === "string") texts.push(row.labelTotal);
+      }
+    }
+  }
+  return texts;
+};
+
 const shouldUseJpFont = (
   template: TemplateDefinition,
   data: unknown,
   renderMode: RenderMode,
+  previewMode: "record" | "fieldCode",
+  companyProfile?: CompanyProfile,
 ): boolean => {
-  if (renderMode !== "final") return false;
+  if (renderMode === "layout") return false;
   if (templateHasNonAscii(template)) return true;
+  for (const text of collectTemplateTextCandidates(template, previewMode)) {
+    if (hasNonAscii(text)) return true;
+  }
+  if (companyProfile) {
+    const companyTexts = [
+      companyProfile.companyName,
+      companyProfile.companyAddress,
+      companyProfile.companyTel,
+      companyProfile.companyEmail,
+    ].filter((v): v is string => typeof v === "string");
+    if (companyTexts.some((t) => hasNonAscii(t))) return true;
+  }
   if (containsNonAsciiValue(data)) return true;
   return false;
 };
@@ -3625,7 +3677,13 @@ export default {
         logoBytesLenForDiag = tenantLogo?.bytes?.length ?? 0;
 
         // フォント読み込み
-        const useJpFont = shouldUseJpFont(templateForRender, dataForRender, renderMode);
+        const useJpFont = shouldUseJpFont(
+          templateForRender,
+          dataForRender,
+          renderMode,
+          previewMode,
+          renderCompanyProfile,
+        );
         let fonts: { jp: Uint8Array | null; latin: Uint8Array | null };
         phase = "loadFonts";
         try {
