@@ -49,6 +49,7 @@ export interface Env {
   USER_TEMPLATES_KV: KVNamespace;
   SESSIONS_KV: KVNamespace;
   TENANT_ASSETS?: R2Bucket;
+  RENDER_CACHE?: KVNamespace;
 }
 
 // /render が受け取る JSON ボディ
@@ -3638,6 +3639,17 @@ export default {
           }
         }
 
+        if (renderMode === "preview" && dataForRender && typeof dataForRender === "object") {
+          const record = dataForRender as Record<string, unknown>;
+          const maybeItems = record.Items;
+          if (Array.isArray(maybeItems)) {
+            const PREVIEW_ROW_LIMIT = 20;
+            if (maybeItems.length > PREVIEW_ROW_LIMIT) {
+              dataForRender = { ...record, Items: maybeItems.slice(0, PREVIEW_ROW_LIMIT) };
+            }
+          }
+        }
+
         const rowsCount = (() => {
           if (dataForRender && typeof dataForRender === "object") {
             const maybeItems = (dataForRender as any).Items;
@@ -3675,6 +3687,47 @@ export default {
         logTiming("load_logo", nowMs() - logoStart);
         hasLogoForDiag = Boolean(tenantLogo);
         logoBytesLenForDiag = tenantLogo?.bytes?.length ?? 0;
+
+        let cachedPdf: ArrayBuffer | null = null;
+        let cacheKey: string | null = null;
+        if (renderMode === "preview" && env.RENDER_CACHE && !debugEnabled) {
+          const templateFingerprint = await buildTemplateFingerprint(templateForRender);
+          const dataJson = stableStringify(dataForRender ?? null);
+          const dataHash = (await sha256Hex(dataJson)) ?? hashStringFNV1a(dataJson);
+          const cachePayload = {
+            mode: renderMode,
+            previewMode,
+            templateHash: templateFingerprint.hash,
+            templateId: templateForRender.id ?? templateIdInBody ?? null,
+            baseTemplateId: templateForRender.baseTemplateId ?? null,
+            tenantKey: tenantKeyForDiag,
+            tenantUpdatedAt: tenantRecordForRender?.updatedAt ?? null,
+            logoUpdatedAt: tenantRecordForRender?.logo?.updatedAt ?? null,
+            dataHash,
+          };
+          const cacheJson = stableStringify(cachePayload);
+          const cacheHash = (await sha256Hex(cacheJson)) ?? hashStringFNV1a(cacheJson);
+          cacheKey = `render:preview:${cacheHash}`;
+          cachedPdf = await env.RENDER_CACHE.get(cacheKey, "arrayBuffer");
+        }
+
+        if (cachedPdf) {
+          console.info("[DBG_RENDER_CACHE]", {
+            requestId,
+            status: "HIT",
+            cacheKey,
+          });
+          return new Response(cachedPdf, {
+            status: 200,
+            headers: {
+              ...CORS_HEADERS,
+              "Content-Type": "application/pdf",
+              "X-Render-Cache": "HIT",
+              "X-Debug-Fixture": fixtureName ?? "(none)",
+              "X-Debug-Rows": String(rowsCount),
+            },
+          });
+        }
 
         // フォント読み込み
         const useJpFont = shouldUseJpFont(
@@ -3773,6 +3826,24 @@ export default {
               "X-Template-Schema-Version": schemaHeaderValue,
             };
             if (didMigrate) headers["X-Template-Migrated"] = "1";
+            if (cacheKey && env.RENDER_CACHE) {
+              try {
+                await env.RENDER_CACHE.put(cacheKey, pdfBytes, { expirationTtl: 60 });
+                headers["X-Render-Cache"] = "PUT";
+                console.info("[DBG_RENDER_CACHE]", {
+                  requestId,
+                  status: "PUT",
+                  cacheKey,
+                });
+              } catch {
+                headers["X-Render-Cache"] = "PUT_FAILED";
+                console.info("[DBG_RENDER_CACHE]", {
+                  requestId,
+                  status: "PUT_FAILED",
+                  cacheKey,
+                });
+              }
+            }
 
             if (debug && warnCount > 0) {
               headers["X-Debug-Warn-Sample"] = truncateHeaderValue(combinedWarnings[0]);
