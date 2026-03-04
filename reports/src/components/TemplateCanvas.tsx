@@ -268,7 +268,51 @@ const TemplateCanvas = ({
   }, [adminMode]);
   const isAdvanced = !resolvedAdminMode && !!template.advancedLayoutEditing;
   const isEstimate = isEstimateV1(template);
-  const companyProfile = useTenantStore((state) => state.tenantContext?.companyProfile);
+  const tenantContext = useTenantStore((state) => state.tenantContext);
+  const companyProfile = tenantContext?.companyProfile;
+  const [tenantLogoUrl, setTenantLogoUrl] = useState<string | null>(null);
+  useEffect(() => {
+    if (!tenantContext?.workerBaseUrl || !tenantContext.kintoneBaseUrl || !tenantContext.appId) {
+      setTenantLogoUrl((prev) => {
+        if (prev) URL.revokeObjectURL(prev);
+        return null;
+      });
+      return;
+    }
+    const controller = new AbortController();
+    const base = tenantContext.workerBaseUrl.replace(/\/$/, '');
+    const url = new URL(`${base}/tenant/logo`);
+    url.searchParams.set('kintoneBaseUrl', tenantContext.kintoneBaseUrl);
+    url.searchParams.set('appId', tenantContext.appId);
+    const headers: Record<string, string> = {};
+    if (tenantContext.editorToken) {
+      headers.Authorization = `Bearer ${tenantContext.editorToken}`;
+    }
+    (async () => {
+      try {
+        const res = await fetch(url.toString(), { headers, signal: controller.signal });
+        if (!res.ok) {
+          setTenantLogoUrl((prev) => {
+            if (prev) URL.revokeObjectURL(prev);
+            return null;
+          });
+          return;
+        }
+        const blob = await res.blob();
+        const objectUrl = URL.createObjectURL(blob);
+        setTenantLogoUrl((prev) => {
+          if (prev) URL.revokeObjectURL(prev);
+          return objectUrl;
+        });
+      } catch {
+        setTenantLogoUrl((prev) => {
+          if (prev) URL.revokeObjectURL(prev);
+          return null;
+        });
+      }
+    })();
+    return () => controller.abort();
+  }, [tenantContext?.workerBaseUrl, tenantContext?.kintoneBaseUrl, tenantContext?.appId, tenantContext?.editorToken]);
   const { width: canvasWidth, height: canvasHeight } = useMemo(
     () => getCanvasDimensions(template),
     [template],
@@ -954,19 +998,67 @@ const TemplateCanvas = ({
                     {debugInfo}
                   </span>
                 ) : null}
-                <span
-                  className="canvas-element-value"
-                  style={{
-                    fontSize: `${0.85 * getElementSettings(element).fontScale}rem`,
-                    textAlign,
-                    color: isPlaceholder ? '#98a2b3' : undefined,
-                    opacity: isPlaceholder ? 0.7 : undefined,
-                    ...(metaTextStyle ?? {}),
-                    ...(valueMultilineStyle ?? {}),
-                  }}
-                >
-                  {valueText}
-                </span>
+                {element.type === 'image' ? (
+                  (slotId === 'company_logo' || slotId === 'logo' || element.id === 'company_logo' || element.id === 'logo') ? (
+                    tenantLogoUrl ? (
+                      <img
+                        src={tenantLogoUrl}
+                        alt="company logo"
+                        style={{
+                          display: 'block',
+                          width: '100%',
+                          height: '100%',
+                          objectFit: 'contain',
+                        }}
+                      />
+                    ) : (
+                      <div
+                        style={{
+                          width: '100%',
+                          height: '100%',
+                          border: '1px dashed #cbd5e1',
+                          borderRadius: 6,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          color: '#98a2b3',
+                          fontSize: '0.8rem',
+                          fontWeight: 600,
+                        }}
+                      >
+                        LOGO
+                      </div>
+                    )
+                  ) : (
+                    <span
+                      className="canvas-element-value"
+                      style={{
+                        fontSize: `${0.85 * getElementSettings(element).fontScale}rem`,
+                        textAlign,
+                        color: isPlaceholder ? '#98a2b3' : undefined,
+                        opacity: isPlaceholder ? 0.7 : undefined,
+                        ...(metaTextStyle ?? {}),
+                        ...(valueMultilineStyle ?? {}),
+                      }}
+                    >
+                      {valueText}
+                    </span>
+                  )
+                ) : (
+                  <span
+                    className="canvas-element-value"
+                    style={{
+                      fontSize: `${0.85 * getElementSettings(element).fontScale}rem`,
+                      textAlign,
+                      color: isPlaceholder ? '#98a2b3' : undefined,
+                      opacity: isPlaceholder ? 0.7 : undefined,
+                      ...(metaTextStyle ?? {}),
+                      ...(valueMultilineStyle ?? {}),
+                    }}
+                  >
+                    {valueText}
+                  </span>
+                )}
               </div>
             )}
           </div>

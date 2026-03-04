@@ -4586,9 +4586,7 @@ function drawImageElement(
     slotId === 'company_logo' || element.id === 'company_logo' || element.id === 'logo';
   if (isCompanyLogo) {
     if (!tenantLogoImage) {
-      if (previewMode === 'fieldCode') {
-        drawImagePlaceholder(page, element, jpFont, latinFont, pagePadding, transform, warn, 'LOGO');
-      }
+      drawImagePlaceholder(page, element, jpFont, latinFont, pagePadding, transform, warn, 'LOGO');
       return;
     }
     const widthCanvas =

@@ -1653,6 +1653,38 @@ export default {
       }
 
       if (url.pathname === "/tenant/logo") {
+        if (request.method === "GET") {
+          if (!env.TENANT_ASSETS) {
+            return new Response("Tenant assets bucket not configured", {
+              status: 500,
+              headers: CORS_HEADERS,
+            });
+          }
+          const tenant = getTenantContext(url);
+          if ("error" in tenant) return tenant.error;
+          const record = await getTenantRecord(env.USER_TEMPLATES_KV, tenant.tenantKey);
+          if (!record?.logo) {
+            return new Response("Logo not set", {
+              status: 404,
+              headers: CORS_HEADERS,
+            });
+          }
+          const logo = await getTenantLogoBytes(env, tenant.tenantKey, record.logo);
+          if (!logo) {
+            return new Response("Logo not found", {
+              status: 404,
+              headers: CORS_HEADERS,
+            });
+          }
+          return new Response(logo.bytes, {
+            status: 200,
+            headers: {
+              ...CORS_HEADERS,
+              "Content-Type": logo.contentType,
+              "Cache-Control": "no-store",
+            },
+          });
+        }
         if (request.method !== "PUT") {
           return new Response("Method Not Allowed", {
             status: 405,
