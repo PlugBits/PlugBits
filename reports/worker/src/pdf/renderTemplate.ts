@@ -33,6 +33,8 @@ type RenderMode = 'layout' | 'preview' | 'final';
 const MAX_TEXT_LENGTH = 200;
 const FINAL_MAX_ROWS = 300;
 const FINAL_MAX_PAGES = 10;
+const FASTMODE_ROW_THRESHOLD = 120;
+const FASTMODE_TEXTOPS_THRESHOLD = 5000;
 type DrawTextOptions = Parameters<PDFPage['drawText']>[1];
 type TextBaselineDebug = {
   elementId: string;
@@ -1578,8 +1580,20 @@ export async function renderTemplateToPdf(
   }
 
   const saveStart = nowMs();
+  if (debugEnabled || renderMode === 'final') {
+    console.info('[DBG_PDF_SAVE]', { requestId, status: 'start' });
+  }
   const bytes = await pdfDoc.save();
-  onTiming?.('save_pdf', nowMs() - saveStart);
+  const saveMs = nowMs() - saveStart;
+  onTiming?.('save_pdf', saveMs);
+  if (debugEnabled || renderMode === 'final') {
+    console.info('[DBG_PDF_SAVE]', {
+      requestId,
+      status: 'done',
+      ms: Math.round(saveMs),
+      bytesLen: bytes.length,
+    });
+  }
   const warningList = Array.from(warnings);
   if (warningList.length > 0) {
     console.warn('renderTemplateToPdf warnings', warningList);
@@ -2883,6 +2897,11 @@ function drawTable(
       fieldCode: element.dataSource?.fieldCode,
     });
   }
+  const estimatedTextOps = rows.length * (element.columns?.length ?? 0);
+  const fastMode =
+    renderMode === 'final' &&
+    (rows.length > FASTMODE_ROW_THRESHOLD ||
+      estimatedTextOps > FASTMODE_TEXTOPS_THRESHOLD);
 
   const summarySpec =
     element.summary?.mode === 'lastPageOnly' ||
@@ -2908,6 +2927,8 @@ function drawTable(
       headerHeight: headerHeightCanvas,
       tableY: element.y,
       renderMode,
+      fastMode,
+      estimatedTextOps,
     });
   }
   const summaryStates = summaryRows.map((row, index) => ({
@@ -3833,9 +3854,9 @@ function drawTable(
         });
       }
 
-      const cellText = cellTextRaw.replace(/\n/g, '');
-      const align = resolveColumnAlign(spec, cellText);
-      const minFontSize = spec.minFontSize * transform.scaleY;
+    const cellText = cellTextRaw.replace(/\n/g, '');
+    const align = resolveColumnAlign(spec, cellText);
+    const minFontSize = spec.minFontSize * transform.scaleY;
       const shouldLogTableCell = debugEnabled && i === 0 && spec.isItemName;
       const tableCellElementId = `${element.id}:row0:${columnId}`;
       const rectTopY = rowTopPdfDraw;
@@ -3909,7 +3930,27 @@ function drawTable(
         rowMathLogged = true;
       }
 
-      if (spec.overflow === 'wrap' && maxCellWidth > 0) {
+      if (fastMode) {
+        if (cellText) {
+          const clipped = ellipsisTextToWidth(cellText, fontForCell, baseFontSize, maxCellWidth);
+          if (clipped) {
+            drawAlignedText(
+              currentPage,
+              clipped,
+              fontForCell,
+              baseFontSize,
+              currentX,
+              rowYBottomDraw,
+              colWidth,
+              effectiveRowHeight,
+              align,
+              paddingLeft,
+              warn,
+              { tableId: element.id, columnId, fieldCode },
+            );
+          }
+        }
+      } else if (spec.overflow === 'wrap' && maxCellWidth > 0) {
         const maxLinesByHeight = Math.floor((effectiveRowHeight - paddingY * 2) / lineHeight);
         const lines = linesToDraw.slice(0, Math.max(0, maxLinesByHeight));
         const yStart = rowYBottomDraw + effectiveRowHeight - paddingY - lineHeight;
