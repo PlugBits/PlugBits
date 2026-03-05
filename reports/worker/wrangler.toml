@@ -21,7 +21,13 @@ binding = "SESSIONS_KV"
 id = "3b05d3d272654fd29b488466eead6069"
 preview_id = "3b05d3d272654fd29b488466eead6069"
 
+[[kv_namespaces]]
+binding = "RENDER_CACHE"
+id = "bea534609bd6462ca55f8b20e63b336f"
+preview_id = "bea534609bd6462ca55f8b20e63b336f"
+
 [[r2_buckets]]
 binding = "TENANT_ASSETS"
 bucket_name = "tenant-assets"
 preview_bucket_name = "tenant-assets"
+
