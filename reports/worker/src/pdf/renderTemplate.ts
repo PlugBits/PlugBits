@@ -31,6 +31,8 @@ type WarnFn = (
 type PreviewMode = 'record' | 'fieldCode';
 type RenderMode = 'layout' | 'preview' | 'final';
 const MAX_TEXT_LENGTH = 200;
+const FINAL_MAX_ROWS = 300;
+const FINAL_MAX_PAGES = 10;
 type DrawTextOptions = Parameters<PDFPage['drawText']>[1];
 type TextBaselineDebug = {
   elementId: string;
@@ -2859,6 +2861,8 @@ function drawTable(
   const headerHeight = transform.toPdfH(headerHeightCanvas);
   const originX = transform.toPdfX(element.x);
   const bottomMargin = footerReserveHeight + 40; // 下から40ptは余白
+  const maxRowsTotal = renderMode === 'final' ? FINAL_MAX_ROWS : Number.POSITIVE_INFINITY;
+  const maxPages = renderMode === 'final' ? FINAL_MAX_PAGES : Number.POSITIVE_INFINITY;
 
   // サブテーブル行
   if (!element.columns || element.columns.length === 0) {
@@ -2920,7 +2924,7 @@ function drawTable(
   const summaryRowHeight = Math.max(rowHeight, lineHeight + paddingY * 2);
   const columnWidths = element.columns.map((col) => transform.toPdfW(col.width));
   const tableWidth = columnWidths.reduce((sum, width) => sum + width, 0);
-  const summaryMode = summarySpec?.mode;
+  let summaryModeEffective = summarySpec?.mode;
   const resolveSummaryKind = (row: SummaryRow) => row.kind ?? 'both';
   const shouldDrawSummaryKind = (row: SummaryRow, kind: 'subtotal' | 'total') => {
     const resolved = resolveSummaryKind(row);
@@ -3241,7 +3245,10 @@ function drawTable(
     if (cursorY - neededHeight >= bottomMargin) return true;
     if (!allowPageBreak) return false;
 
-    currentPage = pdfDoc.addPage([pageWidth, pageHeight]);
+    if (!addPageSafely()) {
+      markTruncated(drawnRows);
+      return false;
+    }
     drawHeaderElements(
       currentPage,
       headerElements,
@@ -3278,11 +3285,9 @@ function drawTable(
     if (rowsToDraw.length === 0) return false;
 
     const hasSpace = ensureSummarySpace(rowsToDraw.length, allowPageBreak);
-    if (!hasSpace && !allowPageBreak) {
-      return false;
-    }
-    if (!hasSpace && allowPageBreak) {
+    if (!hasSpace) {
       warn('layout', 'summary rows do not fit', { tableId: element.id });
+      return false;
     }
 
     for (const state of rowsToDraw) {
@@ -3291,14 +3296,70 @@ function drawTable(
     return true;
   };
 
-  const subtotalRowCount =
-    summaryMode === 'everyPageSubtotal+lastTotal'
+  const drawTruncationNote = () => {
+    if (!truncated || remainingRows <= 0) return;
+    const useJp = jpFont !== latinFont;
+    const noteText = useJp
+      ? `明細が多いため省略しました（残り${remainingRows}行）。条件を絞って再出力してください。`
+      : `Details truncated (${remainingRows} more). Please narrow conditions and re-export.`;
+    const noteFont = useJp ? jpFont : latinFont;
+    const fontSize = Math.max(8, baseFontSize * 0.85);
+    const lineHeightNote = fontSize * 1.2;
+    const maxWidth = Math.max(0, tableWidth - paddingLeft - paddingRight);
+    const lines = wrapTextToLines(noteText, noteFont, fontSize, maxWidth);
+    if (lines.length === 0) return;
+    const noteHeight = lineHeightNote * lines.length + paddingY;
+    if (cursorY - noteHeight < bottomMargin) {
+      if (addPageSafely()) {
+        drawHeaderElements(
+          currentPage,
+          headerElements,
+          data,
+          previewMode,
+          renderMode,
+          jpFont,
+          latinFont,
+          imageMap,
+          tenantLogoImage,
+          resolveAdjust,
+          transform,
+          warn,
+          debugEnabled,
+          onTextBaseline,
+        );
+        headerY = getHeaderY();
+        cursorY = headerY - headerRowGap;
+        drawTableHeaderRow(currentPage, headerY);
+      }
+    }
+    const yStart = cursorY - paddingY - fontSize;
+    drawMultilineText(
+      currentPage,
+      lines,
+      originX + paddingLeft,
+      yStart,
+      noteFont,
+      fontSize,
+      rgb(0.2, 0.2, 0.2),
+      lines.length,
+      lineHeightNote,
+      'normal',
+      'left',
+      maxWidth,
+      warn,
+      { elementId: `${element.id}:truncate_note` },
+    );
+    cursorY = yStart - lineHeightNote * lines.length;
+  };
+
+  const getSubtotalRowCount = () =>
+    summaryModeEffective === 'everyPageSubtotal+lastTotal'
       ? getSummaryRows('subtotal').length
       : 0;
-  const totalRowCount = summarySpec ? getSummaryRows('total').length : 0;
-  const trailerRowCount =
-    summaryMode === 'everyPageSubtotal+lastTotal'
-      ? subtotalRowCount + totalRowCount
+  const getTotalRowCount = () => (summarySpec ? getSummaryRows('total').length : 0);
+  const getTrailerRowCount = () =>
+    summaryModeEffective === 'everyPageSubtotal+lastTotal'
+      ? getSubtotalRowCount() + getTotalRowCount()
       : 0;
 
   const missingFieldCodes = new Set<string>();
@@ -3306,6 +3367,40 @@ function drawTable(
   let pageRowCount = 0;
   let rowMathLogged = false;
   let nudgeLogged = false;
+  let drawnRows = 0;
+  let truncated = false;
+  let remainingRows = 0;
+  let stopDrawing = false;
+  let pagesUsed = pdfDoc.getPages().length;
+  const markPageLimitTruncation = () => {
+    if (truncated) return;
+    truncated = true;
+    remainingRows = Math.max(0, rows.length - drawnRows);
+    stopDrawing = true;
+    if (summaryModeEffective === 'everyPageSubtotal+lastTotal') {
+      summaryModeEffective = 'lastPageOnly';
+    }
+  };
+
+  const markTruncated = (fromIndex: number) => {
+    if (truncated) return;
+    truncated = true;
+    remainingRows = Math.max(0, rows.length - fromIndex);
+    stopDrawing = true;
+    if (summaryModeEffective === 'everyPageSubtotal+lastTotal') {
+      summaryModeEffective = 'lastPageOnly';
+    }
+  };
+  const canAddPage = () => pagesUsed < maxPages;
+  const addPageSafely = () => {
+    if (!canAddPage()) {
+      markPageLimitTruncation();
+      return false;
+    }
+    currentPage = pdfDoc.addPage([pageWidth, pageHeight]);
+    pagesUsed += 1;
+    return true;
+  };
   const emitTableCellBaseline = (
     elementId: string,
     rectTopY: number,
@@ -3391,7 +3486,8 @@ function drawTable(
   };
 
   const emitSubtotalIfNeeded = () => {
-    if (summaryMode !== 'everyPageSubtotal+lastTotal') return;
+    if (summaryModeEffective !== 'everyPageSubtotal+lastTotal') return;
+    const subtotalRowCount = getSubtotalRowCount();
     if (summaryStates.length === 0 || pageRowCount === 0 || subtotalRowCount === 0) return;
     warn('debug', 'summary rows', {
       tableId: element.id,
@@ -3421,6 +3517,10 @@ function drawTable(
       continue;
     }
 
+    if (!stopDrawing && drawnRows >= maxRowsTotal) {
+      markTruncated(i);
+    }
+
     if (i === 0) {
       warn('debug', 'table row sample', {
         tableId: element.id,
@@ -3434,6 +3534,71 @@ function drawTable(
           title: c.title,
         })),
       });
+    }
+
+    if (summaryStates.length > 0) {
+      phase = 'summary';
+      for (const state of summaryStates) {
+        if (state.row.op !== 'sum') continue;
+        if (previewMode === 'fieldCode') {
+          continue;
+        }
+        const rawVal = resolveFieldValue(
+          state.row.fieldCode,
+          row as Record<string, unknown>,
+          previewMode,
+        );
+        const parsed = parseDecimalToScaledBigInt(rawVal, warn, {
+          tableId: element.id,
+          fieldCode: state.row.fieldCode,
+          rowIndex: i,
+        });
+        if (!parsed) {
+          continue;
+        }
+        const grandNext = addScaledValue(
+          state.sumGrandValue,
+          state.sumGrandScale,
+          parsed,
+        );
+        state.sumGrandValue = grandNext.value;
+        state.sumGrandScale = grandNext.scale;
+        const pageNext = addScaledValue(
+          state.sumPageValue,
+          state.sumPageScale,
+          parsed,
+        );
+        state.sumPageValue = pageNext.value;
+        state.sumPageScale = pageNext.scale;
+      }
+    }
+    if (needsFallbackTotal && amountFieldCode) {
+      if (previewMode === 'fieldCode') {
+        continue;
+      }
+      const rawVal = resolveFieldValue(
+        amountFieldCode,
+        row as Record<string, unknown>,
+        previewMode,
+      );
+      const parsed = parseDecimalToScaledBigInt(rawVal, warn, {
+        tableId: element.id,
+        fieldCode: amountFieldCode,
+        rowIndex: i,
+      });
+      if (parsed) {
+        const next = addScaledValue(
+          fallbackGrandTotalValue,
+          fallbackGrandTotalScale,
+          parsed,
+        );
+        fallbackGrandTotalValue = next.value;
+        fallbackGrandTotalScale = next.scale;
+      }
+    }
+
+    if (stopDrawing) {
+      continue;
     }
 
 
@@ -3491,8 +3656,10 @@ function drawTable(
     const hasMoreRows = i < rows.length - 1;
     const remainingAfterRow = cursorY - effectiveRowHeight;
 
+    const subtotalRowCount = getSubtotalRowCount();
+    const trailerRowCount = getTrailerRowCount();
     if (
-      summaryMode === 'everyPageSubtotal+lastTotal' &&
+      summaryModeEffective === 'everyPageSubtotal+lastTotal' &&
       pageRowCount > 0 &&
       subtotalRowCount > 0
     ) {
@@ -3508,7 +3675,10 @@ function drawTable(
         emitSubtotalIfNeeded();
         pageRowCount = 0;
 
-        currentPage = pdfDoc.addPage([pageWidth, pageHeight]);
+        if (!addPageSafely()) {
+          markTruncated(i);
+          continue;
+        }
         drawHeaderElements(
           currentPage,
           headerElements,
@@ -3547,7 +3717,10 @@ function drawTable(
       pageRowCount = 0;
 
       // 新しいページを追加
-      currentPage = pdfDoc.addPage([pageWidth, pageHeight]);
+      if (!addPageSafely()) {
+        markTruncated(i);
+        continue;
+      }
 
       // ★ 新ページにもラベル・テキストなどのヘッダー要素を再描画
       drawHeaderElements(
@@ -3859,69 +4032,22 @@ function drawTable(
       currentX += colWidth;
     }
 
-  if (summaryStates.length > 0) {
-      phase = 'summary';
-      for (const state of summaryStates) {
-        if (state.row.op !== 'sum') continue;
-        if (previewMode === 'fieldCode') {
-          continue;
-        }
-        const rawVal = resolveFieldValue(
-          state.row.fieldCode,
-          row as Record<string, unknown>,
-          previewMode,
-        );
-        const parsed = parseDecimalToScaledBigInt(rawVal, warn, {
-          tableId: element.id,
-          fieldCode: state.row.fieldCode,
-          rowIndex: i,
-        });
-        if (!parsed) {
-          continue;
-        }
-        const grandNext = addScaledValue(
-          state.sumGrandValue,
-          state.sumGrandScale,
-          parsed,
-        );
-        state.sumGrandValue = grandNext.value;
-        state.sumGrandScale = grandNext.scale;
-        const pageNext = addScaledValue(
-          state.sumPageValue,
-          state.sumPageScale,
-          parsed,
-        );
-        state.sumPageValue = pageNext.value;
-        state.sumPageScale = pageNext.scale;
-      }
-    }
-    if (needsFallbackTotal && amountFieldCode) {
-      if (previewMode === 'fieldCode') {
-        continue;
-      }
-      const rawVal = resolveFieldValue(
-        amountFieldCode,
-        row as Record<string, unknown>,
-        previewMode,
-      );
-      const parsed = parseDecimalToScaledBigInt(rawVal, warn, {
-        tableId: element.id,
-        fieldCode: amountFieldCode,
-        rowIndex: i,
-      });
-      if (parsed) {
-        const next = addScaledValue(
-          fallbackGrandTotalValue,
-          fallbackGrandTotalScale,
-          parsed,
-        );
-        fallbackGrandTotalValue = next.value;
-        fallbackGrandTotalScale = next.scale;
-      }
-    }
-
     cursorY = rowYBottomLayout;
     pageRowCount += 1;
+    drawnRows += 1;
+  }
+
+  if (renderMode === 'final' && (truncated || debugEnabled)) {
+    console.info('[DBG_FINAL_LIMIT]', {
+      tableId: element.id,
+      rowsTotal: rows.length,
+      drawnRows,
+      pagesUsed,
+      maxPages,
+      maxRowsTotal: Number.isFinite(maxRowsTotal) ? maxRowsTotal : null,
+      truncated,
+      remainingRows,
+    });
   }
 
   if (data && rows.length > 0) {
@@ -3952,7 +4078,7 @@ function drawTable(
       count: summaryStates.length,
       ops: summaryStates.map((state) => state.row.op),
     });
-    if (summaryMode === 'everyPageSubtotal+lastTotal') {
+    if (summaryModeEffective === 'everyPageSubtotal+lastTotal') {
       const subtotalRows = getSummaryRows('subtotal');
       const totalRows = getSummaryRows('total');
       const totalCount = subtotalRows.length + totalRows.length;
@@ -3987,7 +4113,7 @@ function drawTable(
           state.sumPageScale = 0;
         }
       }
-    } else if (summaryMode === 'lastPageOnly') {
+    } else if (summaryModeEffective === 'lastPageOnly') {
       const rowsToDraw = summaryStates;
       if (rowsToDraw.length > 0) {
         const hasSpace = ensureSummarySpace(rowsToDraw.length, true);
@@ -4007,6 +4133,8 @@ function drawTable(
       }
     }
   }
+
+  drawTruncationNote();
 
   return currentPage;
   } catch (error) {

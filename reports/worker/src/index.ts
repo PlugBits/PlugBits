@@ -3831,6 +3831,9 @@ export default {
             logTiming("build_pdf", nowMs() - renderStart);
 
             const pdfBytes = new Uint8Array(rawPdfBytes);
+            if (debugEnabled) {
+              console.info("[DBG_PDF_SIZE]", { requestId, bytes: pdfBytes.length });
+            }
             const combinedWarnings = [...issueWarnings, ...dataWarnings, ...warnings];
             const warnCount = combinedWarnings.length;
             const headers: Record<string, string> = {
