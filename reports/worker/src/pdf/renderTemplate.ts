@@ -2890,8 +2890,16 @@ function drawTable(
     rows: rows?.length ?? 0,
   });
 
-  if (!rows || rows.length === 0) {
-    return page;
+  const rowsEmpty = !rows || rows.length === 0;
+  if ((debugEnabled || renderMode === 'final')) {
+    console.info('[DBG_TABLE]', {
+      tableId: element.id,
+      rowsTotal: rows?.length ?? 0,
+      summaryMode: summaryModeEffective ?? null,
+      rowHeight: rowHeightCanvas,
+      headerHeight: headerHeightCanvas,
+      tableY: element.y,
+    });
   }
 
   const summarySpec =
@@ -3372,6 +3380,9 @@ function drawTable(
   let remainingRows = 0;
   let stopDrawing = false;
   let pagesUsed = pdfDoc.getPages().length;
+  let loopIterations = 0;
+  const MAX_TABLE_PAGES_GUARD = 50;
+  const MAX_TABLE_LOOP_ITERATIONS = 10000;
   const markPageLimitTruncation = () => {
     if (truncated) return;
     truncated = true;
@@ -3396,6 +3407,15 @@ function drawTable(
     if (!canAddPage()) {
       markPageLimitTruncation();
       return false;
+    }
+    if (pagesUsed >= MAX_TABLE_PAGES_GUARD) {
+      console.error('[ERR_TABLE_LOOP_GUARD]', {
+        tableId: element.id,
+        reason: 'max_pages',
+        pagesUsed,
+        maxPages: MAX_TABLE_PAGES_GUARD,
+      });
+      throw new Error('TABLE_LOOP_GUARD: max pages exceeded');
     }
     currentPage = pdfDoc.addPage([pageWidth, pageHeight]);
     pagesUsed += 1;
@@ -3508,6 +3528,17 @@ function drawTable(
 
   phase = 'cell';
   for (let i = 0; i < rows.length; i++) {
+    loopIterations += 1;
+    if (loopIterations > MAX_TABLE_LOOP_ITERATIONS) {
+      console.error('[ERR_TABLE_LOOP_GUARD]', {
+        tableId: element.id,
+        reason: 'max_iterations',
+        iterations: loopIterations,
+        rowsTotal: rows.length,
+        pagesUsed,
+      });
+      throw new Error('TABLE_LOOP_GUARD: max iterations exceeded');
+    }
     const row = rows[i];
     if (!row || typeof row !== 'object' || Array.isArray(row)) {
       if (invalidRowWarnCount < 3) {
@@ -3599,6 +3630,16 @@ function drawTable(
 
     if (stopDrawing) {
       continue;
+    }
+
+    if ((debugEnabled || renderMode === 'final') && i % 50 === 0) {
+      console.info('[DBG_TABLE_LOOP]', {
+        tableId: element.id,
+        rowIndex: i,
+        page: pagesUsed,
+        cursorY,
+        remaining: rows.length - i,
+      });
     }
 
 
@@ -4078,13 +4119,14 @@ function drawTable(
       count: summaryStates.length,
       ops: summaryStates.map((state) => state.row.op),
     });
+    const allowSummaryPageBreak = !rowsEmpty;
     if (summaryModeEffective === 'everyPageSubtotal+lastTotal') {
       const subtotalRows = getSummaryRows('subtotal');
       const totalRows = getSummaryRows('total');
       const totalCount = subtotalRows.length + totalRows.length;
 
       if (totalCount > 0) {
-        const hasSpace = ensureSummarySpace(totalCount, true);
+        const hasSpace = ensureSummarySpace(totalCount, allowSummaryPageBreak);
         if (!hasSpace) {
           warn('layout', 'summary rows do not fit', { tableId: element.id });
         }
@@ -4116,7 +4158,7 @@ function drawTable(
     } else if (summaryModeEffective === 'lastPageOnly') {
       const rowsToDraw = summaryStates;
       if (rowsToDraw.length > 0) {
-        const hasSpace = ensureSummarySpace(rowsToDraw.length, true);
+        const hasSpace = ensureSummarySpace(rowsToDraw.length, allowSummaryPageBreak);
         if (!hasSpace) {
           warn('layout', 'summary rows do not fit', { tableId: element.id });
         }
@@ -4135,6 +4177,17 @@ function drawTable(
   }
 
   drawTruncationNote();
+
+  if (debugEnabled || renderMode === 'final') {
+    console.info('[DBG_TABLE]', {
+      tableId: element.id,
+      status: 'done',
+      pagesUsed,
+      rowsDrawn: drawnRows,
+      truncated,
+      remainingRows,
+    });
+  }
 
   return currentPage;
   } catch (error) {
