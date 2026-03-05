@@ -2884,6 +2884,14 @@ function drawTable(
     });
   }
 
+  const summarySpec =
+    element.summary?.mode === 'lastPageOnly' ||
+    element.summary?.mode === 'everyPageSubtotal+lastTotal'
+      ? element.summary
+      : undefined;
+  let summaryModeEffective = summarySpec?.mode;
+  const summaryRows = summarySpec?.rows ?? [];
+
   warn('debug', 'draw table', {
     id: element.id,
     uiY: element.y,
@@ -2899,15 +2907,9 @@ function drawTable(
       rowHeight: rowHeightCanvas,
       headerHeight: headerHeightCanvas,
       tableY: element.y,
+      renderMode,
     });
   }
-
-  const summarySpec =
-    element.summary?.mode === 'lastPageOnly' ||
-    element.summary?.mode === 'everyPageSubtotal+lastTotal'
-      ? element.summary
-      : undefined;
-  const summaryRows = summarySpec?.rows ?? [];
   const summaryStates = summaryRows.map((row, index) => ({
     row,
     index,
@@ -2932,7 +2934,6 @@ function drawTable(
   const summaryRowHeight = Math.max(rowHeight, lineHeight + paddingY * 2);
   const columnWidths = element.columns.map((col) => transform.toPdfW(col.width));
   const tableWidth = columnWidths.reduce((sum, width) => sum + width, 0);
-  let summaryModeEffective = summarySpec?.mode;
   const resolveSummaryKind = (row: SummaryRow) => row.kind ?? 'both';
   const shouldDrawSummaryKind = (row: SummaryRow, kind: 'subtotal' | 'total') => {
     const resolved = resolveSummaryKind(row);
