@@ -1562,6 +1562,18 @@ export async function renderTemplateToPdf(
 
     // drawTable には「毎ページヘッダー」だけを渡す
     const tableStart = nowMs();
+    if (debugEnabled) {
+      console.log('[DBG_TRANSFORM]', {
+        kind: typeof transform,
+        keys:
+          transform && typeof transform === 'object'
+            ? Object.keys(transform).slice(0, 20)
+            : null,
+        hasToPdfH: !!(transform && (transform as any).toPdfH),
+        hasToPdfY: !!(transform && (transform as any).toPdfY),
+        valueTag: (transform as any)?.constructor?.name ?? null,
+      });
+    }
     page = drawTable(
       pdfDoc,
       page,
@@ -2909,6 +2921,7 @@ function drawTable(
   footerReserveHeight: number,
   imageMap: Map<string, PDFImage>,
   tenantLogoImage: PDFImage | null,
+  companyLogoSelection: ImageElement | null,
   resolveAdjust: (element: TemplateElement) => { fontScale: number; pagePadding: number; hidden: boolean },
   transform: PdfTransform,
   warn: WarnFn,
@@ -2917,6 +2930,18 @@ function drawTable(
 ): PDFPage {
   let phase: 'header' | 'cell' | 'summary' = 'header';
   try {
+  if (debugEnabled) {
+    console.log('[DBG_TRANSFORM]', {
+      kind: typeof transform,
+      keys:
+        transform && typeof transform === 'object'
+          ? Object.keys(transform).slice(0, 20)
+          : null,
+      hasToPdfH: !!(transform && (transform as any).toPdfH),
+      hasToPdfY: !!(transform && (transform as any).toPdfY),
+      valueTag: (transform as any)?.constructor?.name ?? null,
+    });
+  }
   const pageWidth = transform.pageWidthPt;
   const pageHeight = transform.pageHeightPt;
   const rowHeightCanvas = element.rowHeight ?? 18;
