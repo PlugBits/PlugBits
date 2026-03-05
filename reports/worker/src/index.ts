@@ -128,10 +128,20 @@ const LOGO_ALLOWED_TYPES = new Set([
   "image/png",
   "image/jpeg",
   "image/jpg",
-  "image/webp",
 ]);
+const LOGO_MAX_UPLOAD_BYTES = 2 * 1024 * 1024;
+const LOGO_MAX_STORED_BYTES = 300 * 1024;
 
-const buildTenantLogoKey = (tenantKey: string) => `tenants/${tenantKey}/logo`;
+const buildTenantLogoKey = (tenantKey: string, ext?: string) =>
+  `tenants/${tenantKey}/logo${ext ? `.${ext}` : ""}`;
+
+const normalizeLogoContentType = (contentType: string) => {
+  if (contentType === "image/jpg") return "image/jpeg";
+  return contentType;
+};
+
+const resolveLogoExtension = (contentType: string) =>
+  contentType === "image/png" ? "png" : "jpg";
 
 const isValidLogoContentType = (contentType: string | null | undefined) => {
   if (!contentType) return false;
@@ -1955,16 +1965,32 @@ export default {
             headers: CORS_HEADERS,
           });
         }
+        if (file.size > LOGO_MAX_UPLOAD_BYTES) {
+          return new Response("Image too large (max 2MB)", {
+            status: 413,
+            headers: CORS_HEADERS,
+          });
+        }
 
-        const objectKey = buildTenantLogoKey(tenant.tenantKey);
+        const normalizedContentType = normalizeLogoContentType(contentType);
+        const objectKey = buildTenantLogoKey(
+          tenant.tenantKey,
+          resolveLogoExtension(normalizedContentType),
+        );
         const buf = await file.arrayBuffer();
+        if (buf.byteLength > LOGO_MAX_STORED_BYTES) {
+          return new Response("Image too large after normalization (max 300KB)", {
+            status: 413,
+            headers: CORS_HEADERS,
+          });
+        }
         await env.TENANT_ASSETS.put(objectKey, buf, {
-          httpMetadata: { contentType },
+          httpMetadata: { contentType: normalizedContentType },
         });
         const updatedAt = new Date().toISOString();
         const updated = await updateTenantLogo(env.USER_TEMPLATES_KV, tenant.tenantKey, {
           objectKey,
-          contentType,
+          contentType: normalizedContentType,
           updatedAt,
         });
         if (!updated) {
@@ -1975,7 +2001,15 @@ export default {
         }
 
         return new Response(
-          JSON.stringify({ ok: true, logo: updated.logo }),
+          JSON.stringify({
+            ok: true,
+            logo: updated.logo,
+            contentType: normalizedContentType,
+            bytesLen: buf.byteLength,
+            width: null,
+            height: null,
+            updatedAt,
+          }),
           {
             status: 200,
             headers: {

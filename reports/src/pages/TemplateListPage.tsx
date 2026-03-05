@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { TemplateMeta, TemplateStatus } from '@shared/template';
 import Toast from '../components/Toast';
@@ -13,6 +13,105 @@ const buildListKey = (status: TemplateStatus, baseTemplateId?: string) =>
 const CARD_BASE_IDS = new Set(['cards_v1', 'cards_v2', 'card_v1', 'multiTable_v1']);
 const isCardBase = (baseTemplateId?: string) =>
   !!baseTemplateId && CARD_BASE_IDS.has(baseTemplateId);
+
+const LOGO_MAX_UPLOAD_BYTES = 2 * 1024 * 1024;
+const LOGO_TARGET_MAX_BYTES = 300 * 1024;
+const LOGO_MAX_WIDTH = 800;
+const LOGO_FALLBACK_WIDTH = 600;
+const LOGO_JPEG_QUALITIES = [0.8, 0.7, 0.6];
+
+const loadImageFromFile = (file: File) =>
+  new Promise<HTMLImageElement>((resolve, reject) => {
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      resolve(img);
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      reject(new Error('画像の読み込みに失敗しました'));
+    };
+    img.src = url;
+  });
+
+const renderToBlob = (img: HTMLImageElement, maxWidth: number, type: string, quality?: number) =>
+  new Promise<{ blob: Blob; width: number; height: number }>((resolve, reject) => {
+    const scale = Math.min(1, maxWidth / img.width);
+    const width = Math.max(1, Math.round(img.width * scale));
+    const height = Math.max(1, Math.round(img.height * scale));
+    const canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) {
+      reject(new Error('Canvasの初期化に失敗しました'));
+      return;
+    }
+    ctx.drawImage(img, 0, 0, width, height);
+    canvas.toBlob(
+      (blob) => {
+        if (!blob) {
+          reject(new Error('画像の変換に失敗しました'));
+          return;
+        }
+        resolve({ blob, width, height });
+      },
+      type,
+      quality,
+    );
+  });
+
+const normalizeLogoFile = async (file: File) => {
+  if (file.size > LOGO_MAX_UPLOAD_BYTES) {
+    throw new Error('画像サイズが大きすぎます（最大2MB）。');
+  }
+
+  const isPng = file.type === 'image/png';
+  const isJpeg = file.type === 'image/jpeg' || file.type === 'image/jpg';
+  if (!isPng && !isJpeg) {
+    throw new Error('PNGまたはJPEG画像のみアップロードできます。');
+  }
+
+  const img = await loadImageFromFile(file);
+  const targetType = isPng ? 'image/png' : 'image/jpeg';
+
+  if (isPng) {
+    let maxWidth = LOGO_MAX_WIDTH;
+    let attempt = await renderToBlob(img, maxWidth, targetType);
+    if (attempt.blob.size > LOGO_TARGET_MAX_BYTES && maxWidth > LOGO_FALLBACK_WIDTH) {
+      maxWidth = LOGO_FALLBACK_WIDTH;
+      attempt = await renderToBlob(img, maxWidth, targetType);
+    }
+    if (attempt.blob.size > LOGO_TARGET_MAX_BYTES) {
+      throw new Error('PNG画像が大きすぎます。サイズを小さくしてください。');
+    }
+    return {
+      blob: attempt.blob,
+      contentType: targetType,
+      width: attempt.width,
+      height: attempt.height,
+      bytes: attempt.blob.size,
+      ext: 'png',
+    };
+  }
+
+  for (const quality of LOGO_JPEG_QUALITIES) {
+    const attempt = await renderToBlob(img, LOGO_MAX_WIDTH, targetType, quality);
+    if (attempt.blob.size <= LOGO_TARGET_MAX_BYTES) {
+      return {
+        blob: attempt.blob,
+        contentType: targetType,
+        width: attempt.width,
+        height: attempt.height,
+        bytes: attempt.blob.size,
+        ext: 'jpg',
+      };
+    }
+  }
+
+  throw new Error('JPEG画像が大きすぎます。サイズを小さくしてください。');
+};
 
 const TemplateListPage = () => {
   const navigate = useNavigate();
@@ -40,6 +139,10 @@ const TemplateListPage = () => {
   const [sortMode, setSortMode] = useState<'updated' | 'name' | 'created'>('updated');
   const [creating, setCreating] = useState(false);
   const [toast, setToast] = useState<{ type: 'success' | 'error' | 'info'; message: string } | null>(null);
+  const [logoUrl, setLogoUrl] = useState<string | null>(null);
+  const [logoStatus, setLogoStatus] = useState<'idle' | 'loading' | 'ready' | 'uploading' | 'deleting' | 'error'>('idle');
+  const [logoMessage, setLogoMessage] = useState<string | null>(null);
+  const logoUrlRef = useRef<string | null>(null);
   const { authState, tenantContext, params: pickerParams, sessionError } = useEditorSession();
   const isPickerMode = pickerParams.get('mode') === 'picker' || pickerParams.has('returnOrigin');
   const returnOrigin = pickerParams.get('returnOrigin') ?? '';
@@ -51,6 +154,127 @@ const TemplateListPage = () => {
     return qs ? `?${qs}` : '';
   }, [pickerParams]);
   const isAuthMissing = authState !== 'authorized';
+
+  const tenantLogoEndpoint = useMemo(() => {
+    if (!tenantContext?.workerBaseUrl || !tenantContext.kintoneBaseUrl || !tenantContext.appId) {
+      return null;
+    }
+    const base = tenantContext.workerBaseUrl.replace(/\/$/, '');
+    const url = new URL(`${base}/tenant/logo`);
+    url.searchParams.set('kintoneBaseUrl', tenantContext.kintoneBaseUrl);
+    url.searchParams.set('appId', tenantContext.appId);
+    return url.toString();
+  }, [tenantContext?.workerBaseUrl, tenantContext?.kintoneBaseUrl, tenantContext?.appId]);
+
+  const tenantAuthHeaders = useMemo(() => {
+    const headers: Record<string, string> = {};
+    if (tenantContext?.editorToken) {
+      headers.Authorization = `Bearer ${tenantContext.editorToken}`;
+    }
+    return headers;
+  }, [tenantContext?.editorToken]);
+
+  const replaceLogoUrl = useCallback((nextUrl: string | null) => {
+    if (logoUrlRef.current) {
+      URL.revokeObjectURL(logoUrlRef.current);
+    }
+    logoUrlRef.current = nextUrl;
+    setLogoUrl(nextUrl);
+  }, []);
+
+  const fetchTenantLogo = useCallback(async () => {
+    if (!tenantLogoEndpoint) {
+      replaceLogoUrl(null);
+      setLogoStatus('idle');
+      return;
+    }
+    setLogoStatus('loading');
+    setLogoMessage(null);
+    try {
+      const res = await fetch(tenantLogoEndpoint, { headers: tenantAuthHeaders });
+      if (res.status === 404) {
+        replaceLogoUrl(null);
+        setLogoStatus('ready');
+        return;
+      }
+      if (!res.ok) {
+        const text = await res.text();
+        throw new Error(text || 'ロゴの取得に失敗しました');
+      }
+      const blob = await res.blob();
+      replaceLogoUrl(URL.createObjectURL(blob));
+      setLogoStatus('ready');
+    } catch (error) {
+      replaceLogoUrl(null);
+      setLogoStatus('error');
+      setLogoMessage(error instanceof Error ? error.message : 'ロゴの取得に失敗しました');
+    }
+  }, [replaceLogoUrl, tenantAuthHeaders, tenantLogoEndpoint]);
+
+  useEffect(() => {
+    void fetchTenantLogo();
+    return () => {
+      if (logoUrlRef.current) {
+        URL.revokeObjectURL(logoUrlRef.current);
+        logoUrlRef.current = null;
+      }
+    };
+  }, [fetchTenantLogo]);
+
+  const handleLogoUpload = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file || !tenantLogoEndpoint) return;
+    setLogoStatus('uploading');
+    setLogoMessage(null);
+    try {
+      const normalized = await normalizeLogoFile(file);
+      const form = new FormData();
+      form.append('file', normalized.blob, `logo.${normalized.ext}`);
+      const res = await fetch(tenantLogoEndpoint, {
+        method: 'PUT',
+        headers: tenantAuthHeaders,
+        body: form,
+      });
+      if (!res.ok) {
+        const text = await res.text();
+        throw new Error(text || 'ロゴのアップロードに失敗しました');
+      }
+      setLogoMessage('更新しました');
+      await fetchTenantLogo();
+    } catch (error) {
+      setLogoStatus('error');
+      setLogoMessage(error instanceof Error ? error.message : 'ロゴのアップロードに失敗しました');
+      return;
+    } finally {
+      setLogoStatus('ready');
+    }
+  };
+
+  const handleLogoDelete = async () => {
+    if (!tenantLogoEndpoint) return;
+    if (!window.confirm('ロゴを削除しますか？')) return;
+    setLogoStatus('deleting');
+    setLogoMessage(null);
+    try {
+      const res = await fetch(tenantLogoEndpoint, {
+        method: 'DELETE',
+        headers: tenantAuthHeaders,
+      });
+      if (!res.ok) {
+        const text = await res.text();
+        throw new Error(text || 'ロゴの削除に失敗しました');
+      }
+      replaceLogoUrl(null);
+      setLogoMessage('削除しました');
+    } catch (error) {
+      setLogoStatus('error');
+      setLogoMessage(error instanceof Error ? error.message : 'ロゴの削除に失敗しました');
+      return;
+    } finally {
+      setLogoStatus('ready');
+    }
+  };
 
   const listKey = buildListKey(activeTab);
   const listState = listStateByKey[listKey] ?? { ids: [], loading: false, error: null };
@@ -337,6 +561,83 @@ const TemplateListPage = () => {
           </span>
         </div>
       </div>
+      {authState === 'authorized' && (
+        <div className="card" style={{ marginBottom: '1.5rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
+            <div>
+              <h3 style={{ margin: 0 }}>会社ロゴ</h3>
+              <p style={{ margin: '4px 0 0', color: '#475467', fontSize: '0.9rem' }}>
+                テンプレートにはロゴURLを保存せず、tenant資産として管理します。
+              </p>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <label className="ghost" style={{ cursor: tenantLogoEndpoint ? 'pointer' : 'not-allowed' }}>
+                <input
+                  type="file"
+                  accept="image/png,image/jpeg"
+                  onChange={handleLogoUpload}
+                  disabled={!tenantLogoEndpoint || logoStatus === 'uploading' || logoStatus === 'deleting'}
+                  style={{ display: 'none' }}
+                />
+                {logoStatus === 'uploading' ? 'アップロード中...' : 'アップロード'}
+              </label>
+              <button
+                className="ghost"
+                type="button"
+                onClick={handleLogoDelete}
+                disabled={!tenantLogoEndpoint || logoStatus === 'uploading' || logoStatus === 'deleting'}
+              >
+                {logoStatus === 'deleting' ? '削除中...' : '削除'}
+              </button>
+            </div>
+          </div>
+          <div style={{ marginTop: '0.75rem', display: 'flex', gap: 16, alignItems: 'center', flexWrap: 'wrap' }}>
+            <div
+              style={{
+                width: 160,
+                height: 80,
+                border: '1px dashed #d0d5dd',
+                borderRadius: 8,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                background: '#f8fafc',
+                overflow: 'hidden',
+              }}
+            >
+              {logoUrl ? (
+                <img
+                  src={logoUrl}
+                  alt="company logo"
+                  style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+                />
+              ) : (
+                <span style={{ color: '#98a2b3', fontSize: '0.85rem' }}>未設定</span>
+              )}
+            </div>
+            <div style={{ minWidth: 220 }}>
+              {logoStatus === 'loading' && (
+                <div style={{ color: '#667085', fontSize: '0.9rem' }}>ロゴを取得中...</div>
+              )}
+              {logoMessage && (
+                <div style={{ color: logoStatus === 'error' ? '#d92d20' : '#12b76a', fontSize: '0.9rem' }}>
+                  {logoMessage}
+                </div>
+              )}
+              {!tenantLogoEndpoint && (
+                <div style={{ color: '#667085', fontSize: '0.9rem' }}>
+                  tenant情報が不足しています（kintoneBaseUrl/appId）。
+                </div>
+              )}
+              {tenantLogoEndpoint && !logoMessage && logoStatus === 'ready' && (
+                <div style={{ color: '#667085', fontSize: '0.9rem' }}>
+                  PNG/JPEGのみ（最大2MB、保存は300KB以下に正規化）。
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
       <div className="card" style={{ marginBottom: '1.5rem' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
