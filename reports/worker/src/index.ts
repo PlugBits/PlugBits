@@ -818,6 +818,165 @@ const loadEditorSession = async (
 
 const buildSessionFieldsKey = (token: string) => `editor_session_fields:${token}`;
 
+const jsonError = (status: number, payload: Record<string, unknown>) =>
+  new Response(JSON.stringify(payload), {
+    status,
+    headers: {
+      ...CORS_HEADERS,
+      "Content-Type": "application/json",
+    },
+  });
+
+const resolveTenantKeyFromQuery = (url: URL): { tenantKey: string; error?: Response } => {
+  const kintoneBaseUrl = url.searchParams.get("kintoneBaseUrl") ?? "";
+  const appId = url.searchParams.get("appId") ?? "";
+  if (!kintoneBaseUrl || !appId) {
+    return {
+      tenantKey: "",
+      error: jsonError(400, {
+        error: "BAD_REQUEST",
+        reason: "missing kintone.baseUrl or kintone.appId",
+      }),
+    };
+  }
+  try {
+    return { tenantKey: buildTenantKey(kintoneBaseUrl, appId) };
+  } catch {
+    return {
+      tenantKey: "",
+      error: jsonError(400, {
+        error: "BAD_REQUEST",
+        reason: "invalid kintone.baseUrl or kintone.appId",
+      }),
+    };
+  }
+};
+
+const resolveTenantLogoAuth = async (
+  request: Request,
+  env: Env,
+  url: URL,
+): Promise<
+  | {
+      tenantKeyResolved: string;
+      tenantKeyQuery: string;
+      authMode: "admin" | "bearer";
+      hasApiKey: boolean;
+      hasBearer: boolean;
+    }
+  | { error: Response }
+> => {
+  const authHeader = request.headers.get("Authorization") ?? "";
+  const bearerToken = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : "";
+  const hasBearer = Boolean(bearerToken);
+  const apiKeyHeader = request.headers.get("x-api-key") ?? "";
+  const hasApiKey = env.ADMIN_API_KEY ? apiKeyHeader === env.ADMIN_API_KEY : Boolean(apiKeyHeader);
+
+  if (hasBearer) {
+    const verified = await verifyEditorToken(env.USER_TEMPLATES_KV, bearerToken);
+    if (!verified) {
+      console.info("[DBG_TENANT_LOGO_AUTH]", {
+        hasApiKey,
+        hasBearer,
+        authMode: "bearer",
+        tenantKeyResolved: null,
+        tenantKeyQuery: null,
+        ok: false,
+      });
+      return {
+        error: jsonError(401, { error: "UNAUTHORIZED", reason: "missing token or invalid" }),
+      };
+    }
+    const queryParamsPresent =
+      url.searchParams.has("kintoneBaseUrl") || url.searchParams.has("appId");
+    const queryResult = resolveTenantKeyFromQuery(url);
+    if (queryResult.error && queryParamsPresent) {
+      console.info("[DBG_TENANT_LOGO_AUTH]", {
+        hasApiKey,
+        hasBearer,
+        authMode: "bearer",
+        tenantKeyResolved: verified.tenantId,
+        tenantKeyQuery: null,
+        ok: false,
+      });
+      return { error: queryResult.error };
+    }
+    const tenantKeyQuery = queryResult.error ? "" : queryResult.tenantKey;
+    if (tenantKeyQuery && tenantKeyQuery !== verified.tenantId) {
+      console.info("[DBG_TENANT_LOGO_AUTH]", {
+        hasApiKey,
+        hasBearer,
+        authMode: "bearer",
+        tenantKeyResolved: verified.tenantId,
+        tenantKeyQuery,
+        ok: false,
+      });
+      return {
+        error: jsonError(403, { error: "FORBIDDEN", reason: "tenant mismatch" }),
+      };
+    }
+    console.info("[DBG_TENANT_LOGO_AUTH]", {
+      hasApiKey,
+      hasBearer,
+      authMode: "bearer",
+      tenantKeyResolved: verified.tenantId,
+      tenantKeyQuery,
+      ok: true,
+    });
+    return {
+      tenantKeyResolved: verified.tenantId,
+      tenantKeyQuery,
+      authMode: "bearer",
+      hasApiKey,
+      hasBearer,
+    };
+  }
+
+  if (env.ADMIN_API_KEY && !hasApiKey) {
+    console.info("[DBG_TENANT_LOGO_AUTH]", {
+      hasApiKey,
+      hasBearer,
+      authMode: "admin",
+      tenantKeyResolved: null,
+      tenantKeyQuery: null,
+      ok: false,
+    });
+    return {
+      error: jsonError(401, { error: "UNAUTHORIZED", reason: "missing token or invalid" }),
+    };
+  }
+
+  const queryResult = resolveTenantKeyFromQuery(url);
+  if (queryResult.error) {
+    console.info("[DBG_TENANT_LOGO_AUTH]", {
+      hasApiKey,
+      hasBearer,
+      authMode: "admin",
+      tenantKeyResolved: null,
+      tenantKeyQuery: null,
+      ok: false,
+    });
+    return { error: queryResult.error };
+  }
+
+  console.info("[DBG_TENANT_LOGO_AUTH]", {
+    hasApiKey,
+    hasBearer,
+    authMode: "admin",
+    tenantKeyResolved: queryResult.tenantKey,
+    tenantKeyQuery: queryResult.tenantKey,
+    ok: true,
+  });
+
+  return {
+    tenantKeyResolved: queryResult.tenantKey,
+    tenantKeyQuery: queryResult.tenantKey,
+    authMode: "admin",
+    hasApiKey,
+    hasBearer,
+  };
+};
+
 const getTenantContext = (
   url: URL,
 ): { baseUrl: string; appId: string; tenantKey: string } | { error: Response } => {
@@ -1838,6 +1997,12 @@ export default {
       }
 
       if (url.pathname === "/tenant/logo") {
+        const authResolved = await resolveTenantLogoAuth(request, env, url);
+        if ("error" in authResolved) {
+          return authResolved.error;
+        }
+        const tenantKey = authResolved.tenantKeyResolved;
+
         if (request.method === "GET") {
           if (!env.TENANT_ASSETS) {
             return new Response("Tenant assets bucket not configured", {
@@ -1845,16 +2010,14 @@ export default {
               headers: CORS_HEADERS,
             });
           }
-          const tenant = getTenantContext(url);
-          if ("error" in tenant) return tenant.error;
-          const record = await getTenantRecord(env.USER_TEMPLATES_KV, tenant.tenantKey);
+          const record = await getTenantRecord(env.USER_TEMPLATES_KV, tenantKey);
           if (!record?.logo) {
             return new Response("Logo not set", {
               status: 404,
               headers: CORS_HEADERS,
             });
           }
-          const logo = await getTenantLogoBytes(env, tenant.tenantKey, record.logo);
+          const logo = await getTenantLogoBytes(env, tenantKey, record.logo);
           if (!logo) {
             return new Response("Logo not found", {
               status: 404,
@@ -1871,24 +2034,13 @@ export default {
           });
         }
         if (request.method === "DELETE") {
-          if (env.ADMIN_API_KEY) {
-            const apiKey = request.headers.get("x-api-key");
-            if (apiKey !== env.ADMIN_API_KEY) {
-              return new Response("Unauthorized", {
-                status: 401,
-                headers: CORS_HEADERS,
-              });
-            }
-          }
           if (!env.TENANT_ASSETS) {
             return new Response("Tenant assets bucket not configured", {
               status: 500,
               headers: CORS_HEADERS,
             });
           }
-          const tenant = getTenantContext(url);
-          if ("error" in tenant) return tenant.error;
-          const record = await getTenantRecord(env.USER_TEMPLATES_KV, tenant.tenantKey);
+          const record = await getTenantRecord(env.USER_TEMPLATES_KV, tenantKey);
           if (record?.logo?.objectKey) {
             try {
               await env.TENANT_ASSETS.delete(record.logo.objectKey);
@@ -1898,7 +2050,7 @@ export default {
               // ignore R2/cache delete failure
             }
           }
-          const updated = await deleteTenantLogo(env.USER_TEMPLATES_KV, tenant.tenantKey);
+          const updated = await deleteTenantLogo(env.USER_TEMPLATES_KV, tenantKey);
           if (!updated) {
             return new Response("Tenant not found", {
               status: 400,
@@ -1922,24 +2074,12 @@ export default {
             headers: CORS_HEADERS,
           });
         }
-        if (env.ADMIN_API_KEY) {
-          const apiKey = request.headers.get("x-api-key");
-          if (apiKey !== env.ADMIN_API_KEY) {
-            return new Response("Unauthorized", {
-              status: 401,
-              headers: CORS_HEADERS,
-            });
-          }
-        }
         if (!env.TENANT_ASSETS) {
           return new Response("Tenant assets bucket not configured", {
             status: 500,
             headers: CORS_HEADERS,
           });
         }
-
-        const tenant = getTenantContext(url);
-        if ("error" in tenant) return tenant.error;
 
         let form: FormData;
         try {
@@ -1974,7 +2114,7 @@ export default {
 
         const normalizedContentType = normalizeLogoContentType(contentType);
         const objectKey = buildTenantLogoKey(
-          tenant.tenantKey,
+          tenantKey,
           resolveLogoExtension(normalizedContentType),
         );
         const buf = await file.arrayBuffer();
@@ -1988,7 +2128,7 @@ export default {
           httpMetadata: { contentType: normalizedContentType },
         });
         const updatedAt = new Date().toISOString();
-        const updated = await updateTenantLogo(env.USER_TEMPLATES_KV, tenant.tenantKey, {
+        const updated = await updateTenantLogo(env.USER_TEMPLATES_KV, tenantKey, {
           objectKey,
           contentType: normalizedContentType,
           updatedAt,

@@ -227,6 +227,7 @@ const TemplateListPage = () => {
     if (!file || !tenantLogoEndpoint) return;
     setLogoStatus('uploading');
     setLogoMessage(null);
+    let succeeded = false;
     try {
       const normalized = await normalizeLogoFile(file);
       const form = new FormData();
@@ -242,12 +243,12 @@ const TemplateListPage = () => {
       }
       setLogoMessage('更新しました');
       await fetchTenantLogo();
+      succeeded = true;
     } catch (error) {
       setLogoStatus('error');
       setLogoMessage(error instanceof Error ? error.message : 'ロゴのアップロードに失敗しました');
-      return;
     } finally {
-      setLogoStatus('ready');
+      if (succeeded) setLogoStatus('ready');
     }
   };
 
@@ -256,6 +257,7 @@ const TemplateListPage = () => {
     if (!window.confirm('ロゴを削除しますか？')) return;
     setLogoStatus('deleting');
     setLogoMessage(null);
+    let succeeded = false;
     try {
       const res = await fetch(tenantLogoEndpoint, {
         method: 'DELETE',
@@ -267,12 +269,12 @@ const TemplateListPage = () => {
       }
       replaceLogoUrl(null);
       setLogoMessage('削除しました');
+      succeeded = true;
     } catch (error) {
       setLogoStatus('error');
       setLogoMessage(error instanceof Error ? error.message : 'ロゴの削除に失敗しました');
-      return;
     } finally {
-      setLogoStatus('ready');
+      if (succeeded) setLogoStatus('ready');
     }
   };
 
