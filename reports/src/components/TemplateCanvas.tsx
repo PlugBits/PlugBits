@@ -231,7 +231,7 @@ const describeDataSource = (
   const ds = (element as any).dataSource as DataSource | undefined;
   if (!ds) {
     if (slotId === 'company_logo' || slotId === 'logo' || element.id === 'company_logo' || element.id === 'logo') {
-      return 'LOGO';
+      return '';
     }
     return '';
   }
@@ -1032,12 +1032,8 @@ const TemplateCanvas = ({
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
-                          color: '#98a2b3',
-                          fontSize: '0.8rem',
-                          fontWeight: 600,
                         }}
                       >
-                        LOGO
                       </div>
                     )
                   ) : (

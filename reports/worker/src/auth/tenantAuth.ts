@@ -191,6 +191,21 @@ export const updateTenantLogo = async (
   return updated;
 };
 
+export const deleteTenantLogo = async (
+  kv: KVNamespace,
+  tenantId: string,
+): Promise<TenantRecord | null> => {
+  const existing = await getTenantRecord(kv, tenantId);
+  if (!existing) return null;
+  const updated: TenantRecord = {
+    ...existing,
+    logo: undefined,
+    updatedAt: new Date().toISOString(),
+  };
+  await kv.put(buildTenantRecordKey(tenantId), JSON.stringify(updated));
+  return updated;
+};
+
 export const updateTenantSettings = async (
   kv: KVNamespace,
   tenantId: string,

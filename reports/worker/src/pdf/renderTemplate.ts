@@ -4879,13 +4879,9 @@ function drawImageElement(
   const isCompanyLogo =
     slotId === 'company_logo' || element.id === 'company_logo' || element.id === 'logo';
   if (isCompanyLogo) {
-    if (renderMode === 'layout') {
-      drawImagePlaceholder(page, element, jpFont, latinFont, pagePadding, transform, warn, 'LOGO');
-      return;
-    }
     if (!tenantLogoImage) {
-      if (renderMode === 'preview') {
-        drawImagePlaceholder(page, element, jpFont, latinFont, pagePadding, transform, warn, 'LOGO');
+      if (renderMode !== 'final') {
+        drawImagePlaceholder(page, element, jpFont, latinFont, pagePadding, transform, warn, '');
       }
       return;
     }
@@ -4914,6 +4910,9 @@ function drawImageElement(
       width: drawWidth,
       height: drawHeight,
     });
+    if (warn) {
+      warn('debug', 'company logo drawn', { elementId: element.id, source: 'tenantR2' });
+    }
     return;
   }
   if (previewMode === 'fieldCode') {
@@ -5017,6 +5016,8 @@ function drawImagePlaceholder(
     borderColor: rgb(0.5, 0.5, 0.5),
     borderWidth: 1 * strokeScale,
   });
+
+  if (!labelText) return;
 
   const labelFont = pickFont(labelText, latinFont, jpFont);
   const labelSize = 10 * transform.scaleY;

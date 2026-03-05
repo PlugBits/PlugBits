@@ -35,6 +35,7 @@ import {
   upsertTenantApiToken,
   verifyEditorToken,
   updateTenantLogo,
+  deleteTenantLogo,
   updateTenantSettings,
 } from "./auth/tenantAuth.ts";
 import { canonicalizeAppId, canonicalizeKintoneBaseUrl } from "./utils/canonicalize.ts";
@@ -1858,6 +1859,52 @@ export default {
               "Cache-Control": "no-store",
             },
           });
+        }
+        if (request.method === "DELETE") {
+          if (env.ADMIN_API_KEY) {
+            const apiKey = request.headers.get("x-api-key");
+            if (apiKey !== env.ADMIN_API_KEY) {
+              return new Response("Unauthorized", {
+                status: 401,
+                headers: CORS_HEADERS,
+              });
+            }
+          }
+          if (!env.TENANT_ASSETS) {
+            return new Response("Tenant assets bucket not configured", {
+              status: 500,
+              headers: CORS_HEADERS,
+            });
+          }
+          const tenant = getTenantContext(url);
+          if ("error" in tenant) return tenant.error;
+          const record = await getTenantRecord(env.USER_TEMPLATES_KV, tenant.tenantKey);
+          if (record?.logo?.objectKey) {
+            try {
+              await env.TENANT_ASSETS.delete(record.logo.objectKey);
+              const cacheKey = new Request(`https://tenant-assets/${record.logo.objectKey}`);
+              await caches.default.delete(cacheKey);
+            } catch {
+              // ignore R2/cache delete failure
+            }
+          }
+          const updated = await deleteTenantLogo(env.USER_TEMPLATES_KV, tenant.tenantKey);
+          if (!updated) {
+            return new Response("Tenant not found", {
+              status: 400,
+              headers: CORS_HEADERS,
+            });
+          }
+          return new Response(
+            JSON.stringify({ ok: true, logo: null }),
+            {
+              status: 200,
+              headers: {
+                ...CORS_HEADERS,
+                "Content-Type": "application/json",
+              },
+            },
+          );
         }
         if (request.method !== "PUT") {
           return new Response("Method Not Allowed", {
@@ -3698,9 +3745,11 @@ export default {
             emailLen: renderCompanyProfile?.companyEmail?.length ?? 0,
           });
           console.info("[DBG_LOGO]", {
+            tenantKey: tenantKeyForDiag,
             found: Boolean(tenantLogo),
             bytes: tenantLogo?.bytes?.length ?? 0,
             contentType: tenantLogo?.contentType ?? null,
+            source: 'tenantR2',
           });
         }
 
