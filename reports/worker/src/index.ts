@@ -3557,7 +3557,9 @@ export default {
         const renderCompanyProfile =
           renderMode === "layout"
             ? undefined
-            : normalizeCompanyProfile(tenantRecordForRender?.companyProfile);
+            : normalizeCompanyProfile(
+                tenantRecordForRender?.companyProfile ?? body?.companyProfile,
+              );
         templateForRender = applyCompanyProfileToTemplate(
           templateForRender,
           renderCompanyProfile,
@@ -3687,6 +3689,20 @@ export default {
         logTiming("load_logo", nowMs() - logoStart);
         hasLogoForDiag = Boolean(tenantLogo);
         logoBytesLenForDiag = tenantLogo?.bytes?.length ?? 0;
+        if (debugEnabled) {
+          console.info("[DBG_TENANT_PROFILE]", {
+            hasLogo: hasLogoForDiag,
+            companyNameLen: renderCompanyProfile?.companyName?.length ?? 0,
+            addressLen: renderCompanyProfile?.companyAddress?.length ?? 0,
+            telLen: renderCompanyProfile?.companyTel?.length ?? 0,
+            emailLen: renderCompanyProfile?.companyEmail?.length ?? 0,
+          });
+          console.info("[DBG_LOGO]", {
+            found: Boolean(tenantLogo),
+            bytes: tenantLogo?.bytes?.length ?? 0,
+            contentType: tenantLogo?.contentType ?? null,
+          });
+        }
 
         let cachedPdf: ArrayBuffer | null = null;
         let cacheKey: string | null = null;

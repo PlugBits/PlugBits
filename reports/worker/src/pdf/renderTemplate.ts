@@ -55,6 +55,10 @@ const DBG_TEXT_BASELINE_TARGETS = new Set([
 const hasNonAscii = (text: string) => /[^\u0000-\u007F]/.test(text);
 const pickFont = (text: string, latinFont: PDFFont, jpFont: PDFFont) =>
   hasNonAscii(text) ? jpFont : latinFont;
+const isCompanyLogoElement = (element: TemplateElement) => {
+  const slotId = (element as any).slotId as string | undefined;
+  return slotId === 'company_logo' || element.id === 'company_logo' || element.id === 'logo';
+};
 
 const safeDrawText = (
   page: PDFPage,
@@ -1144,10 +1148,27 @@ export async function renderTemplateToPdf(
   const companyNameEl = headerCandidates.find(
     (el) => (el as any).slotId === 'company_name',
   ) as TextElement | undefined;
+  const companyAddressEl = headerCandidates.find(
+    (el) => (el as any).slotId === 'company_address',
+  ) as TextElement | undefined;
+  const companyTelEl = headerCandidates.find(
+    (el) => (el as any).slotId === 'company_tel',
+  ) as TextElement | undefined;
+  const companyEmailEl = headerCandidates.find(
+    (el) => (el as any).slotId === 'company_email',
+  ) as TextElement | undefined;
   const companyNameValue = resolveTextValue(companyNameEl);
+  const companyAddressValue = resolveTextValue(companyAddressEl);
+  const companyTelValue = resolveTextValue(companyTelEl);
+  const companyEmailValue = resolveTextValue(companyEmailEl);
   const companyBlockEnabled = template.settings?.companyBlock?.enabled !== false;
+  const hasCompanyValue =
+    Boolean(companyNameValue) ||
+    Boolean(companyAddressValue) ||
+    Boolean(companyTelValue) ||
+    Boolean(companyEmailValue);
   const shouldHideCompanyBlock =
-    !companyBlockEnabled || (renderMode === 'final' && !!companyNameEl && !companyNameValue);
+    !companyBlockEnabled || (renderMode === 'final' && !hasCompanyValue);
   const docNoEl = headerCandidates.find(
     (el) => (el as any).slotId === 'doc_no',
   ) as TextElement | undefined;
@@ -2156,7 +2177,7 @@ function drawHeaderElements(
 ) {
   for (const element of headerElements) {
     const adjust = resolveAdjust(element);
-    if (adjust.hidden) continue;
+    if (adjust.hidden && !isCompanyLogoElement(element)) continue;
     switch (element.type) {
       case 'label':
         drawLabel(
@@ -2244,7 +2265,7 @@ function drawFooterElements(
 ) {
   for (const element of footerElements) {
     const adjust = resolveAdjust(element);
-    if (adjust.hidden) continue;
+    if (adjust.hidden && !isCompanyLogoElement(element)) continue;
     switch (element.type) {
       case 'label':
         drawLabel(
