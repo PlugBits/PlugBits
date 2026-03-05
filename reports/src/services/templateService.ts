@@ -197,6 +197,47 @@ export const canonicalizeTemplateForStorage = (
     }
     return next as TemplateDefinition['elements'][number];
   });
+
+  const logoCandidates = canonicalized.filter((el) => {
+    if (el.type !== 'image') return false;
+    const slotId = (el as any).slotId ?? el.id;
+    return slotId === 'company_logo' || el.id === 'logo' || el.id === 'company_logo';
+  }) as TemplateDefinition['elements'][number][];
+
+  if (logoCandidates.length > 1) {
+    const score = (el: any) => {
+      const hiddenScore = el.hidden === true ? 1 : 0;
+      const idScore = el.id === 'logo' ? 0 : 1;
+      const x = Number.isFinite(el.x) ? el.x : 0;
+      const y = Number.isFinite(el.y) ? el.y : 0;
+      const posScore = x + y;
+      return [hiddenScore, idScore, posScore];
+    };
+    let picked = logoCandidates[0];
+    for (const candidate of logoCandidates.slice(1)) {
+      const a = score(picked);
+      const b = score(candidate);
+      if (b[0] < a[0] || (b[0] === a[0] && (b[1] < a[1] || (b[1] === a[1] && b[2] < a[2])))) {
+        picked = candidate;
+      }
+    }
+    const pickedRef = picked;
+    const removed = logoCandidates.filter((el) => el !== pickedRef).map((el) => el.id);
+    if (removed.length > 0) {
+      console.warn('[WARN_LOGO_DUPLICATE]', {
+        count: logoCandidates.length,
+        keptId: pickedRef.id,
+        removedIds: removed,
+      });
+    }
+    const deduped = canonicalized.filter((el) => {
+      if (logoCandidates.includes(el as any)) {
+        return el === pickedRef;
+      }
+      return true;
+    });
+    canonicalized.splice(0, canonicalized.length, ...deduped);
+  }
   const hasCompanyLogo = canonicalized.some((el) => {
     const slotId = (el as any).slotId ?? el.id;
     return slotId === 'company_logo' || el.id === 'logo' || el.id === 'company_logo';

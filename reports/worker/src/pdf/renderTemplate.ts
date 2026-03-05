@@ -64,6 +64,32 @@ const isCompanyLogoElement = (element: TemplateElement) => {
   return slotId === 'company_logo' || element.id === 'company_logo' || element.id === 'logo';
 };
 
+const pickCompanyLogoElement = (elements: TemplateElement[]) => {
+  const candidates = elements.filter(
+    (el) => el.type === 'image' && isCompanyLogoElement(el),
+  ) as ImageElement[];
+  if (candidates.length === 0) {
+    return { element: null as ImageElement | null, count: 0 };
+  }
+  const score = (el: ImageElement) => {
+    const hiddenScore = el.hidden === true ? 1 : 0;
+    const idScore = el.id === 'logo' ? 0 : 1;
+    const x = Number.isFinite(el.x) ? el.x : 0;
+    const y = Number.isFinite(el.y) ? el.y : 0;
+    const posScore = x + y;
+    return [hiddenScore, idScore, posScore];
+  };
+  let picked = candidates[0];
+  for (const candidate of candidates.slice(1)) {
+    const a = score(picked);
+    const b = score(candidate);
+    if (b[0] < a[0] || (b[0] === a[0] && (b[1] < a[1] || (b[1] === a[1] && b[2] < a[2])))) {
+      picked = candidate;
+    }
+  }
+  return { element: picked, count: candidates.length };
+};
+
 const safeDrawText = (
   page: PDFPage,
   text: string,
@@ -953,15 +979,36 @@ export async function renderTemplateToPdf(
   const pdfDoc = await PDFDocument.create();
   pdfDoc.registerFontkit(fontkit);
 
+  const embedCache = new Map<string, PDFImage>();
+  const buildEmbedCacheKey = (bytes: Uint8Array, contentType: string) => {
+    const len = bytes.length;
+    let hash = 0;
+    const limit = Math.min(len, 64);
+    for (let i = 0; i < limit; i += 1) {
+      hash = (hash * 31 + bytes[i]) >>> 0;
+    }
+    return `${contentType}:${len}:${hash.toString(16)}`;
+  };
+  const embedImageBufferCached = async (
+    buf: Uint8Array,
+    url: string,
+    contentType: string,
+  ): Promise<PDFImage | null> => {
+    const key = buildEmbedCacheKey(buf, contentType);
+    const cached = embedCache.get(key);
+    if (cached) return cached;
+    const embedded = await embedImageBuffer(pdfDoc, buf, url, contentType, warn);
+    if (embedded) embedCache.set(key, embedded);
+    return embedded;
+  };
+
   let tenantLogoImage: PDFImage | null = null;
   if (options?.tenantLogo?.bytes) {
     try {
-      tenantLogoImage = await embedImageBuffer(
-        pdfDoc,
+      tenantLogoImage = await embedImageBufferCached(
         options.tenantLogo.bytes,
         options.tenantLogo.objectKey,
         options.tenantLogo.contentType,
-        warn,
       );
     } catch (error) {
       warn('image', 'tenant logo embed failed', {
@@ -980,6 +1027,14 @@ export async function renderTemplateToPdf(
         : `structureType=${template.structureType ?? 'unknown'}`,
       templateId: template.id ?? '',
       baseTemplateId: template.baseTemplateId ?? null,
+    });
+  }
+
+  const companyLogoSelection = pickCompanyLogoElement(template.elements ?? []);
+  if (companyLogoSelection.count > 1) {
+    console.warn('[WARN_LOGO_DUPLICATE_RENDER]', {
+      templateId: template.id ?? '',
+      count: companyLogoSelection.count,
     });
   }
 
@@ -1402,6 +1457,7 @@ export async function renderTemplateToPdf(
     latinFont,
     imageMap,
     tenantLogoImage,
+    companyLogoSelection.element,
     resolveAdjust,
     transform,
     warn,
@@ -1427,6 +1483,7 @@ export async function renderTemplateToPdf(
       footerReserveHeightPdf,
       imageMap,
       tenantLogoImage,
+      companyLogoSelection.element,
       resolveAdjust,
       transform,
       warn,
@@ -1519,6 +1576,7 @@ export async function renderTemplateToPdf(
       footerReserveHeightPdf,
       imageMap,
       tenantLogoImage,
+      companyLogoSelection.element,
       resolveAdjust,
       transform,
       warn,
@@ -1552,6 +1610,7 @@ export async function renderTemplateToPdf(
       latinFont,
       imageMap,
       tenantLogoImage,
+      companyLogoSelection.element,
       resolveAdjust,
       transform,
       warn,
@@ -2185,6 +2244,7 @@ function drawHeaderElements(
   latinFont: PDFFont,
   imageMap: Map<string, PDFImage>,
   tenantLogoImage: PDFImage | null,
+  companyLogoSelection: ImageElement | null,
   resolveAdjust: (element: TemplateElement) => { fontScale: number; pagePadding: number; hidden: boolean },
   transform: PdfTransform,
   warn: WarnFn,
@@ -2240,6 +2300,7 @@ function drawHeaderElements(
           adjust.pagePadding,
           imageMap,
           tenantLogoImage,
+          companyLogoSelection,
           transform,
           warn,
         );
@@ -2273,6 +2334,7 @@ function drawFooterElements(
   latinFont: PDFFont,
   imageMap: Map<string, PDFImage>,
   tenantLogoImage: PDFImage | null,
+  companyLogoSelection: ImageElement | null,
   resolveAdjust: (element: TemplateElement) => { fontScale: number; pagePadding: number; hidden: boolean },
   transform: PdfTransform,
   warn: WarnFn,
@@ -2328,6 +2390,7 @@ function drawFooterElements(
           adjust.pagePadding,
           imageMap,
           tenantLogoImage,
+          companyLogoSelection,
           transform,
           warn,
         );
@@ -3039,6 +3102,7 @@ function drawTable(
       latinFont,
       imageMap,
       tenantLogoImage,
+      companyLogoSelection.element,
       resolveAdjust,
       transform,
       warn,
@@ -3289,6 +3353,7 @@ function drawTable(
       latinFont,
       imageMap,
       tenantLogoImage,
+      companyLogoSelection.element,
       resolveAdjust,
       transform,
       warn,
@@ -3351,6 +3416,7 @@ function drawTable(
           latinFont,
           imageMap,
           tenantLogoImage,
+          companyLogoSelection.element,
           resolveAdjust,
           transform,
           warn,
@@ -3752,6 +3818,7 @@ function drawTable(
           latinFont,
           imageMap,
           tenantLogoImage,
+          companyLogoSelection.element,
           resolveAdjust,
           transform,
           warn,
@@ -3796,6 +3863,7 @@ function drawTable(
         latinFont,
         imageMap,
         tenantLogoImage,
+        companyLogoSelection.element,
         resolveAdjust,
         transform,
         warn,
@@ -4479,6 +4547,7 @@ function drawCardList(
       latinFont,
       imageMap,
       tenantLogoImage,
+      companyLogoSelection.element,
       resolveAdjust,
       transform,
       warn,
@@ -4872,6 +4941,7 @@ function drawImageElement(
   pagePadding: number,
   imageMap: Map<string, PDFImage>,
   tenantLogoImage: PDFImage | null,
+  companyLogoSelection: ImageElement | null,
   transform: PdfTransform,
   warn: WarnFn,
 ) {
@@ -4879,6 +4949,7 @@ function drawImageElement(
   const isCompanyLogo =
     slotId === 'company_logo' || element.id === 'company_logo' || element.id === 'logo';
   if (isCompanyLogo) {
+    if (companyLogoSelection && element !== companyLogoSelection) return;
     if (!tenantLogoImage) {
       if (renderMode !== 'final') {
         drawImagePlaceholder(page, element, jpFont, latinFont, pagePadding, transform, warn, '');
