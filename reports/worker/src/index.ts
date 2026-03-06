@@ -11,6 +11,7 @@ import type {
 import { TEMPLATE_SCHEMA_VERSION, getPageDimensions } from "../../shared/template.js";
 
 import { renderLabelCalibrationPdf, renderTemplateToPdf } from "./pdf/renderTemplate.ts";
+import { PDFDocument } from "pdf-lib";
 import { getFonts } from "./fonts/fontLoader.js";
 import { getFixtureData } from "./fixtures/templateData.js";
 import { applyEstimateV1PresetPatch, migrateTemplate, validateTemplate } from "./template/migrate.js";
@@ -3626,6 +3627,142 @@ export default {
         });
       }
 
+      // Background PDF build (estimate_v1)
+      if (url.pathname === "/backgrounds/build" && request.method === "POST") {
+        const authHeader = request.headers.get("Authorization") ?? "";
+        const hasBearer = authHeader.startsWith("Bearer ");
+        const hasApiKey = Boolean(request.headers.get("x-api-key"));
+        const auth = await resolveTenantLogoAuth(request, env, url);
+        if ("error" in auth) {
+          console.info("[DBG_BACKGROUND_AUTH]", {
+            hasApiKey,
+            hasBearer,
+            authMode: hasBearer ? "bearer" : "admin",
+            tenantKeyResolved: null,
+            ok: false,
+          });
+          return auth.error;
+        }
+        if (!env.TENANT_ASSETS) {
+          return jsonError(500, { error: "TENANT_ASSETS not configured" });
+        }
+        let body: { templateId?: string; template?: TemplateDefinition; kintone?: { baseUrl?: string; appId?: string } } | null = null;
+        try {
+          body = (await request.json()) as typeof body;
+        } catch {
+          return jsonError(400, { error: "INVALID_JSON" });
+        }
+        if (hasBearer && body?.kintone?.baseUrl && body?.kintone?.appId) {
+          try {
+            const baseUrl = canonicalizeKintoneBaseUrl(body.kintone.baseUrl);
+            const appId = canonicalizeAppId(body.kintone.appId);
+            if (!appId) {
+              throw new Error("missing appId");
+            }
+            const tenantKeyFromBody = buildTenantKey(baseUrl, appId);
+            if (tenantKeyFromBody !== auth.tenantKeyResolved) {
+              console.info("[DBG_BACKGROUND_AUTH]", {
+                hasApiKey,
+                hasBearer,
+                authMode: "bearer",
+                tenantKeyResolved: auth.tenantKeyResolved,
+                tenantKeyBody: tenantKeyFromBody,
+                ok: false,
+              });
+              return jsonError(403, { error: "FORBIDDEN", reason: "tenant mismatch" });
+            }
+          } catch {
+            console.info("[DBG_BACKGROUND_AUTH]", {
+              hasApiKey,
+              hasBearer,
+              authMode: "bearer",
+              tenantKeyResolved: auth.tenantKeyResolved,
+              tenantKeyBody: null,
+              ok: false,
+            });
+            return jsonError(400, { error: "BAD_REQUEST", reason: "invalid kintone.baseUrl or kintone.appId" });
+          }
+        }
+        console.info("[DBG_BACKGROUND_AUTH]", {
+          hasApiKey,
+          hasBearer,
+          authMode: auth.authMode,
+          tenantKeyResolved: auth.tenantKeyResolved,
+          ok: true,
+        });
+        const templateId = body?.templateId ?? body?.template?.id ?? "";
+        if (!templateId && !body?.template) {
+          return jsonError(400, { error: "MISSING_TEMPLATE" });
+        }
+
+        let template: TemplateDefinition | null = null;
+        if (body?.template) {
+          template = body.template;
+        } else if (templateId.startsWith("tpl_")) {
+          template = await getUserTemplateById(templateId, env, auth.tenantKeyResolved, {
+            enabled: true,
+            requestId,
+            path: "/backgrounds/build",
+          });
+        } else {
+          template = await getBaseTemplateById(templateId, env);
+        }
+
+        if (!template) {
+          return jsonError(404, { error: "TEMPLATE_NOT_FOUND" });
+        }
+        if (template.structureType !== "estimate_v1") {
+          return jsonError(400, { error: "UNSUPPORTED_TEMPLATE" });
+        }
+
+        const templateFingerprint = await buildTemplateFingerprint(template);
+        const useJpFont = templateHasNonAscii(template);
+        const fonts = await loadFonts(env, { requireJp: useJpFont });
+        const { bytes } = await renderTemplateToPdf(template, undefined, fonts, {
+          debug: debugEnabled,
+          previewMode: "record",
+          renderMode: "layout",
+          useJpFont,
+          layer: "background",
+          requestId,
+        });
+        const backgroundDoc = await PDFDocument.load(bytes);
+        const pageCount = backgroundDoc.getPageCount();
+        const bgKey = `backgrounds/${auth.tenantKeyResolved}/${templateId}.pdf`;
+        await env.TENANT_ASSETS.put(bgKey, bytes, {
+          httpMetadata: { contentType: "application/pdf" },
+          customMetadata: {
+            templateId,
+            templateFingerprint: templateFingerprint.hash,
+            generatedAt: new Date().toISOString(),
+            schemaVersion: TEMPLATE_SCHEMA_VERSION,
+            pageCount: String(pageCount),
+          },
+        });
+        console.info("[DBG_BACKGROUND_BUILD]", {
+          templateId,
+          tenantKey: auth.tenantKeyResolved,
+          bytesLen: bytes.length,
+          fingerprint: templateFingerprint.hash,
+        });
+        return new Response(
+          JSON.stringify({
+            ok: true,
+            templateId,
+            tenantKey: auth.tenantKeyResolved,
+            pageCount,
+            fingerprint: templateFingerprint.hash,
+          }),
+          {
+            status: 200,
+            headers: {
+              ...CORS_HEADERS,
+              "Content-Type": "application/json",
+            },
+          },
+        );
+      }
+
       // PDF レンダリング API
       if (
         (url.pathname === "/render" || url.pathname === "/render-preview") &&
@@ -3954,19 +4091,6 @@ export default {
             },
           );
         }
-        if (debug) {
-          const fingerprint = await buildTemplateFingerprint(migratedTemplate);
-          const dims = getTemplatePageInfo(migratedTemplate);
-          const templateId = template.id ?? body.templateId ?? "";
-          console.info(
-            `[DBG_RENDER_START] requestId=${requestId ?? ""} templateId=${templateId} source=${templateSource} ` +
-              `pageSize=${migratedTemplate.pageSize} previewMode=${previewMode} renderMode=${renderMode} ` +
-              `fetchedHash=${fingerprint.hash} hashType=${fingerprint.hashType} fetchedEtag= ` +
-              `fetchedJsonLen=${fingerprint.jsonLen} fetchedElements=${fingerprint.elements} ` +
-              `pdfPageW=${dims.width} pdfPageH=${dims.height}`,
-          );
-        }
-
         phase = "prepareRender";
         const rowHeightParam = url.searchParams.get("rowHeight");
         const rowHeightOverride = rowHeightParam ? Number(rowHeightParam) : undefined;
@@ -3986,6 +4110,7 @@ export default {
             }
           : migratedTemplate;
         templateForRender = applyListV1SummaryFromMapping(templateForRender);
+        const templateFingerprint = await buildTemplateFingerprint(templateForRender);
         const renderCompanyProfile =
           renderMode === "layout"
             ? undefined
@@ -3997,6 +4122,17 @@ export default {
           renderCompanyProfile,
         );
         const templatePageInfo = getTemplatePageInfo(templateForRender);
+        if (debug) {
+          const dims = getTemplatePageInfo(templateForRender);
+          const templateId = template.id ?? body.templateId ?? "";
+          console.info(
+            `[DBG_RENDER_START] requestId=${requestId ?? ""} templateId=${templateId} source=${templateSource} ` +
+              `pageSize=${templateForRender.pageSize} previewMode=${previewMode} renderMode=${renderMode} ` +
+              `fetchedHash=${templateFingerprint.hash} hashType=${templateFingerprint.hashType} fetchedEtag= ` +
+              `fetchedJsonLen=${templateFingerprint.jsonLen} fetchedElements=${templateFingerprint.elements} ` +
+              `pdfPageW=${dims.width} pdfPageH=${dims.height}`,
+          );
+        }
         const mappingSummaryMode =
           templateForRender.mapping &&
           typeof templateForRender.mapping === "object" &&
@@ -4175,7 +4311,6 @@ export default {
         let finalCacheKeyHead: string | null = null;
         let renderCacheHeader: string | null = null;
         if (renderMode === "preview" && env.RENDER_CACHE && !debugEnabled) {
-          const templateFingerprint = await buildTemplateFingerprint(templateForRender);
           const dataJson = stableStringify(dataForRender ?? null);
           const dataHash = (await sha256Hex(dataJson)) ?? hashStringFNV1a(dataJson);
           const cachePayload = {
@@ -4203,7 +4338,6 @@ export default {
           updatedTime: string | null;
         } | null = null;
         if (renderMode === "final" && env.TENANT_ASSETS && !debugEnabled && tenantKeyForDiag) {
-          const templateFingerprint = await buildTemplateFingerprint(templateForRender);
           const resolvedTemplateId =
             templateForRender.id ?? templateIdInBody ?? resolvedTemplateIdForDiag ?? null;
           const dataJson = stableStringify(dataForRender ?? null);
@@ -4297,6 +4431,53 @@ export default {
           });
         }
 
+        let backgroundPdfBytes: Uint8Array | null = null;
+        let backgroundFound = false;
+        let backgroundPageCount: number | null = null;
+        const backgroundTemplateId =
+          templateForRender.id ?? templateIdInBody ?? resolvedTemplateIdForDiag ?? null;
+        if (
+          (renderMode === "preview" || renderMode === "final") &&
+          env.TENANT_ASSETS &&
+          tenantKeyForDiag &&
+          templateForRender.structureType === "estimate_v1" &&
+          backgroundTemplateId
+        ) {
+          try {
+            const bgKey = `backgrounds/${tenantKeyForDiag}/${backgroundTemplateId}.pdf`;
+            const bgObject = await env.TENANT_ASSETS.get(bgKey);
+            if (bgObject) {
+              const metaFingerprint = bgObject.customMetadata?.templateFingerprint ?? null;
+              if (!metaFingerprint || metaFingerprint === templateFingerprint.hash) {
+                const pageCountMeta = bgObject.customMetadata?.pageCount ?? null;
+                backgroundPageCount = pageCountMeta ? Number(pageCountMeta) : null;
+                backgroundPdfBytes = new Uint8Array(await bgObject.arrayBuffer());
+                backgroundFound = true;
+              } else {
+                console.warn("[WARN_BACKGROUND_STALE]", {
+                  templateId: backgroundTemplateId,
+                  tenantKey: tenantKeyForDiag,
+                  expected: templateFingerprint.hash,
+                  actual: metaFingerprint,
+                });
+              }
+            }
+          } catch (error) {
+            console.warn("[WARN_BACKGROUND_LOAD]", {
+              templateId: backgroundTemplateId,
+              tenantKey: tenantKeyForDiag,
+              message: error instanceof Error ? error.message : String(error),
+            });
+          }
+        }
+        if (debugEnabled || renderMode === "final") {
+          console.info("[DBG_BACKGROUND_RENDER]", {
+            templateId: backgroundTemplateId,
+            backgroundFound,
+            pageCount: backgroundPageCount,
+          });
+        }
+
         // フォント読み込み
         const prepStart = nowMs();
         const useJpFont = shouldUseJpFont(
@@ -4361,6 +4542,8 @@ export default {
                 renderMode,
                 useJpFont,
                 superFastMode,
+                layer: backgroundPdfBytes ? "dynamic" : "full",
+                backgroundPdfBytes: backgroundPdfBytes ?? undefined,
                 requestId,
                 tenantLogo: tenantLogo ?? undefined,
                 onTiming: (phaseName, ms) => logTiming(phaseName, ms),

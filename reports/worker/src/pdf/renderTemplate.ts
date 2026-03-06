@@ -30,6 +30,7 @@ type WarnFn = (
 ) => void;
 type PreviewMode = 'record' | 'fieldCode';
 type RenderMode = 'layout' | 'preview' | 'final';
+type RenderLayer = 'full' | 'background' | 'dynamic';
 const MAX_TEXT_LENGTH = 200;
 const FINAL_MAX_ROWS = 300;
 const FINAL_MAX_PAGES = 10;
@@ -67,6 +68,91 @@ const pickFont = (text: string, latinFont: PDFFont, jpFont: PDFFont) => {
 const isCompanyLogoElement = (element: TemplateElement) => {
   const slotId = (element as any).slotId as string | undefined;
   return slotId === 'company_logo' || element.id === 'company_logo' || element.id === 'logo';
+};
+
+const ESTIMATE_DYNAMIC_SLOT_IDS = new Set([
+  'to_name',
+  'to_honorific',
+  'issue_date',
+  'doc_no',
+  'company_logo',
+  'company_name',
+  'company_address',
+  'company_tel',
+  'company_email',
+  'items',
+  'subtotal',
+  'tax',
+  'total',
+  'remarks',
+]);
+const ESTIMATE_FRAME_ONLY_SLOTS = new Set(['remarks']);
+
+const cloneElement = <T extends TemplateElement>(element: T): T =>
+  ({ ...element } as T);
+
+const splitEstimateElements = (template: TemplateDefinition) => {
+  const backgroundElements: TemplateElement[] = [];
+  const dynamicElements: TemplateElement[] = [];
+
+  for (const element of template.elements ?? []) {
+    const slotId = (element as any).slotId as string | undefined;
+    if (element.type === 'table') {
+      const bg = cloneElement(element as TableElement) as any;
+      bg.__backgroundOnly = true;
+      backgroundElements.push(bg);
+
+      const dyn = cloneElement(element as TableElement) as any;
+      dyn.__skipHeader = true;
+      dynamicElements.push(dyn);
+      continue;
+    }
+
+    if (element.type === 'label') {
+      backgroundElements.push(element);
+      continue;
+    }
+
+    if (element.type === 'image') {
+      if (isCompanyLogoElement(element)) {
+        dynamicElements.push(element);
+      } else {
+        backgroundElements.push(element);
+      }
+      continue;
+    }
+
+    if (element.type === 'text') {
+      const isDynamicSlot = slotId ? ESTIMATE_DYNAMIC_SLOT_IDS.has(slotId) : false;
+      if (isDynamicSlot) {
+        if (slotId && ESTIMATE_FRAME_ONLY_SLOTS.has(slotId)) {
+          const frameOnly = { ...(element as any) };
+          frameOnly.__frameOnly = true;
+          backgroundElements.push(frameOnly);
+          const dyn = { ...(element as any) };
+          dyn.__skipFrame = true;
+          dynamicElements.push(dyn);
+        } else {
+          dynamicElements.push(element);
+        }
+        continue;
+      }
+      const hasStaticText =
+        (element.dataSource?.type === 'static' &&
+          String(element.dataSource.value ?? '').trim().length > 0) ||
+        String((element as any).text ?? '').trim().length > 0;
+      if (hasStaticText) {
+        backgroundElements.push(element);
+      } else {
+        dynamicElements.push(element);
+      }
+      continue;
+    }
+
+    backgroundElements.push(element);
+  }
+
+  return { backgroundElements, dynamicElements };
 };
 
 type RenderStats = {
@@ -1004,6 +1090,8 @@ export async function renderTemplateToPdf(
     renderMode?: RenderMode;
     useJpFont?: boolean;
     superFastMode?: boolean;
+    layer?: RenderLayer;
+    backgroundPdfBytes?: Uint8Array | null;
     requestId?: string;
     tenantLogo?: { bytes: Uint8Array; contentType: string; objectKey: string };
     onPageInfo?: (info: { pdfPageW: number; pdfPageH: number }) => void;
@@ -1032,7 +1120,9 @@ export async function renderTemplateToPdf(
   try {
   const forceFastMode = renderMode === 'final' && !!options?.tenantLogo?.bytes;
   const superFastMode = renderMode === 'final' && options?.superFastMode === true;
+  const layer: RenderLayer = options?.layer ?? 'full';
   const headerFastMode = forceFastMode || superFastMode;
+  const backgroundEnabled = layer === 'dynamic' && !!options?.backgroundPdfBytes;
   if ((debugEnabled || renderMode === 'final') && superFastMode) {
     console.info('[DBG_SUPER_FAST_MODE]', { requestId, enabled: true, reason: 'final_miss' });
   }
@@ -1117,30 +1207,37 @@ export async function renderTemplateToPdf(
     }
   }
 
+  const elementsForRender = (() => {
+    if (template.structureType !== 'estimate_v1' || layer === 'full') {
+      return template.elements ?? [];
+    }
+    const { backgroundElements, dynamicElements } = splitEstimateElements(template);
+    return layer === 'background' ? backgroundElements : dynamicElements;
+  })();
+  const workingTemplate: TemplateDefinition = { ...template, elements: elementsForRender };
   if (debugEnabled) {
-    const passthrough = template.structureType === 'estimate_v1';
+    const passthrough = workingTemplate.structureType === 'estimate_v1';
     console.debug('[DBG_ESTIMATE_PASSTHROUGH]', {
       passthrough,
       reason: passthrough
         ? 'structureType=estimate_v1'
-        : `structureType=${template.structureType ?? 'unknown'}`,
-      templateId: template.id ?? '',
-      baseTemplateId: template.baseTemplateId ?? null,
+        : `structureType=${workingTemplate.structureType ?? 'unknown'}`,
+      templateId: workingTemplate.id ?? '',
+      baseTemplateId: workingTemplate.baseTemplateId ?? null,
     });
   }
-
-  const companyLogoSelection = pickCompanyLogoElement(template.elements ?? []);
+  const companyLogoSelection = pickCompanyLogoElement(workingTemplate.elements ?? []);
   if (companyLogoSelection.count > 1) {
     console.warn('[WARN_LOGO_DUPLICATE_RENDER]', {
-      templateId: template.id ?? '',
+      templateId: workingTemplate.id ?? '',
       count: companyLogoSelection.count,
     });
   }
 
-  const [pageWidth, pageHeight] = getPageSize(template);
+  const [pageWidth, pageHeight] = getPageSize(workingTemplate);
   const canvasWidth = pageWidth;
   const canvasHeight = pageHeight;
-  const templateYMode = template.rawYMode ?? template.settings?.yMode ?? 'bottom';
+  const templateYMode = workingTemplate.rawYMode ?? workingTemplate.settings?.yMode ?? 'bottom';
   if (debugEnabled) {
     console.debug('[DBG_YMODE]', { templateYMode });
   }
@@ -1180,12 +1277,12 @@ export async function renderTemplateToPdf(
     });
   };
   const resolveAdjust = (element: TemplateElement) =>
-    resolveEasyAdjustForElement(element, template);
+    resolveEasyAdjustForElement(element, workingTemplate);
   let renderData = data ? structuredClone(data) : undefined;
   const imageStart = nowMs();
   const imageMap = await preloadImages(
     pdfDoc,
-    template,
+    workingTemplate,
     renderData,
     previewMode,
     warn,
@@ -1193,8 +1290,31 @@ export async function renderTemplateToPdf(
   );
   onTiming?.('embed_images', nowMs() - imageStart);
 
+  let backgroundPagePool: PDFPage[] = [];
+  if (backgroundEnabled && options?.backgroundPdfBytes) {
+    try {
+      const backgroundDoc = await PDFDocument.load(options.backgroundPdfBytes);
+      const maxBackgroundPages = renderMode === 'final' ? FINAL_MAX_PAGES : 5;
+      for (let i = 0; i < maxBackgroundPages; i += 1) {
+        const [copied] = await pdfDoc.copyPages(backgroundDoc, [0]);
+        backgroundPagePool.push(copied);
+      }
+    } catch (error) {
+      warn('image', 'background pdf load failed', {
+        message: error instanceof Error ? error.message : String(error),
+      });
+      backgroundPagePool = [];
+    }
+  }
+  const createPage = () => {
+    if (backgroundPagePool.length > 0) {
+      return pdfDoc.addPage(backgroundPagePool.shift()!);
+    }
+    return pdfDoc.addPage([pageWidth, pageHeight]);
+  };
+
   // ★ let にして、テーブル描画の途中で別ページに差し替えられるようにする
-  let page = pdfDoc.addPage([pageWidth, pageHeight]);
+  let page = createPage();
   const pageWidthActual = page.getWidth();
   const pageHeightActual = page.getHeight();
   if (debugEnabled && onPageInfo) {
@@ -1224,20 +1344,29 @@ export async function renderTemplateToPdf(
   renderStats.latinFontRef = latinFont;
   renderStats.jpFontRef = jpFontEmbedded;
 
-  if (template.structureType === 'label_v1') {
-    drawLabelSheet(pdfDoc, page, template, renderData, previewMode, jpFont, latinFont, warn);
+  if (workingTemplate.structureType === 'label_v1') {
+    drawLabelSheet(
+      pdfDoc,
+      page,
+      workingTemplate,
+      renderData,
+      previewMode,
+      jpFont,
+      latinFont,
+      warn,
+    );
     const bytes = await pdfDoc.save();
     const warningList = Array.from(warnings.values());
     return { bytes, warnings: warningList };
   }
 
   warn('debug', 'template elements', {
-    count: template.elements.length,
-    ids: template.elements.map((e) => e.id),
+    count: workingTemplate.elements.length,
+    ids: workingTemplate.elements.map((e) => e.id),
   });
 
   // ▼▼ 要素を分解：ヘッダー（毎ページ／1ページのみ）とフッター、テーブル ▼▼
-  const nonBodyElements = template.elements.filter(
+  const nonBodyElements = workingTemplate.elements.filter(
     (e) => e.type !== 'table' && e.type !== 'cardList',
   );
 
@@ -1428,7 +1557,7 @@ export async function renderTemplateToPdf(
 
   if (debugEnabled) {
     const debugTargets = new Set(['doc_no_label', 'doc_no', 'issue_date', 'date_label']);
-    const docMetaDebug = template.elements
+    const docMetaDebug = workingTemplate.elements
       .filter((el) => {
         const slotId = (el as any).slotId as string | undefined;
         return debugTargets.has(el.id) || (slotId ? debugTargets.has(slotId) : false);
@@ -1453,7 +1582,7 @@ export async function renderTemplateToPdf(
   }
 
   const resolveFooterRepeatMode = (element: TemplateElement) =>
-    element.footerRepeatMode ?? template.footerRepeatMode ?? 'last';
+    element.footerRepeatMode ?? workingTemplate.footerRepeatMode ?? 'last';
 
   // フッター：全ページに出すもの
   const footerAllPages = footerElements.filter(
@@ -1524,10 +1653,10 @@ export async function renderTemplateToPdf(
     (template.regionBounds ? footerReserveFromBounds : estimatedFooterHeight ?? 0);
   const footerReserveHeightPdf = transform.toPdfH(footerReserveHeightCanvas);
 
-  const tableElements = template.elements.filter(
+  const tableElements = workingTemplate.elements.filter(
     (e): e is TableElement => e.type === 'table' && !(e as any).hidden,
   );
-  const cardListElements = template.elements.filter(
+  const cardListElements = workingTemplate.elements.filter(
     (e): e is CardListElement => e.type === 'cardList' && !(e as any).hidden,
   );
   if (cardListElements.length > 1) {
@@ -1569,6 +1698,7 @@ export async function renderTemplateToPdf(
     renderMode,
     headerFastMode,
     superFastMode,
+    backgroundEnabled,
     jpFont,
     latinFont,
     imageMap,
@@ -1584,7 +1714,7 @@ export async function renderTemplateToPdf(
   // ボディ描画：cardList or table
   if (cardListElementToRender) {
     const cardListVariant =
-      template.baseTemplateId === "cards_v2" || template.id === "cards_v2"
+      workingTemplate.baseTemplateId === "cards_v2" || workingTemplate.id === "cards_v2"
         ? "compact_v2"
         : undefined;
     page = drawCardList(
@@ -1598,6 +1728,7 @@ export async function renderTemplateToPdf(
       renderMode,
       headerFastMode,
       superFastMode,
+      backgroundEnabled,
       repeatingHeaderElements,
       footerReserveHeightPdf,
       imageMap,
@@ -1605,6 +1736,7 @@ export async function renderTemplateToPdf(
       companyLogoSelection.element,
       resolveAdjust,
       transform,
+      createPage,
       warn,
       debugEnabled,
       onTextBaseline,
@@ -1624,7 +1756,7 @@ export async function renderTemplateToPdf(
       typeof tableHeaderTopY === 'number' && typeof headerBottomY === 'number'
         ? tableHeaderTopY - headerBottomY
         : null;
-    const shouldAdjustTableY = template.structureType !== 'estimate_v1';
+  const shouldAdjustTableY = workingTemplate.structureType !== 'estimate_v1';
     const minGap = 16;
     const desiredTableY =
       shouldAdjustTableY && typeof headerBottomY === 'number'
@@ -1696,7 +1828,7 @@ export async function renderTemplateToPdf(
     page = drawTable(
       pdfDoc,
       page,
-      template.id,
+      workingTemplate.id ?? '',
       tableElementForRender,
       jpFont,
       latinFont,
@@ -1705,6 +1837,7 @@ export async function renderTemplateToPdf(
       renderMode,
       forceFastMode,
       options?.superFastMode ?? false,
+      backgroundEnabled,
       repeatingHeaderElements,
       footerReserveHeightPdf,
       imageMap,
@@ -1712,6 +1845,7 @@ export async function renderTemplateToPdf(
       companyLogoSelection.element,
       resolveAdjust,
       transform,
+      createPage,
       warn,
       debugEnabled,
       onTextBaseline,
@@ -1742,6 +1876,7 @@ export async function renderTemplateToPdf(
       renderMode,
       headerFastMode,
       superFastMode,
+      backgroundEnabled,
       jpFont,
       latinFont,
       imageMap,
@@ -2194,6 +2329,7 @@ function drawText(
   renderMode: RenderMode,
   fastMode: boolean,
   superFastMode: boolean,
+  backgroundEnabled: boolean,
   fontScale: number,
   pagePadding: number,
   transform: PdfTransform,
@@ -2210,6 +2346,8 @@ function drawText(
   const fillGray = (element as any).fillGray as number | undefined;
   const borderWidthCanvas = (element as any).borderWidth as number | undefined;
   const borderColorGray = (element as any).borderColorGray as number | undefined;
+  const frameOnly = (element as any).__frameOnly === true;
+  const skipFrame = (element as any).__skipFrame === true;
 
   const resolved = resolveDataSource(
     element.dataSource,
@@ -2234,7 +2372,12 @@ function drawText(
     text = text ? sanitizeTextForFastMode(text, 'super') : `{{${slotId}}}`;
   }
   if (renderMode === 'final' && fastMode) {
-    if (superFastMode && (slotId === 'remarks' || element.id === 'remarks')) return;
+    if (
+      superFastMode &&
+      !backgroundEnabled &&
+      (slotId === 'remarks' || element.id === 'remarks')
+    )
+      return;
     if (isCompanySlot && !text) return;
     if (!text) return;
     text = sanitizeTextForFastMode(text, superFastMode ? 'super' : 'fast');
@@ -2254,7 +2397,7 @@ function drawText(
     slotId === 'issue_date';
   const xCanvas = resolveAlignedX(element, transform.canvasWidth, maxWidthCanvas, pagePadding);
   const x = transform.toPdfX(xCanvas);
-  const lines = wrapTextToLines(text, fontToUse, fontSize, maxWidth);
+  const lines = frameOnly ? [''] : wrapTextToLines(text, fontToUse, fontSize, maxWidth);
   const contentHeightCanvas = lineHeightCanvas * Math.max(1, lines.length);
   const elementHeightCanvas = typeof element.height === 'number' ? element.height : 0;
   const boxHeightCanvas = Math.max(elementHeightCanvas, contentHeightCanvas);
@@ -2315,7 +2458,7 @@ function drawText(
         `fontSize=${fontSize} lineHeight=${lineHeight}`,
     );
   }
-  if (typeof fillGray === 'number') {
+  if (typeof fillGray === 'number' && !skipFrame) {
     page.drawRectangle({
       x,
       y: yBottom,
@@ -2324,7 +2467,7 @@ function drawText(
       color: rgb(fillGray, fillGray, fillGray),
     });
   }
-  if (borderWidthCanvas && borderWidthCanvas > 0) {
+  if (borderWidthCanvas && borderWidthCanvas > 0 && !skipFrame) {
     const gray = typeof borderColorGray === 'number' ? borderColorGray : 0.6;
     const strokeScale = Math.min(transform.scaleX, transform.scaleY);
     page.drawRectangle({
@@ -2336,6 +2479,7 @@ function drawText(
       borderWidth: borderWidthCanvas * strokeScale,
     });
   }
+  if (frameOnly) return;
   if (isDocMeta) {
     const line = ellipsisTextToWidth(text, fontToUse, fontSize, maxWidth);
     if (line) {
@@ -2414,6 +2558,7 @@ function drawHeaderElements(
   renderMode: RenderMode,
   fastMode: boolean,
   superFastMode: boolean,
+  backgroundEnabled: boolean,
   jpFont: PDFFont,
   latinFont: PDFFont,
   imageMap: Map<string, PDFImage>,
@@ -2455,6 +2600,7 @@ function drawHeaderElements(
           renderMode,
           fastMode,
           superFastMode,
+          backgroundEnabled,
           adjust.fontScale,
           adjust.pagePadding,
           transform,
@@ -2508,6 +2654,7 @@ function drawFooterElements(
   renderMode: RenderMode,
   fastMode: boolean,
   superFastMode: boolean,
+  backgroundEnabled: boolean,
   jpFont: PDFFont,
   latinFont: PDFFont,
   imageMap: Map<string, PDFImage>,
@@ -2549,6 +2696,7 @@ function drawFooterElements(
           renderMode,
           fastMode,
           superFastMode,
+          backgroundEnabled,
           adjust.fontScale,
           adjust.pagePadding,
           transform,
@@ -3087,6 +3235,7 @@ function drawTable(
   renderMode: RenderMode,
   forceFastMode: boolean,
   superFastMode: boolean,
+  backgroundEnabled: boolean,
   headerElements: TemplateElement[],
   footerReserveHeight: number,
   imageMap: Map<string, PDFImage>,
@@ -3094,6 +3243,7 @@ function drawTable(
   companyLogoSelection: ImageElement | null,
   resolveAdjust: (element: TemplateElement) => { fontScale: number; pagePadding: number; hidden: boolean },
   transform: PdfTransform,
+  createPage: () => PDFPage,
   warn: WarnFn,
   debugEnabled = false,
   onTextBaseline?: (entry: TextBaselineDebug) => void,
@@ -3117,6 +3267,8 @@ function drawTable(
   const pageHeight = transform.pageHeightPt;
   const rowHeightCanvas = element.rowHeight ?? 18;
   const headerHeightCanvas = element.headerHeight ?? rowHeightCanvas;
+  const backgroundOnly = (element as any).__backgroundOnly === true;
+  const skipHeader = (element as any).__skipHeader === true;
   const baseFontSize = 10 * transform.scaleY;
   const lineGap = 2 * transform.scaleY;
   const lineHeight = baseFontSize + lineGap;
@@ -3297,7 +3449,7 @@ function drawTable(
   let cursorY = headerY - headerRowGap;
 
   if (headerY < minHeaderY) {
-    currentPage = pdfDoc.addPage([pageWidth, pageHeight]);
+    currentPage = createPage();
 
     drawHeaderElements(
       currentPage,
@@ -3307,6 +3459,7 @@ function drawTable(
       renderMode,
       fastMode,
       superFastMode,
+      backgroundEnabled,
       jpFont,
       latinFont,
       imageMap,
@@ -3328,6 +3481,13 @@ function drawTable(
         minHeaderY,
       });
     }
+  }
+
+  if (backgroundOnly) {
+    if (!skipHeader) {
+      drawTableHeaderRow(currentPage, headerY);
+    }
+    return currentPage;
   }
 
   // 1ページ目には、既に renderTemplateToPdf 側でヘッダー要素が描画済みなので、
@@ -3568,6 +3728,7 @@ function drawTable(
       renderMode,
       fastMode,
       superFastMode,
+      backgroundEnabled,
       jpFont,
       latinFont,
       imageMap,
@@ -3589,7 +3750,9 @@ function drawTable(
         minHeaderY,
       });
     }
-    drawTableHeaderRow(currentPage, headerY);
+    if (!skipHeader) {
+      drawTableHeaderRow(currentPage, headerY);
+    }
     return cursorY - neededHeight >= bottomMargin;
   };
 
@@ -3633,6 +3796,7 @@ function drawTable(
           renderMode,
           fastMode,
           superFastMode,
+          backgroundEnabled,
           jpFont,
           latinFont,
           imageMap,
@@ -3646,7 +3810,9 @@ function drawTable(
         );
         headerY = getHeaderY();
         cursorY = headerY - headerRowGap;
-        drawTableHeaderRow(currentPage, headerY);
+        if (!skipHeader) {
+          drawTableHeaderRow(currentPage, headerY);
+        }
       }
     }
     const yStart = cursorY - paddingY - fontSize;
@@ -3726,7 +3892,7 @@ function drawTable(
       });
       throw new Error('TABLE_LOOP_GUARD: max pages exceeded');
     }
-    currentPage = pdfDoc.addPage([pageWidth, pageHeight]);
+    currentPage = createPage();
     pagesUsed += 1;
     return true;
   };
@@ -4044,8 +4210,9 @@ function drawTable(
           data,
           previewMode,
           renderMode,
-          forceFastMode,
+          fastMode,
           superFastMode,
+          backgroundEnabled,
           jpFont,
           latinFont,
           imageMap,
@@ -4117,7 +4284,9 @@ function drawTable(
         });
       }
 
-      drawTableHeaderRow(currentPage, headerY);
+      if (!skipHeader) {
+        drawTableHeaderRow(currentPage, headerY);
+      }
 
       rowYBottomLayout = cursorY - effectiveRowHeight;
     }
@@ -4558,12 +4727,14 @@ function drawCardList(
   renderMode: RenderMode,
   fastMode: boolean,
   superFastMode: boolean,
+  backgroundEnabled: boolean,
   headerElements: TemplateElement[],
   footerReserveHeight: number,
   imageMap: Map<string, PDFImage>,
   tenantLogoImage: PDFImage | null,
   resolveAdjust: (element: TemplateElement) => { fontScale: number; pagePadding: number; hidden: boolean },
   transform: PdfTransform,
+  createPage: () => PDFPage,
   warn: WarnFn,
   debugEnabled = false,
   onTextBaseline?: (entry: TextBaselineDebug) => void,
@@ -4774,7 +4945,7 @@ function drawCardList(
 
   const ensureCardSpace = () => {
     if (cardTopY - cardHeight >= bottomMargin) return;
-    currentPage = pdfDoc.addPage([pageWidth, pageHeight]);
+    currentPage = createPage();
     drawHeaderElements(
       currentPage,
       headerElements,
@@ -4783,6 +4954,7 @@ function drawCardList(
       renderMode,
       fastMode,
       superFastMode,
+      backgroundEnabled,
       jpFont,
       latinFont,
       imageMap,
