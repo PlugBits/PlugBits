@@ -4286,6 +4286,17 @@ export default {
           });
         }
 
+        const superFastMode =
+          renderMode === "final" && !debugEnabled && !cachedFinalPdf && !!tenantLogo;
+        if (superFastMode) {
+          console.info("[DBG_SUPER_FAST_MODE]", {
+            requestId,
+            enabled: true,
+            reason: "final_miss",
+            hasLogo: Boolean(tenantLogo),
+          });
+        }
+
         // フォント読み込み
         const prepStart = nowMs();
         const useJpFont = shouldUseJpFont(
@@ -4349,6 +4360,7 @@ export default {
                 previewMode,
                 renderMode,
                 useJpFont,
+                superFastMode,
                 requestId,
                 tenantLogo: tenantLogo ?? undefined,
                 onTiming: (phaseName, ms) => logTiming(phaseName, ms),

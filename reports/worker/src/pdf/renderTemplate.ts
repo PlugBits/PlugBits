@@ -203,19 +203,28 @@ const resolveFieldValue = (
 const FASTMODE_MAX_TEXT_CHARS = 120;
 const FASTMODE_MAX_TEXT_LINES = 6;
 const FASTMODE_MAX_LINE_LENGTH = 80;
+const SUPER_FASTMODE_MAX_TEXT_CHARS = 60;
+const SUPER_FASTMODE_MAX_TEXT_LINES = 3;
+const SUPER_FASTMODE_MAX_LINE_LENGTH = 40;
 const CONTROL_CHAR_PATTERN = /[\u0000-\u001F\u007F]/g;
 
-const sanitizeTextForFastMode = (text: string) => {
+const sanitizeTextForFastMode = (text: string, level: 'fast' | 'super' = 'fast') => {
   if (!text) return text;
+  const maxChars =
+    level === 'super' ? SUPER_FASTMODE_MAX_TEXT_CHARS : FASTMODE_MAX_TEXT_CHARS;
+  const maxLines =
+    level === 'super' ? SUPER_FASTMODE_MAX_TEXT_LINES : FASTMODE_MAX_TEXT_LINES;
+  const maxLineLength =
+    level === 'super' ? SUPER_FASTMODE_MAX_LINE_LENGTH : FASTMODE_MAX_LINE_LENGTH;
   const cleaned = text.replace(CONTROL_CHAR_PATTERN, '');
   const rawLines = cleaned.split('\n');
-  const lines = rawLines.slice(0, FASTMODE_MAX_TEXT_LINES).map((line) => {
-    if (line.length <= FASTMODE_MAX_LINE_LENGTH) return line;
-    return `${line.slice(0, FASTMODE_MAX_LINE_LENGTH)}…`;
+  const lines = rawLines.slice(0, maxLines).map((line) => {
+    if (line.length <= maxLineLength) return line;
+    return `${line.slice(0, maxLineLength)}…`;
   });
   let result = lines.join('\n');
-  if (result.length > FASTMODE_MAX_TEXT_CHARS) {
-    result = `${result.slice(0, FASTMODE_MAX_TEXT_CHARS)}…`;
+  if (result.length > maxChars) {
+    result = `${result.slice(0, maxChars)}…`;
   }
   return result;
 };
@@ -994,6 +1003,7 @@ export async function renderTemplateToPdf(
     previewMode?: PreviewMode;
     renderMode?: RenderMode;
     useJpFont?: boolean;
+    superFastMode?: boolean;
     requestId?: string;
     tenantLogo?: { bytes: Uint8Array; contentType: string; objectKey: string };
     onPageInfo?: (info: { pdfPageW: number; pdfPageH: number }) => void;
@@ -1021,6 +1031,11 @@ export async function renderTemplateToPdf(
   activeRenderStats = renderStats;
   try {
   const forceFastMode = renderMode === 'final' && !!options?.tenantLogo?.bytes;
+  const superFastMode = renderMode === 'final' && options?.superFastMode === true;
+  const headerFastMode = forceFastMode || superFastMode;
+  if ((debugEnabled || renderMode === 'final') && superFastMode) {
+    console.info('[DBG_SUPER_FAST_MODE]', { requestId, enabled: true, reason: 'final_miss' });
+  }
   const warn: WarnFn = (category, message, context) => {
     if (category === 'debug' && !debugEnabled) return;
     let entry = `[${category}] ${message}`;
@@ -1552,7 +1567,8 @@ export async function renderTemplateToPdf(
     renderData,
     previewMode,
     renderMode,
-    forceFastMode,
+    headerFastMode,
+    superFastMode,
     jpFont,
     latinFont,
     imageMap,
@@ -1579,6 +1595,9 @@ export async function renderTemplateToPdf(
       latinFont,
       renderData,
       previewMode,
+      renderMode,
+      headerFastMode,
+      superFastMode,
       repeatingHeaderElements,
       footerReserveHeightPdf,
       imageMap,
@@ -1685,6 +1704,7 @@ export async function renderTemplateToPdf(
       previewMode,
       renderMode,
       forceFastMode,
+      options?.superFastMode ?? false,
       repeatingHeaderElements,
       footerReserveHeightPdf,
       imageMap,
@@ -1720,7 +1740,8 @@ export async function renderTemplateToPdf(
       renderData,
       previewMode,
       renderMode,
-      forceFastMode,
+      headerFastMode,
+      superFastMode,
       jpFont,
       latinFont,
       imageMap,
@@ -1771,7 +1792,8 @@ export async function renderTemplateToPdf(
       hasLogo: !!options?.tenantLogo?.bytes,
       logoBytesLen: options?.tenantLogo?.bytes?.length ?? 0,
       renderMode,
-      fastMode: renderStats.fastModeUsed || forceFastMode,
+      fastMode: renderStats.fastModeUsed || forceFastMode || superFastMode,
+      superFastMode,
     });
   }
   if (debugEnabled || renderMode === 'final') {
@@ -2171,6 +2193,7 @@ function drawText(
   previewMode: PreviewMode,
   renderMode: RenderMode,
   fastMode: boolean,
+  superFastMode: boolean,
   fontScale: number,
   pagePadding: number,
   transform: PdfTransform,
@@ -2207,10 +2230,14 @@ function drawText(
       text = resolved || '';
     }
   }
+  if (renderMode === 'final' && superFastMode && isCompanySlot && slotId) {
+    text = text ? sanitizeTextForFastMode(text, 'super') : `{{${slotId}}}`;
+  }
   if (renderMode === 'final' && fastMode) {
+    if (superFastMode && (slotId === 'remarks' || element.id === 'remarks')) return;
     if (isCompanySlot && !text) return;
     if (!text) return;
-    text = sanitizeTextForFastMode(text);
+    text = sanitizeTextForFastMode(text, superFastMode ? 'super' : 'fast');
     if (!text) return;
   }
   const fontToUse = pickFont(text, latinFont, jpFont);
@@ -2386,6 +2413,7 @@ function drawHeaderElements(
   previewMode: PreviewMode,
   renderMode: RenderMode,
   fastMode: boolean,
+  superFastMode: boolean,
   jpFont: PDFFont,
   latinFont: PDFFont,
   imageMap: Map<string, PDFImage>,
@@ -2426,6 +2454,7 @@ function drawHeaderElements(
           previewMode,
           renderMode,
           fastMode,
+          superFastMode,
           adjust.fontScale,
           adjust.pagePadding,
           transform,
@@ -2478,6 +2507,7 @@ function drawFooterElements(
   previewMode: PreviewMode,
   renderMode: RenderMode,
   fastMode: boolean,
+  superFastMode: boolean,
   jpFont: PDFFont,
   latinFont: PDFFont,
   imageMap: Map<string, PDFImage>,
@@ -2518,6 +2548,7 @@ function drawFooterElements(
           previewMode,
           renderMode,
           fastMode,
+          superFastMode,
           adjust.fontScale,
           adjust.pagePadding,
           transform,
@@ -3055,6 +3086,7 @@ function drawTable(
   previewMode: PreviewMode,
   renderMode: RenderMode,
   forceFastMode: boolean,
+  superFastMode: boolean,
   headerElements: TemplateElement[],
   footerReserveHeight: number,
   imageMap: Map<string, PDFImage>,
@@ -3126,6 +3158,7 @@ function drawTable(
   }
   const estimatedTextOps = rows.length * (element.columns?.length ?? 0);
   const fastMode =
+    superFastMode ||
     (renderMode === 'final' && forceFastMode) ||
     (renderMode === 'final' &&
       (rows.length > FASTMODE_ROW_THRESHOLD ||
@@ -3272,7 +3305,8 @@ function drawTable(
       data,
       previewMode,
       renderMode,
-      forceFastMode,
+      fastMode,
+      superFastMode,
       jpFont,
       latinFont,
       imageMap,
@@ -3369,7 +3403,7 @@ function drawTable(
           ? sumText
           : '';
       if (renderMode === 'final' && fastMode && cellText) {
-        cellText = sanitizeTextForFastMode(cellText);
+        cellText = sanitizeTextForFastMode(cellText, superFastMode ? 'super' : 'fast');
       }
       const fontForCell =
         spec.formatter?.type === 'number' || spec.formatter?.type === 'currency'
@@ -3396,6 +3430,8 @@ function drawTable(
               : col.id === valueColumnId
               ? 'right'
               : resolveColumnAlign(spec, cellText);
+        const effectiveOverflow =
+          superFastMode && spec.overflow === 'wrap' ? 'ellipsis' : spec.overflow;
         const maxCellWidth = Math.max(0, colWidth - (paddingLeft + paddingRight));
         if (col.id === labelColumn.id) {
           const clipped = ellipsisTextToWidth(cellText, fontForCell, baseFontSize, maxCellWidth);
@@ -3413,7 +3449,7 @@ function drawTable(
             warn,
             { tableId: element.id, columnId: col.id },
           );
-        } else if (spec.overflow === 'shrink') {
+        } else if (effectiveOverflow === 'shrink') {
           drawCellText(
             currentPage,
             cellText,
@@ -3432,7 +3468,7 @@ function drawTable(
             warn,
             { tableId: element.id, columnId: col.id },
           );
-        } else if (spec.overflow === 'ellipsis') {
+        } else if (effectiveOverflow === 'ellipsis') {
           const clipped = ellipsisTextToWidth(cellText, fontForCell, baseFontSize, maxCellWidth);
           drawAlignedText(
             currentPage,
@@ -3448,7 +3484,7 @@ function drawTable(
             warn,
             { tableId: element.id, columnId: col.id },
           );
-        } else if (spec.overflow === 'wrap') {
+        } else if (effectiveOverflow === 'wrap') {
           const lines = wrapTextToLines(cellText, fontForCell, baseFontSize, maxCellWidth);
           const maxLinesByHeight = Math.floor((summaryRowHeight - paddingY * 2) / lineHeight);
           const yStart = rowTopPdfDraw - paddingY - lineHeight;
@@ -3530,7 +3566,8 @@ function drawTable(
       data,
       previewMode,
       renderMode,
-      forceFastMode,
+      fastMode,
+      superFastMode,
       jpFont,
       latinFont,
       imageMap,
@@ -3594,7 +3631,8 @@ function drawTable(
           data,
           previewMode,
           renderMode,
-          forceFastMode,
+          fastMode,
+          superFastMode,
           jpFont,
           latinFont,
           imageMap,
@@ -3929,7 +3967,7 @@ function drawTable(
         fieldCode: col.fieldCode,
       });
       if (renderMode === 'final' && fastMode && cellTextRaw) {
-        cellTextRaw = sanitizeTextForFastMode(cellTextRaw);
+        cellTextRaw = sanitizeTextForFastMode(cellTextRaw, superFastMode ? 'super' : 'fast');
       }
       const fontForCell =
         spec.formatter?.type === 'number' || spec.formatter?.type === 'currency'
@@ -3944,13 +3982,15 @@ function drawTable(
         }
       }
 
+      const effectiveOverflow =
+        superFastMode && spec.overflow === 'wrap' ? 'ellipsis' : spec.overflow;
       const lines =
-        spec.overflow === 'wrap'
+        effectiveOverflow === 'wrap'
           ? wrapTextToLines(cellTextRaw, fontForCell, baseFontSize, maxCellWidth)
           : [cellTextRaw];
       const maxLinesForDraw = spec.maxLines ?? lines.length;
       const linesToDraw = lines.slice(0, maxLinesForDraw);
-      const lineCountForHeight = spec.overflow === 'wrap' ? linesToDraw.length : 1;
+      const lineCountForHeight = effectiveOverflow === 'wrap' ? linesToDraw.length : 1;
 
       return {
         columnId: col.id,
@@ -3960,6 +4000,7 @@ function drawTable(
         cellTextRaw,
         fontForCell,
         spec,
+        overflow: effectiveOverflow,
         linesToDraw,
         lineCountForHeight,
       };
@@ -4004,6 +4045,7 @@ function drawTable(
           previewMode,
           renderMode,
           forceFastMode,
+          superFastMode,
           jpFont,
           latinFont,
           imageMap,
@@ -4049,7 +4091,8 @@ function drawTable(
         data,
         previewMode,
         renderMode,
-        forceFastMode,
+        fastMode,
+        superFastMode,
         jpFont,
         latinFont,
         imageMap,
@@ -4100,6 +4143,7 @@ function drawTable(
         fontForCell,
         spec,
         linesToDraw,
+        overflow,
       } = cell;
 
       if (element.showGrid) {
@@ -4209,7 +4253,7 @@ function drawTable(
             );
           }
         }
-      } else if (spec.overflow === 'wrap' && maxCellWidth > 0) {
+      } else if (overflow === 'wrap' && maxCellWidth > 0) {
         const maxLinesByHeight = Math.floor((effectiveRowHeight - paddingY * 2) / lineHeight);
         const lines = linesToDraw.slice(0, Math.max(0, maxLinesByHeight));
         const yStart = rowYBottomDraw + effectiveRowHeight - paddingY - lineHeight;
@@ -4254,7 +4298,7 @@ function drawTable(
             { tableId: element.id, columnId, fieldCode },
           );
         }
-      } else if (spec.overflow === 'ellipsis') {
+      } else if (overflow === 'ellipsis') {
         const clipped = ellipsisTextToWidth(cellText, fontForCell, baseFontSize, maxCellWidth);
         if (shouldLogTableCell && clipped) {
           const drawY = rowYBottomDraw + effectiveRowHeight / 2 - baseFontSize / 2;
@@ -4289,7 +4333,7 @@ function drawTable(
           warn,
           { tableId: element.id, columnId, fieldCode },
         );
-      } else if (spec.overflow === 'clip') {
+      } else if (overflow === 'clip') {
         if (shouldLogTableCell && cellText) {
           const drawY = rowYBottomDraw + effectiveRowHeight / 2 - baseFontSize / 2;
           emitTableCellBaseline(
@@ -4511,6 +4555,9 @@ function drawCardList(
   latinFont: PDFFont,
   data: TemplateDataRecord | undefined,
   previewMode: PreviewMode,
+  renderMode: RenderMode,
+  fastMode: boolean,
+  superFastMode: boolean,
   headerElements: TemplateElement[],
   footerReserveHeight: number,
   imageMap: Map<string, PDFImage>,
@@ -4734,7 +4781,8 @@ function drawCardList(
       data,
       previewMode,
       renderMode,
-      forceFastMode,
+      fastMode,
+      superFastMode,
       jpFont,
       latinFont,
       imageMap,
