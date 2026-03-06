@@ -64,7 +64,16 @@ const isCompanyLogoElement = (element: TemplateElement) => {
   return slotId === 'company_logo' || element.id === 'company_logo' || element.id === 'logo';
 };
 
-type RenderStats = { textOpsCount: number; fastModeUsed: boolean };
+type RenderStats = {
+  textOpsCount: number;
+  fastModeUsed: boolean;
+  totalTexts: number;
+  jpTexts: number;
+  latinTexts: number;
+  emptyTexts: number;
+  latinFontRef?: PDFFont | null;
+  jpFontRef?: PDFFont | null;
+};
 let activeRenderStats: RenderStats | null = null;
 
 const pickCompanyLogoElement = (elements: TemplateElement[]) => {
@@ -103,6 +112,18 @@ const safeDrawText = (
   try {
     if (activeRenderStats) {
       activeRenderStats.textOpsCount += 1;
+      activeRenderStats.totalTexts += 1;
+      if (text.length === 0) {
+        activeRenderStats.emptyTexts += 1;
+      }
+      const fontRef = options?.font;
+      const jpRef = activeRenderStats.jpFontRef ?? null;
+      const latinRef = activeRenderStats.latinFontRef ?? null;
+      if (fontRef && jpRef && fontRef === jpRef) {
+        activeRenderStats.jpTexts += 1;
+      } else if (fontRef && latinRef && fontRef === latinRef) {
+        activeRenderStats.latinTexts += 1;
+      }
     }
     page.drawText(text, options);
   } catch (error) {
@@ -968,7 +989,14 @@ export async function renderTemplateToPdf(
   const onTiming = options?.onTiming;
   const previewMode: PreviewMode = options?.previewMode ?? 'record';
   const renderMode: RenderMode = options?.renderMode ?? 'final';
-  const renderStats: RenderStats = { textOpsCount: 0, fastModeUsed: false };
+  const renderStats: RenderStats = {
+    textOpsCount: 0,
+    fastModeUsed: false,
+    totalTexts: 0,
+    jpTexts: 0,
+    latinTexts: 0,
+    emptyTexts: 0,
+  };
   activeRenderStats = renderStats;
   try {
   const forceFastMode = renderMode === 'final' && !!options?.tenantLogo?.bytes;
@@ -1145,12 +1173,20 @@ export async function renderTemplateToPdf(
   }
 
   // フォント埋め込み
+  const latinFontStart = nowMs();
   const latinFont = fonts.latin
     ? await pdfDoc.embedFont(fonts.latin, { subset: false })
     : await pdfDoc.embedFont(StandardFonts.Helvetica);
-  const jpFontEmbedded =
-    options?.useJpFont && fonts.jp ? await pdfDoc.embedFont(fonts.jp, { subset: false }) : null;
+  onTiming?.('embed_latin_font', nowMs() - latinFontStart);
+  let jpFontEmbedded: PDFFont | null = null;
+  if (options?.useJpFont && fonts.jp) {
+    const jpFontStart = nowMs();
+    jpFontEmbedded = await pdfDoc.embedFont(fonts.jp, { subset: false });
+    onTiming?.('embed_jp_font', nowMs() - jpFontStart);
+  }
   const jpFont = jpFontEmbedded ?? latinFont;
+  renderStats.latinFontRef = latinFont;
+  renderStats.jpFontRef = jpFontEmbedded;
 
   if (template.structureType === 'label_v1') {
     drawLabelSheet(pdfDoc, page, template, renderData, previewMode, jpFont, latinFont, warn);
@@ -1697,6 +1733,15 @@ export async function renderTemplateToPdf(
   }
 
   const saveStart = nowMs();
+  if (debugEnabled || renderMode === 'final') {
+    console.info('[DBG_FONT_USAGE]', {
+      requestId,
+      totalTexts: renderStats.totalTexts,
+      jpTexts: renderStats.jpTexts,
+      latinTexts: renderStats.latinTexts,
+      emptyTexts: renderStats.emptyTexts,
+    });
+  }
   if (debugEnabled || renderMode === 'final') {
     console.info('[DBG_PDF_SAVE_PRE]', {
       requestId,

@@ -4128,6 +4128,7 @@ export default {
         }
 
         // フォント読み込み
+        const prepStart = nowMs();
         const useJpFont = shouldUseJpFont(
           templateForRender,
           dataForRender,
@@ -4135,12 +4136,13 @@ export default {
           previewMode,
           renderCompanyProfile,
         );
+        logTiming("prepare_text_runs", nowMs() - prepStart);
         let fonts: { jp: Uint8Array | null; latin: Uint8Array | null };
         phase = "loadFonts";
         try {
           const fontStart = nowMs();
           fonts = await loadFonts(env, { requireJp: useJpFont });
-          logTiming("load_fonts", nowMs() - fontStart);
+          logTiming("load_font_bytes", nowMs() - fontStart);
           console.info("[DBG_FONT_POLICY]", {
             requestId,
             renderMode,
