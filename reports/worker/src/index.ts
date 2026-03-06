@@ -333,6 +333,7 @@ const canonicalizeTemplateForStorage = (
     const removed = logoCandidates.filter((el) => el !== picked).map((el) => el.id);
     if (removed.length > 0) {
       console.warn("[WARN_LOGO_DUPLICATE]", {
+        templateId: (clone as any).id ?? null,
         count: logoCandidates.length,
         keptId: picked.id,
         removedIds: removed,
@@ -1225,7 +1226,9 @@ const getUserTemplateById = async (
       });
     }
     if (parsed && Array.isArray(parsed.elements)) {
-      return applyEstimateV1PresetPatch(parsed as TemplateDefinition);
+      return applyEstimateV1PresetPatch(
+        canonicalizeTemplateForStorage(parsed as TemplateDefinition),
+      );
     }
     if (parsed?.baseTemplateId) {
       const baseTemplate = await getBaseTemplateById(parsed.baseTemplateId, env);
@@ -1249,7 +1252,9 @@ const getUserTemplateById = async (
         sheetSettings: parsed.sheetSettings ?? dataApplied.sheetSettings,
         settings: parsed.settings ?? dataApplied.settings,
       };
-      return applyEstimateV1PresetPatch(reconstructed);
+      return applyEstimateV1PresetPatch(
+        canonicalizeTemplateForStorage(reconstructed),
+      );
     }
     return null;
   } catch {
@@ -2158,15 +2163,31 @@ export default {
           resolveLogoExtension(normalizedContentType),
         );
         const buf = await file.arrayBuffer();
+        console.info("[DBG_LOGO_NORMALIZE]", {
+          originalBytes: file.size,
+          normalizedBytes: buf.byteLength,
+          contentType: normalizedContentType,
+        });
         const maxBytes =
           normalizedContentType === "image/png"
             ? LOGO_MAX_STORED_BYTES_PNG
             : LOGO_MAX_STORED_BYTES;
         if (buf.byteLength > maxBytes) {
-          return new Response("Image too large after normalization", {
-            status: 413,
-            headers: CORS_HEADERS,
-          });
+          return new Response(
+            JSON.stringify({
+              errorCode: "LOGO_TOO_LARGE",
+              message: "Image too large after normalization",
+              bytes: buf.byteLength,
+              maxBytes,
+            }),
+            {
+              status: 413,
+              headers: {
+                ...CORS_HEADERS,
+                "Content-Type": "application/json",
+              },
+            },
+          );
         }
         await env.TENANT_ASSETS.put(objectKey, buf, {
           httpMetadata: { contentType: normalizedContentType },
@@ -3917,6 +3938,23 @@ export default {
           }
         }
 
+        const extractRecordKey = (data: unknown) => {
+          if (!data || typeof data !== "object") return {};
+          const record = data as Record<string, unknown>;
+          const pick = (...keys: string[]) => {
+            for (const key of keys) {
+              const value = record[key];
+              if (value !== undefined && value !== null && value !== "") return String(value);
+            }
+            return "";
+          };
+          return {
+            recordId: pick("recordId", "recordID", "id", "$id", "RecordId"),
+            recordRevision: pick("revision", "$revision", "recordRevision", "updatedRevision"),
+            updatedTime: pick("updatedTime", "updatedAt", "updateDate", "$updatedTime"),
+          };
+        };
+
         const rowsCount = (() => {
           if (dataForRender && typeof dataForRender === "object") {
             const maybeItems = (dataForRender as any).Items;
@@ -3973,6 +4011,9 @@ export default {
 
         let cachedPdf: ArrayBuffer | null = null;
         let cacheKey: string | null = null;
+        let finalCacheKey: string | null = null;
+        let finalCacheKeyHead: string | null = null;
+        let renderCacheHeader: string | null = null;
         if (renderMode === "preview" && env.RENDER_CACHE && !debugEnabled) {
           const templateFingerprint = await buildTemplateFingerprint(templateForRender);
           const dataJson = stableStringify(dataForRender ?? null);
@@ -3994,18 +4035,76 @@ export default {
           cachedPdf = await env.RENDER_CACHE.get(cacheKey, "arrayBuffer");
         }
 
+        let cachedFinalPdf: ArrayBuffer | null = null;
+        if (renderMode === "final" && env.TENANT_ASSETS && !debugEnabled && tenantKeyForDiag) {
+          const templateFingerprint = await buildTemplateFingerprint(templateForRender);
+          const recordKey = extractRecordKey(dataForRender);
+          const dataJson = stableStringify(dataForRender ?? null);
+          const dataHash = (await sha256Hex(dataJson)) ?? hashStringFNV1a(dataJson);
+          const cachePayload = {
+            mode: renderMode,
+            templateHash: templateFingerprint.hash,
+            templateId: templateForRender.id ?? templateIdInBody ?? null,
+            baseTemplateId: templateForRender.baseTemplateId ?? null,
+            tenantKey: tenantKeyForDiag,
+            tenantUpdatedAt: tenantRecordForRender?.updatedAt ?? null,
+            logoUpdatedAt: tenantRecordForRender?.logo?.updatedAt ?? null,
+            recordId: recordKey.recordId || null,
+            recordRevision: recordKey.recordRevision || null,
+            updatedTime: recordKey.updatedTime || null,
+            dataHash: recordKey.recordId ? null : dataHash,
+          };
+          const cacheJson = stableStringify(cachePayload);
+          const cacheHash = (await sha256Hex(cacheJson)) ?? hashStringFNV1a(cacheJson);
+          finalCacheKeyHead = cacheHash.slice(0, 12);
+          finalCacheKey = `render-cache/final/${tenantKeyForDiag}/${cacheHash}.pdf`;
+          const cachedObject = await env.TENANT_ASSETS.get(finalCacheKey);
+          if (cachedObject) {
+            cachedFinalPdf = await cachedObject.arrayBuffer();
+          } else {
+            console.info("[DBG_RENDER_CACHE]", {
+              requestId,
+              mode: "final",
+              status: "MISS",
+              cacheKeyHead: finalCacheKeyHead,
+            });
+            renderCacheHeader = "MISS";
+          }
+        }
+
         if (cachedPdf) {
+            console.info("[DBG_RENDER_CACHE]", {
+              requestId,
+              status: "HIT",
+              cacheKey,
+            });
+            renderCacheHeader = "HIT";
+            return new Response(cachedPdf, {
+              status: 200,
+              headers: {
+                ...CORS_HEADERS,
+                "Content-Type": "application/pdf",
+              "X-Render-Cache": "HIT",
+              "X-Debug-Fixture": fixtureName ?? "(none)",
+              "X-Debug-Rows": String(rowsCount),
+              },
+            });
+        }
+
+        if (cachedFinalPdf) {
           console.info("[DBG_RENDER_CACHE]", {
             requestId,
-            status: "HIT",
-            cacheKey,
+            mode: "final",
+            status: "HIT_R2",
+            cacheKeyHead: finalCacheKeyHead,
           });
-          return new Response(cachedPdf, {
+          renderCacheHeader = "HIT_R2";
+          return new Response(cachedFinalPdf, {
             status: 200,
             headers: {
               ...CORS_HEADERS,
               "Content-Type": "application/pdf",
-              "X-Render-Cache": "HIT",
+              "X-Render-Cache": "HIT_R2",
               "X-Debug-Fixture": fixtureName ?? "(none)",
               "X-Debug-Rows": String(rowsCount),
             },
@@ -4115,14 +4214,14 @@ export default {
             if (cacheKey && env.RENDER_CACHE) {
               try {
                 await env.RENDER_CACHE.put(cacheKey, pdfBytes, { expirationTtl: 60 });
-                headers["X-Render-Cache"] = "PUT";
+                renderCacheHeader = "PUT";
                 console.info("[DBG_RENDER_CACHE]", {
                   requestId,
                   status: "PUT",
                   cacheKey,
                 });
               } catch {
-                headers["X-Render-Cache"] = "PUT_FAILED";
+                renderCacheHeader = "PUT_FAILED";
                 console.info("[DBG_RENDER_CACHE]", {
                   requestId,
                   status: "PUT_FAILED",
@@ -4130,6 +4229,33 @@ export default {
                 });
               }
             }
+
+            if (finalCacheKey && env.TENANT_ASSETS) {
+              try {
+                await env.TENANT_ASSETS.put(finalCacheKey, pdfBytes, {
+                  httpMetadata: { contentType: "application/pdf" },
+                });
+                renderCacheHeader = "PUT_R2";
+                console.info("[DBG_RENDER_CACHE]", {
+                  requestId,
+                  mode: "final",
+                  status: "PUT_R2",
+                  cacheKeyHead: finalCacheKeyHead,
+                });
+              } catch {
+                renderCacheHeader = "PUT_R2_FAILED";
+                console.info("[DBG_RENDER_CACHE]", {
+                  requestId,
+                  mode: "final",
+                  status: "PUT_R2_FAILED",
+                  cacheKeyHead: finalCacheKeyHead,
+                });
+              }
+            }
+            if (!renderCacheHeader && finalCacheKey) {
+              renderCacheHeader = "MISS";
+            }
+            if (renderCacheHeader) headers["X-Render-Cache"] = renderCacheHeader;
 
             if (debug && warnCount > 0) {
               headers["X-Debug-Warn-Sample"] = truncateHeaderValue(combinedWarnings[0]);

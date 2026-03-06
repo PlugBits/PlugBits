@@ -790,6 +790,7 @@ async function preloadImages(
   data: TemplateDataRecord | undefined,
   previewMode: PreviewMode,
   warn: WarnFn,
+  embedImage?: (buf: Uint8Array, url: string, contentType: string) => Promise<PDFImage | null>,
 ): Promise<Map<string, PDFImage>> {
   const map = new Map<string, PDFImage>();
 
@@ -827,7 +828,9 @@ async function preloadImages(
       continue;
     }
     const buf = new Uint8Array(await res.arrayBuffer());
-    const embedded = await embedImageBuffer(pdfDoc, buf, url, contentType, warn);
+    const embedded = embedImage
+      ? await embedImage(buf, url, contentType)
+      : await embedImageBuffer(pdfDoc, buf, url, contentType, warn);
     if (!embedded) continue;
     map.set(url, embedded);
   }
@@ -959,6 +962,7 @@ export async function renderTemplateToPdf(
   const onTiming = options?.onTiming;
   const previewMode: PreviewMode = options?.previewMode ?? 'record';
   const renderMode: RenderMode = options?.renderMode ?? 'final';
+  const forceFastMode = renderMode === 'final' && !!options?.tenantLogo?.bytes;
   const warn: WarnFn = (category, message, context) => {
     if (category === 'debug' && !debugEnabled) return;
     let entry = `[${category}] ${message}`;
@@ -993,12 +997,33 @@ export async function renderTemplateToPdf(
     buf: Uint8Array,
     url: string,
     contentType: string,
+    logTag?: { slotId?: string },
   ): Promise<PDFImage | null> => {
     const key = buildEmbedCacheKey(buf, contentType);
     const cached = embedCache.get(key);
-    if (cached) return cached;
+    if (cached) {
+      if (debugEnabled && logTag?.slotId) {
+        console.info('[DBG_IMAGE_EMBED]', {
+          slotId: logTag.slotId,
+          bytesLen: buf.length,
+          contentType,
+          cacheHit: true,
+        });
+      }
+      return cached;
+    }
     const embedded = await embedImageBuffer(pdfDoc, buf, url, contentType, warn);
-    if (embedded) embedCache.set(key, embedded);
+    if (embedded) {
+      embedCache.set(key, embedded);
+      if (debugEnabled && logTag?.slotId) {
+        console.info('[DBG_IMAGE_EMBED]', {
+          slotId: logTag.slotId,
+          bytesLen: buf.length,
+          contentType,
+          cacheHit: false,
+        });
+      }
+    }
     return embedded;
   };
 
@@ -1009,6 +1034,7 @@ export async function renderTemplateToPdf(
         options.tenantLogo.bytes,
         options.tenantLogo.objectKey,
         options.tenantLogo.contentType,
+        { slotId: 'company_logo' },
       );
     } catch (error) {
       warn('image', 'tenant logo embed failed', {
@@ -1084,7 +1110,14 @@ export async function renderTemplateToPdf(
     resolveEasyAdjustForElement(element, template);
   let renderData = data ? structuredClone(data) : undefined;
   const imageStart = nowMs();
-  const imageMap = await preloadImages(pdfDoc, template, renderData, previewMode, warn);
+  const imageMap = await preloadImages(
+    pdfDoc,
+    template,
+    renderData,
+    previewMode,
+    warn,
+    (buf, url, contentType) => embedImageBufferCached(buf, url, contentType),
+  );
   onTiming?.('embed_images', nowMs() - imageStart);
 
   // ★ let にして、テーブル描画の途中で別ページに差し替えられるようにする
@@ -1584,6 +1617,7 @@ export async function renderTemplateToPdf(
       renderData,
       previewMode,
       renderMode,
+      forceFastMode,
       repeatingHeaderElements,
       footerReserveHeightPdf,
       imageMap,
@@ -2917,6 +2951,7 @@ function drawTable(
   data: TemplateDataRecord | undefined,
   previewMode: PreviewMode,
   renderMode: RenderMode,
+  forceFastMode: boolean,
   headerElements: TemplateElement[],
   footerReserveHeight: number,
   imageMap: Map<string, PDFImage>,
@@ -2987,9 +3022,18 @@ function drawTable(
   }
   const estimatedTextOps = rows.length * (element.columns?.length ?? 0);
   const fastMode =
-    renderMode === 'final' &&
-    (rows.length > FASTMODE_ROW_THRESHOLD ||
-      estimatedTextOps > FASTMODE_TEXTOPS_THRESHOLD);
+    (renderMode === 'final' && forceFastMode) ||
+    (renderMode === 'final' &&
+      (rows.length > FASTMODE_ROW_THRESHOLD ||
+        estimatedTextOps > FASTMODE_TEXTOPS_THRESHOLD));
+  if ((debugEnabled || renderMode === 'final') && fastMode) {
+    console.info('[DBG_FAST_MODE]', {
+      enabled: true,
+      reason: forceFastMode ? 'logo' : 'threshold',
+      rows: rows.length,
+      estimatedTextOps,
+    });
+  }
 
   const summarySpec =
     element.summary?.mode === 'lastPageOnly' ||

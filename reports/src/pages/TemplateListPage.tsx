@@ -248,6 +248,11 @@ const TemplateListPage = () => {
     let succeeded = false;
     try {
       const normalized = await normalizeLogoFile(file);
+      console.info('[DBG_LOGO_NORMALIZE]', {
+        originalBytes: file.size,
+        normalizedBytes: normalized.bytes,
+        contentType: normalized.contentType,
+      });
       const form = new FormData();
       form.append('file', normalized.blob, `logo.${normalized.ext}`);
       const res = await fetch(tenantLogoEndpoint, {

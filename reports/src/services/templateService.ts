@@ -225,6 +225,7 @@ export const canonicalizeTemplateForStorage = (
     const removed = logoCandidates.filter((el) => el !== pickedRef).map((el) => el.id);
     if (removed.length > 0) {
       console.warn('[WARN_LOGO_DUPLICATE]', {
+        templateId: (clone as any).id ?? (template as any).id ?? null,
         count: logoCandidates.length,
         keptId: pickedRef.id,
         removedIds: removed,
