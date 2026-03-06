@@ -57,8 +57,13 @@ const DBG_TEXT_BASELINE_TARGETS = new Set([
 ]);
 
 const hasNonAscii = (text: string) => /[^\u0000-\u007F]/.test(text);
-const pickFont = (text: string, latinFont: PDFFont, jpFont: PDFFont) =>
-  hasNonAscii(text) ? jpFont : latinFont;
+const numericLikePattern = /^[0-9.,+\-() ¥$]*$/;
+const isNumericLike = (text: string) => numericLikePattern.test(text);
+const pickFont = (text: string, latinFont: PDFFont, jpFont: PDFFont) => {
+  if (!text) return latinFont;
+  if (isNumericLike(text)) return latinFont;
+  return hasNonAscii(text) ? jpFont : latinFont;
+};
 const isCompanyLogoElement = (element: TemplateElement) => {
   const slotId = (element as any).slotId as string | undefined;
   return slotId === 'company_logo' || element.id === 'company_logo' || element.id === 'logo';
@@ -195,9 +200,25 @@ const resolveFieldValue = (
   return raw;
 };
 
-const numericLikePattern = /^[0-9.,+\-() ¥$]*$/;
+const FASTMODE_MAX_TEXT_CHARS = 120;
+const FASTMODE_MAX_TEXT_LINES = 6;
+const FASTMODE_MAX_LINE_LENGTH = 80;
+const CONTROL_CHAR_PATTERN = /[\u0000-\u001F\u007F]/g;
 
-const isNumericLike = (text: string) => numericLikePattern.test(text);
+const sanitizeTextForFastMode = (text: string) => {
+  if (!text) return text;
+  const cleaned = text.replace(CONTROL_CHAR_PATTERN, '');
+  const rawLines = cleaned.split('\n');
+  const lines = rawLines.slice(0, FASTMODE_MAX_TEXT_LINES).map((line) => {
+    if (line.length <= FASTMODE_MAX_LINE_LENGTH) return line;
+    return `${line.slice(0, FASTMODE_MAX_LINE_LENGTH)}…`;
+  });
+  let result = lines.join('\n');
+  if (result.length > FASTMODE_MAX_TEXT_CHARS) {
+    result = `${result.slice(0, FASTMODE_MAX_TEXT_CHARS)}…`;
+  }
+  return result;
+};
 
 const wrapTextToLines = (
   text: string,
@@ -2189,10 +2210,8 @@ function drawText(
   if (renderMode === 'final' && fastMode) {
     if (isCompanySlot && !text) return;
     if (!text) return;
-    const maxChars = 48;
-    if (text.length > maxChars) {
-      text = `${text.slice(0, maxChars)}…`;
-    }
+    text = sanitizeTextForFastMode(text);
+    if (!text) return;
   }
   const fontToUse = pickFont(text, latinFont, jpFont);
   const elementKey = slotId ?? element.id;
@@ -3343,13 +3362,19 @@ function drawTable(
     for (const [colIndex, col] of element.columns.entries()) {
       const colWidth = columnWidths[colIndex] ?? transform.toPdfW(col.width);
       const spec = normalizeColumnSpec(col);
-      const cellText =
+      let cellText =
         col.id === labelColumn.id
           ? labelText
           : col.id === valueColumnId
           ? sumText
           : '';
-      const fontForCell = pickFont(cellText, latinFont, jpFont);
+      if (renderMode === 'final' && fastMode && cellText) {
+        cellText = sanitizeTextForFastMode(cellText);
+      }
+      const fontForCell =
+        spec.formatter?.type === 'number' || spec.formatter?.type === 'currency'
+          ? latinFont
+          : pickFont(cellText, latinFont, jpFont);
       const minFontSize = spec.minFontSize * transform.scaleY;
 
       if (element.showGrid) {
@@ -3898,12 +3923,18 @@ function drawTable(
         row as Record<string, unknown>,
         previewMode,
       );
-      const cellTextRaw = formatCellValue(rawVal, spec, warn, {
+      let cellTextRaw = formatCellValue(rawVal, spec, warn, {
         tableId: element.id,
         columnId: col.id,
         fieldCode: col.fieldCode,
       });
-      const fontForCell = pickFont(cellTextRaw, latinFont, jpFont);
+      if (renderMode === 'final' && fastMode && cellTextRaw) {
+        cellTextRaw = sanitizeTextForFastMode(cellTextRaw);
+      }
+      const fontForCell =
+        spec.formatter?.type === 'number' || spec.formatter?.type === 'currency'
+          ? latinFont
+          : pickFont(cellTextRaw, latinFont, jpFont);
 
       if (!col.fieldCode) {
         const key = col.id ?? '(unknown)';

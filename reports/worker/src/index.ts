@@ -4,6 +4,7 @@ import type {
   TemplateDataRecord,
   TemplateMeta,
   TableElement,
+  CardListElement,
   CompanyProfile,
   TemplateElement,
 } from "../../shared/template.js";
@@ -597,6 +598,151 @@ const collectTemplateTextCandidates = (
     }
   }
   return texts;
+};
+
+type TextProfileStat = {
+  fieldCode: string;
+  count: number;
+  maxLen: number;
+  maxNewlines: number;
+  maxNonAscii: number;
+  maxLineLength: number;
+  maxSpecialChars: number;
+};
+
+const CONTROL_CHAR_PATTERN = /[\u0000-\u001F\u007F]/g;
+const NON_ASCII_PATTERN = /[^\x00-\x7F]/g;
+const SPECIAL_CHAR_PATTERN = /[^\p{L}\p{N}\s]/gu;
+
+const unwrapKintoneValue = (raw: unknown): unknown => {
+  if (raw && typeof raw === "object" && "value" in (raw as Record<string, unknown>)) {
+    return (raw as { value?: unknown }).value;
+  }
+  return raw;
+};
+
+const stringifyRecordValue = (value: unknown): string => {
+  if (value === null || value === undefined) return "";
+  if (value instanceof Date) return value.toISOString();
+  const type = typeof value;
+  if (type === "string" || type === "number" || type === "boolean") {
+    return String(value);
+  }
+  if (Array.isArray(value)) {
+    return value
+      .map((item) => stringifyRecordValue(item))
+      .filter((part) => part !== "")
+      .join(", ");
+  }
+  if (type === "object") {
+    try {
+      return JSON.stringify(value);
+    } catch {
+      return "";
+    }
+  }
+  return "";
+};
+
+const analyzeTextProfile = (text: string) => {
+  if (!text) {
+    return {
+      len: 0,
+      newlines: 0,
+      nonAscii: 0,
+      maxLineLength: 0,
+      specialChars: 0,
+    };
+  }
+  const len = text.length;
+  const newlines = (text.match(/\n/g) ?? []).length;
+  const nonAscii = (text.match(NON_ASCII_PATTERN) ?? []).length;
+  const lines = text.split("\n");
+  const maxLineLength = lines.reduce((max, line) => Math.max(max, line.length), 0);
+  const specialChars = (text.match(SPECIAL_CHAR_PATTERN) ?? []).length;
+  const controlChars = (text.match(CONTROL_CHAR_PATTERN) ?? []).length;
+  return {
+    len,
+    newlines,
+    nonAscii,
+    maxLineLength,
+    specialChars: specialChars + controlChars,
+  };
+};
+
+const buildTextProfile = (
+  template: TemplateDefinition,
+  data: unknown,
+  previewMode: "record" | "fieldCode",
+): TextProfileStat[] => {
+  if (!data || typeof data !== "object") return [];
+  if (previewMode !== "record") return [];
+  const record = data as Record<string, unknown>;
+  const profile = new Map<string, TextProfileStat>();
+  const update = (fieldCode: string, raw: unknown) => {
+    if (!fieldCode) return;
+    const value = unwrapKintoneValue(raw);
+    const text = stringifyRecordValue(value);
+    const stats = analyzeTextProfile(text);
+    const current = profile.get(fieldCode) ?? {
+      fieldCode,
+      count: 0,
+      maxLen: 0,
+      maxNewlines: 0,
+      maxNonAscii: 0,
+      maxLineLength: 0,
+      maxSpecialChars: 0,
+    };
+    current.count += 1;
+    current.maxLen = Math.max(current.maxLen, stats.len);
+    current.maxNewlines = Math.max(current.maxNewlines, stats.newlines);
+    current.maxNonAscii = Math.max(current.maxNonAscii, stats.nonAscii);
+    current.maxLineLength = Math.max(current.maxLineLength, stats.maxLineLength);
+    current.maxSpecialChars = Math.max(current.maxSpecialChars, stats.specialChars);
+    profile.set(fieldCode, current);
+  };
+
+  for (const element of template.elements ?? []) {
+    if (element.dataSource?.type === "kintone") {
+      update(element.dataSource.fieldCode, record[element.dataSource.fieldCode]);
+    }
+    if (element.type === "table") {
+      const table = element as TableElement;
+      const tableField = table.dataSource?.fieldCode;
+      const rawRows = tableField ? record[tableField] : undefined;
+      const rows = Array.isArray(rawRows) ? rawRows : [];
+      const rowLimit = Math.min(rows.length, 20);
+      for (let i = 0; i < rowLimit; i += 1) {
+        const row = rows[i];
+        if (!row || typeof row !== "object") continue;
+        const rowRecord = row as Record<string, unknown>;
+        for (const col of table.columns ?? []) {
+          update(col.fieldCode, rowRecord[col.fieldCode]);
+        }
+      }
+      continue;
+    }
+    if (element.type === "cardList") {
+      const card = element as CardListElement;
+      const tableField = card.dataSource?.fieldCode;
+      const rawRows = tableField ? record[tableField] : undefined;
+      const rows = Array.isArray(rawRows) ? rawRows : [];
+      const rowLimit = Math.min(rows.length, 20);
+      for (let i = 0; i < rowLimit; i += 1) {
+        const row = rows[i];
+        if (!row || typeof row !== "object") continue;
+        const rowRecord = row as Record<string, unknown>;
+        for (const field of card.fields ?? []) {
+          if (!field.fieldCode) continue;
+          update(field.fieldCode, rowRecord[field.fieldCode]);
+        }
+      }
+    }
+  }
+
+  return Array.from(profile.values()).sort((a, b) =>
+    a.fieldCode.localeCompare(b.fieldCode),
+  );
 };
 
 const shouldUseJpFont = (
@@ -3954,6 +4100,20 @@ export default {
             updatedTime: pick("updatedTime", "updatedAt", "updateDate", "$updatedTime"),
           };
         };
+        const recordKey = extractRecordKey(dataForRender);
+
+        if (renderMode === "final") {
+          const profile = buildTextProfile(templateForRender, dataForRender, previewMode);
+          if (profile.length > 0) {
+            console.info("[DBG_TEXT_PROFILE]", {
+              requestId,
+              recordId: recordKey.recordId || null,
+              recordRevision: recordKey.recordRevision || null,
+              updatedTime: recordKey.updatedTime || null,
+              fields: profile,
+            });
+          }
+        }
 
         const rowsCount = (() => {
           if (dataForRender && typeof dataForRender === "object") {
@@ -4044,7 +4204,6 @@ export default {
         } | null = null;
         if (renderMode === "final" && env.TENANT_ASSETS && !debugEnabled && tenantKeyForDiag) {
           const templateFingerprint = await buildTemplateFingerprint(templateForRender);
-          const recordKey = extractRecordKey(dataForRender);
           const resolvedTemplateId =
             templateForRender.id ?? templateIdInBody ?? resolvedTemplateIdForDiag ?? null;
           const dataJson = stableStringify(dataForRender ?? null);
