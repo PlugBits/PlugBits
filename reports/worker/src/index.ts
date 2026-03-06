@@ -130,7 +130,8 @@ const LOGO_ALLOWED_TYPES = new Set([
   "image/jpg",
 ]);
 const LOGO_MAX_UPLOAD_BYTES = 2 * 1024 * 1024;
-const LOGO_MAX_STORED_BYTES = 300 * 1024;
+const LOGO_MAX_STORED_BYTES = 150 * 1024;
+const LOGO_MAX_STORED_BYTES_PNG = 100 * 1024;
 
 const buildTenantLogoKey = (tenantKey: string, ext?: string) =>
   `tenants/${tenantKey}/logo${ext ? `.${ext}` : ""}`;
@@ -2157,8 +2158,12 @@ export default {
           resolveLogoExtension(normalizedContentType),
         );
         const buf = await file.arrayBuffer();
-        if (buf.byteLength > LOGO_MAX_STORED_BYTES) {
-          return new Response("Image too large after normalization (max 300KB)", {
+        const maxBytes =
+          normalizedContentType === "image/png"
+            ? LOGO_MAX_STORED_BYTES_PNG
+            : LOGO_MAX_STORED_BYTES;
+        if (buf.byteLength > maxBytes) {
+          return new Response("Image too large after normalization", {
             status: 413,
             headers: CORS_HEADERS,
           });

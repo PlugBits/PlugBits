@@ -15,10 +15,12 @@ const isCardBase = (baseTemplateId?: string) =>
   !!baseTemplateId && CARD_BASE_IDS.has(baseTemplateId);
 
 const LOGO_MAX_UPLOAD_BYTES = 2 * 1024 * 1024;
-const LOGO_TARGET_MAX_BYTES = 300 * 1024;
-const LOGO_MAX_WIDTH = 800;
-const LOGO_FALLBACK_WIDTH = 600;
-const LOGO_JPEG_QUALITIES = [0.8, 0.7, 0.6];
+const LOGO_TARGET_MAX_BYTES = 150 * 1024;
+const LOGO_TARGET_MAX_BYTES_PNG = 100 * 1024;
+const LOGO_MAX_WIDTH = 600;
+const LOGO_FALLBACK_WIDTH = 500;
+const LOGO_JPEG_QUALITIES = [0.75, 0.65, 0.55];
+const LOGO_TRANSPARENCY_SAMPLE = 64;
 
 const loadImageFromFile = (file: File) =>
   new Promise<HTMLImageElement>((resolve, reject) => {
@@ -62,6 +64,21 @@ const renderToBlob = (img: HTMLImageElement, maxWidth: number, type: string, qua
     );
   });
 
+const hasTransparency = (img: HTMLImageElement) => {
+  const size = LOGO_TRANSPARENCY_SAMPLE;
+  const canvas = document.createElement('canvas');
+  canvas.width = size;
+  canvas.height = size;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return false;
+  ctx.drawImage(img, 0, 0, size, size);
+  const data = ctx.getImageData(0, 0, size, size).data;
+  for (let i = 3; i < data.length; i += 4) {
+    if (data[i] < 255) return true;
+  }
+  return false;
+};
+
 const normalizeLogoFile = async (file: File) => {
   if (file.size > LOGO_MAX_UPLOAD_BYTES) {
     throw new Error('画像サイズが大きすぎます（最大2MB）。');
@@ -74,16 +91,17 @@ const normalizeLogoFile = async (file: File) => {
   }
 
   const img = await loadImageFromFile(file);
-  const targetType = isPng ? 'image/png' : 'image/jpeg';
+  const usePng = isPng && hasTransparency(img);
+  const targetType = usePng ? 'image/png' : 'image/jpeg';
 
-  if (isPng) {
-    let maxWidth = LOGO_MAX_WIDTH;
+  if (usePng) {
+    let maxWidth = LOGO_FALLBACK_WIDTH;
     let attempt = await renderToBlob(img, maxWidth, targetType);
-    if (attempt.blob.size > LOGO_TARGET_MAX_BYTES && maxWidth > LOGO_FALLBACK_WIDTH) {
-      maxWidth = LOGO_FALLBACK_WIDTH;
+    if (attempt.blob.size > LOGO_TARGET_MAX_BYTES_PNG && maxWidth > 320) {
+      maxWidth = 320;
       attempt = await renderToBlob(img, maxWidth, targetType);
     }
-    if (attempt.blob.size > LOGO_TARGET_MAX_BYTES) {
+    if (attempt.blob.size > LOGO_TARGET_MAX_BYTES_PNG) {
       throw new Error('PNG画像が大きすぎます。サイズを小さくしてください。');
     }
     return {
@@ -633,7 +651,7 @@ const TemplateListPage = () => {
               )}
               {tenantLogoEndpoint && !logoMessage && logoStatus === 'ready' && (
                 <div style={{ color: '#667085', fontSize: '0.9rem' }}>
-                  PNG/JPEGのみ（最大2MB、保存は300KB以下に正規化）。
+                  PNG/JPEGのみ（最大2MB、保存は150KB以下に正規化。透過PNGは100KB以下）。
                 </div>
               )}
             </div>
