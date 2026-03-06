@@ -3992,6 +3992,13 @@ export default {
         logTiming("load_logo", nowMs() - logoStart);
         hasLogoForDiag = Boolean(tenantLogo);
         logoBytesLenForDiag = tenantLogo?.bytes?.length ?? 0;
+        console.info("[DBG_LOGO]", {
+          tenantKey: tenantKeyForDiag,
+          found: Boolean(tenantLogo),
+          bytes: tenantLogo?.bytes?.length ?? 0,
+          contentType: tenantLogo?.contentType ?? null,
+          source: 'tenantR2',
+        });
         if (debugEnabled) {
           console.info("[DBG_TENANT_PROFILE]", {
             hasLogo: hasLogoForDiag,
@@ -3999,13 +4006,6 @@ export default {
             addressLen: renderCompanyProfile?.companyAddress?.length ?? 0,
             telLen: renderCompanyProfile?.companyTel?.length ?? 0,
             emailLen: renderCompanyProfile?.companyEmail?.length ?? 0,
-          });
-          console.info("[DBG_LOGO]", {
-            tenantKey: tenantKeyForDiag,
-            found: Boolean(tenantLogo),
-            bytes: tenantLogo?.bytes?.length ?? 0,
-            contentType: tenantLogo?.contentType ?? null,
-            source: 'tenantR2',
           });
         }
 
@@ -4036,15 +4036,23 @@ export default {
         }
 
         let cachedFinalPdf: ArrayBuffer | null = null;
+        let finalCacheDiag: {
+          templateId: string | null;
+          recordId: string | null;
+          recordRevision: string | null;
+          updatedTime: string | null;
+        } | null = null;
         if (renderMode === "final" && env.TENANT_ASSETS && !debugEnabled && tenantKeyForDiag) {
           const templateFingerprint = await buildTemplateFingerprint(templateForRender);
           const recordKey = extractRecordKey(dataForRender);
+          const resolvedTemplateId =
+            templateForRender.id ?? templateIdInBody ?? resolvedTemplateIdForDiag ?? null;
           const dataJson = stableStringify(dataForRender ?? null);
           const dataHash = (await sha256Hex(dataJson)) ?? hashStringFNV1a(dataJson);
           const cachePayload = {
             mode: renderMode,
             templateHash: templateFingerprint.hash,
-            templateId: templateForRender.id ?? templateIdInBody ?? null,
+            templateId: resolvedTemplateId,
             baseTemplateId: templateForRender.baseTemplateId ?? null,
             tenantKey: tenantKeyForDiag,
             tenantUpdatedAt: tenantRecordForRender?.updatedAt ?? null,
@@ -4058,6 +4066,12 @@ export default {
           const cacheHash = (await sha256Hex(cacheJson)) ?? hashStringFNV1a(cacheJson);
           finalCacheKeyHead = cacheHash.slice(0, 12);
           finalCacheKey = `render-cache/final/${tenantKeyForDiag}/${cacheHash}.pdf`;
+          finalCacheDiag = {
+            templateId: resolvedTemplateId,
+            recordId: recordKey.recordId || null,
+            recordRevision: recordKey.recordRevision || null,
+            updatedTime: recordKey.updatedTime || null,
+          };
           const cachedObject = await env.TENANT_ASSETS.get(finalCacheKey);
           if (cachedObject) {
             cachedFinalPdf = await cachedObject.arrayBuffer();
@@ -4067,6 +4081,7 @@ export default {
               mode: "final",
               status: "MISS",
               cacheKeyHead: finalCacheKeyHead,
+              ...finalCacheDiag,
             });
             renderCacheHeader = "MISS";
           }
@@ -4097,6 +4112,7 @@ export default {
             mode: "final",
             status: "HIT_R2",
             cacheKeyHead: finalCacheKeyHead,
+            ...(finalCacheDiag ?? {}),
           });
           renderCacheHeader = "HIT_R2";
           return new Response(cachedFinalPdf, {
@@ -4241,6 +4257,7 @@ export default {
                   mode: "final",
                   status: "PUT_R2",
                   cacheKeyHead: finalCacheKeyHead,
+                  ...(finalCacheDiag ?? {}),
                 });
               } catch {
                 renderCacheHeader = "PUT_R2_FAILED";
@@ -4249,6 +4266,7 @@ export default {
                   mode: "final",
                   status: "PUT_R2_FAILED",
                   cacheKeyHead: finalCacheKeyHead,
+                  ...(finalCacheDiag ?? {}),
                 });
               }
             }

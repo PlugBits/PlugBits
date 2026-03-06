@@ -64,6 +64,9 @@ const isCompanyLogoElement = (element: TemplateElement) => {
   return slotId === 'company_logo' || element.id === 'company_logo' || element.id === 'logo';
 };
 
+type RenderStats = { textOpsCount: number; fastModeUsed: boolean };
+let activeRenderStats: RenderStats | null = null;
+
 const pickCompanyLogoElement = (elements: TemplateElement[]) => {
   const candidates = elements.filter(
     (el) => el.type === 'image' && isCompanyLogoElement(el),
@@ -98,6 +101,9 @@ const safeDrawText = (
   context?: Record<string, unknown>,
 ) => {
   try {
+    if (activeRenderStats) {
+      activeRenderStats.textOpsCount += 1;
+    }
     page.drawText(text, options);
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
@@ -962,6 +968,9 @@ export async function renderTemplateToPdf(
   const onTiming = options?.onTiming;
   const previewMode: PreviewMode = options?.previewMode ?? 'record';
   const renderMode: RenderMode = options?.renderMode ?? 'final';
+  const renderStats: RenderStats = { textOpsCount: 0, fastModeUsed: false };
+  activeRenderStats = renderStats;
+  try {
   const forceFastMode = renderMode === 'final' && !!options?.tenantLogo?.bytes;
   const warn: WarnFn = (category, message, context) => {
     if (category === 'debug' && !debugEnabled) return;
@@ -1486,6 +1495,7 @@ export async function renderTemplateToPdf(
     renderData,
     previewMode,
     renderMode,
+    forceFastMode,
     jpFont,
     latinFont,
     imageMap,
@@ -1628,6 +1638,7 @@ export async function renderTemplateToPdf(
       warn,
       debugEnabled,
       onTextBaseline,
+      renderStats,
     );
     onTiming?.('render_table', nowMs() - tableStart);
   }
@@ -1652,6 +1663,7 @@ export async function renderTemplateToPdf(
       renderData,
       previewMode,
       renderMode,
+      forceFastMode,
       jpFont,
       latinFont,
       imageMap,
@@ -1686,6 +1698,17 @@ export async function renderTemplateToPdf(
 
   const saveStart = nowMs();
   if (debugEnabled || renderMode === 'final') {
+    console.info('[DBG_PDF_SAVE_PRE]', {
+      requestId,
+      pagesCount: pdfDoc.getPages().length,
+      textOpsCount: renderStats.textOpsCount,
+      hasLogo: !!options?.tenantLogo?.bytes,
+      logoBytesLen: options?.tenantLogo?.bytes?.length ?? 0,
+      renderMode,
+      fastMode: renderStats.fastModeUsed || forceFastMode,
+    });
+  }
+  if (debugEnabled || renderMode === 'final') {
     console.info('[DBG_PDF_SAVE]', { requestId, status: 'start' });
   }
   const bytes = await pdfDoc.save();
@@ -1704,6 +1727,9 @@ export async function renderTemplateToPdf(
     console.warn('renderTemplateToPdf warnings', warningList);
   }
   return { bytes, warnings: warningList };
+  } finally {
+    activeRenderStats = null;
+  }
 }
 
 // Manual test ideas:
@@ -2078,6 +2104,7 @@ function drawText(
   data: TemplateDataRecord | undefined,
   previewMode: PreviewMode,
   renderMode: RenderMode,
+  fastMode: boolean,
   fontScale: number,
   pagePadding: number,
   transform: PdfTransform,
@@ -2112,6 +2139,14 @@ function drawText(
       text = text || `{{${slotId}}}`;
     } else if (renderMode === 'final') {
       text = resolved || '';
+    }
+  }
+  if (renderMode === 'final' && fastMode) {
+    if (isCompanySlot && !text) return;
+    if (!text) return;
+    const maxChars = 48;
+    if (text.length > maxChars) {
+      text = `${text.slice(0, maxChars)}…`;
     }
   }
   const fontToUse = pickFont(text, latinFont, jpFont);
@@ -2286,6 +2321,7 @@ function drawHeaderElements(
   data: TemplateDataRecord | undefined,
   previewMode: PreviewMode,
   renderMode: RenderMode,
+  fastMode: boolean,
   jpFont: PDFFont,
   latinFont: PDFFont,
   imageMap: Map<string, PDFImage>,
@@ -2325,6 +2361,7 @@ function drawHeaderElements(
           data,
           previewMode,
           renderMode,
+          fastMode,
           adjust.fontScale,
           adjust.pagePadding,
           transform,
@@ -2376,6 +2413,7 @@ function drawFooterElements(
   data: TemplateDataRecord | undefined,
   previewMode: PreviewMode,
   renderMode: RenderMode,
+  fastMode: boolean,
   jpFont: PDFFont,
   latinFont: PDFFont,
   imageMap: Map<string, PDFImage>,
@@ -2415,6 +2453,7 @@ function drawFooterElements(
           data,
           previewMode,
           renderMode,
+          fastMode,
           adjust.fontScale,
           adjust.pagePadding,
           transform,
@@ -2962,6 +3001,7 @@ function drawTable(
   warn: WarnFn,
   debugEnabled = false,
   onTextBaseline?: (entry: TextBaselineDebug) => void,
+  stats?: RenderStats,
 ): PDFPage {
   let phase: 'header' | 'cell' | 'summary' = 'header';
   try {
@@ -3026,6 +3066,7 @@ function drawTable(
     (renderMode === 'final' &&
       (rows.length > FASTMODE_ROW_THRESHOLD ||
         estimatedTextOps > FASTMODE_TEXTOPS_THRESHOLD));
+  if (stats && fastMode) stats.fastModeUsed = true;
   if ((debugEnabled || renderMode === 'final') && fastMode) {
     console.info('[DBG_FAST_MODE]', {
       enabled: true,
@@ -3167,6 +3208,7 @@ function drawTable(
       data,
       previewMode,
       renderMode,
+      forceFastMode,
       jpFont,
       latinFont,
       imageMap,
@@ -3418,6 +3460,7 @@ function drawTable(
       data,
       previewMode,
       renderMode,
+      forceFastMode,
       jpFont,
       latinFont,
       imageMap,
@@ -3481,6 +3524,7 @@ function drawTable(
           data,
           previewMode,
           renderMode,
+          forceFastMode,
           jpFont,
           latinFont,
           imageMap,
@@ -3883,6 +3927,7 @@ function drawTable(
           data,
           previewMode,
           renderMode,
+          forceFastMode,
           jpFont,
           latinFont,
           imageMap,
@@ -3928,6 +3973,7 @@ function drawTable(
         data,
         previewMode,
         renderMode,
+        forceFastMode,
         jpFont,
         latinFont,
         imageMap,
@@ -4612,6 +4658,7 @@ function drawCardList(
       data,
       previewMode,
       renderMode,
+      forceFastMode,
       jpFont,
       latinFont,
       imageMap,
