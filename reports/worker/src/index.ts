@@ -3783,6 +3783,38 @@ export default {
         );
       }
 
+      // Background PDF file fetch (debug)
+      if (url.pathname === "/backgrounds/file" && request.method === "GET") {
+        const apiKeyHeader = request.headers.get("x-api-key") ?? "";
+        const hasApiKey =
+          env.ADMIN_API_KEY ? apiKeyHeader === env.ADMIN_API_KEY : Boolean(apiKeyHeader);
+        if (!hasApiKey) {
+          return jsonError(401, { error: "UNAUTHORIZED", reason: "missing token or invalid" });
+        }
+        if (!env.TENANT_ASSETS) {
+          return jsonError(500, { error: "TENANT_ASSETS not configured" });
+        }
+        const templateId = url.searchParams.get("templateId") ?? "";
+        if (!templateId) {
+          return jsonError(400, { error: "BAD_REQUEST", reason: "missing templateId" });
+        }
+        const tenantResult = resolveTenantKeyFromQuery(url);
+        if (tenantResult.error) return tenantResult.error;
+        const bgKey = `backgrounds/${tenantResult.tenantKey}/${templateId}.pdf`;
+        const bgObject = await env.TENANT_ASSETS.get(bgKey);
+        if (!bgObject) {
+          return jsonError(404, { error: "NOT_FOUND" });
+        }
+        const bytes = await bgObject.arrayBuffer();
+        return new Response(bytes, {
+          status: 200,
+          headers: {
+            ...CORS_HEADERS,
+            "Content-Type": "application/pdf",
+          },
+        });
+      }
+
       // PDF レンダリング API
       if (
         (url.pathname === "/render" || url.pathname === "/render-preview") &&
@@ -4451,6 +4483,8 @@ export default {
           });
         }
 
+        const disableBackground =
+          debugEnabled && url.searchParams.get("disableBackground") === "1";
         let backgroundPdfBytes: Uint8Array | null = null;
         let backgroundFound = false;
         let backgroundPageCount: number | null = null;
@@ -4461,7 +4495,8 @@ export default {
           env.TENANT_ASSETS &&
           tenantKeyForDiag &&
           templateForRender.structureType === "estimate_v1" &&
-          backgroundTemplateId
+          backgroundTemplateId &&
+          !disableBackground
         ) {
           try {
             const bgKey = `backgrounds/${tenantKeyForDiag}/${backgroundTemplateId}.pdf`;
@@ -4496,6 +4531,7 @@ export default {
             backgroundFound,
             pageCount: backgroundPageCount,
             backgroundBytesLen: backgroundPdfBytes?.length ?? 0,
+            disabled: disableBackground,
           });
         }
 

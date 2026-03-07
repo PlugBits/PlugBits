@@ -104,6 +104,37 @@ const markBackground = <T extends TemplateElement>(element: T): T => {
   return next as T;
 };
 
+const hasStaticTextValue = (element: TextElement) =>
+  (element.dataSource?.type === 'static' &&
+    String(element.dataSource.value ?? '').trim().length > 0) ||
+  String((element as any).text ?? '').trim().length > 0;
+
+const classifyEstimateElementForBackground = (
+  element: TemplateElement,
+): { action: 'draw_dynamic' | 'skip_background' | 'split'; note?: string } => {
+  const slotId = (element as any).slotId as string | undefined;
+  if (element.type === 'table') return { action: 'skip_background', note: 'table_header_in_bg' };
+  if (element.type === 'label') return { action: 'skip_background', note: 'label_bg' };
+  if (element.type === 'image') {
+    return isCompanyLogoElement(element)
+      ? { action: 'draw_dynamic', note: 'company_logo_dynamic' }
+      : { action: 'skip_background', note: 'image_bg' };
+  }
+  if (element.type === 'text') {
+    const isDynamicSlot = slotId ? ESTIMATE_DYNAMIC_SLOT_IDS.has(slotId) : false;
+    if (isDynamicSlot) {
+      if (slotId && ESTIMATE_FRAME_ONLY_SLOTS.has(slotId)) {
+        return { action: 'split', note: 'frame_in_bg' };
+      }
+      return { action: 'draw_dynamic', note: 'slot_dynamic' };
+    }
+    return hasStaticTextValue(element as TextElement)
+      ? { action: 'skip_background', note: 'static_bg' }
+      : { action: 'draw_dynamic', note: 'text_dynamic' };
+  }
+  return { action: 'skip_background', note: 'fallback_bg' };
+};
+
 const splitEstimateElements = (template: TemplateDefinition) => {
   const backgroundElements: TemplateElement[] = [];
   const dynamicElements: TemplateElement[] = [];
@@ -152,10 +183,7 @@ const splitEstimateElements = (template: TemplateDefinition) => {
         }
         continue;
       }
-      const hasStaticText =
-        (element.dataSource?.type === 'static' &&
-          String(element.dataSource.value ?? '').trim().length > 0) ||
-        String((element as any).text ?? '').trim().length > 0;
+      const hasStaticText = hasStaticTextValue(element as TextElement);
       if (hasStaticText) {
         backgroundElements.push(markBackground(element));
       } else {
@@ -1240,6 +1268,23 @@ export async function renderTemplateToPdf(
       })),
     });
   }
+  if (debugEnabled && layer === 'dynamic' && template.structureType === 'estimate_v1') {
+    const items = (template.elements ?? []).map((el) => {
+      const result = classifyEstimateElementForBackground(el);
+      return {
+        id: el.id ?? null,
+        slotId: (el as any).slotId ?? null,
+        type: el.type,
+        action: result.action,
+        note: result.note ?? null,
+      };
+    });
+    console.info('[DBG_RENDER_SKIP_REASON]', {
+      backgroundFound: backgroundEnabled,
+      count: items.length,
+      items: items.slice(0, 80),
+    });
+  }
   if (debugEnabled) {
     const passthrough = workingTemplate.structureType === 'estimate_v1';
     console.debug('[DBG_ESTIMATE_PASSTHROUGH]', {
@@ -2271,15 +2316,6 @@ function drawLabel(
   const borderWidthCanvas = (element as any).borderWidth as number | undefined;
   const borderColorGray = (element as any).borderColorGray as number | undefined;
   const fontToUse = pickFont(text, latinFont, jpFont);
-  if (debugEnabled && (element as any).__backgroundLayer) {
-    console.info('[DBG_BACKGROUND_TEXTS]', {
-      id: element.id ?? null,
-      slotId: (element as any).slotId ?? null,
-      text: text.slice(0, 40),
-      isJapanese: hasNonAscii(text),
-      fontType: fontToUse === jpFont ? 'jp' : 'latin',
-    });
-  }
   const strokeScale = Math.min(transform.scaleX, transform.scaleY);
 
   const lines = wrapTextToLines(text, fontToUse, fontSize, maxWidth);
@@ -2356,6 +2392,18 @@ function drawLabel(
     warn,
     { elementId: element.id },
   );
+  if (debugEnabled && (element as any).__backgroundLayer) {
+    console.info('[DBG_BACKGROUND_TEXTS]', {
+      id: element.id ?? null,
+      slotId: (element as any).slotId ?? null,
+      type: element.type,
+      text: text.slice(0, 40),
+      isJapanese: hasNonAscii(text),
+      fontKind: fontToUse === jpFont ? 'jp' : 'latin',
+      drawAttempted: true,
+      drawSucceeded: true,
+    });
+  }
 }
 
 // ============================
@@ -2420,20 +2468,79 @@ function drawText(
       !backgroundEnabled &&
       (slotId === 'remarks' || element.id === 'remarks')
     )
+      {
+        if (debugEnabled && (element as any).__backgroundLayer) {
+          console.info('[DBG_BACKGROUND_TEXTS]', {
+            id: element.id ?? null,
+            slotId: slotId ?? null,
+            type: element.type,
+            text: text.slice(0, 40),
+            isJapanese: hasNonAscii(text),
+            fontKind: 'none',
+            drawAttempted: false,
+            drawSucceeded: false,
+          });
+        }
+        return;
+      }
+    if (isCompanySlot && !text) {
+      if (debugEnabled && (element as any).__backgroundLayer) {
+        console.info('[DBG_BACKGROUND_TEXTS]', {
+          id: element.id ?? null,
+          slotId: slotId ?? null,
+          type: element.type,
+          text: text.slice(0, 40),
+          isJapanese: hasNonAscii(text),
+          fontKind: 'none',
+          drawAttempted: false,
+          drawSucceeded: false,
+        });
+      }
       return;
-    if (isCompanySlot && !text) return;
-    if (!text) return;
+    }
+    if (!text) {
+      if (debugEnabled && (element as any).__backgroundLayer) {
+        console.info('[DBG_BACKGROUND_TEXTS]', {
+          id: element.id ?? null,
+          slotId: slotId ?? null,
+          type: element.type,
+          text: text.slice(0, 40),
+          isJapanese: hasNonAscii(text),
+          fontKind: 'none',
+          drawAttempted: false,
+          drawSucceeded: false,
+        });
+      }
+      return;
+    }
     text = sanitizeTextForFastMode(text, superFastMode ? 'super' : 'fast');
-    if (!text) return;
+    if (!text) {
+      if (debugEnabled && (element as any).__backgroundLayer) {
+        console.info('[DBG_BACKGROUND_TEXTS]', {
+          id: element.id ?? null,
+          slotId: slotId ?? null,
+          type: element.type,
+          text: text.slice(0, 40),
+          isJapanese: hasNonAscii(text),
+          fontKind: 'none',
+          drawAttempted: false,
+          drawSucceeded: false,
+        });
+      }
+      return;
+    }
   }
   const fontToUse = pickFont(text, latinFont, jpFont);
   if (debugEnabled && (element as any).__backgroundLayer) {
     console.info('[DBG_BACKGROUND_TEXTS]', {
       id: element.id ?? null,
       slotId: slotId ?? null,
+      type: element.type,
       text: text.slice(0, 40),
       isJapanese: hasNonAscii(text),
-      fontType: fontToUse === jpFont ? 'jp' : 'latin',
+      fontKind: fontToUse === jpFont ? 'jp' : 'latin',
+      drawAttempted: !(element as any).__frameOnly,
+      drawSucceeded: !(element as any).__frameOnly,
     });
   }
   const elementKey = slotId ?? element.id;
