@@ -72,6 +72,24 @@ const pickFont = (text: string, latinFont: PDFFont, jpFont: PDFFont) => {
   if (isNumericLike(text)) return latinFont;
   return hasNonAscii(text) ? jpFont : latinFont;
 };
+const getFontDebugInfo = (font: PDFFont, jpFont: PDFFont) => {
+  const jpRef = activeRenderStats?.jpFontRef ?? null;
+  const isCustomJp = Boolean(jpRef) && font === jpFont;
+  const fontAny = font as any;
+  const ref = fontAny?.ref ?? fontAny?.embedder?.ref ?? null;
+  const name =
+    typeof fontAny?.name === 'string'
+      ? fontAny.name
+      : typeof fontAny?.getName === 'function'
+        ? fontAny.getName()
+        : null;
+  return {
+    fontKind: isCustomJp ? 'jp' : 'latin',
+    fontName: name,
+    isCustomFont: Boolean(jpRef) && font === jpFont,
+    objectRefPresent: Boolean(ref),
+  } as const;
+};
 const isCompanyLogoElement = (element: TemplateElement) => {
   const slotId = (element as any).slotId as string | undefined;
   return slotId === 'company_logo' || element.id === 'company_logo' || element.id === 'logo';
@@ -631,6 +649,7 @@ const buildDebugOverlayInfoForText = (
   );
   const text = resolved || element.text || '';
   const fontToUse = pickFont(text, latinFont, jpFont);
+  const fontDebug = getFontDebugInfo(fontToUse, jpFont);
   const xCanvas = resolveAlignedX(element, transform.canvasWidth, maxWidthCanvas, pagePadding);
   const yCanvas = typeof element.y === 'number' ? element.y : 0;
 
@@ -1422,6 +1441,16 @@ export async function renderTemplateToPdf(
   const jpFont = jpFontEmbedded ?? latinFont;
   renderStats.latinFontRef = latinFont;
   renderStats.jpFontRef = jpFontEmbedded;
+  if (debugEnabled && layer === 'background') {
+    const jpAny = jpFontEmbedded as any;
+    const latinAny = latinFont as any;
+    console.info('[DBG_BACKGROUND_FONT_EMBED]', {
+      hasJpFont: Boolean(jpFontEmbedded),
+      jpRefPresent: Boolean(jpAny?.ref ?? jpAny?.embedder?.ref),
+      latinRefPresent: Boolean(latinAny?.ref ?? latinAny?.embedder?.ref),
+      embedSubset,
+    });
+  }
 
   if (workingTemplate.structureType === 'label_v1') {
     drawLabelSheet(
@@ -2399,9 +2428,17 @@ function drawLabel(
       type: element.type,
       text: text.slice(0, 40),
       isJapanese: hasNonAscii(text),
-      fontKind: fontToUse === jpFont ? 'jp' : 'latin',
+      fontKind: fontDebug.fontKind,
       drawAttempted: true,
       drawSucceeded: true,
+    });
+    console.info('[DBG_BACKGROUND_FONT_REF]', {
+      id: element.id ?? null,
+      text: text.slice(0, 40),
+      fontKind: fontDebug.fontKind,
+      fontName: fontDebug.fontName,
+      isCustomFont: fontDebug.isCustomFont,
+      objectRefPresent: fontDebug.objectRefPresent,
     });
   }
 }
@@ -2495,6 +2532,14 @@ function drawText(
           drawAttempted: false,
           drawSucceeded: false,
         });
+        console.info('[DBG_BACKGROUND_FONT_REF]', {
+          id: element.id ?? null,
+          text: text.slice(0, 40),
+          fontKind: 'none',
+          fontName: null,
+          isCustomFont: false,
+          objectRefPresent: false,
+        });
       }
       return;
     }
@@ -2509,6 +2554,14 @@ function drawText(
           fontKind: 'none',
           drawAttempted: false,
           drawSucceeded: false,
+        });
+        console.info('[DBG_BACKGROUND_FONT_REF]', {
+          id: element.id ?? null,
+          text: text.slice(0, 40),
+          fontKind: 'none',
+          fontName: null,
+          isCustomFont: false,
+          objectRefPresent: false,
         });
       }
       return;
@@ -2526,11 +2579,20 @@ function drawText(
           drawAttempted: false,
           drawSucceeded: false,
         });
+        console.info('[DBG_BACKGROUND_FONT_REF]', {
+          id: element.id ?? null,
+          text: text.slice(0, 40),
+          fontKind: 'none',
+          fontName: null,
+          isCustomFont: false,
+          objectRefPresent: false,
+        });
       }
       return;
     }
   }
   const fontToUse = pickFont(text, latinFont, jpFont);
+  const fontDebug = getFontDebugInfo(fontToUse, jpFont);
   if (debugEnabled && (element as any).__backgroundLayer) {
     console.info('[DBG_BACKGROUND_TEXTS]', {
       id: element.id ?? null,
@@ -2538,9 +2600,17 @@ function drawText(
       type: element.type,
       text: text.slice(0, 40),
       isJapanese: hasNonAscii(text),
-      fontKind: fontToUse === jpFont ? 'jp' : 'latin',
+      fontKind: fontDebug.fontKind,
       drawAttempted: !(element as any).__frameOnly,
       drawSucceeded: !(element as any).__frameOnly,
+    });
+    console.info('[DBG_BACKGROUND_FONT_REF]', {
+      id: element.id ?? null,
+      text: text.slice(0, 40),
+      fontKind: fontDebug.fontKind,
+      fontName: fontDebug.fontName,
+      isCustomFont: fontDebug.isCustomFont,
+      objectRefPresent: fontDebug.objectRefPresent,
     });
   }
   const elementKey = slotId ?? element.id;
