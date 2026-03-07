@@ -1,4 +1,11 @@
-import { PDFDocument, rgb, StandardFonts, type PDFPage, type PDFFont } from 'pdf-lib';
+import {
+  PDFDocument,
+  rgb,
+  StandardFonts,
+  type PDFEmbeddedPage,
+  type PDFPage,
+  type PDFFont,
+} from 'pdf-lib';
 import fontkit from '@pdf-lib/fontkit';
 import qrcode from 'qrcode-generator';
 import {
@@ -1215,6 +1222,16 @@ export async function renderTemplateToPdf(
     return layer === 'background' ? backgroundElements : dynamicElements;
   })();
   const workingTemplate: TemplateDefinition = { ...template, elements: elementsForRender };
+  if (debugEnabled && layer === 'background') {
+    console.info('[DBG_BACKGROUND_ELEMENTS]', {
+      count: elementsForRender.length,
+      elements: elementsForRender.map((el) => ({
+        id: el.id ?? null,
+        slotId: (el as any).slotId ?? null,
+        type: el.type,
+      })),
+    });
+  }
   if (debugEnabled) {
     const passthrough = workingTemplate.structureType === 'estimate_v1';
     console.debug('[DBG_ESTIMATE_PASSTHROUGH]', {
@@ -1290,27 +1307,29 @@ export async function renderTemplateToPdf(
   );
   onTiming?.('embed_images', nowMs() - imageStart);
 
-  let backgroundPagePool: PDFPage[] = [];
+  let backgroundEmbeddedPage: PDFEmbeddedPage | null = null;
   if (backgroundEnabled && options?.backgroundPdfBytes) {
     try {
-      const backgroundDoc = await PDFDocument.load(options.backgroundPdfBytes);
-      const maxBackgroundPages = renderMode === 'final' ? FINAL_MAX_PAGES : 5;
-      for (let i = 0; i < maxBackgroundPages; i += 1) {
-        const [copied] = await pdfDoc.copyPages(backgroundDoc, [0]);
-        backgroundPagePool.push(copied);
-      }
+      const [embedded] = await pdfDoc.embedPdf(options.backgroundPdfBytes, [0]);
+      backgroundEmbeddedPage = embedded;
     } catch (error) {
       warn('image', 'background pdf load failed', {
         message: error instanceof Error ? error.message : String(error),
       });
-      backgroundPagePool = [];
+      backgroundEmbeddedPage = null;
     }
   }
   const createPage = () => {
-    if (backgroundPagePool.length > 0) {
-      return pdfDoc.addPage(backgroundPagePool.shift()!);
+    const newPage = pdfDoc.addPage([pageWidth, pageHeight]);
+    if (backgroundEmbeddedPage) {
+      newPage.drawPage(backgroundEmbeddedPage, {
+        x: 0,
+        y: 0,
+        width: pageWidth,
+        height: pageHeight,
+      });
     }
-    return pdfDoc.addPage([pageWidth, pageHeight]);
+    return newPage;
   };
 
   // ★ let にして、テーブル描画の途中で別ページに差し替えられるようにする

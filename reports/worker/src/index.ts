@@ -3646,16 +3646,36 @@ export default {
         if (!env.TENANT_ASSETS) {
           return jsonError(500, { error: "TENANT_ASSETS not configured" });
         }
-        let body: { templateId?: string; template?: TemplateDefinition; kintone?: { baseUrl?: string; appId?: string } } | null = null;
+        let body:
+          | {
+              templateId?: string;
+              template?: TemplateDefinition;
+              kintone?: { baseUrl?: string; appId?: string };
+              kintoneBaseUrl?: string;
+              appId?: string;
+            }
+          | null = null;
         try {
           body = (await request.json()) as typeof body;
         } catch {
           return jsonError(400, { error: "INVALID_JSON" });
         }
-        if (hasBearer && body?.kintone?.baseUrl && body?.kintone?.appId) {
+        if (debugEnabled) {
+          console.info("[DBG_BACKGROUND_BUILD_REQ]", {
+            keys: body && typeof body === "object" ? Object.keys(body) : [],
+            hasKintone: Boolean(body?.kintone),
+            hasKintoneBaseUrl: Boolean(body?.kintoneBaseUrl),
+            appId: body?.appId ?? body?.kintone?.appId ?? null,
+          });
+        }
+        const kintoneBaseUrl =
+          body?.kintone?.baseUrl ?? body?.kintoneBaseUrl ?? "";
+        const kintoneAppId =
+          body?.kintone?.appId ?? body?.appId ?? "";
+        if (hasBearer && kintoneBaseUrl && kintoneAppId) {
           try {
-            const baseUrl = canonicalizeKintoneBaseUrl(body.kintone.baseUrl);
-            const appId = canonicalizeAppId(body.kintone.appId);
+            const baseUrl = canonicalizeKintoneBaseUrl(kintoneBaseUrl);
+            const appId = canonicalizeAppId(kintoneAppId);
             if (!appId) {
               throw new Error("missing appId");
             }
@@ -4475,6 +4495,7 @@ export default {
             templateId: backgroundTemplateId,
             backgroundFound,
             pageCount: backgroundPageCount,
+            backgroundBytesLen: backgroundPdfBytes?.length ?? 0,
           });
         }
 
@@ -4571,6 +4592,14 @@ export default {
             const pdfBytes = new Uint8Array(rawPdfBytes);
             if (debugEnabled) {
               console.info("[DBG_PDF_SIZE]", { requestId, bytes: pdfBytes.length });
+            }
+            if (debugEnabled || renderMode === "final") {
+              console.info("[DBG_FINAL_OUTPUT]", {
+                requestId,
+                bytesLen: pdfBytes.length,
+                backgroundFound,
+                backgroundBytesLen: backgroundPdfBytes?.length ?? 0,
+              });
             }
             const combinedWarnings = [...issueWarnings, ...dataWarnings, ...warnings];
             const warnCount = combinedWarnings.length;
