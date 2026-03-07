@@ -98,6 +98,12 @@ const ESTIMATE_FRAME_ONLY_SLOTS = new Set(['remarks']);
 const cloneElement = <T extends TemplateElement>(element: T): T =>
   ({ ...element } as T);
 
+const markBackground = <T extends TemplateElement>(element: T): T => {
+  const next = { ...element } as any;
+  next.__backgroundLayer = true;
+  return next as T;
+};
+
 const splitEstimateElements = (template: TemplateDefinition) => {
   const backgroundElements: TemplateElement[] = [];
   const dynamicElements: TemplateElement[] = [];
@@ -105,7 +111,7 @@ const splitEstimateElements = (template: TemplateDefinition) => {
   for (const element of template.elements ?? []) {
     const slotId = (element as any).slotId as string | undefined;
     if (element.type === 'table') {
-      const bg = cloneElement(element as TableElement) as any;
+      const bg = markBackground(cloneElement(element as TableElement)) as any;
       bg.__backgroundOnly = true;
       backgroundElements.push(bg);
 
@@ -116,7 +122,7 @@ const splitEstimateElements = (template: TemplateDefinition) => {
     }
 
     if (element.type === 'label') {
-      backgroundElements.push(element);
+      backgroundElements.push(markBackground(element));
       continue;
     }
 
@@ -124,7 +130,7 @@ const splitEstimateElements = (template: TemplateDefinition) => {
       if (isCompanyLogoElement(element)) {
         dynamicElements.push(element);
       } else {
-        backgroundElements.push(element);
+        backgroundElements.push(markBackground(element));
       }
       continue;
     }
@@ -133,7 +139,7 @@ const splitEstimateElements = (template: TemplateDefinition) => {
       const isDynamicSlot = slotId ? ESTIMATE_DYNAMIC_SLOT_IDS.has(slotId) : false;
       if (isDynamicSlot) {
         if (slotId && ESTIMATE_FRAME_ONLY_SLOTS.has(slotId)) {
-          const frameOnly = { ...(element as any) };
+          const frameOnly = markBackground({ ...(element as any) });
           frameOnly.__frameOnly = true;
           frameOnly.id = `${element.id ?? slotId}_frame`;
           if ('slotId' in frameOnly) delete frameOnly.slotId;
@@ -151,14 +157,14 @@ const splitEstimateElements = (template: TemplateDefinition) => {
           String(element.dataSource.value ?? '').trim().length > 0) ||
         String((element as any).text ?? '').trim().length > 0;
       if (hasStaticText) {
-        backgroundElements.push(element);
+        backgroundElements.push(markBackground(element));
       } else {
         dynamicElements.push(element);
       }
       continue;
     }
 
-    backgroundElements.push(element);
+    backgroundElements.push(markBackground(element));
   }
 
   return { backgroundElements, dynamicElements };
@@ -1351,14 +1357,15 @@ export async function renderTemplateToPdf(
 
   // フォント埋め込み
   const latinFontStart = nowMs();
+  const embedSubset = layer === 'background';
   const latinFont = fonts.latin
-    ? await pdfDoc.embedFont(fonts.latin, { subset: false })
+    ? await pdfDoc.embedFont(fonts.latin, { subset: embedSubset })
     : await pdfDoc.embedFont(StandardFonts.Helvetica);
   onTiming?.('embed_latin_font', nowMs() - latinFontStart);
   let jpFontEmbedded: PDFFont | null = null;
   if (options?.useJpFont && fonts.jp) {
     const jpFontStart = nowMs();
-    jpFontEmbedded = await pdfDoc.embedFont(fonts.jp, { subset: false });
+    jpFontEmbedded = await pdfDoc.embedFont(fonts.jp, { subset: embedSubset });
     onTiming?.('embed_jp_font', nowMs() - jpFontStart);
   }
   const jpFont = jpFontEmbedded ?? latinFont;
@@ -2258,6 +2265,15 @@ function drawLabel(
   const borderWidthCanvas = (element as any).borderWidth as number | undefined;
   const borderColorGray = (element as any).borderColorGray as number | undefined;
   const fontToUse = pickFont(text, latinFont, jpFont);
+  if (debugEnabled && (element as any).__backgroundLayer) {
+    console.info('[DBG_BACKGROUND_TEXTS]', {
+      id: element.id ?? null,
+      slotId: (element as any).slotId ?? null,
+      text: text.slice(0, 40),
+      isJapanese: hasNonAscii(text),
+      fontType: fontToUse === jpFont ? 'jp' : 'latin',
+    });
+  }
   const strokeScale = Math.min(transform.scaleX, transform.scaleY);
 
   const lines = wrapTextToLines(text, fontToUse, fontSize, maxWidth);
@@ -2405,6 +2421,15 @@ function drawText(
     if (!text) return;
   }
   const fontToUse = pickFont(text, latinFont, jpFont);
+  if (debugEnabled && (element as any).__backgroundLayer) {
+    console.info('[DBG_BACKGROUND_TEXTS]', {
+      id: element.id ?? null,
+      slotId: slotId ?? null,
+      text: text.slice(0, 40),
+      isJapanese: hasNonAscii(text),
+      fontType: fontToUse === jpFont ? 'jp' : 'latin',
+    });
+  }
   const elementKey = slotId ?? element.id;
   const isLabelText =
     element.id.endsWith('_label') ||
@@ -3505,6 +3530,14 @@ function drawTable(
   }
 
   if (backgroundOnly) {
+    if (debugEnabled) {
+      console.info('[DBG_BACKGROUND_TABLE_MODE]', {
+        tableId: element.id,
+        backgroundOnly: true,
+        skipHeader,
+        columns: element.columns?.length ?? 0,
+      });
+    }
     if (!skipHeader) {
       drawTableHeaderRow(currentPage, headerY);
     }
