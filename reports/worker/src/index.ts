@@ -3749,15 +3749,24 @@ export default {
         const backgroundDoc = await PDFDocument.load(bytes);
         const pageCount = backgroundDoc.getPageCount();
         const bgKey = `backgrounds/${auth.tenantKeyResolved}/${templateId}.pdf`;
+        const savedAt = new Date().toISOString();
         await env.TENANT_ASSETS.put(bgKey, bytes, {
           httpMetadata: { contentType: "application/pdf" },
           customMetadata: {
             templateId,
             templateFingerprint: templateFingerprint.hash,
-            generatedAt: new Date().toISOString(),
+            generatedAt: savedAt,
             schemaVersion: TEMPLATE_SCHEMA_VERSION,
             pageCount: String(pageCount),
           },
+        });
+        console.info("[DBG_BACKGROUND_SAVE]", {
+          templateId,
+          tenantKey: auth.tenantKeyResolved,
+          objectKey: bgKey,
+          bytesLen: bytes.length,
+          fingerprint: templateFingerprint.hash,
+          savedAt,
         });
         console.info("[DBG_BACKGROUND_BUILD]", {
           templateId,
@@ -3772,6 +3781,9 @@ export default {
             tenantKey: auth.tenantKeyResolved,
             pageCount,
             fingerprint: templateFingerprint.hash,
+            bytesLen: bytes.length,
+            objectKey: bgKey,
+            savedAt,
           }),
           {
             status: 200,
@@ -3806,11 +3818,28 @@ export default {
           return jsonError(404, { error: "NOT_FOUND" });
         }
         const bytes = await bgObject.arrayBuffer();
+        const metaFingerprint = bgObject.customMetadata?.templateFingerprint ?? null;
+        const savedAt = bgObject.customMetadata?.generatedAt ?? null;
+        const etag = bgObject.httpEtag ?? null;
+        console.info("[DBG_BACKGROUND_FETCH]", {
+          templateId,
+          tenantKey: tenantResult.tenantKey,
+          objectKey: bgKey,
+          bytesLen: bytes.byteLength,
+          fingerprint: metaFingerprint,
+          savedAt,
+          etag,
+        });
         return new Response(bytes, {
           status: 200,
           headers: {
             ...CORS_HEADERS,
             "Content-Type": "application/pdf",
+            "X-Background-Object-Key": bgKey,
+            "X-Background-Bytes": String(bytes.byteLength),
+            "X-Background-Fingerprint": metaFingerprint ?? "",
+            "X-Background-Saved-At": savedAt ?? "",
+            "ETag": etag ?? "",
           },
         });
       }
