@@ -1336,6 +1336,12 @@ export async function renderTemplateToPdf(
         width: pageWidth,
         height: pageHeight,
       });
+      if (debugEnabled) {
+        console.info('[DBG_BACKGROUND_LAYER]', {
+          drawOrder: 'background-first',
+          pageIndex: pdfDoc.getPageCount() - 1,
+        });
+      }
     }
     return newPage;
   };
