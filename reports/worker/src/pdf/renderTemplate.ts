@@ -135,6 +135,8 @@ const splitEstimateElements = (template: TemplateDefinition) => {
         if (slotId && ESTIMATE_FRAME_ONLY_SLOTS.has(slotId)) {
           const frameOnly = { ...(element as any) };
           frameOnly.__frameOnly = true;
+          frameOnly.id = `${element.id ?? slotId}_frame`;
+          if ('slotId' in frameOnly) delete frameOnly.slotId;
           backgroundElements.push(frameOnly);
           const dyn = { ...(element as any) };
           dyn.__skipFrame = true;
