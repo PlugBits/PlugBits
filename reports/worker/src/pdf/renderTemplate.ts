@@ -122,6 +122,15 @@ const markBackground = <T extends TemplateElement>(element: T): T => {
   return next as T;
 };
 
+const DBG_DRAW_TEXT_TARGET_IDS = new Set([
+  'doc_title',
+  'doc_no_label',
+  'date_label',
+  'subtotal_label',
+  'tax_label',
+  'total_label_fixed',
+]);
+
 const hasStaticTextValue = (element: TextElement) =>
   (element.dataSource?.type === 'static' &&
     String(element.dataSource.value ?? '').trim().length > 0) ||
@@ -2345,6 +2354,21 @@ function drawLabel(
   const borderWidthCanvas = (element as any).borderWidth as number | undefined;
   const borderColorGray = (element as any).borderColorGray as number | undefined;
   const fontToUse = pickFont(text, latinFont, jpFont);
+  const fontDebug = getFontDebugInfo(fontToUse, jpFont);
+  if (debugEnabled && DBG_DRAW_TEXT_TARGET_IDS.has(element.id ?? '')) {
+    try {
+      console.info('[DBG_DRAW_TEXT_FONT_APPLY]', {
+        id: element.id ?? null,
+        text: text.slice(0, 40),
+        fontKind: fontDebug.fontKind ?? null,
+        hasFontOption: Boolean(fontToUse),
+        fontName: fontDebug.fontName ?? null,
+        isCustomFont: fontDebug.isCustomFont ?? false,
+      });
+    } catch {
+      // no-op: debug logging must not break rendering
+    }
+  }
   const strokeScale = Math.min(transform.scaleX, transform.scaleY);
 
   const lines = wrapTextToLines(text, fontToUse, fontSize, maxWidth);
@@ -2593,6 +2617,20 @@ function drawText(
   }
   const fontToUse = pickFont(text, latinFont, jpFont);
   const fontDebug = getFontDebugInfo(fontToUse, jpFont);
+  if (debugEnabled && DBG_DRAW_TEXT_TARGET_IDS.has(element.id ?? '')) {
+    try {
+      console.info('[DBG_DRAW_TEXT_FONT_APPLY]', {
+        id: element.id ?? null,
+        text: text.slice(0, 40),
+        fontKind: fontDebug.fontKind ?? null,
+        hasFontOption: Boolean(fontToUse),
+        fontName: fontDebug.fontName ?? null,
+        isCustomFont: fontDebug.isCustomFont ?? false,
+      });
+    } catch {
+      // no-op: debug logging must not break rendering
+    }
+  }
   if (debugEnabled && (element as any).__backgroundLayer) {
     console.info('[DBG_BACKGROUND_TEXTS]', {
       id: element.id ?? null,
