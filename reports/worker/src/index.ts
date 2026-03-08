@@ -12,6 +12,7 @@ import { TEMPLATE_SCHEMA_VERSION, getPageDimensions } from "../../shared/templat
 
 import { renderLabelCalibrationPdf, renderTemplateToPdf } from "./pdf/renderTemplate.ts";
 import { PDFDocument } from "pdf-lib";
+import fontkit from "@pdf-lib/fontkit";
 import { getFonts } from "./fonts/fontLoader.js";
 import { getFixtureData } from "./fixtures/templateData.js";
 import { applyEstimateV1PresetPatch, migrateTemplate, validateTemplate } from "./template/migrate.js";
@@ -3793,6 +3794,256 @@ export default {
             },
           },
         );
+      }
+
+      // Background PDF build (minimal)
+      if (url.pathname === "/backgrounds/build-minimal" && request.method === "POST") {
+        const apiKeyHeader = request.headers.get("x-api-key") ?? "";
+        const hasApiKey =
+          env.ADMIN_API_KEY ? apiKeyHeader === env.ADMIN_API_KEY : Boolean(apiKeyHeader);
+        if (!hasApiKey) {
+          return jsonError(401, { error: "UNAUTHORIZED", reason: "missing token or invalid" });
+        }
+        if (!env.TENANT_ASSETS) {
+          return jsonError(500, { error: "TENANT_ASSETS not configured" });
+        }
+        const templateId = url.searchParams.get("templateId") ?? "";
+        if (!templateId) {
+          return jsonError(400, { error: "BAD_REQUEST", reason: "missing templateId" });
+        }
+        console.info("[DBG_BUILD_MINIMAL_STEP]", {
+          step: "request",
+          ok: true,
+          templateId,
+          tenantKey: null,
+        });
+        const tenantResult = resolveTenantKeyFromQuery(url);
+        if (tenantResult.error) {
+          console.info("[DBG_BUILD_MINIMAL_STEP]", {
+            step: "tenant",
+            ok: false,
+            templateId,
+            tenantKey: null,
+          });
+          return tenantResult.error;
+        }
+        console.info("[DBG_BUILD_MINIMAL_STEP]", {
+          step: "tenant",
+          ok: true,
+          templateId,
+          tenantKey: tenantResult.tenantKey,
+        });
+
+        const fonts = await loadFonts(env, { requireJp: true });
+        if (!fonts.jp) {
+          console.info("[DBG_BUILD_MINIMAL_STEP]", {
+            step: "fonts",
+            ok: false,
+            templateId,
+            tenantKey: tenantResult.tenantKey,
+          });
+          return jsonError(500, { error: "JP_FONT_NOT_AVAILABLE" });
+        }
+        console.info("[DBG_BUILD_MINIMAL_STEP]", {
+          step: "fonts",
+          ok: true,
+          templateId,
+          tenantKey: tenantResult.tenantKey,
+        });
+
+        const pdfDoc = await PDFDocument.create();
+        pdfDoc.registerFontkit(fontkit);
+        const jpFont = await pdfDoc.embedFont(fonts.jp, { subset: true });
+        const page = pdfDoc.addPage([595, 842]);
+        page.drawText("御見積書", { x: 100, y: 700, size: 20, font: jpFont });
+        page.drawText("見積番号", { x: 100, y: 660, size: 12, font: jpFont });
+        page.drawText("発行日", { x: 100, y: 640, size: 12, font: jpFont });
+        const bytes = await pdfDoc.save();
+
+        const objectKey = `backgrounds-minimal/${tenantResult.tenantKey}/${templateId}.pdf`;
+        const savedAt = new Date().toISOString();
+        try {
+          await env.TENANT_ASSETS.put(objectKey, bytes, {
+            httpMetadata: { contentType: "application/pdf" },
+            customMetadata: {
+              templateId,
+              generatedAt: savedAt,
+            },
+          });
+          console.info("[DBG_BUILD_MINIMAL_STEP]", {
+            step: "save",
+            ok: true,
+            templateId,
+            tenantKey: tenantResult.tenantKey,
+          });
+        } catch (error) {
+          console.info("[DBG_BUILD_MINIMAL_STEP]", {
+            step: "save",
+            ok: false,
+            templateId,
+            tenantKey: tenantResult.tenantKey,
+          });
+          console.warn("[WARN_BUILD_MINIMAL_SAVE]", {
+            templateId,
+            tenantKey: tenantResult.tenantKey,
+            message: error instanceof Error ? error.message : String(error),
+          });
+        }
+
+        console.info("[DBG_BUILD_MINIMAL_STEP]", {
+          step: "return_pdf",
+          ok: true,
+          templateId,
+          tenantKey: tenantResult.tenantKey,
+        });
+        return new Response(bytes, {
+          status: 200,
+          headers: {
+            ...CORS_HEADERS,
+            "Content-Type": "application/pdf",
+            "Content-Length": String(bytes.length),
+            "X-Background-Minimal-Key": objectKey,
+            "X-Background-Minimal-Bytes": String(bytes.length),
+            "X-Background-Minimal-Saved-At": savedAt,
+          },
+        });
+      }
+
+      // Background PDF fetch (minimal)
+      if (url.pathname === "/backgrounds/file-minimal" && request.method === "GET") {
+        const apiKeyHeader = request.headers.get("x-api-key") ?? "";
+        const hasApiKey =
+          env.ADMIN_API_KEY ? apiKeyHeader === env.ADMIN_API_KEY : Boolean(apiKeyHeader);
+        if (!hasApiKey) {
+          return jsonError(401, { error: "UNAUTHORIZED", reason: "missing token or invalid" });
+        }
+        if (!env.TENANT_ASSETS) {
+          return jsonError(500, { error: "TENANT_ASSETS not configured" });
+        }
+        const templateId = url.searchParams.get("templateId") ?? "";
+        if (!templateId) {
+          return jsonError(400, { error: "BAD_REQUEST", reason: "missing templateId" });
+        }
+        const tenantResult = resolveTenantKeyFromQuery(url);
+        if (tenantResult.error) return tenantResult.error;
+        const objectKey = `backgrounds-minimal/${tenantResult.tenantKey}/${templateId}.pdf`;
+        const object = await env.TENANT_ASSETS.get(objectKey);
+        if (!object) {
+          return jsonError(404, { error: "NOT_FOUND" });
+        }
+        const bytes = await object.arrayBuffer();
+        return new Response(bytes, {
+          status: 200,
+          headers: {
+            ...CORS_HEADERS,
+            "Content-Type": "application/pdf",
+            "X-Background-Minimal-Key": objectKey,
+            "X-Background-Minimal-Bytes": String(bytes.byteLength),
+            "X-Background-Minimal-Saved-At": object.customMetadata?.generatedAt ?? "",
+            "ETag": object.httpEtag ?? "",
+          },
+        });
+      }
+
+      // Debug font test (isolated)
+      if (url.pathname === "/debug/font-test" && request.method === "POST") {
+        const apiKeyHeader = request.headers.get("x-api-key") ?? "";
+        const hasApiKey =
+          env.ADMIN_API_KEY ? apiKeyHeader === env.ADMIN_API_KEY : Boolean(apiKeyHeader);
+        if (!hasApiKey) {
+          return jsonError(401, { error: "UNAUTHORIZED", reason: "missing token or invalid" });
+        }
+        console.log("[DBG_FONT_TEST] enter");
+
+        try {
+          console.log("[DBG_FONT_TEST] after create pdf");
+          const pdfDoc = await PDFDocument.create();
+          console.log("[DBG_FONT_TEST] before registerFontkit");
+          pdfDoc.registerFontkit(fontkit);
+          console.log("[DBG_FONT_TEST] after registerFontkit");
+          const page = pdfDoc.addPage([595.28, 841.89]);
+
+          const fonts = await loadFonts(env, { requireJp: true });
+          console.log("[DBG_FONT_TEST] before load latin");
+          const latinBytes = fonts.latin ?? null;
+          console.log("[DBG_FONT_TEST] after load latin");
+          console.log("[DBG_FONT_TEST] font_bytes", {
+            kind: "latin",
+            len: latinBytes?.length ?? 0,
+            head: Array.from((latinBytes ?? new Uint8Array()).slice(0, 16))
+              .map((b) => b.toString(16).padStart(2, "0"))
+              .join(""),
+          });
+
+          console.log("[DBG_FONT_TEST] before load jp");
+          const jpBytes = fonts.jp ?? null;
+          console.log("[DBG_FONT_TEST] after load jp");
+          console.log("[DBG_FONT_TEST] font_bytes", {
+            kind: "jp",
+            len: jpBytes?.length ?? 0,
+            head: Array.from((jpBytes ?? new Uint8Array()).slice(0, 16))
+              .map((b) => b.toString(16).padStart(2, "0"))
+              .join(""),
+          });
+          if (!jpBytes || jpBytes.length === 0) {
+            throw new Error("jp font bytes empty");
+          }
+
+          console.log("[DBG_FONT_TEST] before embed helvetica");
+          const helvetica = await pdfDoc.embedFont(StandardFonts.Helvetica);
+          console.log("[DBG_FONT_TEST] after embed helvetica");
+          page.drawText("ABC123", { x: 50, y: 780, size: 20, font: helvetica });
+
+          if (latinBytes && latinBytes.length > 0) {
+            console.log("[DBG_FONT_TEST] before embed latin");
+            const latinFont = await pdfDoc.embedFont(latinBytes, { subset: true });
+            console.log("[DBG_FONT_TEST] after embed latin");
+            page.drawText("ABC123", { x: 50, y: 740, size: 20, font: latinFont });
+          }
+
+          console.log("[DBG_FONT_TEST] before embed jp subset=true");
+          const jpFontSubset = await pdfDoc.embedFont(jpBytes, { subset: true });
+          console.log("[DBG_FONT_TEST] after embed jp subset=true");
+          page.drawText("御見積書", { x: 50, y: 680, size: 20, font: jpFontSubset });
+          page.drawText("見積番号", { x: 50, y: 640, size: 20, font: jpFontSubset });
+          page.drawText("発行日", { x: 50, y: 600, size: 20, font: jpFontSubset });
+
+          console.log("[DBG_FONT_TEST] before embed jp subset=false");
+          const jpFontFull = await pdfDoc.embedFont(jpBytes, { subset: false });
+          console.log("[DBG_FONT_TEST] after embed jp subset=false");
+          page.drawText("御見積書", { x: 300, y: 680, size: 20, font: jpFontFull });
+          page.drawText("見積番号", { x: 300, y: 640, size: 20, font: jpFontFull });
+          page.drawText("発行日", { x: 300, y: 600, size: 20, font: jpFontFull });
+
+          console.log("[DBG_FONT_TEST] before save");
+          const bytes = await pdfDoc.save();
+          console.log("[DBG_FONT_TEST] after save");
+
+          return new Response(bytes, {
+            status: 200,
+            headers: {
+              "Content-Type": "application/pdf",
+              "Content-Length": String(bytes.length),
+            },
+          });
+        } catch (err) {
+          console.error("[DBG_FONT_TEST] fatal", err);
+          console.error(
+            "[DBG_FONT_TEST] fatal_stack",
+            err instanceof Error ? err.stack : String(err),
+          );
+          return new Response(
+            JSON.stringify({
+              error: "INTERNAL_ERROR",
+              message: err instanceof Error ? err.message : String(err),
+              stack: err instanceof Error ? err.stack : null,
+            }),
+            {
+              status: 500,
+              headers: { "content-type": "application/json; charset=utf-8" },
+            },
+          );
+        }
       }
 
       // Background PDF file fetch (debug)

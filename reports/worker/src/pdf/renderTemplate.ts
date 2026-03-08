@@ -122,14 +122,7 @@ const markBackground = <T extends TemplateElement>(element: T): T => {
   return next as T;
 };
 
-const DBG_DRAW_TEXT_TARGET_IDS = new Set([
-  'doc_title',
-  'doc_no_label',
-  'date_label',
-  'subtotal_label',
-  'tax_label',
-  'total_label_fixed',
-]);
+const DBG_DIRECT_DRAW_IDS = new Set(DBG_DRAW_TEXT_TARGET_IDS);
 
 const hasStaticTextValue = (element: TextElement) =>
   (element.dataSource?.type === 'static' &&
@@ -236,6 +229,7 @@ type RenderStats = {
   jpFontRef?: PDFFont | null;
 };
 let activeRenderStats: RenderStats | null = null;
+let activeDebugEnabled = false;
 
 const pickCompanyLogoElement = (elements: TemplateElement[]) => {
   const candidates = elements.filter(
@@ -263,6 +257,42 @@ const pickCompanyLogoElement = (elements: TemplateElement[]) => {
   return { element: picked, count: candidates.length };
 };
 
+const DBG_DRAW_TEXT_TARGET_IDS = new Set([
+  'doc_title',
+  'doc_no_label',
+  'date_label',
+  'subtotal_label',
+  'tax_label',
+  'total_label_fixed',
+]);
+
+const getFontDebugInfoFromRef = (fontRef: PDFFont | null | undefined) => {
+  if (!fontRef) {
+    return {
+      fontKind: 'none',
+      fontName: null,
+      isCustomFont: false,
+      objectRefPresent: false,
+    } as const;
+  }
+  const jpRef = activeRenderStats?.jpFontRef ?? null;
+  const isCustom = Boolean(jpRef) && fontRef === jpRef;
+  const fontAny = fontRef as any;
+  const ref = fontAny?.ref ?? fontAny?.embedder?.ref ?? null;
+  const name =
+    typeof fontAny?.name === 'string'
+      ? fontAny.name
+      : typeof fontAny?.getName === 'function'
+        ? fontAny.getName()
+        : null;
+  return {
+    fontKind: isCustom ? 'jp' : 'latin',
+    fontName: name,
+    isCustomFont: isCustom,
+    objectRefPresent: Boolean(ref),
+  } as const;
+};
+
 const safeDrawText = (
   page: PDFPage,
   text: string,
@@ -271,6 +301,21 @@ const safeDrawText = (
   context?: Record<string, unknown>,
 ) => {
   try {
+    if (activeDebugEnabled && context?.elementId && DBG_DRAW_TEXT_TARGET_IDS.has(context.elementId)) {
+      try {
+        const fontDebug = getFontDebugInfoFromRef(options?.font as PDFFont | undefined);
+        console.info('[DBG_DRAW_TEXT_ENTER]', {
+          id: context.elementId,
+          text: String(text).slice(0, 40),
+          fontKind: fontDebug.fontKind,
+          hasFontOption: Boolean(options?.font),
+          fontName: fontDebug.fontName,
+          isCustomFont: fontDebug.isCustomFont,
+        });
+      } catch {
+        // ignore debug failures
+      }
+    }
     if (activeRenderStats) {
       activeRenderStats.textOpsCount += 1;
       activeRenderStats.totalTexts += 1;
@@ -286,7 +331,37 @@ const safeDrawText = (
         activeRenderStats.latinTexts += 1;
       }
     }
+    if (activeDebugEnabled && context?.elementId && DBG_DRAW_TEXT_TARGET_IDS.has(context.elementId)) {
+      try {
+        const fontDebug = getFontDebugInfoFromRef(options?.font as PDFFont | undefined);
+        console.info('[DBG_DRAW_TEXT_INNER]', {
+          id: context.elementId,
+          text: String(text).slice(0, 40),
+          fontKind: fontDebug.fontKind,
+          hasFontOption: Boolean(options?.font),
+          fontName: fontDebug.fontName,
+          isCustomFont: fontDebug.isCustomFont,
+        });
+      } catch {
+        // ignore debug failures
+      }
+    }
     page.drawText(text, options);
+    if (activeDebugEnabled && context?.elementId && DBG_DRAW_TEXT_TARGET_IDS.has(context.elementId)) {
+      try {
+        const fontDebug = getFontDebugInfoFromRef(options?.font as PDFFont | undefined);
+        console.info('[DBG_DRAW_TEXT_EXIT]', {
+          id: context.elementId,
+          text: String(text).slice(0, 40),
+          fontKind: fontDebug.fontKind,
+          hasFontOption: Boolean(options?.font),
+          fontName: fontDebug.fontName,
+          isCustomFont: fontDebug.isCustomFont,
+        });
+      } catch {
+        // ignore debug failures
+      }
+    }
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     warn?.('debug', 'drawText failed', { text, ...context, error: message });
@@ -1188,6 +1263,7 @@ export async function renderTemplateToPdf(
     emptyTexts: 0,
   };
   activeRenderStats = renderStats;
+  activeDebugEnabled = debugEnabled;
   try {
   const forceFastMode = renderMode === 'final' && !!options?.tenantLogo?.bytes;
   const superFastMode = renderMode === 'final' && options?.superFastMode === true;
@@ -2069,6 +2145,7 @@ export async function renderTemplateToPdf(
   return { bytes, warnings: warningList };
   } finally {
     activeRenderStats = null;
+    activeDebugEnabled = false;
   }
 }
 
@@ -2464,6 +2541,37 @@ function drawLabel(
       isCustomFont: fontDebug.isCustomFont,
       objectRefPresent: fontDebug.objectRefPresent,
     });
+  }
+  const directDraw =
+    debugEnabled &&
+    (element as any).__backgroundLayer &&
+    DBG_DIRECT_DRAW_IDS.has(element.id ?? '') &&
+    !(element as any).__frameOnly;
+  if (directDraw) {
+    const line = ellipsisTextToWidth(text, jpFont, fontSize, maxWidth);
+    if (line) {
+      try {
+        page.drawText(line, {
+          x,
+          y: yStart,
+          size: fontSize,
+          font: jpFont,
+          color: textColor,
+        });
+        console.info('[DBG_DIRECT_DRAW_TEXT]', {
+          id: element.id ?? null,
+          text: line.slice(0, 40),
+          fontName: fontDebug.fontName ?? null,
+          fontKind: 'jp',
+        });
+      } catch (error) {
+        console.warn('[DBG_DIRECT_DRAW_TEXT_FAIL]', {
+          id: element.id ?? null,
+          message: error instanceof Error ? error.message : String(error),
+        });
+      }
+    }
+    return;
   }
 }
 
