@@ -1520,7 +1520,8 @@ export async function renderTemplateToPdf(
   let jpFontEmbedded: PDFFont | null = null;
   if (options?.useJpFont && fonts.jp) {
     const jpFontStart = nowMs();
-    jpFontEmbedded = await pdfDoc.embedFont(fonts.jp, { subset: embedSubset });
+    const jpSubset = layer === 'background' ? false : embedSubset;
+    jpFontEmbedded = await pdfDoc.embedFont(fonts.jp, { subset: jpSubset });
     onTiming?.('embed_jp_font', nowMs() - jpFontStart);
   }
   const jpFont = jpFontEmbedded ?? latinFont;
