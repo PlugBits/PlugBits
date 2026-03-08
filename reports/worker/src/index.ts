@@ -11,7 +11,7 @@ import type {
 import { TEMPLATE_SCHEMA_VERSION, getPageDimensions } from "../../shared/template.js";
 
 import { renderLabelCalibrationPdf, renderTemplateToPdf } from "./pdf/renderTemplate.ts";
-import { PDFDocument } from "pdf-lib";
+import { PDFDocument, StandardFonts } from "pdf-lib";
 import fontkit from "@pdf-lib/fontkit";
 import { getFonts } from "./fonts/fontLoader.js";
 import { getFixtureData } from "./fixtures/templateData.js";
