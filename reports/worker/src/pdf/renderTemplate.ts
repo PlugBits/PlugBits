@@ -65,6 +65,7 @@ const DBG_TEXT_BASELINE_TARGETS = new Set([
 ]);
 
 const hasNonAscii = (text: string) => /[^\u0000-\u007F]/.test(text);
+const hasAscii = (text: string) => /[\u0000-\u007F]/.test(text);
 const numericLikePattern = /^[0-9.,+\-() ¥$]*$/;
 const isNumericLike = (text: string) => numericLikePattern.test(text);
 const pickFont = (text: string, latinFont: PDFFont, jpFont: PDFFont) => {
@@ -89,6 +90,28 @@ const getFontDebugInfo = (font: PDFFont, jpFont: PDFFont) => {
     isCustomFont: Boolean(jpRef) && font === jpFont,
     objectRefPresent: Boolean(ref),
   } as const;
+};
+
+const valueContainsScript = (
+  value: unknown,
+  matcher: (text: string) => boolean,
+  seen = new WeakSet<object>(),
+): boolean => {
+  if (value === null || value === undefined) return false;
+  if (typeof value === 'string') return matcher(value);
+  if (typeof value === 'number' || typeof value === 'boolean') {
+    return matcher(String(value));
+  }
+  if (value instanceof Date) return matcher(value.toISOString());
+  if (typeof value !== 'object') return false;
+  if (seen.has(value as object)) return false;
+  seen.add(value as object);
+  if (Array.isArray(value)) {
+    return value.some((entry) => valueContainsScript(entry, matcher, seen));
+  }
+  return Object.values(value as Record<string, unknown>).some((entry) =>
+    valueContainsScript(entry, matcher, seen),
+  );
 };
 const isCompanyLogoElement = (element: TemplateElement) => {
   const slotId = (element as any).slotId as string | undefined;
@@ -121,7 +144,14 @@ const markBackground = <T extends TemplateElement>(element: T): T => {
   next.__backgroundLayer = true;
   return next as T;
 };
-
+const DBG_DRAW_TEXT_TARGET_IDS = new Set([
+  'doc_title',
+  'doc_no_label',
+  'date_label',
+  'subtotal_label',
+  'tax_label',
+  'total_label_fixed',
+]);
 const DBG_DIRECT_DRAW_IDS = new Set(DBG_DRAW_TEXT_TARGET_IDS);
 
 const hasStaticTextValue = (element: TextElement) =>
@@ -256,15 +286,6 @@ const pickCompanyLogoElement = (elements: TemplateElement[]) => {
   }
   return { element: picked, count: candidates.length };
 };
-
-const DBG_DRAW_TEXT_TARGET_IDS = new Set([
-  'doc_title',
-  'doc_no_label',
-  'date_label',
-  'subtotal_label',
-  'tax_label',
-  'total_label_fixed',
-]);
 
 const getFontDebugInfoFromRef = (fontRef: PDFFont | null | undefined) => {
   if (!fontRef) {
@@ -1238,6 +1259,9 @@ export async function renderTemplateToPdf(
     superFastMode?: boolean;
     layer?: RenderLayer;
     backgroundPdfBytes?: Uint8Array | null;
+    skipLogo?: boolean;
+    skipStaticLabels?: boolean;
+    useBaseBackgroundDoc?: boolean;
     requestId?: string;
     tenantLogo?: { bytes: Uint8Array; contentType: string; objectKey: string };
     onPageInfo?: (info: { pdfPageW: number; pdfPageH: number }) => void;
@@ -1290,8 +1314,8 @@ export async function renderTemplateToPdf(
     typeof performance !== 'undefined' && typeof performance.now === 'function'
       ? performance.now()
       : Date.now();
-  const pdfDoc = await PDFDocument.create();
-  pdfDoc.registerFontkit(fontkit);
+  let pdfDoc: PDFDocument;
+  let useBaseBackgroundDoc = false;
 
   const embedCache = new Map<string, PDFImage>();
   const buildEmbedCacheKey = (bytes: Uint8Array, contentType: string) => {
@@ -1453,6 +1477,25 @@ export async function renderTemplateToPdf(
   const resolveAdjust = (element: TemplateElement) =>
     resolveEasyAdjustForElement(element, workingTemplate);
   let renderData = data ? structuredClone(data) : undefined;
+
+  const backgroundLoadStart = nowMs();
+  if (backgroundEnabled && options?.backgroundPdfBytes) {
+    try {
+      pdfDoc = await PDFDocument.load(options.backgroundPdfBytes);
+      useBaseBackgroundDoc = true;
+    } catch (error) {
+      warn('image', 'background pdf load failed', {
+        message: error instanceof Error ? error.message : String(error),
+      });
+      pdfDoc = await PDFDocument.create();
+      useBaseBackgroundDoc = false;
+    }
+  } else {
+    pdfDoc = await PDFDocument.create();
+  }
+  onTiming?.('load_background_pdf', nowMs() - backgroundLoadStart);
+  pdfDoc.registerFontkit(fontkit);
+
   const imageStart = nowMs();
   const imageMap = await preloadImages(
     pdfDoc,
@@ -1465,7 +1508,25 @@ export async function renderTemplateToPdf(
   onTiming?.('embed_images', nowMs() - imageStart);
 
   let backgroundEmbeddedPage: PDFEmbeddedPage | null = null;
-  if (backgroundEnabled && options?.backgroundPdfBytes) {
+  const dynamicRowsForBackground = (() => {
+    if (!renderData || typeof renderData !== 'object') return 0;
+    let total = 0;
+    for (const element of workingTemplate.elements ?? []) {
+      if (element.type !== 'table') continue;
+      const table = element as TableElement;
+      const fieldCode = table.dataSource?.fieldCode;
+      if (!fieldCode) continue;
+      const rawRows = (renderData as Record<string, unknown>)[fieldCode];
+      if (Array.isArray(rawRows)) total += rawRows.length;
+    }
+    return total;
+  })();
+  const shouldPrepareBackgroundCopy =
+    backgroundEnabled &&
+    !!options?.backgroundPdfBytes &&
+    (!useBaseBackgroundDoc || dynamicRowsForBackground > 20);
+  const backgroundCopyStart = nowMs();
+  if (shouldPrepareBackgroundCopy && options?.backgroundPdfBytes) {
     try {
       const [embedded] = await pdfDoc.embedPdf(options.backgroundPdfBytes, [0]);
       backgroundEmbeddedPage = embedded;
@@ -1476,7 +1537,25 @@ export async function renderTemplateToPdf(
       backgroundEmbeddedPage = null;
     }
   }
+  if (shouldPrepareBackgroundCopy) {
+    onTiming?.('copy_background_pages', nowMs() - backgroundCopyStart);
+  } else {
+    onTiming?.('copy_background_pages', 0);
+  }
+  let pageCursor = 0;
   const createPage = () => {
+    if (useBaseBackgroundDoc && pageCursor < pdfDoc.getPageCount()) {
+      const existingPage = pdfDoc.getPage(pageCursor);
+      pageCursor += 1;
+      if (debugEnabled) {
+        console.info('[DBG_BACKGROUND_LAYER]', {
+          drawOrder: 'background-first',
+          pageIndex: pageCursor - 1,
+          source: 'base_doc',
+        });
+      }
+      return existingPage;
+    }
     const newPage = pdfDoc.addPage([pageWidth, pageHeight]);
     if (backgroundEmbeddedPage) {
       newPage.drawPage(backgroundEmbeddedPage, {
@@ -1489,8 +1568,15 @@ export async function renderTemplateToPdf(
         console.info('[DBG_BACKGROUND_LAYER]', {
           drawOrder: 'background-first',
           pageIndex: pdfDoc.getPageCount() - 1,
+          source: 'embedded_page',
         });
       }
+    } else if (useBaseBackgroundDoc && debugEnabled) {
+      console.info('[DBG_BACKGROUND_LAYER]', {
+        drawOrder: 'background-first',
+        pageIndex: pdfDoc.getPageCount() - 1,
+        source: 'blank_fallback',
+      });
     }
     return newPage;
   };
@@ -1513,16 +1599,37 @@ export async function renderTemplateToPdf(
   // フォント埋め込み
   const latinFontStart = nowMs();
   const embedSubset = layer === 'background';
-  const latinFont = fonts.latin
-    ? await pdfDoc.embedFont(fonts.latin, { subset: embedSubset })
-    : await pdfDoc.embedFont(StandardFonts.Helvetica);
+  const needsJpFont =
+    Boolean(options?.useJpFont && fonts.jp) &&
+    (valueContainsScript(workingTemplate.elements ?? [], hasNonAscii) ||
+      valueContainsScript(renderData, hasNonAscii));
+  const needsLatinFont =
+    valueContainsScript(workingTemplate.elements ?? [], hasAscii) ||
+    valueContainsScript(renderData, hasAscii) ||
+    !needsJpFont;
+  if (debugEnabled || renderMode === 'final') {
+    console.info('[DBG_OVERLAY_MODE]', {
+      backgroundFound: backgroundEnabled,
+      skipLogo: options?.skipLogo === true,
+      skipStaticLabels: options?.skipStaticLabels === true,
+      useBaseBackgroundDoc,
+      needsJpFont,
+      needsLatinFont,
+    });
+  }
+  const latinFont =
+    fonts.latin && needsLatinFont
+      ? await pdfDoc.embedFont(fonts.latin, { subset: embedSubset })
+      : await pdfDoc.embedFont(StandardFonts.Helvetica);
   onTiming?.('embed_latin_font', nowMs() - latinFontStart);
   let jpFontEmbedded: PDFFont | null = null;
-  if (options?.useJpFont && fonts.jp) {
+  if (needsJpFont && fonts.jp) {
     const jpFontStart = nowMs();
     const jpSubset = layer === 'background' ? false : embedSubset;
     jpFontEmbedded = await pdfDoc.embedFont(fonts.jp, { subset: jpSubset });
     onTiming?.('embed_jp_font', nowMs() - jpFontStart);
+  } else {
+    onTiming?.('embed_jp_font', 0);
   }
   const jpFont = jpFontEmbedded ?? latinFont;
   renderStats.latinFontRef = latinFont;

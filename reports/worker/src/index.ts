@@ -516,6 +516,7 @@ const applyCompanyProfileToTemplate = (
 };
 
 const hasNonAscii = (text: string) => /[^\u0000-\u007F]/.test(text);
+const hasAscii = (text: string) => /[\u0000-\u007F]/.test(text);
 
 const containsNonAsciiValue = (value: unknown, seen = new WeakSet<object>()): boolean => {
   if (value === null || value === undefined) return false;
@@ -535,6 +536,29 @@ const containsNonAsciiValue = (value: unknown, seen = new WeakSet<object>()): bo
     seen.add(value as object);
     for (const v of Object.values(value as Record<string, unknown>)) {
       if (containsNonAsciiValue(v, seen)) return true;
+    }
+  }
+  return false;
+};
+
+const containsAsciiValue = (value: unknown, seen = new WeakSet<object>()): boolean => {
+  if (value === null || value === undefined) return false;
+  if (typeof value === "string") return hasAscii(value);
+  if (typeof value === "number" || typeof value === "boolean") return true;
+  if (value instanceof Date) return true;
+
+  if (Array.isArray(value)) {
+    for (const item of value) {
+      if (containsAsciiValue(item, seen)) return true;
+    }
+    return false;
+  }
+
+  if (typeof value === "object") {
+    if (seen.has(value as object)) return false;
+    seen.add(value as object);
+    for (const v of Object.values(value as Record<string, unknown>)) {
+      if (containsAsciiValue(v, seen)) return true;
     }
   }
   return false;
@@ -769,6 +793,37 @@ const shouldUseJpFont = (
     if (companyTexts.some((t) => hasNonAscii(t))) return true;
   }
   if (containsNonAsciiValue(data)) return true;
+  return false;
+};
+
+const ESTIMATE_DYNAMIC_SLOT_IDS_FOR_OVERLAY = new Set([
+  "to_name",
+  "to_honorific",
+  "issue_date",
+  "doc_no",
+  "company_logo",
+  "company_name",
+  "company_address",
+  "company_tel",
+  "company_email",
+  "items",
+  "subtotal",
+  "tax",
+  "total",
+  "remarks",
+]);
+
+const estimateOverlayTemplateHasNonAscii = (template: TemplateDefinition): boolean => {
+  for (const element of template.elements ?? []) {
+    if (element.type !== "text") continue;
+    const slotId = (element as any).slotId as string | undefined;
+    if (!slotId || !ESTIMATE_DYNAMIC_SLOT_IDS_FOR_OVERLAY.has(slotId)) continue;
+    const staticValue =
+      element.dataSource?.type === "static"
+        ? String(element.dataSource.value ?? "")
+        : String((element as any).text ?? "");
+    if (hasNonAscii(staticValue)) return true;
+  }
   return false;
 };
 
@@ -3632,27 +3687,13 @@ export default {
       if (url.pathname === "/backgrounds/build" && request.method === "POST") {
         const authHeader = request.headers.get("Authorization") ?? "";
         const hasBearer = authHeader.startsWith("Bearer ");
-        const hasApiKey = Boolean(request.headers.get("x-api-key"));
-        const auth = await resolveTenantLogoAuth(request, env, url);
-        if ("error" in auth) {
-          console.info("[DBG_BACKGROUND_AUTH]", {
-            hasApiKey,
-            hasBearer,
-            authMode: hasBearer ? "bearer" : "admin",
-            tenantKeyResolved: null,
-            ok: false,
-          });
-          return auth.error;
-        }
+        const bearerToken = hasBearer ? authHeader.slice(7) : "";
+        const apiKeyHeader = request.headers.get("x-api-key") ?? "";
+        const hasApiKey = env.ADMIN_API_KEY
+          ? apiKeyHeader === env.ADMIN_API_KEY
+          : Boolean(apiKeyHeader);
         if (!env.TENANT_ASSETS) {
           return jsonError(500, { error: "TENANT_ASSETS not configured" });
-        }
-        let rawBody = "";
-        try {
-          rawBody = await request.text();
-          console.log("[DBG_BACKGROUND_BUILD_RAW]", rawBody);
-        } catch (e) {
-          console.log("[DBG_BACKGROUND_BUILD_RAW_ERROR]", String(e));
         }
         let body:
           | {
@@ -3665,75 +3706,107 @@ export default {
             }
           | null = null;
         try {
-          body = rawBody ? (JSON.parse(rawBody) as typeof body) : null;
+          body = (await request.json()) as typeof body;
           console.log("[DBG_BACKGROUND_BUILD_BODY]", body);
-        } catch (e) {
-          console.log("[DBG_BACKGROUND_BUILD_PARSE_ERROR]", String(e));
-          return jsonError(400, { error: "INVALID_JSON" });
+        } catch (err) {
+          console.error("[DBG_BACKGROUND_BUILD_PARSE_ERROR]", err);
+          return new Response(
+            JSON.stringify({ error: "BAD_REQUEST", reason: "invalid json body" }),
+            { status: 400, headers: { "content-type": "application/json; charset=utf-8" } },
+          );
         }
-        console.log("[DBG_BACKGROUND_BUILD_KEYS]", {
-          templateId: body?.templateId,
-          kintone: body?.kintone,
-          kintoneBaseUrl: body?.kintoneBaseUrl,
-          appId: body?.appId,
-          nestedBaseUrl: body?.kintone?.baseUrl,
-          nestedAppId: body?.kintone?.appId,
-        });
+
         const templateId = body?.templateId ?? body?.template?.id ?? "";
-        const kintoneBaseUrl =
-          body?.kintone?.baseUrl ?? body?.kintoneBaseUrl ?? body?.baseUrl ?? "";
-        const appIdValue = body?.kintone?.appId ?? body?.appId;
-        const appIdStr = appIdValue != null ? String(appIdValue) : "";
-        if (!templateId || !kintoneBaseUrl || !appIdStr) {
-          return jsonError(400, {
-            error: "BAD_REQUEST",
-            reason: "missing kintone.baseUrl or kintone.appId",
-          });
+        const kintoneBaseUrlRaw =
+          body?.kintone?.baseUrl ?? body?.kintoneBaseUrl ?? body?.baseUrl ?? null;
+        const appIdRaw = body?.kintone?.appId ?? body?.appId ?? null;
+        console.log("[DBG_BACKGROUND_BUILD_KEYS]", {
+          templateId,
+          kintoneBaseUrl: kintoneBaseUrlRaw,
+          appId: appIdRaw,
+          raw: body,
+        });
+
+        if (!templateId || !kintoneBaseUrlRaw || appIdRaw == null) {
+          return new Response(
+            JSON.stringify({
+              error: "BAD_REQUEST",
+              reason: "missing kintone.baseUrl or kintone.appId",
+              debug: { templateId, kintoneBaseUrl: kintoneBaseUrlRaw, appId: appIdRaw },
+            }),
+            { status: 400, headers: { "content-type": "application/json; charset=utf-8" } },
+          );
         }
-        if (debugEnabled) {
-          console.info("[DBG_BACKGROUND_BUILD_REQ]", {
-            keys: body && typeof body === "object" ? Object.keys(body) : [],
-            hasKintone: Boolean(body?.kintone),
-            hasKintoneBaseUrl: Boolean(body?.kintoneBaseUrl),
-            appId: body?.appId ?? body?.kintone?.appId ?? null,
-          });
+
+        const appIdStr = String(appIdRaw);
+        let tenantKeyFromBody = "";
+        try {
+          const normalizedBaseUrl = canonicalizeKintoneBaseUrl(kintoneBaseUrlRaw);
+          const normalizedAppId = canonicalizeAppId(appIdStr);
+          if (!normalizedAppId) {
+            return new Response(
+              JSON.stringify({
+                error: "BAD_REQUEST",
+                reason: "missing kintone.baseUrl or kintone.appId",
+                debug: { templateId, kintoneBaseUrl: kintoneBaseUrlRaw, appId: appIdRaw },
+              }),
+              { status: 400, headers: { "content-type": "application/json; charset=utf-8" } },
+            );
+          }
+          tenantKeyFromBody = buildTenantKey(normalizedBaseUrl, normalizedAppId);
+        } catch {
+          return new Response(
+            JSON.stringify({
+              error: "BAD_REQUEST",
+              reason: "invalid kintone.baseUrl or kintone.appId",
+              debug: { templateId, kintoneBaseUrl: kintoneBaseUrlRaw, appId: appIdRaw },
+            }),
+            { status: 400, headers: { "content-type": "application/json; charset=utf-8" } },
+          );
         }
-        if (hasBearer && kintoneBaseUrl && appIdStr) {
-          try {
-            const baseUrl = canonicalizeKintoneBaseUrl(kintoneBaseUrl);
-            const appId = canonicalizeAppId(appIdStr);
-            if (!appId) {
-              throw new Error("missing appId");
-            }
-            const tenantKeyFromBody = buildTenantKey(baseUrl, appId);
-            if (tenantKeyFromBody !== auth.tenantKeyResolved) {
-              console.info("[DBG_BACKGROUND_AUTH]", {
-                hasApiKey,
-                hasBearer,
-                authMode: "bearer",
-                tenantKeyResolved: auth.tenantKeyResolved,
-                tenantKeyBody: tenantKeyFromBody,
-                ok: false,
-              });
-              return jsonError(403, { error: "FORBIDDEN", reason: "tenant mismatch" });
-            }
-          } catch {
+
+        let authMode: "admin" | "bearer" = "admin";
+        let tenantKeyResolved = tenantKeyFromBody;
+        if (hasBearer) {
+          const verified = await verifyEditorToken(env.USER_TEMPLATES_KV, bearerToken);
+          if (!verified) {
             console.info("[DBG_BACKGROUND_AUTH]", {
               hasApiKey,
               hasBearer,
               authMode: "bearer",
-              tenantKeyResolved: auth.tenantKeyResolved,
-              tenantKeyBody: null,
+              tenantKeyResolved: null,
               ok: false,
             });
-            return jsonError(400, { error: "BAD_REQUEST", reason: "invalid kintone.baseUrl or kintone.appId" });
+            return jsonError(401, { error: "UNAUTHORIZED", reason: "missing token or invalid" });
           }
+          authMode = "bearer";
+          tenantKeyResolved = verified.tenantId;
+          if (tenantKeyResolved !== tenantKeyFromBody) {
+            console.info("[DBG_BACKGROUND_AUTH]", {
+              hasApiKey,
+              hasBearer,
+              authMode: "bearer",
+              tenantKeyResolved,
+              tenantKeyBody: tenantKeyFromBody,
+              ok: false,
+            });
+            return jsonError(403, { error: "FORBIDDEN", reason: "tenant mismatch" });
+          }
+        } else if (env.ADMIN_API_KEY && !hasApiKey) {
+          console.info("[DBG_BACKGROUND_AUTH]", {
+            hasApiKey,
+            hasBearer,
+            authMode: "admin",
+            tenantKeyResolved: null,
+            ok: false,
+          });
+          return jsonError(401, { error: "UNAUTHORIZED", reason: "missing token or invalid" });
         }
         console.info("[DBG_BACKGROUND_AUTH]", {
           hasApiKey,
           hasBearer,
-          authMode: auth.authMode,
-          tenantKeyResolved: auth.tenantKeyResolved,
+          authMode,
+          tenantKeyResolved,
           ok: true,
         });
         if (!templateId && !body?.template) {
@@ -3744,7 +3817,7 @@ export default {
         if (body?.template) {
           template = body.template;
         } else if (templateId.startsWith("tpl_")) {
-          template = await getUserTemplateById(templateId, env, auth.tenantKeyResolved, {
+          template = await getUserTemplateById(templateId, env, tenantKeyResolved, {
             enabled: true,
             requestId,
             path: "/backgrounds/build",
@@ -3777,7 +3850,7 @@ export default {
         });
         const backgroundDoc = await PDFDocument.load(bytes);
         const pageCount = backgroundDoc.getPageCount();
-        const bgKey = `backgrounds/${auth.tenantKeyResolved}/${templateId}.pdf`;
+        const bgKey = `backgrounds/${tenantKeyResolved}/${templateId}.pdf`;
         const savedAt = new Date().toISOString();
         await env.TENANT_ASSETS.put(bgKey, bytes, {
           httpMetadata: { contentType: "application/pdf" },
@@ -3787,11 +3860,12 @@ export default {
             generatedAt: savedAt,
             schemaVersion: TEMPLATE_SCHEMA_VERSION,
             pageCount: String(pageCount),
+            includesCompanyLogo: "0",
           },
         });
         console.info("[DBG_BACKGROUND_SAVE]", {
           templateId,
-          tenantKey: auth.tenantKeyResolved,
+          tenantKey: tenantKeyResolved,
           objectKey: bgKey,
           bytesLen: bytes.length,
           fingerprint: templateFingerprint.hash,
@@ -3799,7 +3873,7 @@ export default {
         });
         console.info("[DBG_BACKGROUND_BUILD]", {
           templateId,
-          tenantKey: auth.tenantKeyResolved,
+          tenantKey: tenantKeyResolved,
           bytesLen: bytes.length,
           fingerprint: templateFingerprint.hash,
         });
@@ -3807,7 +3881,7 @@ export default {
           JSON.stringify({
             ok: true,
             templateId,
-            tenantKey: auth.tenantKeyResolved,
+            tenantKey: tenantKeyResolved,
             pageCount,
             fingerprint: templateFingerprint.hash,
             bytesLen: bytes.length,
@@ -4648,22 +4722,6 @@ export default {
         logTiming("load_logo", nowMs() - logoStart);
         hasLogoForDiag = Boolean(tenantLogo);
         logoBytesLenForDiag = tenantLogo?.bytes?.length ?? 0;
-        console.info("[DBG_LOGO]", {
-          tenantKey: tenantKeyForDiag,
-          found: Boolean(tenantLogo),
-          bytes: tenantLogo?.bytes?.length ?? 0,
-          contentType: tenantLogo?.contentType ?? null,
-          source: 'tenantR2',
-        });
-        if (debugEnabled) {
-          console.info("[DBG_TENANT_PROFILE]", {
-            hasLogo: hasLogoForDiag,
-            companyNameLen: renderCompanyProfile?.companyName?.length ?? 0,
-            addressLen: renderCompanyProfile?.companyAddress?.length ?? 0,
-            telLen: renderCompanyProfile?.companyTel?.length ?? 0,
-            emailLen: renderCompanyProfile?.companyEmail?.length ?? 0,
-          });
-        }
 
         let cachedPdf: ArrayBuffer | null = null;
         let cacheKey: string | null = null;
@@ -4780,22 +4838,12 @@ export default {
           });
         }
 
-        const superFastMode =
-          renderMode === "final" && !debugEnabled && !cachedFinalPdf && !!tenantLogo;
-        if (superFastMode) {
-          console.info("[DBG_SUPER_FAST_MODE]", {
-            requestId,
-            enabled: true,
-            reason: "final_miss",
-            hasLogo: Boolean(tenantLogo),
-          });
-        }
-
         const disableBackground =
           debugEnabled && url.searchParams.get("disableBackground") === "1";
         let backgroundPdfBytes: Uint8Array | null = null;
         let backgroundFound = false;
         let backgroundPageCount: number | null = null;
+        let backgroundHasLogo = false;
         const backgroundTemplateId =
           templateForRender.id ?? templateIdInBody ?? resolvedTemplateIdForDiag ?? null;
         if (
@@ -4806,6 +4854,7 @@ export default {
           backgroundTemplateId &&
           !disableBackground
         ) {
+          const backgroundBytesStart = nowMs();
           try {
             const bgKey = `backgrounds/${tenantKeyForDiag}/${backgroundTemplateId}.pdf`;
             const bgObject = await env.TENANT_ASSETS.get(bgKey);
@@ -4816,6 +4865,7 @@ export default {
                 backgroundPageCount = pageCountMeta ? Number(pageCountMeta) : null;
                 backgroundPdfBytes = new Uint8Array(await bgObject.arrayBuffer());
                 backgroundFound = true;
+                backgroundHasLogo = bgObject.customMetadata?.includesCompanyLogo === "1";
               } else {
                 console.warn("[WARN_BACKGROUND_STALE]", {
                   templateId: backgroundTemplateId,
@@ -4831,7 +4881,11 @@ export default {
               tenantKey: tenantKeyForDiag,
               message: error instanceof Error ? error.message : String(error),
             });
+          } finally {
+            logTiming("load_background_bytes", nowMs() - backgroundBytesStart);
           }
+        } else {
+          logTiming("load_background_bytes", 0);
         }
         if (debugEnabled || renderMode === "final") {
           console.info("[DBG_BACKGROUND_RENDER]", {
@@ -4839,19 +4893,102 @@ export default {
             backgroundFound,
             pageCount: backgroundPageCount,
             backgroundBytesLen: backgroundPdfBytes?.length ?? 0,
+            backgroundHasLogo,
             disabled: disableBackground,
+          });
+        }
+
+        const overlayDecisionStart = nowMs();
+        const useBaseBackgroundDoc = backgroundFound;
+        const skipStaticLabels = useBaseBackgroundDoc && templateForRender.structureType === "estimate_v1";
+        logTiming("decide_overlay_mode", nowMs() - overlayDecisionStart);
+
+        const logoDecisionStart = nowMs();
+        const skipLogo = useBaseBackgroundDoc && backgroundHasLogo;
+        const tenantLogoForRender = skipLogo ? null : tenantLogo;
+        logTiming("decide_logo_skip", nowMs() - logoDecisionStart);
+
+        hasLogoForDiag = Boolean(tenantLogoForRender);
+        logoBytesLenForDiag = tenantLogoForRender?.bytes?.length ?? 0;
+        console.info("[DBG_LOGO]", {
+          tenantKey: tenantKeyForDiag,
+          found: Boolean(tenantLogoForRender),
+          bytes: tenantLogoForRender?.bytes?.length ?? 0,
+          contentType: tenantLogoForRender?.contentType ?? null,
+          source: "tenantR2",
+          skipLogo,
+        });
+        if (debugEnabled) {
+          console.info("[DBG_TENANT_PROFILE]", {
+            hasLogo: hasLogoForDiag,
+            companyNameLen: renderCompanyProfile?.companyName?.length ?? 0,
+            addressLen: renderCompanyProfile?.companyAddress?.length ?? 0,
+            telLen: renderCompanyProfile?.companyTel?.length ?? 0,
+            emailLen: renderCompanyProfile?.companyEmail?.length ?? 0,
+          });
+        }
+
+        const superFastMode =
+          renderMode === "final" && !debugEnabled && !cachedFinalPdf && !!tenantLogoForRender;
+        if (superFastMode) {
+          console.info("[DBG_SUPER_FAST_MODE]", {
+            requestId,
+            enabled: true,
+            reason: "final_miss",
+            hasLogo: Boolean(tenantLogoForRender),
           });
         }
 
         // フォント読み込み
         const prepStart = nowMs();
-        const useJpFont = shouldUseJpFont(
-          templateForRender,
-          dataForRender,
-          renderMode,
-          previewMode,
-          renderCompanyProfile,
+        const companyHasNonAscii = Boolean(
+          renderCompanyProfile &&
+            [
+              renderCompanyProfile.companyName,
+              renderCompanyProfile.companyAddress,
+              renderCompanyProfile.companyTel,
+              renderCompanyProfile.companyEmail,
+            ]
+              .filter((value): value is string => typeof value === "string")
+              .some((value) => hasNonAscii(value)),
         );
+        const useOverlayJpPolicy =
+          backgroundFound && templateForRender.structureType === "estimate_v1";
+        const useJpFont = useOverlayJpPolicy
+          ? estimateOverlayTemplateHasNonAscii(templateForRender) ||
+            companyHasNonAscii ||
+            containsNonAsciiValue(dataForRender)
+          : shouldUseJpFont(
+              templateForRender,
+              dataForRender,
+              renderMode,
+              previewMode,
+              renderCompanyProfile,
+            );
+        const needsLatinFont =
+          containsAsciiValue(dataForRender) ||
+          collectTemplateTextCandidates(
+            useOverlayJpPolicy
+              ? {
+                  ...templateForRender,
+                  elements: (templateForRender.elements ?? []).filter((element) => {
+                    if (element.type !== "text") return true;
+                    const slotId = (element as any).slotId as string | undefined;
+                    if (!slotId) return false;
+                    return ESTIMATE_DYNAMIC_SLOT_IDS_FOR_OVERLAY.has(slotId);
+                  }),
+                }
+              : templateForRender,
+            previewMode,
+          ).some((text) => hasAscii(text));
+        console.info("[DBG_OVERLAY_MODE]", {
+          backgroundFound,
+          skipLogo,
+          skipStaticLabels,
+          useBaseBackgroundDoc,
+          needsJpFont: useJpFont,
+          needsLatinFont,
+        });
         logTiming("prepare_text_runs", nowMs() - prepStart);
         let fonts: { jp: Uint8Array | null; latin: Uint8Array | null };
         phase = "loadFonts";
@@ -4910,7 +5047,10 @@ export default {
                 layer: backgroundPdfBytes ? "dynamic" : "full",
                 backgroundPdfBytes: backgroundPdfBytes ?? undefined,
                 requestId,
-                tenantLogo: tenantLogo ?? undefined,
+                tenantLogo: tenantLogoForRender ?? undefined,
+                skipLogo,
+                skipStaticLabels,
+                useBaseBackgroundDoc,
                 onTiming: (phaseName, ms) => logTiming(phaseName, ms),
                 onTextBaseline: debug
                   ? (entry) => {
