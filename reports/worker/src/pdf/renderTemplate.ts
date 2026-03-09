@@ -255,11 +255,21 @@ type RenderStats = {
   jpTexts: number;
   latinTexts: number;
   emptyTexts: number;
+  companyLogoDrawn: boolean;
   latinFontRef?: PDFFont | null;
   jpFontRef?: PDFFont | null;
 };
 let activeRenderStats: RenderStats | null = null;
 let activeDebugEnabled = false;
+let activeTenantLogoDebug:
+  | {
+      hasBytes: boolean;
+      bytesLen: number;
+      contentType: string | null;
+      source: 'tenantR2';
+      usedEmbed: 'png' | 'jpg' | 'none';
+    }
+  | null = null;
 
 const pickCompanyLogoElement = (elements: TemplateElement[]) => {
   const candidates = elements.filter(
@@ -1093,6 +1103,68 @@ const embedImageBuffer = async (
   return null;
 };
 
+const detectImageKindFromBytes = (buf: Uint8Array): 'png' | 'jpg' | null => {
+  if (
+    buf.length >= 8 &&
+    buf[0] === 0x89 &&
+    buf[1] === 0x50 &&
+    buf[2] === 0x4e &&
+    buf[3] === 0x47 &&
+    buf[4] === 0x0d &&
+    buf[5] === 0x0a &&
+    buf[6] === 0x1a &&
+    buf[7] === 0x0a
+  ) {
+    return 'png';
+  }
+  if (buf.length >= 2 && buf[0] === 0xff && buf[1] === 0xd8) {
+    return 'jpg';
+  }
+  return null;
+};
+
+const embedTenantLogoImage = async (
+  pdfDoc: PDFDocument,
+  buf: Uint8Array,
+  contentType: string,
+  warn: WarnFn,
+): Promise<{ image: PDFImage | null; usedEmbed: 'png' | 'jpg' | 'none' }> => {
+  const normalizedType = String(contentType ?? '').toLowerCase();
+  const byContentType: 'png' | 'jpg' | null = normalizedType.includes('png')
+    ? 'png'
+    : normalizedType.includes('jpeg') || normalizedType.includes('jpg')
+      ? 'jpg'
+      : null;
+  const byMagic = detectImageKindFromBytes(buf);
+  const tried = new Set<'png' | 'jpg'>();
+  const order: Array<'png' | 'jpg'> = [];
+  const pushKind = (kind: 'png' | 'jpg' | null) => {
+    if (!kind || tried.has(kind)) return;
+    tried.add(kind);
+    order.push(kind);
+  };
+  pushKind(byContentType);
+  pushKind(byMagic);
+  pushKind('png');
+  pushKind('jpg');
+
+  for (const kind of order) {
+    try {
+      const image = kind === 'png' ? await pdfDoc.embedPng(buf) : await pdfDoc.embedJpg(buf);
+      return { image, usedEmbed: kind };
+    } catch {
+      // try next
+    }
+  }
+
+  warn('image', 'tenant logo embed failed', {
+    bytesLen: buf.length,
+    contentType: normalizedType || null,
+    detectedKind: byMagic,
+  });
+  return { image: null, usedEmbed: 'none' };
+};
+
 // 画像を事前に埋め込んでキャッシュ
 async function preloadImages(
   pdfDoc: PDFDocument,
@@ -1262,13 +1334,18 @@ export async function renderTemplateToPdf(
     skipLogo?: boolean;
     skipStaticLabels?: boolean;
     useBaseBackgroundDoc?: boolean;
+    includeBackgroundLogo?: boolean;
     requestId?: string;
     tenantLogo?: { bytes: Uint8Array; contentType: string; objectKey: string };
     onPageInfo?: (info: { pdfPageW: number; pdfPageH: number }) => void;
     onTextBaseline?: (entry: TextBaselineDebug) => void;
     onTiming?: (phase: string, ms: number) => void;
   },
-): Promise<{ bytes: Uint8Array; warnings: string[] }> {
+): Promise<{
+  bytes: Uint8Array;
+  warnings: string[];
+  stats: { companyLogoDrawn: boolean };
+}> {
   const warnings = new Set<string>();
   const debugEnabled = options?.debug === true;
   const debugOverlayEnabled = debugEnabled;
@@ -1285,6 +1362,7 @@ export async function renderTemplateToPdf(
     jpTexts: 0,
     latinTexts: 0,
     emptyTexts: 0,
+    companyLogoDrawn: false,
   };
   activeRenderStats = renderStats;
   activeDebugEnabled = debugEnabled;
@@ -1316,6 +1394,23 @@ export async function renderTemplateToPdf(
       : Date.now();
   let pdfDoc: PDFDocument;
   let useBaseBackgroundDoc = false;
+  const backgroundLoadStart = nowMs();
+  if (backgroundEnabled && options?.backgroundPdfBytes) {
+    try {
+      pdfDoc = await PDFDocument.load(options.backgroundPdfBytes);
+      useBaseBackgroundDoc = true;
+    } catch (error) {
+      warn('image', 'background pdf load failed', {
+        message: error instanceof Error ? error.message : String(error),
+      });
+      pdfDoc = await PDFDocument.create();
+      useBaseBackgroundDoc = false;
+    }
+  } else {
+    pdfDoc = await PDFDocument.create();
+  }
+  onTiming?.('load_background_pdf', nowMs() - backgroundLoadStart);
+  pdfDoc.registerFontkit(fontkit);
 
   const embedCache = new Map<string, PDFImage>();
   const buildEmbedCacheKey = (bytes: Uint8Array, contentType: string) => {
@@ -1362,27 +1457,52 @@ export async function renderTemplateToPdf(
   };
 
   let tenantLogoImage: PDFImage | null = null;
+  let tenantLogoUsedEmbed: 'png' | 'jpg' | 'none' = 'none';
   if (options?.tenantLogo?.bytes) {
     try {
-      tenantLogoImage = await embedImageBufferCached(
+      const embeddedLogo = await embedTenantLogoImage(
+        pdfDoc,
         options.tenantLogo.bytes,
-        options.tenantLogo.objectKey,
         options.tenantLogo.contentType,
-        { slotId: 'company_logo' },
+        warn,
       );
+      tenantLogoImage = embeddedLogo.image;
+      tenantLogoUsedEmbed = embeddedLogo.usedEmbed;
     } catch (error) {
       warn('image', 'tenant logo embed failed', {
         message: error instanceof Error ? error.message : String(error),
       });
       tenantLogoImage = null;
+      tenantLogoUsedEmbed = 'none';
     }
   }
+  activeTenantLogoDebug = {
+    hasBytes: Boolean(options?.tenantLogo?.bytes),
+    bytesLen: options?.tenantLogo?.bytes?.length ?? 0,
+    contentType: options?.tenantLogo?.contentType ?? null,
+    source: 'tenantR2',
+    usedEmbed: tenantLogoUsedEmbed,
+  };
 
   const elementsForRender = (() => {
     if (template.structureType !== 'estimate_v1' || layer === 'full') {
       return template.elements ?? [];
     }
     const { backgroundElements, dynamicElements } = splitEstimateElements(template);
+    if (layer === 'background' && options?.includeBackgroundLogo) {
+      const logoSelection = pickCompanyLogoElement(template.elements ?? []);
+      if (logoSelection.element) {
+        const logoId = logoSelection.element.id ?? null;
+        const logoSlotId = (logoSelection.element as any).slotId ?? null;
+        const alreadyExists = backgroundElements.some((candidate) => {
+          const candidateSlot = (candidate as any).slotId ?? null;
+          return candidate.id === logoId || (logoSlotId && candidateSlot === logoSlotId);
+        });
+        if (!alreadyExists) {
+          backgroundElements.push(markBackground(cloneElement(logoSelection.element)));
+        }
+      }
+    }
     return layer === 'background' ? backgroundElements : dynamicElements;
   })();
   const workingTemplate: TemplateDefinition = { ...template, elements: elementsForRender };
@@ -1477,24 +1597,6 @@ export async function renderTemplateToPdf(
   const resolveAdjust = (element: TemplateElement) =>
     resolveEasyAdjustForElement(element, workingTemplate);
   let renderData = data ? structuredClone(data) : undefined;
-
-  const backgroundLoadStart = nowMs();
-  if (backgroundEnabled && options?.backgroundPdfBytes) {
-    try {
-      pdfDoc = await PDFDocument.load(options.backgroundPdfBytes);
-      useBaseBackgroundDoc = true;
-    } catch (error) {
-      warn('image', 'background pdf load failed', {
-        message: error instanceof Error ? error.message : String(error),
-      });
-      pdfDoc = await PDFDocument.create();
-      useBaseBackgroundDoc = false;
-    }
-  } else {
-    pdfDoc = await PDFDocument.create();
-  }
-  onTiming?.('load_background_pdf', nowMs() - backgroundLoadStart);
-  pdfDoc.registerFontkit(fontkit);
 
   const imageStart = nowMs();
   const imageMap = await preloadImages(
@@ -1658,7 +1760,7 @@ export async function renderTemplateToPdf(
     );
     const bytes = await pdfDoc.save();
     const warningList = Array.from(warnings.values());
-    return { bytes, warnings: warningList };
+    return { bytes, warnings: warningList, stats: { companyLogoDrawn: renderStats.companyLogoDrawn } };
   }
 
   warn('debug', 'template elements', {
@@ -2250,10 +2352,11 @@ export async function renderTemplateToPdf(
   if (warningList.length > 0) {
     console.warn('renderTemplateToPdf warnings', warningList);
   }
-  return { bytes, warnings: warningList };
+  return { bytes, warnings: warningList, stats: { companyLogoDrawn: renderStats.companyLogoDrawn } };
   } finally {
     activeRenderStats = null;
     activeDebugEnabled = false;
+    activeTenantLogoDebug = null;
   }
 }
 
@@ -5854,6 +5957,15 @@ function drawImageElement(
   if (isCompanyLogo) {
     if (companyLogoSelection && element !== companyLogoSelection) return;
     if (!tenantLogoImage) {
+      if (activeDebugEnabled || renderMode === 'final') {
+        console.info('[DBG_LOGO_DRAW]', {
+          hasBytes: activeTenantLogoDebug?.hasBytes ?? false,
+          bytesLen: activeTenantLogoDebug?.bytesLen ?? 0,
+          contentType: activeTenantLogoDebug?.contentType ?? null,
+          source: activeTenantLogoDebug?.source ?? 'tenantR2',
+          usedEmbed: activeTenantLogoDebug?.usedEmbed ?? 'none',
+        });
+      }
       if (renderMode !== 'final') {
         drawImagePlaceholder(page, element, jpFont, latinFont, pagePadding, transform, warn, '');
       }
@@ -5884,6 +5996,18 @@ function drawImageElement(
       width: drawWidth,
       height: drawHeight,
     });
+    if (activeRenderStats) {
+      activeRenderStats.companyLogoDrawn = true;
+    }
+    if (activeDebugEnabled || renderMode === 'final') {
+      console.info('[DBG_LOGO_DRAW]', {
+        hasBytes: activeTenantLogoDebug?.hasBytes ?? false,
+        bytesLen: activeTenantLogoDebug?.bytesLen ?? 0,
+        contentType: activeTenantLogoDebug?.contentType ?? null,
+        source: activeTenantLogoDebug?.source ?? 'tenantR2',
+        usedEmbed: activeTenantLogoDebug?.usedEmbed ?? 'none',
+      });
+    }
     if (warn) {
       warn('debug', 'company logo drawn', { elementId: element.id, source: 'tenantR2' });
     }

@@ -3836,17 +3836,46 @@ export default {
         const templateFingerprint = await buildTemplateFingerprint(template);
         const useJpFont = templateHasNonAscii(template);
         const fonts = await loadFonts(env, { requireJp: useJpFont });
+        const tenantRecordForBackground = await getTenantRecord(env.USER_TEMPLATES_KV, tenantKeyResolved);
+        let backgroundTenantLogo:
+          | { bytes: Uint8Array; contentType: string; objectKey: string }
+          | null = null;
+        if (tenantRecordForBackground?.logo) {
+          try {
+            const logo = await getTenantLogoBytes(
+              env,
+              tenantKeyResolved,
+              tenantRecordForBackground.logo,
+            );
+            if (logo) {
+              backgroundTenantLogo = {
+                ...logo,
+                objectKey: tenantRecordForBackground.logo.objectKey,
+              };
+            }
+          } catch {
+            backgroundTenantLogo = null;
+          }
+        }
         console.info("[DBG_BACKGROUND_FONT_POLICY]", {
           jpBytesLen: fonts.jp?.length ?? 0,
           subset: false,
         });
-        const { bytes } = await renderTemplateToPdf(template, undefined, fonts, {
+        const { bytes, stats } = await renderTemplateToPdf(template, undefined, fonts, {
           debug: debugEnabled,
           previewMode: "record",
           renderMode: "layout",
           useJpFont,
           layer: "background",
+          includeBackgroundLogo: true,
+          tenantLogo: backgroundTenantLogo ?? undefined,
           requestId,
+        });
+        console.info("[DBG_BACKGROUND_LOGO]", {
+          logoFound: Boolean(backgroundTenantLogo?.bytes),
+          logoBytesLen: backgroundTenantLogo?.bytes?.length ?? 0,
+          drewLogo: stats.companyLogoDrawn,
+          contentType: backgroundTenantLogo?.contentType ?? null,
         });
         const backgroundDoc = await PDFDocument.load(bytes);
         const pageCount = backgroundDoc.getPageCount();
@@ -3860,7 +3889,8 @@ export default {
             generatedAt: savedAt,
             schemaVersion: TEMPLATE_SCHEMA_VERSION,
             pageCount: String(pageCount),
-            includesCompanyLogo: "0",
+            includesCompanyLogo: stats.companyLogoDrawn ? "1" : "0",
+            hasLogo: stats.companyLogoDrawn ? "1" : "0",
           },
         });
         console.info("[DBG_BACKGROUND_SAVE]", {
@@ -3887,6 +3917,8 @@ export default {
             bytesLen: bytes.length,
             objectKey: bgKey,
             savedAt,
+            includesCompanyLogo: stats.companyLogoDrawn,
+            hasLogo: stats.companyLogoDrawn,
           }),
           {
             status: 200,
@@ -4865,7 +4897,9 @@ export default {
                 backgroundPageCount = pageCountMeta ? Number(pageCountMeta) : null;
                 backgroundPdfBytes = new Uint8Array(await bgObject.arrayBuffer());
                 backgroundFound = true;
-                backgroundHasLogo = bgObject.customMetadata?.includesCompanyLogo === "1";
+                backgroundHasLogo =
+                  bgObject.customMetadata?.includesCompanyLogo === "1" ||
+                  bgObject.customMetadata?.hasLogo === "1";
               } else {
                 console.warn("[WARN_BACKGROUND_STALE]", {
                   templateId: backgroundTemplateId,
