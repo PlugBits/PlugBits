@@ -113,6 +113,47 @@ const valueContainsScript = (
     valueContainsScript(entry, matcher, seen),
   );
 };
+
+type TextRunProfile = {
+  beforeTotal: number;
+  afterTotal: number;
+  removedEmpty: number;
+  removedHidden: number;
+  jpTexts: number;
+  latinTexts: number;
+};
+
+const makeEmptyTextRunProfile = (): TextRunProfile => ({
+  beforeTotal: 0,
+  afterTotal: 0,
+  removedEmpty: 0,
+  removedHidden: 0,
+  jpTexts: 0,
+  latinTexts: 0,
+});
+
+const shouldSkipStaticTextForOverlay = (element: TextElement, skipStaticLabels: boolean) => {
+  if (!skipStaticLabels) return false;
+  const slotId = (element as any).slotId as string | undefined;
+  if (slotId && ESTIMATE_DYNAMIC_SLOT_IDS.has(slotId)) return false;
+  if ((element as any).__frameOnly === true || (element as any).__skipFrame === true) return false;
+  if (element.dataSource?.type === 'kintone') return false;
+  return true;
+};
+
+const pushProfileText = (profile: TextRunProfile, text: string) => {
+  profile.beforeTotal += 1;
+  if (isBlankText(text)) {
+    profile.removedEmpty += 1;
+    return;
+  }
+  profile.afterTotal += 1;
+  if (isNumericLike(text) || !hasNonAscii(text)) {
+    profile.latinTexts += 1;
+  } else {
+    profile.jpTexts += 1;
+  }
+};
 const isCompanyLogoElement = (element: TemplateElement) => {
   const slotId = (element as any).slotId as string | undefined;
   return slotId === 'company_logo' || element.id === 'company_logo' || element.id === 'logo';
@@ -255,6 +296,13 @@ type RenderStats = {
   jpTexts: number;
   latinTexts: number;
   emptyTexts: number;
+  textRunsBeforeFilter: number;
+  textRunsAfterFilter: number;
+  removedEmptyTextRuns: number;
+  removedHiddenTextRuns: number;
+  jpTextsAfterFilter: number;
+  latinTextsAfterFilter: number;
+  emptyTextsAfterFilter: number;
   companyLogoDrawn: boolean;
   latinFontRef?: PDFFont | null;
   jpFontRef?: PDFFont | null;
@@ -270,6 +318,11 @@ let activeTenantLogoDebug:
       usedEmbed: 'png' | 'jpg' | 'none';
     }
   | null = null;
+
+const isBlankText = (value: string | null | undefined) =>
+  !value || String(value).trim().length === 0;
+
+const noteTextRunCandidate = (text: string) => !isBlankText(text);
 
 const pickCompanyLogoElement = (elements: TemplateElement[]) => {
   const candidates = elements.filter(
@@ -332,6 +385,10 @@ const safeDrawText = (
   context?: Record<string, unknown>,
 ) => {
   try {
+    const fontRef = (options?.font as PDFFont | undefined) ?? activeRenderStats?.latinFontRef ?? null;
+    if (fontRef && !noteTextRunCandidate(text)) {
+      return;
+    }
     if (activeDebugEnabled && context?.elementId && DBG_DRAW_TEXT_TARGET_IDS.has(context.elementId)) {
       try {
         const fontDebug = getFontDebugInfoFromRef(options?.font as PDFFont | undefined);
@@ -1362,6 +1419,13 @@ export async function renderTemplateToPdf(
     jpTexts: 0,
     latinTexts: 0,
     emptyTexts: 0,
+    textRunsBeforeFilter: 0,
+    textRunsAfterFilter: 0,
+    removedEmptyTextRuns: 0,
+    removedHiddenTextRuns: 0,
+    jpTextsAfterFilter: 0,
+    latinTextsAfterFilter: 0,
+    emptyTextsAfterFilter: 0,
     companyLogoDrawn: false,
   };
   activeRenderStats = renderStats;
@@ -1701,14 +1765,108 @@ export async function renderTemplateToPdf(
   // フォント埋め込み
   const latinFontStart = nowMs();
   const embedSubset = layer === 'background';
-  const needsJpFont =
-    Boolean(options?.useJpFont && fonts.jp) &&
-    (valueContainsScript(workingTemplate.elements ?? [], hasNonAscii) ||
-      valueContainsScript(renderData, hasNonAscii));
-  const needsLatinFont =
-    valueContainsScript(workingTemplate.elements ?? [], hasAscii) ||
-    valueContainsScript(renderData, hasAscii) ||
-    !needsJpFont;
+  const preparedTextProfile = (() => {
+    const profile = makeEmptyTextRunProfile();
+    const skipStaticLabels = options?.skipStaticLabels === true;
+    const profileFastMode = renderMode === 'final' && (forceFastMode || superFastMode);
+
+    for (const element of workingTemplate.elements ?? []) {
+      const adjust = resolveAdjust(element);
+      if (adjust.hidden && !isCompanyLogoElement(element)) {
+        if (element.type === 'text' || element.type === 'label') {
+          profile.removedHidden += 1;
+        }
+        continue;
+      }
+      if (element.type === 'label') {
+        if (skipStaticLabels) {
+          profile.removedHidden += 1;
+          continue;
+        }
+        pushProfileText(profile, element.text ?? '');
+        continue;
+      }
+      if (element.type === 'text') {
+        if (shouldSkipStaticTextForOverlay(element, skipStaticLabels)) {
+          profile.removedHidden += 1;
+          continue;
+        }
+        const slotId = (element as any).slotId as string | undefined;
+        const isCompanySlot = slotId ? slotId.startsWith('company_') : false;
+        const resolved = resolveDataSource(
+          element.dataSource,
+          renderData,
+          previewMode,
+          warn,
+          { elementId: element.id },
+        );
+        let text = resolved || element.text || '';
+        if (isCompanySlot && slotId) {
+          if (renderMode === 'layout') {
+            text = `{{${slotId}}}`;
+          } else if (renderMode === 'preview') {
+            text = text || `{{${slotId}}}`;
+          } else {
+            text = resolved || '';
+          }
+        }
+        if (profileFastMode && text) {
+          text = sanitizeTextForFastMode(text, superFastMode ? 'super' : 'fast');
+        }
+        pushProfileText(profile, text);
+        continue;
+      }
+      if (element.type === 'table') {
+        if ((element as any).__backgroundOnly === true) continue;
+        const rawRows =
+          renderData &&
+          element.dataSource &&
+          element.dataSource.type === 'kintoneSubtable'
+            ? (renderData as Record<string, unknown>)[element.dataSource.fieldCode]
+            : undefined;
+        const rows = Array.isArray(rawRows) ? rawRows : [];
+        for (const row of rows) {
+          if (!row || typeof row !== 'object' || Array.isArray(row)) continue;
+          for (const col of element.columns ?? []) {
+            const spec = normalizeColumnSpec(col);
+            const rawVal = resolveFieldValue(
+              col.fieldCode,
+              row as Record<string, unknown>,
+              previewMode,
+            );
+            let cellText = formatCellValue(rawVal, spec, warn, {
+              tableId: element.id,
+              columnId: col.id,
+              fieldCode: col.fieldCode,
+            });
+            if (profileFastMode && cellText) {
+              cellText = sanitizeTextForFastMode(cellText, superFastMode ? 'super' : 'fast');
+            }
+            pushProfileText(profile, cellText);
+          }
+        }
+      }
+    }
+    return profile;
+  })();
+  renderStats.textRunsBeforeFilter = preparedTextProfile.beforeTotal;
+  renderStats.textRunsAfterFilter = preparedTextProfile.afterTotal;
+  renderStats.removedEmptyTextRuns = preparedTextProfile.removedEmpty;
+  renderStats.removedHiddenTextRuns = preparedTextProfile.removedHidden;
+  renderStats.jpTextsAfterFilter = preparedTextProfile.jpTexts;
+  renderStats.latinTextsAfterFilter = preparedTextProfile.latinTexts;
+  renderStats.emptyTextsAfterFilter = preparedTextProfile.removedEmpty;
+  if (debugEnabled || renderMode === 'final') {
+    console.info('[DBG_TEXT_FILTER]', {
+      requestId,
+      beforeTotal: preparedTextProfile.beforeTotal,
+      afterTotal: preparedTextProfile.afterTotal,
+      removedEmpty: preparedTextProfile.removedEmpty,
+      removedHidden: preparedTextProfile.removedHidden,
+    });
+  }
+  const needsJpFont = Boolean(options?.useJpFont && fonts.jp && preparedTextProfile.jpTexts > 0);
+  const needsLatinFont = preparedTextProfile.latinTexts > 0 || !needsJpFont;
   if (debugEnabled || renderMode === 'final') {
     console.info('[DBG_OVERLAY_MODE]', {
       backgroundFound: backgroundEnabled,
@@ -1717,6 +1875,10 @@ export async function renderTemplateToPdf(
       useBaseBackgroundDoc,
       needsJpFont,
       needsLatinFont,
+      jpTextsAfterFilter: preparedTextProfile.jpTexts,
+      latinTextsAfterFilter: preparedTextProfile.latinTexts,
+      removedEmpty: preparedTextProfile.removedEmpty,
+      removedHidden: preparedTextProfile.removedHidden,
     });
   }
   const latinFont =
@@ -1887,16 +2049,30 @@ export async function renderTemplateToPdf(
     }
     return true;
   });
+  const filteredHeaderCandidatesFinal =
+    options?.skipStaticLabels === true
+      ? filteredHeaderCandidates.filter((element) => {
+          if (element.type === 'label') return false;
+          if (element.type !== 'text') return true;
+          const slotId = (element as any).slotId as string | undefined;
+          if (slotId && ESTIMATE_DYNAMIC_SLOT_IDS.has(slotId)) return true;
+          if ((element as any).__frameOnly === true || (element as any).__skipFrame === true) {
+            return true;
+          }
+          if (element.dataSource?.type === 'kintone') return true;
+          return false;
+        })
+      : filteredHeaderCandidates;
 
   let debugOverlayInfo: DebugOverlayInfo | null = null;
   if (debugOverlayEnabled) {
     const debugTarget =
-      filteredHeaderCandidates.find(
+      filteredHeaderCandidatesFinal.find(
         (el) =>
           (el as any).slotId === 'doc_title' ||
           el.id === 'doc_title',
       ) ??
-      filteredHeaderCandidates.find((el) => el.type === 'text');
+      filteredHeaderCandidatesFinal.find((el) => el.type === 'text');
     if (debugTarget && debugTarget.type === 'text') {
       const adjust = resolveAdjust(debugTarget);
       if (!adjust.hidden) {
@@ -1923,12 +2099,12 @@ export async function renderTemplateToPdf(
   }
 
   // ヘッダー：毎ページ出すもの（デフォルト）
-  const repeatingHeaderElements = filteredHeaderCandidates.filter(
+  const repeatingHeaderElements = filteredHeaderCandidatesFinal.filter(
     (e) => e.repeatOnEveryPage !== false,
   );
 
   // ヘッダー：1ページ目だけ出すもの
-  const firstPageOnlyHeaderElements = filteredHeaderCandidates.filter(
+  const firstPageOnlyHeaderElements = filteredHeaderCandidatesFinal.filter(
     (e) => e.repeatOnEveryPage === false,
   );
 
@@ -2316,10 +2492,32 @@ export async function renderTemplateToPdf(
   if (debugEnabled || renderMode === 'final') {
     console.info('[DBG_FONT_USAGE]', {
       requestId,
-      totalTexts: renderStats.totalTexts,
-      jpTexts: renderStats.jpTexts,
-      latinTexts: renderStats.latinTexts,
+      totalTexts: renderStats.textRunsBeforeFilter,
+      filteredTexts: renderStats.textRunsAfterFilter,
+      jpTexts: renderStats.jpTextsAfterFilter,
+      latinTexts: renderStats.latinTextsAfterFilter,
+      emptyTextsAfterFilter: renderStats.emptyTextsAfterFilter,
+      removedEmpty: renderStats.removedEmptyTextRuns,
+      removedHidden: renderStats.removedHiddenTextRuns,
+      runtimeDrawnTexts: renderStats.totalTexts,
       emptyTexts: renderStats.emptyTexts,
+    });
+  }
+  const backgroundBytesLen = options?.backgroundPdfBytes?.length ?? 0;
+  const outputEstimateBytes =
+    backgroundBytesLen +
+    renderStats.textRunsAfterFilter * 48 +
+    (renderStats.companyLogoDrawn ? options?.tenantLogo?.bytes?.length ?? 0 : 0);
+  if (debugEnabled || renderMode === 'final') {
+    console.info('[DBG_SAVE_PROFILE]', {
+      requestId,
+      totalTexts: renderStats.textRunsBeforeFilter,
+      filteredTexts: renderStats.textRunsAfterFilter,
+      jpTexts: renderStats.jpTextsAfterFilter,
+      latinTexts: renderStats.latinTextsAfterFilter,
+      pagesCount: pdfDoc.getPages().length,
+      outputEstimateBytes,
+      backgroundBytesLen,
     });
   }
   if (debugEnabled || renderMode === 'final') {
@@ -3158,7 +3356,9 @@ function drawHeaderElements(
 ) {
   for (const element of headerElements) {
     const adjust = resolveAdjust(element);
-    if (adjust.hidden && !isCompanyLogoElement(element)) continue;
+    if (adjust.hidden && !isCompanyLogoElement(element)) {
+      continue;
+    }
     switch (element.type) {
       case 'label':
         drawLabel(
@@ -3254,7 +3454,9 @@ function drawFooterElements(
 ) {
   for (const element of footerElements) {
     const adjust = resolveAdjust(element);
-    if (adjust.hidden && !isCompanyLogoElement(element)) continue;
+    if (adjust.hidden && !isCompanyLogoElement(element)) {
+      continue;
+    }
     switch (element.type) {
       case 'label':
         drawLabel(
