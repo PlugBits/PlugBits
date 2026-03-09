@@ -3647,19 +3647,48 @@ export default {
         if (!env.TENANT_ASSETS) {
           return jsonError(500, { error: "TENANT_ASSETS not configured" });
         }
+        let rawBody = "";
+        try {
+          rawBody = await request.text();
+          console.log("[DBG_BACKGROUND_BUILD_RAW]", rawBody);
+        } catch (e) {
+          console.log("[DBG_BACKGROUND_BUILD_RAW_ERROR]", String(e));
+        }
         let body:
           | {
               templateId?: string;
               template?: TemplateDefinition;
-              kintone?: { baseUrl?: string; appId?: string };
+              kintone?: { baseUrl?: string; appId?: string | number };
               kintoneBaseUrl?: string;
-              appId?: string;
+              appId?: string | number;
+              baseUrl?: string;
             }
           | null = null;
         try {
-          body = (await request.json()) as typeof body;
-        } catch {
+          body = rawBody ? (JSON.parse(rawBody) as typeof body) : null;
+          console.log("[DBG_BACKGROUND_BUILD_BODY]", body);
+        } catch (e) {
+          console.log("[DBG_BACKGROUND_BUILD_PARSE_ERROR]", String(e));
           return jsonError(400, { error: "INVALID_JSON" });
+        }
+        console.log("[DBG_BACKGROUND_BUILD_KEYS]", {
+          templateId: body?.templateId,
+          kintone: body?.kintone,
+          kintoneBaseUrl: body?.kintoneBaseUrl,
+          appId: body?.appId,
+          nestedBaseUrl: body?.kintone?.baseUrl,
+          nestedAppId: body?.kintone?.appId,
+        });
+        const templateId = body?.templateId ?? body?.template?.id ?? "";
+        const kintoneBaseUrl =
+          body?.kintone?.baseUrl ?? body?.kintoneBaseUrl ?? body?.baseUrl ?? "";
+        const appIdValue = body?.kintone?.appId ?? body?.appId;
+        const appIdStr = appIdValue != null ? String(appIdValue) : "";
+        if (!templateId || !kintoneBaseUrl || !appIdStr) {
+          return jsonError(400, {
+            error: "BAD_REQUEST",
+            reason: "missing kintone.baseUrl or kintone.appId",
+          });
         }
         if (debugEnabled) {
           console.info("[DBG_BACKGROUND_BUILD_REQ]", {
@@ -3669,14 +3698,10 @@ export default {
             appId: body?.appId ?? body?.kintone?.appId ?? null,
           });
         }
-        const kintoneBaseUrl =
-          body?.kintone?.baseUrl ?? body?.kintoneBaseUrl ?? "";
-        const kintoneAppId =
-          body?.kintone?.appId ?? body?.appId ?? "";
-        if (hasBearer && kintoneBaseUrl && kintoneAppId) {
+        if (hasBearer && kintoneBaseUrl && appIdStr) {
           try {
             const baseUrl = canonicalizeKintoneBaseUrl(kintoneBaseUrl);
-            const appId = canonicalizeAppId(kintoneAppId);
+            const appId = canonicalizeAppId(appIdStr);
             if (!appId) {
               throw new Error("missing appId");
             }
@@ -3711,7 +3736,6 @@ export default {
           tenantKeyResolved: auth.tenantKeyResolved,
           ok: true,
         });
-        const templateId = body?.templateId ?? body?.template?.id ?? "";
         if (!templateId && !body?.template) {
           return jsonError(400, { error: "MISSING_TEMPLATE" });
         }
@@ -3739,6 +3763,10 @@ export default {
         const templateFingerprint = await buildTemplateFingerprint(template);
         const useJpFont = templateHasNonAscii(template);
         const fonts = await loadFonts(env, { requireJp: useJpFont });
+        console.info("[DBG_BACKGROUND_FONT_POLICY]", {
+          jpBytesLen: fonts.jp?.length ?? 0,
+          subset: false,
+        });
         const { bytes } = await renderTemplateToPdf(template, undefined, fonts, {
           debug: debugEnabled,
           previewMode: "record",
