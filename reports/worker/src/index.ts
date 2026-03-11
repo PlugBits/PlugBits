@@ -13,7 +13,7 @@ import { TEMPLATE_SCHEMA_VERSION, getPageDimensions } from "../../shared/templat
 import { renderLabelCalibrationPdf, renderTemplateToPdf } from "./pdf/renderTemplate.ts";
 import { PDFDocument, StandardFonts } from "pdf-lib";
 import fontkit from "@pdf-lib/fontkit";
-import { getFonts } from "./fonts/fontLoader.js";
+import { getFonts, resolveJpFontSelection, type JpFontFamily } from "./fonts/fontLoader.js";
 import { getFixtureData } from "./fixtures/templateData.js";
 import { applyEstimateV1PresetPatch, migrateTemplate, validateTemplate } from "./template/migrate.js";
 import { applyListV1MappingToTemplate } from "./template/listV1Mapping.ts";
@@ -47,6 +47,9 @@ import { canonicalizeAppId, canonicalizeKintoneBaseUrl } from "./utils/canonical
 // Wrangler の env 定義（あってもなくても動くよう optional にする）
 export interface Env {
   FONT_SOURCE_URL?: string;
+  JP_FONT_FAMILY?: string;
+  JP_FONT_BIZUD_URL?: string;
+  JP_FONT_MPLUS_URL?: string;
   LATIN_FONT_URL?: string; 
   ADMIN_API_KEY?: string;
   TEMPLATE_KV: KVNamespace;
@@ -75,6 +78,9 @@ type RenderRequestBody = {
 
   // 表示モード（layout/preview/final）
   mode?: "layout" | "preview" | "final";
+
+  // 日本語フォント候補切替（noto | bizud | mplus）
+  jpFontFamily?: JpFontFamily;
 
   // 自社情報（プラグイン設定由来）
   companyProfile?: CompanyProfile;
@@ -830,7 +836,7 @@ const estimateOverlayTemplateHasNonAscii = (template: TemplateDefinition): boole
 // フォント読み込み（今はデフォルト埋め込みフォントだけ）
 async function loadFonts(
   env: Env,
-  options?: { requireJp?: boolean },
+  options?: { requireJp?: boolean; jpFontFamily?: JpFontFamily },
 ): Promise<{ jp: Uint8Array | null; latin: Uint8Array | null }> {
   return getFonts(env, options);
 }
@@ -3699,6 +3705,7 @@ export default {
           | {
               templateId?: string;
               template?: TemplateDefinition;
+              jpFontFamily?: JpFontFamily;
               kintone?: { baseUrl?: string; appId?: string | number };
               kintoneBaseUrl?: string;
               appId?: string | number;
@@ -3724,6 +3731,10 @@ export default {
           templateId,
           kintoneBaseUrl: kintoneBaseUrlRaw,
           appId: appIdRaw,
+          jpFontFamily:
+            body?.jpFontFamily ??
+            (url.searchParams.get("jpFontFamily") as JpFontFamily | null) ??
+            null,
           raw: body,
         });
 
@@ -3835,7 +3846,14 @@ export default {
 
         const templateFingerprint = await buildTemplateFingerprint(template);
         const useJpFont = templateHasNonAscii(template);
-        const fonts = await loadFonts(env, { requireJp: useJpFont });
+        const backgroundJpSelection = resolveJpFontSelection(
+          env,
+          body?.jpFontFamily ?? (url.searchParams.get("jpFontFamily") as JpFontFamily | null),
+        );
+        const fonts = await loadFonts(env, {
+          requireJp: useJpFont,
+          jpFontFamily: backgroundJpSelection.requestedFamily,
+        });
         const tenantRecordForBackground = await getTenantRecord(env.USER_TEMPLATES_KV, tenantKeyResolved);
         let backgroundTenantLogo:
           | { bytes: Uint8Array; contentType: string; objectKey: string }
@@ -3860,6 +3878,19 @@ export default {
         console.info("[DBG_BACKGROUND_FONT_POLICY]", {
           jpBytesLen: fonts.jp?.length ?? 0,
           subset: false,
+        });
+        console.info("[DBG_JP_FONT_CANDIDATE]", {
+          scope: "background_build",
+          fontFamily: backgroundJpSelection.requestedFamily,
+          resolvedFamily: backgroundJpSelection.resolvedFamily,
+          sourceUrl: backgroundJpSelection.sourceUrl,
+          fellBackToNoto: backgroundJpSelection.fellBackToNoto,
+          fontBytesLen: fonts.jp?.length ?? 0,
+          bytesHead: Array.from((fonts.jp ?? new Uint8Array()).slice(0, 16))
+            .map((b) => b.toString(16).padStart(2, "0"))
+            .join(""),
+          subset: false,
+          embedOk: !useJpFont || Boolean(fonts.jp),
         });
         const { bytes, stats } = await renderTemplateToPdf(template, undefined, fonts, {
           debug: debugEnabled,
@@ -4090,6 +4121,15 @@ export default {
         console.log("[DBG_FONT_TEST] enter");
 
         try {
+          let requestBody: Record<string, unknown> = {};
+          try {
+            requestBody = (await request.json()) as Record<string, unknown>;
+          } catch {
+            requestBody = {};
+          }
+          const requestedFontFamily =
+            requestBody.fontFamily ?? url.searchParams.get("fontFamily");
+          const jpSelection = resolveJpFontSelection(env, requestedFontFamily);
           console.log("[DBG_FONT_TEST] after create pdf");
           const pdfDoc = await PDFDocument.create();
           console.log("[DBG_FONT_TEST] before registerFontkit");
@@ -4097,7 +4137,10 @@ export default {
           console.log("[DBG_FONT_TEST] after registerFontkit");
           const page = pdfDoc.addPage([595.28, 841.89]);
 
-          const fonts = await loadFonts(env, { requireJp: true });
+          const fonts = await loadFonts(env, {
+            requireJp: true,
+            jpFontFamily: jpSelection.requestedFamily,
+          });
           console.log("[DBG_FONT_TEST] before load latin");
           const latinBytes = fonts.latin ?? null;
           console.log("[DBG_FONT_TEST] after load latin");
@@ -4112,12 +4155,23 @@ export default {
           console.log("[DBG_FONT_TEST] before load jp");
           const jpBytes = fonts.jp ?? null;
           console.log("[DBG_FONT_TEST] after load jp");
+          const jpBytesHead = Array.from((jpBytes ?? new Uint8Array()).slice(0, 16))
+            .map((b) => b.toString(16).padStart(2, "0"))
+            .join("");
+          console.info("[DBG_JP_FONT_CANDIDATE]", {
+            fontFamily: jpSelection.requestedFamily,
+            resolvedFamily: jpSelection.resolvedFamily,
+            sourceUrl: jpSelection.sourceUrl,
+            fellBackToNoto: jpSelection.fellBackToNoto,
+            fontBytesLen: jpBytes?.length ?? 0,
+            bytesHead: jpBytesHead,
+            subset: "precheck",
+            embedOk: false,
+          });
           console.log("[DBG_FONT_TEST] font_bytes", {
             kind: "jp",
             len: jpBytes?.length ?? 0,
-            head: Array.from((jpBytes ?? new Uint8Array()).slice(0, 16))
-              .map((b) => b.toString(16).padStart(2, "0"))
-              .join(""),
+            head: jpBytesHead,
           });
           if (!jpBytes || jpBytes.length === 0) {
             throw new Error("jp font bytes empty");
@@ -4138,6 +4192,16 @@ export default {
           console.log("[DBG_FONT_TEST] before embed jp subset=true");
           const jpFontSubset = await pdfDoc.embedFont(jpBytes, { subset: true });
           console.log("[DBG_FONT_TEST] after embed jp subset=true");
+          console.info("[DBG_JP_FONT_CANDIDATE]", {
+            fontFamily: jpSelection.requestedFamily,
+            resolvedFamily: jpSelection.resolvedFamily,
+            sourceUrl: jpSelection.sourceUrl,
+            fellBackToNoto: jpSelection.fellBackToNoto,
+            fontBytesLen: jpBytes.length,
+            bytesHead: jpBytesHead,
+            subset: true,
+            embedOk: true,
+          });
           page.drawText("御見積書", { x: 50, y: 680, size: 20, font: jpFontSubset });
           page.drawText("見積番号", { x: 50, y: 640, size: 20, font: jpFontSubset });
           page.drawText("発行日", { x: 50, y: 600, size: 20, font: jpFontSubset });
@@ -4145,6 +4209,16 @@ export default {
           console.log("[DBG_FONT_TEST] before embed jp subset=false");
           const jpFontFull = await pdfDoc.embedFont(jpBytes, { subset: false });
           console.log("[DBG_FONT_TEST] after embed jp subset=false");
+          console.info("[DBG_JP_FONT_CANDIDATE]", {
+            fontFamily: jpSelection.requestedFamily,
+            resolvedFamily: jpSelection.resolvedFamily,
+            sourceUrl: jpSelection.sourceUrl,
+            fellBackToNoto: jpSelection.fellBackToNoto,
+            fontBytesLen: jpBytes.length,
+            bytesHead: jpBytesHead,
+            subset: false,
+            embedOk: true,
+          });
           page.drawText("御見積書", { x: 300, y: 680, size: 20, font: jpFontFull });
           page.drawText("見積番号", { x: 300, y: 640, size: 20, font: jpFontFull });
           page.drawText("発行日", { x: 300, y: 600, size: 20, font: jpFontFull });
@@ -4271,6 +4345,8 @@ export default {
           const debug = debugEnabled;
           const previewMode =
             body?.previewMode === "fieldCode" ? "fieldCode" : "record";
+          const requestedJpFontFamily =
+            body?.jpFontFamily ?? (url.searchParams.get("jpFontFamily") as JpFontFamily | null);
           const renderMode = resolveRenderMode(
             (body as { mode?: string } | undefined)?.mode ?? url.searchParams.get("mode"),
             previewMode,
@@ -4325,6 +4401,7 @@ export default {
               templateId: templateIdInBody,
               userTemplateId: userTemplateIdInBody,
               baseTemplateId: bodyBaseTemplateId,
+              jpFontFamily: requestedJpFontFamily ?? null,
               hasSessionToken,
               previewMode,
               renderMode,
@@ -5028,7 +5105,11 @@ export default {
         phase = "loadFonts";
         try {
           const fontStart = nowMs();
-          fonts = await loadFonts(env, { requireJp: useJpFont });
+          const renderJpSelection = resolveJpFontSelection(env, requestedJpFontFamily);
+          fonts = await loadFonts(env, {
+            requireJp: useJpFont,
+            jpFontFamily: renderJpSelection.requestedFamily,
+          });
           logTiming("load_font_bytes", nowMs() - fontStart);
           console.info("[DBG_FONT_POLICY]", {
             requestId,
@@ -5036,6 +5117,20 @@ export default {
             useJpFont,
             latinSource: fonts.latin ? "custom" : "standard",
             jpBytes: fonts.jp?.length ?? 0,
+          });
+          console.info("[DBG_JP_FONT_CANDIDATE]", {
+            scope: "render",
+            requestId,
+            fontFamily: renderJpSelection.requestedFamily,
+            resolvedFamily: renderJpSelection.resolvedFamily,
+            sourceUrl: renderJpSelection.sourceUrl,
+            fellBackToNoto: renderJpSelection.fellBackToNoto,
+            fontBytesLen: fonts.jp?.length ?? 0,
+            bytesHead: Array.from((fonts.jp ?? new Uint8Array()).slice(0, 16))
+              .map((b) => b.toString(16).padStart(2, "0"))
+              .join(""),
+            subset: false,
+            embedOk: !useJpFont || Boolean(fonts.jp),
           });
         } catch (err) {
           const message = err instanceof Error ? err.message : String(err);
