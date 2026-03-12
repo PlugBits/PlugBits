@@ -8,7 +8,7 @@ LATIN_FONT_URL = "https://github.com/PlugBits/PlugBits/raw/refs/heads/main/repor
 JP_FONT_FAMILY = "noto"
 
 JP_FONT_BIZUD_URL = "https://github.com/googlefonts/morisawa-biz-ud-gothic/raw/main/fonts/ttf/BIZUDGothic-Regular.ttf"
-JP_FONT_MPLUS_URL = "https://github.com/PlugBits/PlugBits/raw/refs/heads/main/reports/worker/src/fonts/MPLUS1p-Regular.ttf"
+JP_FONT_MPLUS_URL = "https://github.com/google/fonts/raw/main/ofl/mplus1p/MPLUS1p-Regular.ttf"
 
 [[kv_namespaces]]
 binding = "TEMPLATE_KV"
@@ -34,3 +34,12 @@ preview_id = "bea534609bd6462ca55f8b20e63b336f"
 binding = "TENANT_ASSETS"
 bucket_name = "tenant-assets"
 preview_bucket_name = "tenant-assets"
+
+[[queues.producers]]
+binding = "RENDER_JOBS_QUEUE"
+queue = "render-jobs"
+
+[[queues.consumers]]
+queue = "render-jobs"
+max_batch_size = 1
+max_batch_timeout = 5

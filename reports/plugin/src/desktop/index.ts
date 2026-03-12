@@ -1,7 +1,11 @@
 import { WORKER_BASE_URL } from '../constants';
 import type { PluginConfig } from '../config/index.ts';
 import { isDebugEnabled } from '../../../src/shared/debugFlag';
-import { appendDebugParam } from '../../../src/shared/appendDebug';
+import {
+  JOB_STATUS_LABEL,
+  requestRenderJobPdf,
+  type RenderJobStatus,
+} from '../renderJobs';
 
 const PLUGIN_ID =
   (typeof kintone !== 'undefined' ? (kintone as any).$PLUGIN_ID : '') || '';
@@ -23,6 +27,7 @@ const getConfig = (): PluginConfig | null => {
     templateId: raw.templateId ?? '',
     attachmentFieldCode: raw.attachmentFieldCode ?? '',
     enableSaveButton: parseBoolean(raw.enableSaveButton),
+    kintoneApiToken: raw.kintoneApiToken ?? '',
     companyName: raw.companyName ?? '',
     companyAddress: raw.companyAddress ?? '',
     companyTel: raw.companyTel ?? '',
@@ -184,6 +189,15 @@ const setButtonLoading = (button: HTMLButtonElement, loading: boolean) => {
   }
 };
 
+const setButtonStatus = (button: HTMLButtonElement, message: string) => {
+  button.disabled = true;
+  button.innerHTML = `<span class="plugbits-spinner" aria-hidden="true"></span>${message}`;
+};
+
+const updateJobStatusLabel = (button: HTMLButtonElement, status: RenderJobStatus) => {
+  setButtonStatus(button, JOB_STATUS_LABEL[status] ?? 'PDF生成中');
+};
+
 const getRequestToken = () =>
   (window as any).kintone?.getRequestToken?.() as string | undefined;
 
@@ -291,132 +305,29 @@ const updateRecordAttachment = async (
 };
 
 
-function buildTemplateDataFromKintoneRecord(record: any) {
-  const data: Record<string, any> = {};
-
-  Object.keys(record).forEach((fieldCode) => {
-    const field = record[fieldCode];
-    if (!field) return;
-
-    if (field.type === "SUBTABLE") {
-      data[fieldCode] = field.value.map((row: any) => {
-        const rowData: Record<string, any> = {};
-        Object.keys(row.value).forEach((innerCode) => {
-          const innerField = row.value[innerCode];
-          rowData[innerCode] = innerField?.value;
-        });
-        return rowData;
-      });
-    } else {
-      data[fieldCode] = field.value;
-    }
-  });
-
-  return data;
-}
-
 const callRenderApi = async (
   config: PluginConfig,
   recordId: string,
-  templateData: any,
+  recordRevision: string,
+  onStatus?: (status: RenderJobStatus) => void,
 ): Promise<Blob> => {
   const baseUrl = WORKER_BASE_URL;
   const appId = (window as any).kintone?.app?.getId?.();
   const appIdValue = appId ? String(appId) : '';
-  const debugEnabled = isDebugEnabled();
-  const renderUrl = appendDebugParam(`${baseUrl.replace(/\/$/, '')}/render`, debugEnabled);
-  if (debugEnabled) console.log('[DBG_RENDER_URL]', renderUrl);
-  const body = JSON.stringify({
+  if (!appIdValue) {
+    throw new Error('アプリIDが取得できません');
+  }
+  return requestRenderJobPdf({
+    workerBaseUrl: baseUrl,
+    kintoneBaseUrl: location.origin,
+    appId: appIdValue,
     templateId: config.templateId,
-    data: templateData,
-    kintone: {
-      baseUrl: location.origin,
-      appId: appIdValue,
-      recordId,
-    },
-    companyProfile: {
-      companyName: config.companyName,
-      companyAddress: config.companyAddress,
-      companyTel: config.companyTel,
-      companyEmail: config.companyEmail,
-    },
+    recordId,
+    recordRevision,
+    kintoneApiToken: config.kintoneApiToken,
+    debugEnabled: isDebugEnabled(),
+    onStatus,
   });
-  const shouldRetry = (status: number) => status === 429 || status >= 500;
-  const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
-  const baseDelayMs = 800;
-
-  let response: Response | null = null;
-  for (let attempt = 0; attempt < 2; attempt += 1) {
-    try {
-      response = await fetch(renderUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body,
-      });
-    } catch {
-      response = null;
-    }
-
-    if (response && response.ok) break;
-    const status = response?.status ?? 0;
-    if (attempt === 0 && (response === null || shouldRetry(status))) {
-      const waitMs = baseDelayMs * 2 ** attempt + Math.floor(Math.random() * 200);
-      await sleep(waitMs);
-      continue;
-    }
-    break;
-  }
-
-  if (!response) {
-    throw new Error('PDF生成に失敗しました');
-  }
-
-  if (!response.ok) {
-    let text = '';
-    try {
-      text = await response.text();
-    } catch {
-      text = '';
-    }
-    let message = '';
-    const textLower = text.toLowerCase();
-    const isTemplateInactive =
-      response.status >= 400 &&
-      response.status < 500 &&
-      (textLower.includes('not active') || textLower.includes('not found'));
-
-    if (isTemplateInactive) {
-      message = 'テンプレが削除/無効です。プラグイン設定で再選択してください';
-    } else if (text.includes('Unknown user templateId')) {
-      console.info('[PlugBits] render context', {
-        workerBaseUrl: baseUrl,
-        kintoneBaseUrl: location.origin,
-        appId: appIdValue,
-        recordId,
-        templateId: config.templateId,
-      });
-      message = 'テンプレが見つかりません（保存先のWorker/テナントが違う可能性）';
-    } else if (response.status === 400) {
-      const detail = text || '不明なエラー';
-      message = `テンプレ設定が不正です（templateId / 必須フィールド / tenant情報）。詳細: ${detail}`;
-    } else if (response.status === 401 || response.status === 403) {
-      message = '認証に失敗しました。';
-    } else if (response.status === 404) {
-      message = 'テンプレが見つかりません（templateId が存在しない可能性）。';
-    } else if (response.status === 409) {
-      message = `テンプレがActiveでない/アプリ紐付け不一致/環境不一致の可能性があります。${text ? `詳細: ${text}` : ''}`;
-    } else if (response.status === 500) {
-      message = 'サーバー側でPDF生成に失敗しました。少し時間をおいて再試行してください。';
-    } else {
-      message = text || `PDF生成に失敗しました（${response.status}）`;
-    }
-
-    throw new Error(message);
-  }
-
-  return response.blob();
 };
 
 const checkTemplateAvailability = async (
@@ -542,6 +453,14 @@ const addButton = (config: PluginConfig | null) => {
       isPrinting = false;
       return;
     }
+    const recordRevision = record.$revision?.value;
+    if (!recordRevision) {
+      notify('レコードのリビジョンが取得できません', 'error');
+      closePdfWindow(pdfWindow);
+      setButtonLoading(printButton, false);
+      isPrinting = false;
+      return;
+    }
 
     const templateOk = await checkTemplateAvailability(latestConfig, {
       allowInactiveFallback: true,
@@ -554,11 +473,17 @@ const addButton = (config: PluginConfig | null) => {
       return;
     }
 
-    const templateData = buildTemplateDataFromKintoneRecord(record);
     try {
-      const pdfBlob = await callRenderApi(latestConfig, recordId, templateData);
+      setButtonStatus(printButton, 'PDFを生成中です...');
+      const pdfBlob = await callRenderApi(
+        latestConfig,
+        String(recordId),
+        String(recordRevision),
+        (status) => updateJobStatusLabel(printButton, status),
+      );
       const url = URL.createObjectURL(pdfBlob);
       pdfWindow.location.href = url;
+      notify('ダウンロード可能', 'success');
     } catch (error) {
       console.error(error);
       closePdfWindow(pdfWindow);
@@ -618,6 +543,13 @@ const addButton = (config: PluginConfig | null) => {
         isSaving = false;
         return;
       }
+      const recordRevision = record.$revision?.value;
+      if (!recordRevision) {
+        notify('レコードのリビジョンが取得できません', 'error');
+        closePdfWindow(pdfWindow);
+        isSaving = false;
+        return;
+      }
 
       const templateOk = await checkTemplateAvailability(latestConfig, {
         allowInactiveFallback: false,
@@ -629,10 +561,15 @@ const addButton = (config: PluginConfig | null) => {
         return;
       }
 
-      const templateData = buildTemplateDataFromKintoneRecord(record);
       setButtonLoading(saveButton, true);
       try {
-        const pdfBlob = await callRenderApi(latestConfig, recordId, templateData);
+        setButtonStatus(saveButton, 'PDFを生成中です...');
+        const pdfBlob = await callRenderApi(
+          latestConfig,
+          String(recordId),
+          String(recordRevision),
+          (status) => updateJobStatusLabel(saveButton, status),
+        );
         const url = URL.createObjectURL(pdfBlob);
         const fileKey = await uploadFile(pdfBlob);
         await updateRecordAttachment(recordId, latestConfig.attachmentFieldCode, fileKey);

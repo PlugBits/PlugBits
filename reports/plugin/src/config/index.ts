@@ -7,6 +7,7 @@ export type PluginConfig = {
   templateId: string;
   attachmentFieldCode: string;
   enableSaveButton: boolean;
+  kintoneApiToken: string;
   companyName: string;
   companyAddress: string;
   companyTel: string;
@@ -17,6 +18,7 @@ const buildInitialConfig = (): PluginConfig => ({
   templateId: '',
   attachmentFieldCode: '',
   enableSaveButton: false,
+  kintoneApiToken: '',
   companyName: '',
   companyAddress: '',
   companyTel: '',
@@ -34,6 +36,7 @@ const normalizeConfig = (rawConfig: Record<string, any>) => ({
     templateId: rawConfig.templateId ?? '',
     attachmentFieldCode: rawConfig.attachmentFieldCode ?? '',
     enableSaveButton: parseBoolean(rawConfig.enableSaveButton),
+    kintoneApiToken: rawConfig.kintoneApiToken ?? '',
     companyName: rawConfig.companyName ?? '',
     companyAddress: rawConfig.companyAddress ?? '',
     companyTel: rawConfig.companyTel ?? '',
@@ -116,6 +119,11 @@ const renderForm = () => {
       <div class="kb-desc" id="attachmentFieldWarning" style="margin-top:4px; color:#b42318;"></div>
     </div>
 
+    <div class="kb-row" style="margin-top:12px;">
+      <label class="kb-label" for="kintoneApiToken">kintone APIトークン</label>
+    </div>
+    <input class="kb-input" id="kintoneApiToken" type="password" placeholder="REST API用のトークン" />
+
     <div class="kb-row" style="margin-top:16px;">
       <label class="kb-label">自社情報（PDFに表示）</label>
     </div>
@@ -173,6 +181,7 @@ const renderForm = () => {
   setInputValue('templateId', config.templateId);
   setInputValue('attachmentFieldCode', config.attachmentFieldCode);
   setCheckboxValue('enableSaveButton', config.enableSaveButton);
+  setInputValue('kintoneApiToken', config.kintoneApiToken);
   setInputValue('companyName', config.companyName);
   setInputValue('companyAddress', config.companyAddress);
   setInputValue('companyTel', config.companyTel);
@@ -375,6 +384,7 @@ const renderForm = () => {
       companyTel?: string;
       companyEmail?: string;
     },
+    kintoneApiToken?: string,
     options?: { silent?: boolean },
   ) => {
     try {
@@ -384,6 +394,7 @@ const renderForm = () => {
         body: JSON.stringify({
           kintoneBaseUrl,
           appId: String(appId),
+          ...(kintoneApiToken ? { kintoneApiToken } : {}),
           companyProfile,
         }),
       });
@@ -499,6 +510,7 @@ const renderForm = () => {
   const exchangeEditorToken = async (
     workerBaseUrl: string,
     sessionToken: string,
+    kintoneApiToken?: string,
     options?: { silent?: boolean },
   ) => {
     if (!sessionToken) return '';
@@ -506,7 +518,10 @@ const renderForm = () => {
       const res = await fetch(`${workerBaseUrl}/editor/session/exchange`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token: sessionToken }),
+        body: JSON.stringify({
+          token: sessionToken,
+          ...(kintoneApiToken ? { kintoneApiToken } : {}),
+        }),
       });
       if (!res.ok) {
         if (!options?.silent) {
@@ -530,15 +545,16 @@ const renderForm = () => {
     workerBaseUrl: string,
     kintoneBaseUrl: string,
     appId: string,
+    kintoneApiToken?: string,
   ) => {
     if (cachedEditorToken && cachedEditorTokenExpiresAt - Date.now() > 30_000) {
       return cachedEditorToken;
     }
-    const sessionToken = await requestEditorSession(workerBaseUrl, kintoneBaseUrl, appId, undefined, {
+    const sessionToken = await requestEditorSession(workerBaseUrl, kintoneBaseUrl, appId, undefined, kintoneApiToken, {
       silent: true,
     });
     if (!sessionToken) return '';
-    return exchangeEditorToken(workerBaseUrl, sessionToken, { silent: true });
+    return exchangeEditorToken(workerBaseUrl, sessionToken, kintoneApiToken, { silent: true });
   };
 
   const fetchUserTemplateMeta = async (
@@ -638,7 +654,12 @@ const renderForm = () => {
       return;
     }
 
-    const editorToken = await getEditorToken(workerBaseUrl, kintoneBaseUrl, String(appId));
+    const editorToken = await getEditorToken(
+      workerBaseUrl,
+      kintoneBaseUrl,
+      String(appId),
+      getInputValue('kintoneApiToken'),
+    );
     if (editorToken) {
       try {
         const meta = await fetchUserTemplateMeta(workerBaseUrl, editorToken, templateId);
@@ -718,6 +739,7 @@ const renderForm = () => {
       templateId: '',
       attachmentFieldCode: '',
       enableSaveButton: 'false',
+      kintoneApiToken: '',
       companyName: '',
       companyAddress: '',
       companyTel: '',
@@ -747,6 +769,7 @@ const renderForm = () => {
         companyTel: getInputValue('companyTel'),
         companyEmail: getInputValue('companyEmail'),
       },
+      getInputValue('kintoneApiToken'),
     );
     if (!sessionToken) {
       alert('sessionToken が取得できません');
@@ -790,6 +813,7 @@ const renderForm = () => {
         companyTel: getInputValue('companyTel'),
         companyEmail: getInputValue('companyEmail'),
       },
+      getInputValue('kintoneApiToken'),
     );
     if (!sessionToken) {
       alert('sessionToken が取得できません');
@@ -814,6 +838,7 @@ const renderForm = () => {
       templateId: getInputValue('templateId'),
       attachmentFieldCode: getInputValue('attachmentFieldCode'),
       enableSaveButton,
+      kintoneApiToken: getInputValue('kintoneApiToken'),
       companyName: getInputValue('companyName'),
       companyAddress: getInputValue('companyAddress'),
       companyTel: getInputValue('companyTel'),
@@ -842,6 +867,7 @@ const renderForm = () => {
       templateId: payload.templateId,
       attachmentFieldCode: payload.attachmentFieldCode,
       enableSaveButton: payload.enableSaveButton ? 'true' : 'false',
+      kintoneApiToken: payload.kintoneApiToken,
       companyName: payload.companyName,
       companyAddress: payload.companyAddress,
       companyTel: payload.companyTel,

@@ -1,7 +1,11 @@
 import { WORKER_BASE_URL } from '../constants';
 import type { PluginConfig } from '../config/index.ts';
 import { isDebugEnabled } from '../../../src/shared/debugFlag';
-import { appendDebugParam } from '../../../src/shared/appendDebug';
+import {
+  JOB_STATUS_LABEL,
+  requestRenderJobPdf,
+  type RenderJobStatus,
+} from '../renderJobs';
 
 const PLUGIN_ID =
   (typeof kintone !== 'undefined' ? (kintone as any).$PLUGIN_ID : '') || '';
@@ -22,6 +26,7 @@ const getConfig = (): PluginConfig | null => {
     templateId: raw.templateId ?? '',
     attachmentFieldCode: raw.attachmentFieldCode ?? '',
     enableSaveButton: parseBoolean(raw.enableSaveButton),
+    kintoneApiToken: raw.kintoneApiToken ?? '',
     companyName: raw.companyName ?? '',
     companyAddress: raw.companyAddress ?? '',
     companyTel: raw.companyTel ?? '',
@@ -70,30 +75,6 @@ const notify = (message: string) => {
 const getAppId = () =>
   (window as any).kintone?.mobile?.app?.getId?.() ??
   (window as any).kintone?.app?.getId?.();
-
-function buildTemplateDataFromKintoneRecord(record: any) {
-  const data: Record<string, any> = {};
-
-  Object.keys(record).forEach((fieldCode) => {
-    const field = record[fieldCode];
-    if (!field) return;
-
-    if (field.type === 'SUBTABLE') {
-      data[fieldCode] = field.value.map((row: any) => {
-        const rowData: Record<string, any> = {};
-        Object.keys(row.value).forEach((innerCode) => {
-          const innerField = row.value[innerCode];
-          rowData[innerCode] = innerField?.value;
-        });
-        return rowData;
-      });
-    } else {
-      data[fieldCode] = field.value;
-    }
-  });
-
-  return data;
-}
 
 const checkTemplateAvailability = async (
   config: PluginConfig,
@@ -188,6 +169,14 @@ const addMobilePrintButton = (config: PluginConfig | null, event: any) => {
 
   const button = createButton('印刷', 'primary');
   let isGenerating = false;
+  const setMobileButtonStatus = (message: string) => {
+    button.disabled = true;
+    button.innerHTML = `<span class="plugbits-spinner" aria-hidden="true"></span>${message}`;
+  };
+  const updateMobileJobStatus = (status: RenderJobStatus) => {
+    const nextMessage = JOB_STATUS_LABEL[status] ?? 'PDF生成中';
+    setMobileButtonStatus(nextMessage);
+  };
   button.addEventListener('click', async () => {
     if (isGenerating) return;
     const latestConfig = getConfig();
@@ -207,6 +196,11 @@ const addMobilePrintButton = (config: PluginConfig | null, event: any) => {
       notify('レコードIDが取得できません');
       return;
     }
+    const recordRevision = record.$revision?.value;
+    if (!recordRevision) {
+      notify('レコードのリビジョンが取得できません');
+      return;
+    }
 
     const appId = getAppId();
     const appIdValue = appId ? String(appId) : '';
@@ -216,6 +210,7 @@ const addMobilePrintButton = (config: PluginConfig | null, event: any) => {
     }
     isGenerating = true;
     button.disabled = true;
+    setMobileButtonStatus('PDFを生成中です...');
 
     const openWindow =
       navigator.share ? null : window.open('', '_blank');
@@ -230,88 +225,17 @@ const addMobilePrintButton = (config: PluginConfig | null, event: any) => {
       });
       if (!templateOk) return;
 
-      const api = (window as any).kintone?.api;
-      if (typeof api !== 'function') {
-        notify('レコード取得APIが利用できません');
-        return;
-      }
-
-      const recordResp = await api('/k/v1/record.json', 'GET', {
-        app: appIdValue,
-        id: recordId,
-      });
-      const recordData = recordResp?.record;
-      if (!recordData) {
-        notify('レコード取得に失敗しました');
-        return;
-      }
-
-      const templateData = buildTemplateDataFromKintoneRecord(recordData);
-      const debugEnabled = isDebugEnabled();
-      const renderUrl = appendDebugParam(
-        `${WORKER_BASE_URL.replace(/\/$/, '')}/render`,
-        debugEnabled,
-      );
-      if (debugEnabled) console.log('[DBG_RENDER_URL]', renderUrl);
-      const body = JSON.stringify({
+      const blob = await requestRenderJobPdf({
+        workerBaseUrl: WORKER_BASE_URL,
+        kintoneBaseUrl: location.origin,
+        appId: appIdValue,
         templateId: latestConfig.templateId,
-        data: templateData,
-        kintone: {
-          baseUrl: location.origin,
-          appId: appIdValue,
-          recordId,
-        },
-        companyProfile: {
-          companyName: latestConfig.companyName,
-          companyAddress: latestConfig.companyAddress,
-          companyTel: latestConfig.companyTel,
-          companyEmail: latestConfig.companyEmail,
-        },
+        recordId: String(recordId),
+        recordRevision: String(recordRevision),
+        kintoneApiToken: latestConfig.kintoneApiToken,
+        debugEnabled: isDebugEnabled(),
+        onStatus: (status) => updateMobileJobStatus(status),
       });
-      const shouldRetry = (status: number) => status === 429 || status >= 500;
-      const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
-      const baseDelayMs = 800;
-
-      let response: Response | null = null;
-      for (let attempt = 0; attempt < 2; attempt += 1) {
-        try {
-          response = await fetch(renderUrl, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body,
-          });
-        } catch {
-          response = null;
-        }
-        if (response && response.ok) break;
-        const status = response?.status ?? 0;
-        if (attempt === 0 && (response === null || shouldRetry(status))) {
-          const waitMs = baseDelayMs * 2 ** attempt + Math.floor(Math.random() * 200);
-          await sleep(waitMs);
-          continue;
-        }
-        break;
-      }
-
-      if (!response) {
-        notify('PDF生成に失敗しました');
-        return;
-      }
-      if (!response.ok) {
-        const text = await response.text().catch(() => '');
-        if (response.status === 409) {
-          notify(
-            `テンプレがActiveでない/アプリ紐付け不一致/環境不一致の可能性があります。${text ? `詳細: ${text}` : ''}`,
-          );
-        } else {
-          notify(text || `PDF生成に失敗しました（${response.status}）`);
-        }
-        return;
-      }
-
-      const blob = await response.blob();
       if (navigator.share) {
         try {
           const file = new File([blob], 'plugbits-report.pdf', {
@@ -334,11 +258,13 @@ const addMobilePrintButton = (config: PluginConfig | null, event: any) => {
       } else {
         window.location.href = blobUrl;
       }
+      notify('ダウンロード可能');
     } catch (error) {
       notify(error instanceof Error ? error.message : 'PDF生成に失敗しました');
     } finally {
       isGenerating = false;
       button.disabled = false;
+      button.textContent = '印刷';
     }
   });
 
@@ -365,7 +291,7 @@ const setupMobileRecordDetailButton = () => {
   addMobilePrintButton(config, null);
 };
 
-window.kintone?.events?.on?.('mobile.app.record.detail.show', (event: any) => {
+(window as any).kintone?.events?.on?.('mobile.app.record.detail.show', (event: any) => {
   const config = getConfig();
   addMobilePrintButton(config, event);
   return event;
