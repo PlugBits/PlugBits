@@ -496,3 +496,97 @@ kbd,
     flex-direction: column;
   }
 }
+
+/* ============================================================
+   Mobile Optimization (スマホ向け最終調整)
+   ============================================================ */
+
+@media (max-width: 720px) {
+  /* 1. セクション間の余白を詰めて、スクロール疲れを軽減 */
+  .section {
+    padding: 48px 0;
+  }
+
+  /* 2. ヒーローセクション：文字を中央寄せにしてインパクトを出す */
+  .hero {
+    display: flex; /* gridからflexに変更して中央寄せしやすく */
+    flex-direction: column;
+    text-align: center;
+    padding-top: 24px;
+    gap: 32px;
+  }
+
+  .hero h1 {
+    font-size: 38px; /* スマホで1画面に収まりやすいサイズ */
+    line-height: 1.1;
+    margin: 0 auto;
+  }
+
+  .hero-lead {
+    margin: 16px auto 0;
+  }
+
+  .hero-actions {
+    justify-content: center; /* ボタンを中央に */
+    flex-direction: column; /* ボタンを縦に並べてタップしやすく */
+    width: 100%;
+  }
+
+  .button {
+    width: 100%; /* ボタンを横幅いっぱいに（押しやすさ向上） */
+    min-height: 54px; /* タップターゲットを大きく */
+  }
+
+  /* 3. モックアップUIの調整 */
+  .mock-window {
+    padding: 12px;
+    border-radius: 18px;
+    font-size: 13px; /* 中の文字を少し小さくして収まりを良くする */
+  }
+
+  /* 4. 特徴カード（Problem/Feature）の視認性アップ */
+  .problem-grid, .feature-stack {
+    gap: 12px; /* カード同士の間隔を少し詰める */
+  }
+
+  .info-card, .feature-card {
+    padding: 20px;
+    background: var(--panel-strong); /* スマホでは少し背景を濃くして境目をハッキリさせる */
+  }
+
+  .feature-header h3 {
+    font-size: 24px;
+  }
+
+  /* 特徴リストを横並びからスッキリした縦並びへ */
+  .feature-list {
+    gap: 10px;
+  }
+
+  .feature-item {
+    padding: 16px;
+  }
+
+  .feature-item h4 {
+    font-size: 17px;
+  }
+
+  /* 5. フッターの調整 */
+  .site-footer {
+    text-align: center;
+    align-items: center;
+    gap: 24px;
+  }
+
+  .footer-links {
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+}
+
+/* さらに小さい画面（iPhone SEなど）への配慮 */
+@media (max-width: 380px) {
+  .hero h1 {
+    font-size: 32px;
+  }
+}
