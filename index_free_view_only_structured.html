@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PlugBits Launcher for kintone</title>
+  <meta name="description" content="kintoneの『探しもの』を最短ルートに。PlugBits Launcherは、ショートカット・履歴・ウォッチリスト・Spreadsheet Viewを1つのサイドパネルにまとめる無料のChrome拡張です。" />
+  <meta property="og:title" content="PlugBits Launcher for kintone" />
+  <meta property="og:description" content="kintoneの『探しもの』を最短ルートに。ショートカット・履歴・ウォッチリスト・Spreadsheet Viewを1つのサイドパネルにまとめる無料のChrome拡張です。" />
+  <meta property="og:type" content="website" />
+  <meta name="theme-color" content="#0f1115" />
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div class="page-shell">
+    <header class="site-header">
+      <div class="brand">
+        <div class="brand-mark">P</div>
+        <span>PlugBits Launcher</span>
+      </div>
+      <nav class="site-nav">
+        <a href="#features">機能</a>
+        <a href="#philosophy">思想</a>
+        <a href="#install" class="nav-cta">無料で試す</a>
+      </nav>
+    </header>
+
+    <main>
+      <section class="hero">
+        <div class="hero-copy">
+          <p class="eyebrow">Chrome Extension for kintone</p>
+          <h1>kintoneの「探しもの」を、<br />最短ルートに。</h1>
+          <p class="hero-lead">
+            kintoneで仕事をしていると、<br />
+            「あのアプリ」「さっきのレコード」「今どの仕事が残っているか」を探す時間が意外と増えていきます。<br />
+            PlugBits Launcherは、<strong>ショートカット・履歴・ウォッチリスト・Spreadsheet Viewを1つのサイドパネルにまとめる</strong>無料のChrome拡張です。
+          </p>
+          <div class="hero-actions">
+            <a class="button button-primary" href="#install">Chrome拡張を無料でインストール</a>
+            <a class="button button-secondary" href="#features">機能を見る</a>
+          </div>
+          <div class="hero-note">
+            無料で使えます / Side Panel + Shortcuts + Watch + Spreadsheet View
+          </div>
+        </div>
+
+        <div class="hero-panel">
+          <div class="mock-window">
+            <div class="mock-topbar">
+              <span></span><span></span><span></span>
+            </div>
+            <div class="mock-command">
+              <div class="mock-command-label">Side Panel</div>
+              <div class="mock-command-input">Shortcuts, Watch, Recent, Spreadsheet View...</div>
+            </div>
+            <div class="mock-list">
+              <div class="mock-item">
+                <div>
+                  <strong>Sales Orders</strong>
+                  <small>Shortcut</small>
+                </div>
+                <span class="badge">Open</span>
+              </div>
+              <div class="mock-item">
+                <div>
+                  <strong>承認待ち</strong>
+                  <small>Watch List</small>
+                </div>
+                <span class="badge">7</span>
+              </div>
+              <div class="mock-item">
+                <div>
+                  <strong>Recent: Order #2481</strong>
+                  <small>Recently viewed</small>
+                </div>
+                <span class="badge">Recent</span>
+              </div>
+            </div>
+            <div class="mock-grid">
+              <div class="mock-grid-head">
+                <span>Order No.</span>
+                <span>Customer</span>
+                <span>Status</span>
+              </div>
+              <div class="mock-grid-row">
+                <span>2481</span>
+                <span>ABC Co.</span>
+                <span>Open</span>
+              </div>
+              <div class="mock-grid-row">
+                <span>2482</span>
+                <span>Delta Inc.</span>
+                <span>Ready</span>
+              </div>
+              <div class="mock-grid-row">
+                <span>2483</span>
+                <span>North Plant</span>
+                <span>Hold</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section problem">
+        <div class="section-heading">
+          <p class="eyebrow">Problem</p>
+          <h2>kintoneは便利。<br />でも、毎日の「探しもの」に時間がかかる。</h2>
+          <p>
+            kintoneで仕事をしていると、<br />
+            「あのアプリはどこだろう」「さっきのレコードをもう一度見たい」「承認待ちは何件あるだろう」<br />
+            そんな小さな“探しもの”が、一日の中で何度も発生します。
+          </p>
+        </div>
+
+        <div class="problem-grid">
+          <article class="info-card">
+            <h3>目的の場所を探す時間が積み重なる</h3>
+            <p>あのアプリ、あの一覧、さっき見たレコード。kintoneの中には情報が多く、目的の場所を探す時間が意外とかかります。</p>
+          </article>
+          <article class="info-card">
+            <h3>いま処理すべき仕事が見えにくい</h3>
+            <p>承認待ちや未処理の件数を確認するために、ビューを開いて数を見にいくことがあります。</p>
+          </article>
+          <article class="info-card">
+            <h3>小さな探しものがリズムを崩す</h3>
+            <p>目的の場所を探す小さな時間が、作業の流れを少しずつ途切れさせます。</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="section solution">
+        <div class="section-heading">
+          <p class="eyebrow">Solution</p>
+          <h2>PlugBitsは、kintoneの「探す」を最短ルートにします。</h2>
+          <p>
+            ブラウザにkintone専用のサイドパネルを作ることで、<br />
+            アプリ、レコード、よく使う画面、残作業の件数にすぐアクセスできるようにします。
+          </p>
+        </div>
+
+        <div class="solution-band">
+          <div class="solution-pill">サイドパネルで集約</div>
+          <div class="solution-pill">探す時間を短縮</div>
+          <div class="solution-pill">まずは無料</div>
+        </div>
+      </section>
+
+      <section class="section features" id="features">
+        <div class="section-heading">
+          <p class="eyebrow">Free Features</p>
+          <h2>まずは、日常の「探す時間」を減らします。</h2>
+          <p>
+            PlugBits Launcherは、<strong>無料のChrome拡張</strong>として使えます。<br />
+            「目的の場所にすぐ行ける」「今やるべき仕事が見える」という体験を、まず無料で提供します。
+          </p>
+        </div>
+
+        <div class="feature-stack">
+          <article class="feature-card">
+            <div class="feature-header">
+              <span class="feature-tag">Side Panel</span>
+              <h3>よく使う操作を1か所に集約</h3>
+            </div>
+            <div class="feature-list">
+              <div class="feature-item">
+                <h4>ショートカット</h4>
+                <p>よく使うアプリをアイコンで固定。目的のアプリへすぐ移動できます。</p>
+              </div>
+              <div class="feature-item">
+                <h4>ウォッチリスト</h4>
+                <p>承認待ちなど特定ビューの件数を表示。今やるべき仕事の残数を確認できます。</p>
+              </div>
+              <div class="feature-item">
+                <h4>最近のレコード</h4>
+                <p>「さっき見ていた場所」に一瞬で戻れます。</p>
+              </div>
+            </div>
+          </article>
+
+          <article class="feature-card">
+            <div class="feature-header">
+              <span class="feature-tag">スプレッドシート / Free</span>
+              <h3>必要なときだけ、さっと開いて一覧を確認</h3>
+            </div>
+            <div class="feature-list single">
+              <div class="feature-item">
+                <h4>補助ビューとして素早く開ける</h4>
+                <p>
+                  スプレッドシートは、kintoneを置き換えるものではなく、必要なときにさっと開ける補助ビューです。<br />
+                  元の画面を離れすぎず、一覧の中で必要な情報をまとめて確認できます。
+                </p>
+              </div>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section class="section philosophy" id="philosophy">
+        <div class="section-heading narrow">
+          <p class="eyebrow">Philosophy</p>
+          <h2>仕事の進め方は、自分で整えられる。</h2>
+          <p>
+            業務ツールは会社が決めるもの。<br />
+            でも、<strong>仕事の進め方は自分で整えられる</strong>。<br /><br />
+            PlugBitsは、あなたのブラウザに小さなコクピットをつくります。
+          </p>
+        </div>
+      </section>
+
+      <section class="section install" id="install">
+        <div class="install-card">
+          <p class="eyebrow">Get Started</p>
+          <h2>まずは無料で。</h2>
+          <p>
+            PlugBits Launcherは無料で使えます。<br />
+            Chromeに追加して、kintoneの「探す時間」をもっと短く。
+          </p>
+          <div class="hero-actions centered">
+            <a class="button button-primary" href="#">Chrome Web Storeへ</a>
+          </div>
+          <p class="install-note">※ 公開後にChrome Web StoreのURLへ差し替えてください。</p>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <div>© PlugBits</div>
+      <div class="footer-links">
+        <a href="#">Privacy Policy</a>
+        <a href="#">Contact</a>
+      </div>
+    </footer>
+  </div>
+</body>
+</html>
