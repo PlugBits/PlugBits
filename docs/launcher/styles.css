@@ -590,3 +590,30 @@ kbd,
     font-size: 32px;
   }
 }
+/* スマホでのリズムを整える追加設定 */
+@media (max-width: 720px) {
+  /* 文章の塊を読みやすく */
+  .hero-lead, .section-heading p {
+    font-size: 15px; /* スマホでは18pxは少し大きい場合があるため */
+    text-align: left; /* リード文は左寄せの方が可読性が高い */
+    line-height: 1.7;
+  }
+
+  /* セクションごとに背景を交互に変えて「区切り」を出す */
+  /* 奇数番目のセクションを少し明るく */
+  .section:nth-of-type(odd) {
+    background: rgba(255, 255, 255, 0.015);
+  }
+
+  /* カードのタイトルをもっと際立たせる */
+  .info-card h3, .feature-item h4 {
+    font-size: 18px;
+    color: var(--accent); /* タイトルに色をつけて視線を誘導 */
+  }
+
+  /* モックアップ内の表をスマホで隠す（または簡略化） */
+  .mock-grid {
+    display: none; /* スマホではリスト表示（.mock-list）だけで十分伝わる */
+  }
+}
+
