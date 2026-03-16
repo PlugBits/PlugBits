@@ -1,187 +1,196 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<title>Privacy Policy - PlugBits Launcher for kintone</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="privacy.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Privacy Policy - PlugBits Launcher for kintone</title>
+  <link rel="stylesheet" href="privacy.css" />
 </head>
-
 <body>
+  <main class="container">
+    <header class="page-header">
+      <h1>Privacy Policy</h1>
+      <p class="lead">
+        This privacy policy describes how the Chrome extension
+        <strong>PlugBits Launcher for kintone</strong>
+        handles user information.
+      </p>
+    </header>
 
-<h1>Privacy Policy</h1>
+    <section class="policy-section">
+      <h2>Information Storage</h2>
+      <p>
+        The extension stores user configuration data using Chrome Extension Storage, including:
+      </p>
+      <ul>
+        <li>Pinned records</li>
+        <li>Favorite shortcuts</li>
+        <li>Recently accessed records</li>
+        <li>User interface preferences</li>
+        <li>Extension settings</li>
+      </ul>
 
-<p>
-This privacy policy describes how the Chrome extension
-<strong>PlugBits Launcher for kintone</strong> handles user information.
-</p>
+      <p>The data is stored using:</p>
+      <ul>
+        <li><code>chrome.storage.local</code></li>
+        <li><code>chrome.storage.sync</code></li>
+      </ul>
 
-<h2>Information Storage</h2>
+      <p>
+        If <code>chrome.storage.sync</code> is used, settings may be synchronized between the user's Chrome browsers.
+      </p>
+    </section>
 
-<p>The extension stores user configuration data using Chrome Extension Storage, including:</p>
+    <section class="policy-section">
+      <h2>Network Communication</h2>
+      <p>
+        The extension communicates only with the user's kintone environment to retrieve data required for the extension features.
+      </p>
+      <p>Supported domains include:</p>
+      <ul>
+        <li>*.kintone.com</li>
+        <li>*.cybozu.com</li>
+        <li>*.kintone-dev.com</li>
+      </ul>
+    </section>
 
-<ul>
-<li>Pinned records</li>
-<li>Favorite shortcuts</li>
-<li>Recently accessed records</li>
-<li>User interface preferences</li>
-<li>Extension settings</li>
-</ul>
+    <section class="policy-section">
+      <h2>Personal Data Collection</h2>
+      <p>
+        The extension does not collect or transmit personal data to third-party servers.
+      </p>
+      <p>The extension does not collect:</p>
+      <ul>
+        <li>Personally identifiable information</li>
+        <li>Browsing history</li>
+        <li>Cookies</li>
+        <li>Tracking or analytics data</li>
+      </ul>
+    </section>
 
-<p>The data is stored using:</p>
+    <section class="policy-section">
+      <h2>Data Sharing</h2>
+      <p>
+        User data is not sold, shared, or used for advertising purposes.
+      </p>
+    </section>
 
-<ul>
-<li><code>chrome.storage.local</code></li>
-<li><code>chrome.storage.sync</code></li>
-</ul>
+    <section class="policy-section">
+      <h2>External Scripts</h2>
+      <p>
+        The extension does not load external scripts or third-party libraries.
+      </p>
+    </section>
 
-<p>
-If <code>chrome.storage.sync</code> is used, settings may be synchronized between the user's Chrome browsers.
-</p>
+    <section class="policy-section">
+      <h2>Changes</h2>
+      <p>
+        This privacy policy may be updated when necessary.
+      </p>
+    </section>
 
-<h2>Network Communication</h2>
+    <section class="policy-section">
+      <h2>Contact</h2>
+      <p>
+        If you have any questions about this policy, please contact us at:
+      </p>
+      <p>
+        <a href="mailto:support@plugbits.app">support@plugbits.app</a>
+      </p>
+    </section>
 
-<p>
-The extension communicates only with the user's kintone environment to retrieve data required for the extension features.
-</p>
+    <div class="divider"></div>
 
-<p>Supported domains include:</p>
+    <header class="page-header section-gap">
+      <h1>プライバシーポリシー</h1>
+      <p class="lead">
+        本プライバシーポリシーは、Chrome拡張機能
+        <strong>PlugBits Launcher for kintone</strong>
+        におけるユーザー情報の取り扱いについて説明するものです。
+      </p>
+    </header>
 
-<ul>
-<li>*.kintone.com</li>
-<li>*.cybozu.com</li>
-<li>*.kintone-dev.com</li>
-</ul>
+    <section class="policy-section">
+      <h2>保存される情報</h2>
+      <p>
+        本拡張は、以下の設定情報を Chrome 拡張ストレージに保存します。
+      </p>
+      <ul>
+        <li>ピン留めしたレコード情報</li>
+        <li>お気に入り（ショートカット）設定</li>
+        <li>最近アクセスしたレコード</li>
+        <li>ユーザーインターフェース設定</li>
+        <li>拡張機能の設定</li>
+      </ul>
 
-<h2>Personal Data Collection</h2>
+      <p>保存には以下の Chrome 拡張ストレージが使用されます。</p>
+      <ul>
+        <li><code>chrome.storage.local</code></li>
+        <li><code>chrome.storage.sync</code></li>
+      </ul>
 
-<p>The extension does not collect or transmit personal data to third-party servers.</p>
+      <p>
+        <code>chrome.storage.sync</code> を利用する場合、Chrome の同期機能によりブラウザ間で設定が同期される場合があります。
+      </p>
+    </section>
 
-<p>The extension does not collect:</p>
+    <section class="policy-section">
+      <h2>通信について</h2>
+      <p>
+        本拡張は機能提供のため、ユーザーが利用している kintone 環境に対して API 通信を行います。
+      </p>
+      <p>通信対象ドメイン:</p>
+      <ul>
+        <li>*.kintone.com</li>
+        <li>*.cybozu.com</li>
+        <li>*.kintone-dev.com</li>
+      </ul>
+    </section>
 
-<ul>
-<li>Personally identifiable information</li>
-<li>Browsing history</li>
-<li>Cookies</li>
-<li>Tracking or analytics data</li>
-</ul>
+    <section class="policy-section">
+      <h2>個人情報の収集</h2>
+      <p>
+        本拡張は個人情報を第三者のサーバーへ収集・送信しません。
+      </p>
+      <p>また、以下の情報を収集しません。</p>
+      <ul>
+        <li>個人を特定できる情報</li>
+        <li>ブラウザの閲覧履歴</li>
+        <li>Cookie</li>
+        <li>トラッキングや解析データ</li>
+      </ul>
+    </section>
 
-<p>
-Any data displayed by the extension remains within the user's browser and kintone environment.
-</p> 
+    <section class="policy-section">
+      <h2>第三者提供</h2>
+      <p>
+        ユーザーデータを第三者へ販売・共有することはありません。また、広告やマーケティング目的で利用することもありません。
+      </p>
+    </section>
 
-<h2>Data Sharing</h2>
+    <section class="policy-section">
+      <h2>外部スクリプト</h2>
+      <p>
+        本拡張は外部CDNや外部スクリプトを読み込みません。
+      </p>
+    </section>
 
-<p>User data is not sold, shared, or used for advertising purposes.</p>
+    <section class="policy-section">
+      <h2>変更</h2>
+      <p>
+        本ポリシーは必要に応じて更新される場合があります。
+      </p>
+    </section>
 
-<h2>External Scripts</h2>
-
-<p>
-The extension does not load external scripts from third-party servers during operation.
-</p>
-
-<h2>Changes</h2>
-
-<p>This privacy policy may be updated when necessary.</p>
-
-
-<hr>
-
-
-<h1>プライバシーポリシー</h1>
-
-<p>
-本プライバシーポリシーは、Chrome拡張機能
-<strong>PlugBits Launcher for kintone</strong>
-におけるユーザー情報の取り扱いについて説明するものです。
-</p>
-
-<h2>保存される情報</h2>
-
-<p>
-本拡張は、以下の設定情報を Chrome 拡張ストレージに保存します。
-</p>
-
-<ul>
-<li>ピン留めしたレコード情報</li>
-<li>お気に入り（ショートカット）設定</li>
-<li>最近アクセスしたレコード</li>
-<li>ユーザーインターフェース設定</li>
-<li>拡張機能の設定</li>
-</ul>
-
-<p>保存には以下の Chrome 拡張ストレージが使用されます。</p>
-
-<ul>
-<li><code>chrome.storage.local</code></li>
-<li><code>chrome.storage.sync</code></li>
-</ul>
-
-<p>
-<code>chrome.storage.sync</code> を利用する場合、Chrome の同期機能により
-ブラウザ間で設定が同期される場合があります。
-</p>
-
-<h2>通信について</h2>
-
-<p>
-本拡張は機能提供のため、ユーザーが利用している
-kintone 環境に対して API 通信を行います。
-</p>
-
-<p>通信対象ドメイン:</p>
-
-<ul>
-<li>*.kintone.com</li>
-<li>*.cybozu.com</li>
-<li>*.kintone-dev.com</li>
-</ul>
-
-<h2>個人情報の収集</h2>
-
-<p>
-本拡張は以下の情報を収集しません。
-</p>
-
-<ul>
-<li>個人を特定できる情報</li>
-<li>ブラウザの閲覧履歴</li>
-<li>Cookie</li>
-<li>トラッキングや解析データ</li>
-</ul>
-<p>
-本拡張が表示するデータは、ユーザーのブラウザ内および利用中の kintone 環境内でのみ扱われます。
-</p>
-
-<h2>第三者提供</h2>
-
-<p>
-ユーザーデータを第三者へ販売・共有することはありません。
-また、広告やマーケティング目的で利用することもありません。
-</p>
-
-<h2>外部スクリプト</h2>
-
-<p>
-本拡張は、動作中に第三者サーバーから外部スクリプトを読み込みません。
-</p>
-
-<h2>変更</h2>
-
-<p>
-本ポリシーは必要に応じて更新される場合があります。
-</p>
-<h2>Contact / お問い合わせ</h2>
-<p>
-If you have any questions about this Privacy Policy, please contact us at
-<a href="mailto:support@plugbits.app">support@plugbits.app</a>
-</p>
-<p>
-本ポリシーに関するお問い合わせは
-<a href="mailto:support@plugbits.app">support@plugbits.app</a>
-までご連絡ください。
-</p>
+    <section class="policy-section">
+      <h2>お問い合わせ</h2>
+      <p>
+        本ポリシーに関するお問い合わせは、以下までご連絡ください。
+      </p>
+      <p>
+        <a href="mailto:support@plugbits.app">support@plugbits.app</a>
+      </p>
+    </section>
+  </main>
 </body>
 </html>
