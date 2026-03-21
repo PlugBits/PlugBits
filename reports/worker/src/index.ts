@@ -9,6 +9,14 @@ import type {
   TemplateElement,
 } from "../../shared/template.js";
 import { TEMPLATE_SCHEMA_VERSION, getPageDimensions } from "../../shared/template.js";
+import type {
+  RendererErrorCode,
+  RendererInlineAsset,
+  RendererRenderRequest,
+  RendererRenderResponse,
+  RendererRenderSuccess,
+  RenderJobStatus,
+} from "../../shared/rendering.js";
 
 import { renderLabelCalibrationPdf, renderTemplateToPdf } from "./pdf/renderTemplate.ts";
 import { PDFDocument, StandardFonts } from "pdf-lib";
@@ -50,8 +58,13 @@ export interface Env {
   JP_FONT_FAMILY?: string;
   JP_FONT_BIZUD_URL?: string;
   JP_FONT_MPLUS_URL?: string;
-  LATIN_FONT_URL?: string; 
+  LATIN_FONT_URL?: string;
   ADMIN_API_KEY?: string;
+  RENDER_MODE?: "local" | "remote";
+  RENDERER_BASE_URL?: string;
+  RENDERER_INTERNAL_TOKEN?: string;
+  RENDERER_REQUEST_TIMEOUT_MS?: string;
+  RENDERER_VERSION?: string;
   TEMPLATE_KV: KVNamespace;
   USER_TEMPLATES_KV: KVNamespace;
   SESSIONS_KV: KVNamespace;
@@ -89,7 +102,6 @@ type RenderRequestBody = {
 };
 
 type RenderMode = "layout" | "preview" | "final";
-type RenderJobStatus = "queued" | "processing" | "done" | "failed";
 type RenderJobRequestBody = {
   templateId?: string;
   recordId?: string | number;
@@ -118,11 +130,13 @@ type RenderJobRecord = {
   jobId: string;
   status: RenderJobStatus;
   templateId: string;
+  templateRevision: number | null;
   recordId: string;
   recordRevision: string;
   kintoneBaseUrl: string;
   appId: string;
   tenantKey: string;
+  tenantId: string;
   jpFontFamily: JpFontFamily;
   dedupKey: string;
   requestedAt: string;
@@ -130,19 +144,30 @@ type RenderJobRecord = {
   updatedAt: string;
   startedAt?: string | null;
   completedAt?: string | null;
+  finishedAt?: string | null;
+  pdfKey?: string | null;
   pdfObjectKey?: string | null;
+  pdfBytes?: number | null;
+  renderMs?: number | null;
+  errorCode?: RendererErrorCode | null;
+  errorMessage?: string | null;
   error?: string | null;
+  rendererVersion?: string | null;
+  attempt: number;
 };
 
 // CORS 設定
 const CORS_HEADERS: Record<string, string> = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "Content-Type, Authorization, x-api-key, x-kintone-api-token, x-session-token, X-Requested-With",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization, x-api-key, x-kintone-api-token, x-session-token, x-renderer-internal-token, x-renderer-request-id, x-renderer-version, x-renderer-job-id, X-Requested-With",
   "Access-Control-Allow-Methods": "GET,POST,PUT,DELETE,OPTIONS",
   "Access-Control-Max-Age": "86400",
 };
 
 const SESSION_TTL_SECONDS = 60 * 60;
+const DEFAULT_RENDERER_TIMEOUT_MS = 60_000;
+const DEFAULT_RENDERER_VERSION = "v1";
+const INTERNAL_RENDERER_HEADER = "x-renderer-internal-token";
 const DEBUG_PATTERN = /(^|[?#&])debug=(1|true)($|[&#])/i;
 
 const parseDebugFlags = (url: URL) => {
@@ -1023,10 +1048,12 @@ const loadEditorSession = async (
   token: string,
 ): Promise<{
   session: {
+    tenantKey: string;
     kintoneBaseUrl: string;
     appId: string;
     expiresAt: number;
     kintoneApiToken?: string;
+    tokensByAppId?: Record<string, string>;
     companyProfile?: CompanyProfile;
   };
 } | { error: Response }> => {
@@ -1059,18 +1086,22 @@ const loadEditorSession = async (
   }
 
   let session: {
+    tenantKey?: string;
     kintoneBaseUrl?: string;
     appId?: string;
     expiresAt?: number;
     kintoneApiToken?: string;
+    tokensByAppId?: Record<string, string>;
     companyProfile?: CompanyProfile;
   };
   try {
     session = JSON.parse(raw) as {
+      tenantKey?: string;
       kintoneBaseUrl?: string;
       appId?: string;
       expiresAt?: number;
       kintoneApiToken?: string;
+      tokensByAppId?: Record<string, string>;
       companyProfile?: CompanyProfile;
     };
   } catch {
@@ -1093,6 +1124,20 @@ const loadEditorSession = async (
     };
   }
 
+  let tenantKey = session.tenantKey ?? "";
+  if (!tenantKey) {
+    try {
+      tenantKey = buildTenantKey(kintoneBaseUrl, appId);
+    } catch {
+      return {
+        error: new Response("Invalid session payload", {
+          status: 401,
+          headers: CORS_HEADERS,
+        }),
+      };
+    }
+  }
+
   if (!session?.expiresAt || Date.now() > session.expiresAt) {
     return {
       error: new Response("Session expired", {
@@ -1104,10 +1149,13 @@ const loadEditorSession = async (
 
   return {
     session: {
+      tenantKey,
       kintoneBaseUrl,
       appId,
       expiresAt: Number(session.expiresAt),
       kintoneApiToken: session.kintoneApiToken,
+      tokensByAppId: session.tokensByAppId,
+      companyProfile: normalizeCompanyProfile(session.companyProfile),
     },
   };
 };
@@ -1123,29 +1171,172 @@ const jsonError = (status: number, payload: Record<string, unknown>) =>
     },
   });
 
+const resolveRenderModeSetting = (env: Env): "local" | "remote" =>
+  env.RENDER_MODE === "remote" ? "remote" : "local";
+
+const getRendererVersion = (env: Env) => env.RENDERER_VERSION?.trim() || DEFAULT_RENDERER_VERSION;
+
+const getRendererTimeoutMs = (env: Env) => {
+  const parsed = Number(env.RENDERER_REQUEST_TIMEOUT_MS ?? "");
+  if (!Number.isFinite(parsed) || parsed <= 0) return DEFAULT_RENDERER_TIMEOUT_MS;
+  return parsed;
+};
+
+const buildRenderOutputKey = (jobId: string) => `renders/${jobId}/output.pdf`;
+
+const logRenderJobEvent = (
+  tag: string,
+  env: Env,
+  recordLike: Partial<RenderJobRecord> & {
+    jobId?: string | null;
+    templateId?: string | null;
+    tenantId?: string | null;
+    status?: RenderJobStatus | null;
+  },
+  extra?: Record<string, unknown>,
+) => {
+  console.info(tag, {
+    jobId: recordLike.jobId ?? null,
+    templateId: recordLike.templateId ?? null,
+    tenantId: recordLike.tenantId ?? null,
+    rendererVersion: recordLike.rendererVersion ?? getRendererVersion(env),
+    renderMode: resolveRenderModeSetting(env),
+    pdfKey: recordLike.pdfKey ?? recordLike.pdfObjectKey ?? null,
+    pdfBytes: recordLike.pdfBytes ?? null,
+    renderMs: recordLike.renderMs ?? null,
+    status: recordLike.status ?? null,
+    errorCode: recordLike.errorCode ?? null,
+    ...extra,
+  });
+};
+
+const buildRendererInternalHeaders = (env: Env, requestId: string, jobId?: string) => {
+  const token = env.RENDERER_INTERNAL_TOKEN?.trim();
+  if (!token) {
+    throw new Error("RENDERER_INTERNAL_TOKEN is not configured");
+  }
+  const headers: Record<string, string> = {
+    [INTERNAL_RENDERER_HEADER]: token,
+    "x-renderer-request-id": requestId,
+  };
+  if (jobId) headers["x-renderer-job-id"] = jobId;
+  return headers;
+};
+
+const authorizeRendererInternalRequest = (request: Request, env: Env): Response | null => {
+  const expected = env.RENDERER_INTERNAL_TOKEN?.trim();
+  const actual = request.headers.get(INTERNAL_RENDERER_HEADER)?.trim() ?? "";
+  if (!expected || !actual || expected !== actual) {
+    return jsonError(401, {
+      error: "UNAUTHORIZED_RENDERER_CALL",
+      errorCode: "UNAUTHORIZED_RENDERER_CALL",
+      errorMessage: "renderer internal token mismatch",
+    });
+  }
+  return null;
+};
+
+const bytesToBase64 = (bytes: Uint8Array): string => {
+  let binary = "";
+  const chunkSize = 0x8000;
+  for (let offset = 0; offset < bytes.length; offset += chunkSize) {
+    binary += String.fromCharCode(...bytes.subarray(offset, offset + chunkSize));
+  }
+  return btoa(binary);
+};
+
+const getRenderJobsStore = (
+  env: Env,
+): { kv: KVNamespace; store: "RENDER_JOBS_KV" | "RENDER_CACHE" } | null => {
+  if (env.RENDER_JOBS_KV) return { kv: env.RENDER_JOBS_KV, store: "RENDER_JOBS_KV" };
+  if (env.RENDER_CACHE) return { kv: env.RENDER_CACHE, store: "RENDER_CACHE" };
+  return null;
+};
+
 const getRenderJobsKv = (env: Env): KVNamespace | null =>
-  env.RENDER_JOBS_KV ?? env.RENDER_CACHE ?? null;
+  getRenderJobsStore(env)?.kv ?? null;
 
 const buildRenderJobKey = (jobId: string) => `render_job:${jobId}`;
 const buildRenderJobDedupKey = (signatureHash: string) => `render_job_dedup:${signatureHash}`;
 
 const putRenderJobRecord = async (env: Env, record: RenderJobRecord) => {
-  const kv = getRenderJobsKv(env);
-  if (!kv) throw new Error("RENDER_JOBS_KV_OR_RENDER_CACHE_REQUIRED");
-  await kv.put(buildRenderJobKey(record.jobId), JSON.stringify(record));
+  const store = getRenderJobsStore(env);
+  if (!store) throw new Error("RENDER_JOBS_KV_OR_RENDER_CACHE_REQUIRED");
+  const key = buildRenderJobKey(record.jobId);
+  await store.kv.put(key, JSON.stringify(record));
+  console.info("[DBG_RENDER_JOB_STORE_WRITE]", {
+    jobId: record.jobId,
+    status: record.status,
+    store: store.store,
+    key,
+  });
 };
 
 const getRenderJobRecord = async (
   env: Env,
   jobId: string,
 ): Promise<RenderJobRecord | null> => {
-  const kv = getRenderJobsKv(env);
-  if (!kv) return null;
-  const raw = await kv.get(buildRenderJobKey(jobId));
-  if (!raw) return null;
+  const store = getRenderJobsStore(env);
+  if (!store) return null;
+  const key = buildRenderJobKey(jobId);
+  const raw = await store.kv.get(key);
+  if (!raw) {
+    console.info("[DBG_RENDER_JOB_STORE_READ]", {
+      jobId,
+      status: null,
+      store: store.store,
+      key,
+      found: false,
+    });
+    return null;
+  }
   try {
-    return JSON.parse(raw) as RenderJobRecord;
+    const parsed = JSON.parse(raw) as Partial<RenderJobRecord>;
+    const normalized: RenderJobRecord = {
+      jobId: String(parsed.jobId ?? jobId),
+      status: (parsed.status as RenderJobStatus | undefined) ?? "queued",
+      templateId: String(parsed.templateId ?? ""),
+      templateRevision: parsed.templateRevision ?? null,
+      recordId: String(parsed.recordId ?? ""),
+      recordRevision: String(parsed.recordRevision ?? ""),
+      kintoneBaseUrl: String(parsed.kintoneBaseUrl ?? ""),
+      appId: String(parsed.appId ?? ""),
+      tenantKey: String(parsed.tenantKey ?? ""),
+      tenantId: String(parsed.tenantId ?? parsed.tenantKey ?? ""),
+      jpFontFamily: (parsed.jpFontFamily as JpFontFamily | undefined) ?? "noto",
+      dedupKey: String(parsed.dedupKey ?? ""),
+      requestedAt: String(parsed.requestedAt ?? parsed.createdAt ?? new Date().toISOString()),
+      createdAt: String(parsed.createdAt ?? parsed.requestedAt ?? new Date().toISOString()),
+      updatedAt: String(parsed.updatedAt ?? parsed.createdAt ?? new Date().toISOString()),
+      startedAt: parsed.startedAt ?? null,
+      completedAt: parsed.completedAt ?? null,
+      finishedAt: parsed.finishedAt ?? parsed.completedAt ?? null,
+      pdfKey: parsed.pdfKey ?? parsed.pdfObjectKey ?? null,
+      pdfObjectKey: parsed.pdfObjectKey ?? parsed.pdfKey ?? null,
+      pdfBytes: parsed.pdfBytes ?? null,
+      renderMs: parsed.renderMs ?? null,
+      errorCode: parsed.errorCode ?? null,
+      errorMessage: parsed.errorMessage ?? parsed.error ?? null,
+      error: parsed.error ?? parsed.errorMessage ?? null,
+      rendererVersion: parsed.rendererVersion ?? null,
+      attempt: Number.isFinite(parsed.attempt) ? Number(parsed.attempt) : 1,
+    };
+    console.info("[DBG_RENDER_JOB_STORE_READ]", {
+      jobId,
+      status: normalized.status,
+      store: store.store,
+      key,
+      found: true,
+    });
+    return normalized;
   } catch {
+    console.info("[DBG_RENDER_JOB_STORE_READ]", {
+      jobId,
+      status: null,
+      store: store.store,
+      key,
+      found: false,
+    });
     return null;
   }
 };
@@ -1164,7 +1355,113 @@ const updateRenderJobStatus = async (
     updatedAt: patch.updatedAt ?? now,
   };
   await putRenderJobRecord(env, next);
+  logRenderJobEvent("[DBG_RENDER_JOB_STATUS_UPDATE]", env, next);
   return next;
+};
+
+const createRenderJobRecord = async (env: Env, record: RenderJobRecord) => {
+  await putRenderJobRecord(env, record);
+  logRenderJobEvent("[DBG_RENDER_JOB_CREATE]", env, record);
+  return record;
+};
+
+const markRenderJobRunning = async (env: Env, jobId: string, patch?: Partial<RenderJobRecord>) => {
+  const next = await updateRenderJobStatus(env, jobId, {
+    ...patch,
+    status: "running",
+    startedAt: patch?.startedAt ?? new Date().toISOString(),
+    error: null,
+    errorCode: null,
+    errorMessage: null,
+  });
+  if (next) {
+    logRenderJobEvent("[DBG_RENDER_JOB_START]", env, next, {
+      attempt: next.attempt,
+    });
+  }
+  return next;
+};
+
+const markRenderJobDone = async (
+  env: Env,
+  jobId: string,
+  patch: {
+    pdfKey: string;
+    pdfBytes: number;
+    renderMs: number;
+    rendererVersion: string;
+    finishedAt?: string;
+  },
+) => {
+  const finishedAt = patch.finishedAt ?? new Date().toISOString();
+  const next = await updateRenderJobStatus(env, jobId, {
+    status: "done",
+    finishedAt,
+    completedAt: finishedAt,
+    pdfKey: patch.pdfKey,
+    pdfObjectKey: patch.pdfKey,
+    pdfBytes: patch.pdfBytes,
+    renderMs: patch.renderMs,
+    rendererVersion: patch.rendererVersion,
+    error: null,
+    errorCode: null,
+    errorMessage: null,
+  });
+  if (next) {
+    logRenderJobEvent("[DBG_RENDER_JOB_DONE]", env, next);
+  }
+  return next;
+};
+
+const markRenderJobFailed = async (
+  env: Env,
+  jobId: string,
+  patch: {
+    errorCode: RendererErrorCode;
+    errorMessage: string;
+    rendererVersion?: string | null;
+    finishedAt?: string;
+  },
+) => {
+  const finishedAt = patch.finishedAt ?? new Date().toISOString();
+  const next = await updateRenderJobStatus(env, jobId, {
+    status: "failed",
+    finishedAt,
+    completedAt: finishedAt,
+    errorCode: patch.errorCode,
+    errorMessage: patch.errorMessage,
+    error: patch.errorMessage,
+    rendererVersion: patch.rendererVersion ?? null,
+  });
+  if (next) {
+    logRenderJobEvent("[DBG_RENDER_JOB_FAILED]", env, next, {
+      errorMessage: next.errorMessage,
+    });
+  }
+  return next;
+};
+
+const reconcileRenderJobDoneFromOutput = async (
+  env: Env,
+  record: RenderJobRecord,
+): Promise<RenderJobRecord> => {
+  if (record.status === "done") return record;
+  if (!env.TENANT_ASSETS) return record;
+  const pdfObjectKey = record.pdfKey ?? record.pdfObjectKey ?? buildRenderOutputKey(record.jobId);
+  const object = await env.TENANT_ASSETS.head(pdfObjectKey);
+  if (!object) return record;
+  const updated = await updateRenderJobStatus(env, record.jobId, {
+    status: "done",
+    finishedAt: record.finishedAt ?? new Date().toISOString(),
+    completedAt: record.completedAt ?? record.finishedAt ?? new Date().toISOString(),
+    pdfKey: pdfObjectKey,
+    pdfObjectKey,
+    pdfBytes: object.size ?? record.pdfBytes ?? null,
+    error: null,
+    errorCode: null,
+    errorMessage: null,
+  });
+  return updated ?? { ...record, status: "done", pdfKey: pdfObjectKey, pdfObjectKey };
 };
 
 const normalizeRenderJobIdValue = (
@@ -1240,6 +1537,202 @@ const normalizeKintoneRecordForRender = (
   return normalized;
 };
 
+const resolveTenantStoredKintoneApiToken = (
+  tenantRecord: Awaited<ReturnType<typeof getTenantRecord>>,
+  appIdRaw: string,
+): string => {
+  if (!tenantRecord) return "";
+  const appIdStr = String(appIdRaw ?? "").trim();
+  let normalizedAppId = "";
+  try {
+    normalizedAppId = canonicalizeAppId(appIdStr);
+  } catch {
+    normalizedAppId = "";
+  }
+  const appIdForLookup = normalizedAppId || appIdStr;
+  if (!appIdForLookup) return "";
+  const token =
+    tenantRecord.tokensByAppId?.[appIdForLookup] ??
+    tenantRecord.tokensByAppId?.[appIdStr] ??
+    tenantRecord.tokensByAppId?.[normalizedAppId] ??
+    (tenantRecord.appId === appIdForLookup ? tenantRecord.kintoneApiToken : undefined) ??
+    tenantRecord.kintoneApiToken;
+  return token?.trim() ?? "";
+};
+
+const resolveSessionKintoneApiToken = async (
+  env: Env,
+  sessionToken: string,
+  tenantKey: string,
+  appId: string,
+): Promise<string> => {
+  if (!sessionToken) {
+    console.info("[DBG_RENDER_JOB_SESSION_RESOLVE]", {
+      hasSessionToken: false,
+      sessionFound: false,
+      tenantKey,
+      appId: String(appId ?? ""),
+      hasSessionData: false,
+      hasTokensByAppId: false,
+      availableAppIds: [],
+      resolvedFromAppId: null,
+      hasResolvedToken: false,
+    });
+    return "";
+  }
+  const appIdStr = String(appId ?? "").trim();
+  const loaded = await loadEditorSession(env, sessionToken);
+  if ("error" in loaded) {
+    console.info("[DBG_RENDER_JOB_SESSION_RESOLVE]", {
+      hasSessionToken: true,
+      sessionFound: false,
+      tenantKey,
+      appId: appIdStr,
+      hasSessionData: false,
+      hasTokensByAppId: false,
+      availableAppIds: [],
+      resolvedFromAppId: null,
+      hasResolvedToken: false,
+    });
+    return "";
+  }
+  let sessionTenantKey = "";
+  try {
+    sessionTenantKey = buildTenantKey(
+      loaded.session.kintoneBaseUrl,
+      loaded.session.appId,
+    );
+  } catch {
+    console.info("[DBG_RENDER_JOB_SESSION_RESOLVE]", {
+      hasSessionToken: true,
+      sessionFound: true,
+      tenantKey,
+      appId: appIdStr,
+      hasSessionData: true,
+      hasTokensByAppId: false,
+      availableAppIds: [],
+      resolvedFromAppId: null,
+      hasResolvedToken: false,
+    });
+    return "";
+  }
+  if (sessionTenantKey !== tenantKey) {
+    console.info("[DBG_RENDER_JOB_SESSION_RESOLVE]", {
+      hasSessionToken: true,
+      sessionFound: true,
+      tenantKey,
+      appId: appIdStr,
+      hasSessionData: true,
+      hasTokensByAppId: false,
+      availableAppIds: [],
+      resolvedFromAppId: null,
+      hasResolvedToken: false,
+    });
+    return "";
+  }
+
+  const availableSessionAppIds = loaded.session.tokensByAppId
+    ? Object.keys(loaded.session.tokensByAppId)
+    : [];
+  let normalizedAppId = "";
+  try {
+    normalizedAppId = canonicalizeAppId(appIdStr);
+  } catch {
+    normalizedAppId = "";
+  }
+  const sessionMapToken =
+    loaded.session.tokensByAppId?.[appIdStr] ??
+    (normalizedAppId ? loaded.session.tokensByAppId?.[normalizedAppId] : undefined) ??
+    "";
+  if (sessionMapToken) {
+    console.info("[DBG_RENDER_JOB_SESSION_RESOLVE]", {
+      hasSessionToken: true,
+      sessionFound: true,
+      tenantKey,
+      appId: appIdStr,
+      hasSessionData: true,
+      hasTokensByAppId: availableSessionAppIds.length > 0,
+      availableAppIds: availableSessionAppIds,
+      resolvedFromAppId:
+        loaded.session.tokensByAppId?.[appIdStr] ? appIdStr : normalizedAppId || appIdStr,
+      hasResolvedToken: true,
+    });
+    return String(sessionMapToken).trim();
+  }
+
+  const directToken = loaded.session.kintoneApiToken?.trim() ?? "";
+  if (directToken) {
+    console.info("[DBG_RENDER_JOB_SESSION_RESOLVE]", {
+      hasSessionToken: true,
+      sessionFound: true,
+      tenantKey,
+      appId: appIdStr,
+      hasSessionData: true,
+      hasTokensByAppId: availableSessionAppIds.length > 0,
+      availableAppIds: availableSessionAppIds,
+      resolvedFromAppId: appIdStr || null,
+      hasResolvedToken: true,
+    });
+    return directToken;
+  }
+
+  const tenantRecord = await getTenantRecord(env.USER_TEMPLATES_KV, tenantKey);
+  const availableTenantAppIds = tenantRecord?.tokensByAppId
+    ? Object.keys(tenantRecord.tokensByAppId)
+    : [];
+  const availableAppIds = [
+    ...new Set([...availableSessionAppIds, ...availableTenantAppIds]),
+  ];
+  const tenantToken = resolveTenantStoredKintoneApiToken(tenantRecord, appId);
+  if (!tenantToken || !env.SESSIONS_KV) {
+    console.info("[DBG_RENDER_JOB_SESSION_RESOLVE]", {
+      hasSessionToken: true,
+      sessionFound: true,
+      tenantKey,
+      appId: appIdStr,
+      hasSessionData: true,
+      hasTokensByAppId: availableAppIds.length > 0,
+      availableAppIds,
+      resolvedFromAppId: tenantToken ? appIdStr || null : null,
+      hasResolvedToken: Boolean(tenantToken),
+    });
+    return tenantToken;
+  }
+
+  const ttlSeconds = Math.max(
+    1,
+    Math.floor((loaded.session.expiresAt - Date.now()) / 1000),
+  );
+  if (ttlSeconds > 0) {
+    const nextTokensByAppId = {
+      ...(loaded.session.tokensByAppId ?? {}),
+      [normalizedAppId || appIdStr]: tenantToken,
+    };
+    await env.SESSIONS_KV.put(
+      `editor_session:${sessionToken}`,
+      JSON.stringify({
+        ...loaded.session,
+        tenantKey: loaded.session.tenantKey,
+        kintoneApiToken: tenantToken,
+        tokensByAppId: nextTokensByAppId,
+      }),
+      { expirationTtl: ttlSeconds },
+    );
+  }
+  console.info("[DBG_RENDER_JOB_SESSION_RESOLVE]", {
+    hasSessionToken: true,
+    sessionFound: true,
+    tenantKey,
+    appId: appIdStr,
+    hasSessionData: true,
+    hasTokensByAppId: availableAppIds.length > 0,
+    availableAppIds,
+    resolvedFromAppId: appIdStr || null,
+    hasResolvedToken: true,
+  });
+  return tenantToken;
+};
+
 const fetchKintoneRecordForJob = async (
   env: Env,
   payload: RenderJobMessage,
@@ -1247,20 +1740,20 @@ const fetchKintoneRecordForJob = async (
   let token = "";
   let tokenSource: "session" | "body" | "missing" = "missing";
   if (payload.sessionToken) {
-    const loaded = await loadEditorSession(env, payload.sessionToken);
-    if (!("error" in loaded)) {
-      try {
-        const sessionTenantKey = buildTenantKey(
-          loaded.session.kintoneBaseUrl,
-          loaded.session.appId,
-        );
-        if (sessionTenantKey === payload.tenantKey) {
-          token = loaded.session.kintoneApiToken?.trim() ?? "";
-          if (token) tokenSource = "session";
-        }
-      } catch {
-        // ignore invalid session
-      }
+    token = await resolveSessionKintoneApiToken(
+      env,
+      payload.sessionToken,
+      payload.tenantKey,
+      payload.appId,
+    );
+    if (token) tokenSource = "session";
+  }
+  if (!token) {
+    const tenantRecord = await getTenantRecord(env.USER_TEMPLATES_KV, payload.tenantKey);
+    const tenantToken = resolveTenantStoredKintoneApiToken(tenantRecord, payload.appId);
+    if (tenantToken) {
+      token = tenantToken;
+      tokenSource = payload.sessionToken ? "session" : "body";
     }
   }
   if (!token) {
@@ -2040,6 +2533,52 @@ const handleHttpRequest = async (request: Request, env: Env): Promise<Response> 
           });
         }
 
+        const tenantKey = buildTenantKey(kintoneBaseUrl, appId);
+        const existingTenant = await getTenantRecord(env.USER_TEMPLATES_KV, tenantKey);
+        const incomingToken = (
+          payload.kintoneApiToken ??
+          request.headers.get("x-kintone-api-token") ??
+          ""
+        ).trim();
+        const tokensByAppId: Record<string, string> = {
+          ...(existingTenant?.tokensByAppId ?? {}),
+        };
+        if (incomingToken) {
+          tokensByAppId[appId] = incomingToken;
+        } else if (
+          existingTenant?.kintoneApiToken &&
+          !tokensByAppId[appId]
+        ) {
+          tokensByAppId[appId] = existingTenant.kintoneApiToken;
+        }
+        console.info("[DBG_SESSION_SOURCE]", {
+          tenantKey,
+          appId,
+          hasTenantRecord: Boolean(existingTenant),
+          tenantRecordKeys: existingTenant ? Object.keys(existingTenant) : [],
+          hasTokensByAppId: Object.keys(existingTenant?.tokensByAppId ?? {}).length > 0,
+          availableAppIds: Object.keys(existingTenant?.tokensByAppId ?? {}),
+          hasDirectKintoneApiToken: Boolean(existingTenant?.kintoneApiToken),
+          directTokenAppId: existingTenant?.appId ?? null,
+        });
+        const resolvedSessionToken =
+          incomingToken ||
+          tokensByAppId[appId] ||
+          (existingTenant?.appId === appId ? existingTenant?.kintoneApiToken : undefined) ||
+          existingTenant?.kintoneApiToken ||
+          "";
+        if (incomingToken) {
+          if (existingTenant) {
+            await upsertTenantApiToken(env.USER_TEMPLATES_KV, tenantKey, appId, incomingToken);
+          } else {
+            await registerTenant(env.USER_TEMPLATES_KV, {
+              kintoneBaseUrl,
+              appId,
+              kintoneApiToken: incomingToken,
+            });
+          }
+        }
+
         const sessionToken =
           typeof crypto !== "undefined" && "randomUUID" in crypto
             ? `st_${crypto.randomUUID()}`
@@ -2047,15 +2586,23 @@ const handleHttpRequest = async (request: Request, env: Env): Promise<Response> 
         const expiresAt = Date.now() + SESSION_TTL_SECONDS * 1000;
         const key = `editor_session:${sessionToken}`;
         const value = JSON.stringify({
+          tenantKey,
           kintoneBaseUrl,
           appId,
           expiresAt,
-          kintoneApiToken: payload.kintoneApiToken,
+          kintoneApiToken: resolvedSessionToken || undefined,
+          tokensByAppId: Object.keys(tokensByAppId).length > 0 ? tokensByAppId : undefined,
           companyProfile: normalizeCompanyProfile(payload.companyProfile),
         });
         await env.SESSIONS_KV.put(key, value, { expirationTtl: SESSION_TTL_SECONDS });
 
         console.info("[editor/session] issued", { sessionToken: sessionToken.slice(0, 8) });
+        console.info("[DBG_SESSION_CREATE]", {
+          tenantKey,
+          appId,
+          hasTokensByAppId: Object.keys(tokensByAppId).length > 0,
+          availableAppIds: Object.keys(tokensByAppId),
+        });
 
         return new Response(JSON.stringify({ sessionToken, expiresAt }), {
           status: 200,
@@ -2119,9 +2666,21 @@ const handleHttpRequest = async (request: Request, env: Env): Promise<Response> 
           });
         }
 
-        let payload: { token?: string; kintoneApiToken?: string };
+        let payload: {
+          token?: string;
+          sessionToken?: string;
+          kintoneApiToken?: string;
+          appId?: string | number;
+          kintoneBaseUrl?: string;
+        };
         try {
-          payload = (await request.json()) as { token?: string; kintoneApiToken?: string };
+          payload = (await request.json()) as {
+            token?: string;
+            sessionToken?: string;
+            kintoneApiToken?: string;
+            appId?: string | number;
+            kintoneBaseUrl?: string;
+          };
         } catch {
           return new Response("Invalid JSON body", {
             status: 400,
@@ -2129,10 +2688,13 @@ const handleHttpRequest = async (request: Request, env: Env): Promise<Response> 
           });
         }
 
-        const token = payload?.token ?? "";
+        const token = String(payload?.sessionToken ?? payload?.token ?? "").trim();
         console.info("[editor/session] exchange payload", {
           hasKintoneApiToken: Boolean(payload?.kintoneApiToken),
           tokenLength: payload?.kintoneApiToken?.length ?? 0,
+          hasSessionToken: Boolean(token),
+          appId: payload?.appId ?? null,
+          kintoneBaseUrl: payload?.kintoneBaseUrl ?? null,
         });
         const loaded = await loadEditorSession(env, token);
         if ("error" in loaded) return loaded.error;
@@ -2140,6 +2702,10 @@ const handleHttpRequest = async (request: Request, env: Env): Promise<Response> 
         const session = loaded.session;
         const incomingToken = payload?.kintoneApiToken?.trim() ?? "";
         if (incomingToken && incomingToken !== session.kintoneApiToken) {
+          const nextTokensByAppId = {
+            ...(session.tokensByAppId ?? {}),
+            [session.appId]: incomingToken,
+          };
           const key = `editor_session:${token}`;
           const ttlSeconds = Math.max(
             1,
@@ -2147,10 +2713,16 @@ const handleHttpRequest = async (request: Request, env: Env): Promise<Response> 
           );
           await env.SESSIONS_KV.put(
             key,
-            JSON.stringify({ ...session, kintoneApiToken: incomingToken }),
+            JSON.stringify({
+              ...session,
+              tenantKey: session.tenantKey,
+              kintoneApiToken: incomingToken,
+              tokensByAppId: nextTokensByAppId,
+            }),
             { expirationTtl: ttlSeconds },
           );
           session.kintoneApiToken = incomingToken;
+          session.tokensByAppId = nextTokensByAppId;
         }
         let canonicalBaseUrl = "";
         let canonicalAppId = "";
@@ -2196,6 +2768,36 @@ const handleHttpRequest = async (request: Request, env: Env): Promise<Response> 
           if (updated) record = updated;
         }
 
+        const resolvedToken =
+          incomingToken ||
+          session.kintoneApiToken?.trim() ||
+          resolveTenantStoredKintoneApiToken(record, canonicalAppId);
+        const nextTokensByAppId = {
+          ...(session.tokensByAppId ?? {}),
+        };
+        if (resolvedToken) {
+          nextTokensByAppId[canonicalAppId] = resolvedToken;
+        }
+        const ttlSeconds = Math.max(
+          1,
+          Math.floor((session.expiresAt - Date.now()) / 1000),
+        );
+        const sessionKey = `editor_session:${token}`;
+        await env.SESSIONS_KV.put(
+          sessionKey,
+          JSON.stringify({
+            ...session,
+            tenantKey: tenantId,
+            appId: canonicalAppId,
+            kintoneApiToken: resolvedToken || undefined,
+            tokensByAppId: Object.keys(nextTokensByAppId).length > 0 ? nextTokensByAppId : undefined,
+          }),
+          { expirationTtl: ttlSeconds },
+        );
+        session.kintoneApiToken = resolvedToken || undefined;
+        session.tokensByAppId =
+          Object.keys(nextTokensByAppId).length > 0 ? nextTokensByAppId : undefined;
+
         const issued = await issueEditorToken(record.tenantId, record.tenantSecret);
         const expiresAt = new Date(issued.expiresAt).getTime();
 
@@ -2203,6 +2805,12 @@ const handleHttpRequest = async (request: Request, env: Env): Promise<Response> 
           tenantId: record.tenantId,
           hasToken: Boolean(session.kintoneApiToken),
           tokenLength: session.kintoneApiToken?.length ?? 0,
+        });
+        console.info("[DBG_SESSION_CREATE]", {
+          tenantKey: tenantId,
+          appId: canonicalAppId,
+          hasTokensByAppId: Object.keys(session.tokensByAppId ?? {}).length > 0,
+          availableAppIds: Object.keys(session.tokensByAppId ?? {}),
         });
 
         return new Response(
@@ -4125,7 +4733,10 @@ const handleHttpRequest = async (request: Request, env: Env): Promise<Response> 
         }
 
         if (!template) {
-          return jsonError(404, { error: "TEMPLATE_NOT_FOUND" });
+          return jsonError(404, {
+            error: "TEMPLATE_LOAD_FAILED",
+            errorCode: "TEMPLATE_LOAD_FAILED",
+          });
         }
         if (template.structureType !== "estimate_v1") {
           return jsonError(400, { error: "UNSUPPORTED_TEMPLATE" });
@@ -4590,6 +5201,126 @@ const handleHttpRequest = async (request: Request, env: Env): Promise<Response> 
         });
       }
 
+      if (url.pathname === "/internal/render-assets" && request.method === "GET") {
+        const authError = authorizeRendererInternalRequest(request, env);
+        if (authError) return authError;
+        if (!env.TENANT_ASSETS) {
+          return jsonError(500, {
+            error: "UPLOAD_FAILED",
+            errorCode: "UPLOAD_FAILED",
+            errorMessage: "TENANT_ASSETS not configured",
+          });
+        }
+        const key = String(url.searchParams.get("key") ?? "").trim();
+        if (!key) {
+          return jsonError(400, {
+            error: "INVALID_PAYLOAD",
+            errorCode: "INVALID_PAYLOAD",
+            errorMessage: "missing key",
+          });
+        }
+        const object = await env.TENANT_ASSETS.get(key);
+        if (!object) {
+          return jsonError(404, {
+            error: "BACKGROUND_FETCH_FAILED",
+            errorCode: "BACKGROUND_FETCH_FAILED",
+            errorMessage: "background asset not found",
+            key,
+          });
+        }
+        const bytes = await object.arrayBuffer();
+        console.info("[DBG_RENDERER_ASSET_FETCH]", {
+          key,
+          bytesLen: bytes.byteLength,
+          contentType: object.httpMetadata?.contentType ?? "application/octet-stream",
+        });
+        return new Response(bytes, {
+          status: 200,
+          headers: {
+            ...CORS_HEADERS,
+            "Content-Type": object.httpMetadata?.contentType ?? "application/octet-stream",
+            "Cache-Control": "no-store",
+          },
+        });
+      }
+
+      const internalRenderJobFileMatch = url.pathname.match(/^\/internal\/render-jobs\/([^/]+)\/file$/);
+      if (internalRenderJobFileMatch && request.method === "PUT") {
+        const authError = authorizeRendererInternalRequest(request, env);
+        if (authError) return authError;
+        if (!env.TENANT_ASSETS) {
+          return jsonError(500, {
+            error: "UPLOAD_FAILED",
+            errorCode: "UPLOAD_FAILED",
+            errorMessage: "TENANT_ASSETS not configured",
+          });
+        }
+        const jobId = internalRenderJobFileMatch[1];
+        const record = await getRenderJobRecord(env, jobId);
+        if (!record) {
+          return jsonError(404, {
+            error: "JOB_NOT_FOUND",
+            errorCode: "JOB_NOT_FOUND",
+            errorMessage: "job not found",
+          });
+        }
+        const pdfKey = String(
+          request.headers.get("x-pdf-key") ??
+            url.searchParams.get("pdfKey") ??
+            record.pdfKey ??
+            buildRenderOutputKey(jobId),
+        ).trim();
+        if (!pdfKey) {
+          return jsonError(400, {
+            error: "INVALID_PAYLOAD",
+            errorCode: "INVALID_PAYLOAD",
+            errorMessage: "missing pdfKey",
+          });
+        }
+        const bytes = new Uint8Array(await request.arrayBuffer());
+        if (bytes.length === 0) {
+          return jsonError(400, {
+            error: "INVALID_PAYLOAD",
+            errorCode: "INVALID_PAYLOAD",
+            errorMessage: "empty pdf body",
+          });
+        }
+        const rendererVersion =
+          request.headers.get("x-renderer-version")?.trim() || getRendererVersion(env);
+        await env.TENANT_ASSETS.put(pdfKey, bytes, {
+          httpMetadata: { contentType: "application/pdf" },
+          customMetadata: {
+            jobId,
+            templateId: record.templateId,
+            tenantId: record.tenantId,
+            rendererVersion,
+          },
+        });
+        console.info("[DBG_RENDERER_UPLOAD_DONE]", {
+          jobId,
+          templateId: record.templateId,
+          tenantId: record.tenantId,
+          pdfKey,
+          pdfBytes: bytes.length,
+          rendererVersion,
+        });
+        return new Response(
+          JSON.stringify({
+            ok: true,
+            jobId,
+            pdfKey,
+            pdfBytes: bytes.length,
+          }),
+          {
+            status: 200,
+            headers: {
+              ...CORS_HEADERS,
+              "Content-Type": "application/json",
+            },
+          },
+        );
+      }
+
       if (url.pathname === "/render-jobs" && request.method === "POST") {
         const jobsKv = getRenderJobsKv(env);
         if (!jobsKv || !env.RENDER_JOBS_QUEUE) {
@@ -4601,6 +5332,18 @@ const handleHttpRequest = async (request: Request, env: Env): Promise<Response> 
         } catch {
           return jsonError(400, { error: "BAD_REQUEST", reason: "invalid json body" });
         }
+        console.info("[DBG_RENDER_JOB_SESSION_INPUT]", {
+          hasSessionToken: Boolean(payload?.sessionToken),
+          sessionTokenPrefix:
+            typeof payload?.sessionToken === "string"
+              ? payload.sessionToken.slice(0, 8)
+              : null,
+          hasKintoneApiToken: Boolean(payload?.kintoneApiToken),
+          recordId: payload?.recordId ?? null,
+          recordRevision: payload?.recordRevision ?? null,
+          appId: payload?.appId ?? null,
+          kintoneBaseUrl: payload?.kintoneBaseUrl ?? null,
+        });
         const templateId = String(payload?.templateId ?? "").trim();
         const normalizedRecordId = normalizeRenderJobIdValue(payload?.recordId, "recordId");
         const normalizedRecordRevision = normalizeRenderJobIdValue(
@@ -4693,7 +5436,21 @@ const handleHttpRequest = async (request: Request, env: Env): Promise<Response> 
           return jsonError(401, { error: "UNAUTHORIZED", reason: "missing token or invalid" });
         }
         const tokenFromBody = payload?.kintoneApiToken?.trim() ?? "";
-        const tokenFromSession = verifiedSession?.kintoneApiToken?.trim() ?? "";
+        let tokenFromSession = "";
+        if (sessionToken) {
+          tokenFromSession = await resolveSessionKintoneApiToken(
+            env,
+            sessionToken,
+            tenantKey,
+            normalizedAppId,
+          );
+        } else {
+          tokenFromSession = verifiedSession?.kintoneApiToken?.trim() ?? "";
+        }
+        if (!tokenFromSession) {
+          const tenantRecord = await getTenantRecord(env.USER_TEMPLATES_KV, tenantKey);
+          tokenFromSession = resolveTenantStoredKintoneApiToken(tenantRecord, normalizedAppId);
+        }
         let resolvedKintoneApiToken = tokenFromSession;
         let tokenSource = "missing";
         if (tokenFromSession) {
@@ -4733,13 +5490,10 @@ const handleHttpRequest = async (request: Request, env: Env): Promise<Response> 
           const existingRecord = await getRenderJobRecord(env, existingJobId);
           if (
             existingRecord &&
-            (existingRecord.status === "queued" || existingRecord.status === "processing")
+            (existingRecord.status === "queued" || existingRecord.status === "running")
           ) {
-            console.info("[DBG_RENDER_JOB_CREATE]", {
-              jobId: existingJobId,
-              status: existingRecord.status,
+            logRenderJobEvent("[DBG_RENDER_JOB_CREATE]", env, existingRecord, {
               dedupHit: true,
-              templateId,
               recordId,
               recordRevision,
               jpFontFamily: existingRecord.jpFontFamily,
@@ -4748,7 +5502,12 @@ const handleHttpRequest = async (request: Request, env: Env): Promise<Response> 
               JSON.stringify({ jobId: existingJobId, status: existingRecord.status }),
               {
                 status: 202,
-                headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
+                headers: {
+                  ...CORS_HEADERS,
+                  "Content-Type": "application/json",
+                  "Cache-Control": "no-store, no-cache, must-revalidate",
+                  Pragma: "no-cache",
+                },
               },
             );
           }
@@ -4762,22 +5521,35 @@ const handleHttpRequest = async (request: Request, env: Env): Promise<Response> 
           jobId,
           status: "queued",
           templateId,
+          templateRevision: null,
           recordId,
           recordRevision,
           kintoneBaseUrl: normalizedBaseUrl,
           appId: normalizedAppId,
           tenantKey,
+          tenantId: tenantKey,
           jpFontFamily: jpSelection.requestedFamily,
           dedupKey,
           requestedAt: now,
           createdAt: now,
           updatedAt: now,
           startedAt: null,
+          finishedAt: null,
           completedAt: null,
+          pdfKey: null,
           pdfObjectKey: null,
+          pdfBytes: null,
+          renderMs: null,
+          errorCode: null,
+          errorMessage: null,
           error: null,
+          rendererVersion:
+            resolveRenderModeSetting(env) === "remote"
+              ? getRendererVersion(env)
+              : `worker-local:${getRendererVersion(env)}`,
+          attempt: 1,
         };
-        await putRenderJobRecord(env, record);
+        await createRenderJobRecord(env, record);
         await jobsKv.put(dedupKey, jobId, { expirationTtl: 60 * 30 });
         try {
           const queuePayload: RenderJobMessage = {
@@ -4797,58 +5569,95 @@ const handleHttpRequest = async (request: Request, env: Env): Promise<Response> 
           await env.RENDER_JOBS_QUEUE.send(queuePayload);
         } catch (error) {
           const message = error instanceof Error ? error.message : String(error);
-          await updateRenderJobStatus(env, jobId, {
-            status: "failed",
-            completedAt: new Date().toISOString(),
-            error: message,
+          await markRenderJobFailed(env, jobId, {
+            errorCode: "RENDER_FAILED",
+            errorMessage: message,
+            rendererVersion: record.rendererVersion,
           });
           await jobsKv.delete(dedupKey);
           return jsonError(500, { error: "QUEUE_SEND_FAILED", message });
         }
-        console.info("[DBG_RENDER_JOB_CREATE]", {
-          jobId,
-          status: "queued",
-          templateId,
-          recordId,
-          recordRevision,
-          jpFontFamily: jpSelection.requestedFamily,
-          dedupKey,
-        });
         console.info("[DBG_RENDER_JOB_STATUS]", { jobId, status: "queued" });
         return new Response(JSON.stringify({ jobId, status: "queued" }), {
           status: 202,
-          headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
+          headers: {
+            ...CORS_HEADERS,
+            "Content-Type": "application/json",
+            "Cache-Control": "no-store, no-cache, must-revalidate",
+            Pragma: "no-cache",
+          },
         });
       }
 
-      const renderJobPdfMatch = url.pathname.match(/^\/render-jobs\/([^/]+)\/pdf$/);
+      const renderJobPdfMatch = url.pathname.match(/^\/render-jobs\/([^/]+)\/(pdf|file)$/);
       if (renderJobPdfMatch && request.method === "GET") {
         const jobId = renderJobPdfMatch[1];
-        const record = await getRenderJobRecord(env, jobId);
-        if (!record) {
-          return jsonError(404, { error: "NOT_FOUND", reason: "job not found" });
+        const initialRecord = await getRenderJobRecord(env, jobId);
+        if (!initialRecord) {
+          console.info("[DBG_RENDER_JOB_FILE_FETCH]", {
+            jobId,
+            status: null,
+            errorCode: "JOB_NOT_FOUND",
+            renderMode: resolveRenderModeSetting(env),
+          });
+          return jsonError(404, {
+            error: "JOB_NOT_FOUND",
+            errorCode: "JOB_NOT_FOUND",
+            errorMessage: "job not found",
+          });
         }
+        const record = await reconcileRenderJobDoneFromOutput(env, initialRecord);
         const authError = await authorizeRenderJobAccess(request, env, record.tenantKey, url);
         if (authError) return authError;
         if (record.status !== "done") {
+          logRenderJobEvent("[DBG_RENDER_JOB_FILE_FETCH]", env, record, {
+            errorCode: "FILE_NOT_READY",
+            requestedPath: renderJobPdfMatch[2],
+          });
           return jsonError(409, {
-            error: "JOB_NOT_DONE",
+            error: "FILE_NOT_READY",
+            errorCode: "FILE_NOT_READY",
+            errorMessage: "render job is not done",
             jobId,
             status: record.status,
           });
         }
-        if (!record.pdfObjectKey || !env.TENANT_ASSETS) {
-          return jsonError(404, { error: "PDF_NOT_FOUND", jobId });
+        const pdfKey = record.pdfKey ?? record.pdfObjectKey;
+        if (!pdfKey || !env.TENANT_ASSETS) {
+          logRenderJobEvent("[DBG_RENDER_JOB_FILE_FETCH]", env, record, {
+            errorCode: "UPLOAD_FAILED",
+            requestedPath: renderJobPdfMatch[2],
+          });
+          return jsonError(500, {
+            error: "UPLOAD_FAILED",
+            errorCode: "UPLOAD_FAILED",
+            errorMessage: "render output key is missing",
+            jobId,
+          });
         }
-        const object = await env.TENANT_ASSETS.get(record.pdfObjectKey);
+        const object = await env.TENANT_ASSETS.get(pdfKey);
         if (!object) {
-          return jsonError(404, { error: "PDF_NOT_FOUND", jobId });
+          logRenderJobEvent("[DBG_RENDER_JOB_FILE_FETCH]", env, record, {
+            errorCode: "UPLOAD_FAILED",
+            requestedPath: renderJobPdfMatch[2],
+          });
+          return jsonError(500, {
+            error: "UPLOAD_FAILED",
+            errorCode: "UPLOAD_FAILED",
+            errorMessage: "render output file is missing",
+            jobId,
+          });
         }
         const bytes = await object.arrayBuffer();
+        logRenderJobEvent("[DBG_RENDER_JOB_FILE_FETCH]", env, record, {
+          requestedPath: renderJobPdfMatch[2],
+          pdfKey,
+          pdfBytes: bytes.byteLength,
+        });
         console.info("[DBG_RENDER_JOB_DOWNLOAD]", {
           jobId,
           status: record.status,
-          pdfObjectKey: record.pdfObjectKey,
+          pdfKey,
           bytesLen: bytes.byteLength,
         });
         return new Response(bytes, {
@@ -4857,6 +5666,8 @@ const handleHttpRequest = async (request: Request, env: Env): Promise<Response> 
             ...CORS_HEADERS,
             "Content-Type": "application/pdf",
             "Content-Disposition": `attachment; filename=\"plugbits-${record.recordId}.pdf\"`,
+            "Cache-Control": "no-store, no-cache, must-revalidate",
+            Pragma: "no-cache",
           },
         });
       }
@@ -4864,10 +5675,15 @@ const handleHttpRequest = async (request: Request, env: Env): Promise<Response> 
       const renderJobGetMatch = url.pathname.match(/^\/render-jobs\/([^/]+)$/);
       if (renderJobGetMatch && request.method === "GET") {
         const jobId = renderJobGetMatch[1];
-        const record = await getRenderJobRecord(env, jobId);
-        if (!record) {
-          return jsonError(404, { error: "NOT_FOUND", reason: "job not found" });
+        const initialRecord = await getRenderJobRecord(env, jobId);
+        if (!initialRecord) {
+          return jsonError(404, {
+            error: "JOB_NOT_FOUND",
+            errorCode: "JOB_NOT_FOUND",
+            errorMessage: "job not found",
+          });
         }
+        const record = await reconcileRenderJobDoneFromOutput(env, initialRecord);
         const authError = await authorizeRenderJobAccess(request, env, record.tenantKey, url);
         if (authError) return authError;
         console.info("[DBG_RENDER_JOB_POLL]", {
@@ -4877,20 +5693,35 @@ const handleHttpRequest = async (request: Request, env: Env): Promise<Response> 
         console.info("[DBG_RENDER_JOB_STATUS]", {
           jobId: record.jobId,
           status: record.status,
-          pdfObjectKey: record.pdfObjectKey ?? null,
+          pdfKey: record.pdfKey ?? record.pdfObjectKey ?? null,
         });
         return new Response(
           JSON.stringify({
             jobId: record.jobId,
             status: record.status,
-            pdfObjectKey: record.pdfObjectKey ?? null,
-            error: record.error ?? null,
+            templateId: record.templateId,
+            templateRevision: record.templateRevision ?? null,
+            tenantId: record.tenantId,
+            pdfKey: record.pdfKey ?? record.pdfObjectKey ?? null,
+            pdfObjectKey: record.pdfKey ?? record.pdfObjectKey ?? null,
+            pdfBytes: record.pdfBytes ?? null,
+            renderMs: record.renderMs ?? null,
+            errorCode: record.errorCode ?? null,
+            errorMessage: record.errorMessage ?? record.error ?? null,
+            error: record.errorMessage ?? record.error ?? null,
+            rendererVersion: record.rendererVersion ?? null,
             createdAt: record.createdAt ?? record.requestedAt ?? null,
             updatedAt: record.updatedAt ?? record.requestedAt ?? null,
+            finishedAt: record.finishedAt ?? record.completedAt ?? null,
           }),
           {
             status: 200,
-            headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
+            headers: {
+              ...CORS_HEADERS,
+              "Content-Type": "application/json",
+              "Cache-Control": "no-store, no-cache, must-revalidate",
+              Pragma: "no-cache",
+            },
           },
         );
       }
@@ -5945,6 +6776,419 @@ const handleHttpRequest = async (request: Request, env: Env): Promise<Response> 
   }
 };
 
+class RenderExecutionError extends Error {
+  code: RendererErrorCode;
+
+  constructor(code: RendererErrorCode, message: string) {
+    super(message);
+    this.name = "RenderExecutionError";
+    this.code = code;
+  }
+}
+
+const normalizeRendererError = (
+  error: unknown,
+): { errorCode: RendererErrorCode; errorMessage: string } => {
+  if (error instanceof RenderExecutionError) {
+    return { errorCode: error.code, errorMessage: error.message };
+  }
+  const message = error instanceof Error ? error.message : String(error);
+  if (/UNAUTHORIZED_RENDERER_CALL/i.test(message)) {
+    return { errorCode: "UNAUTHORIZED_RENDERER_CALL", errorMessage: "Renderer authorization failed" };
+  }
+  if (/BACKGROUND_FETCH_FAILED/i.test(message) || /background/i.test(message)) {
+    return { errorCode: "BACKGROUND_FETCH_FAILED", errorMessage: "Background fetch failed" };
+  }
+  if (/FONT_LOAD_FAILED/i.test(message) || /font/i.test(message)) {
+    return { errorCode: "FONT_LOAD_FAILED", errorMessage: "Font load failed" };
+  }
+  if (/UPLOAD_FAILED/i.test(message) || /upload/i.test(message)) {
+    return { errorCode: "UPLOAD_FAILED", errorMessage: "PDF upload failed" };
+  }
+  if (/timeout/i.test(message)) {
+    return { errorCode: "RENDERER_TIMEOUT", errorMessage: "Renderer timed out" };
+  }
+  if (/RENDERER_HTTP_FAILED/i.test(message) || /renderer http/i.test(message)) {
+    return { errorCode: "RENDERER_HTTP_FAILED", errorMessage: "Renderer HTTP call failed" };
+  }
+  if (/template/i.test(message)) {
+    return { errorCode: "TEMPLATE_LOAD_FAILED", errorMessage: message };
+  }
+  if (/JOB_NOT_FOUND/i.test(message)) {
+    return { errorCode: "JOB_NOT_FOUND", errorMessage: "Render job not found" };
+  }
+  if (/FILE_NOT_READY/i.test(message)) {
+    return { errorCode: "FILE_NOT_READY", errorMessage: "Render file is not ready" };
+  }
+  return { errorCode: "RENDER_FAILED", errorMessage: message };
+};
+
+const extractTemplateRevision = (template: TemplateDefinition): number | null => {
+  const candidates = [
+    (template as any).revision,
+    (template as any).meta?.revision,
+    (template as any).templateRevision,
+  ];
+  for (const candidate of candidates) {
+    const value = Number(candidate);
+    if (Number.isFinite(value)) return value;
+  }
+  return null;
+};
+
+const toInlineAsset = (
+  asset:
+    | {
+        bytes: Uint8Array;
+        contentType: string;
+        objectKey?: string;
+      }
+    | null
+    | undefined,
+): RendererInlineAsset | null => {
+  if (!asset?.bytes?.length) return null;
+  return {
+    base64: bytesToBase64(asset.bytes),
+    contentType: asset.contentType,
+    objectKey: asset.objectKey ?? null,
+  };
+};
+
+type PreparedRenderJobExecution = {
+  requestId: string;
+  template: TemplateDefinition;
+  data: Record<string, unknown>;
+  templateRevision: number | null;
+  backgroundKey: string | null;
+  backgroundIncludesCompanyLogo: boolean;
+  tenantLogo: RendererInlineAsset | null;
+  useJpFont: boolean;
+  skipLogo: boolean;
+  skipStaticLabels: boolean;
+  useBaseBackgroundDoc: boolean;
+  superFastMode: boolean;
+  rendererVersion: string;
+};
+
+const prepareRenderJobExecution = async (
+  env: Env,
+  payload: RenderJobMessage,
+  requestId: string,
+): Promise<PreparedRenderJobExecution> => {
+  const recordData = await fetchKintoneRecordForJob(env, payload);
+  const tenantRecord = await getTenantRecord(env.USER_TEMPLATES_KV, payload.tenantKey);
+  let template: TemplateDefinition;
+  try {
+    template = payload.templateId.startsWith("tpl_")
+      ? await resolveUserTemplate(payload.templateId, env, {
+          baseUrl: payload.kintoneBaseUrl,
+          appId: payload.appId,
+        })
+      : await getBaseTemplateById(payload.templateId, env);
+  } catch (error) {
+    throw new RenderExecutionError(
+      "TEMPLATE_LOAD_FAILED",
+      error instanceof Error ? error.message : String(error),
+    );
+  }
+
+  const migratedTemplate = migrateTemplate(template, {
+    enabled: false,
+    requestId,
+    reason: "render-job",
+    templateId: template.id ?? payload.templateId,
+  });
+  const validation = validateTemplate(migratedTemplate);
+  if (!validation.ok) {
+    const issue = validation.issues[0];
+    throw new RenderExecutionError(
+      "INVALID_PAYLOAD",
+      issue ? `${issue.code}: ${issue.message}` : "template validation failed",
+    );
+  }
+
+  let templateForRender = applyListV1SummaryFromMapping(migratedTemplate);
+  const renderCompanyProfile = normalizeCompanyProfile(tenantRecord?.companyProfile);
+  templateForRender = applyCompanyProfileToTemplate(templateForRender, renderCompanyProfile);
+  const templateRevision = extractTemplateRevision(templateForRender);
+  const templateFingerprint = await buildTemplateFingerprint(templateForRender);
+
+  let backgroundKey: string | null = null;
+  let backgroundIncludesCompanyLogo = false;
+  if (env.TENANT_ASSETS && templateForRender.structureType === "estimate_v1") {
+    const candidateKey = `backgrounds/${payload.tenantKey}/${templateForRender.id ?? payload.templateId}.pdf`;
+    try {
+      const head = await env.TENANT_ASSETS.head(candidateKey);
+      const metaFingerprint = head?.customMetadata?.templateFingerprint ?? null;
+      if (head && (!metaFingerprint || metaFingerprint === templateFingerprint.hash)) {
+        backgroundKey = candidateKey;
+        backgroundIncludesCompanyLogo =
+          head.customMetadata?.includesCompanyLogo === "1" ||
+          head.customMetadata?.hasLogo === "1";
+      }
+    } catch (error) {
+      console.warn("[WARN_BACKGROUND_HEAD]", {
+        jobId: payload.jobId,
+        backgroundKey: candidateKey,
+        message: error instanceof Error ? error.message : String(error),
+      });
+    }
+    if (!backgroundKey) {
+      throw new RenderExecutionError(
+        "BACKGROUND_FETCH_FAILED",
+        `estimate_v1 background missing for template=${templateForRender.id ?? payload.templateId}`,
+      );
+    }
+  }
+
+  const tenantLogoRaw = tenantRecord?.logo
+    ? await getTenantLogoBytes(env, tenantRecord.tenantId, tenantRecord.logo)
+    : null;
+  const tenantLogo = tenantRecord?.logo && tenantLogoRaw
+    ? {
+        ...tenantLogoRaw,
+        objectKey: tenantRecord.logo.objectKey,
+      }
+    : null;
+
+  const useBaseBackgroundDoc = Boolean(backgroundKey);
+  const skipStaticLabels = useBaseBackgroundDoc && templateForRender.structureType === "estimate_v1";
+  const skipLogo = useBaseBackgroundDoc && backgroundIncludesCompanyLogo;
+  const tenantLogoForRender = skipLogo ? null : tenantLogo;
+  const companyHasNonAscii = [
+    renderCompanyProfile.companyName,
+    renderCompanyProfile.companyAddress,
+    renderCompanyProfile.companyTel,
+    renderCompanyProfile.companyEmail,
+  ]
+    .filter((value): value is string => typeof value === "string")
+    .some((value) => hasNonAscii(value));
+  const useOverlayJpPolicy = useBaseBackgroundDoc && templateForRender.structureType === "estimate_v1";
+  const useJpFont = useOverlayJpPolicy
+    ? estimateOverlayTemplateHasNonAscii(templateForRender) ||
+      companyHasNonAscii ||
+      containsNonAsciiValue(recordData)
+    : shouldUseJpFont(
+        templateForRender,
+        recordData,
+        "final",
+        "record",
+        renderCompanyProfile,
+      );
+  const superFastMode = Boolean(tenantLogoForRender);
+
+  return {
+    requestId,
+    template: templateForRender,
+    data: recordData,
+    templateRevision,
+    backgroundKey,
+    backgroundIncludesCompanyLogo,
+    tenantLogo: toInlineAsset(tenantLogoForRender),
+    useJpFont,
+    skipLogo,
+    skipStaticLabels,
+    useBaseBackgroundDoc,
+    superFastMode,
+    rendererVersion: getRendererVersion(env),
+  };
+};
+
+const renderLocalPdf = async (
+  env: Env,
+  payload: RenderJobMessage,
+): Promise<RendererRenderSuccess> => {
+  if (!env.TENANT_ASSETS) {
+    throw new RenderExecutionError("UPLOAD_FAILED", "TENANT_ASSETS not configured");
+  }
+  const renderStartedAt = Date.now();
+  const { bytes, objectKey } = await renderPdfInternal(env, payload);
+  await env.TENANT_ASSETS.put(objectKey, bytes, {
+    httpMetadata: { contentType: "application/pdf" },
+    customMetadata: {
+      jobId: payload.jobId,
+      templateId: payload.templateId,
+      tenantId: payload.tenantKey,
+      rendererVersion: `worker-local:${getRendererVersion(env)}`,
+    },
+  });
+  return {
+    ok: true,
+    jobId: payload.jobId,
+    pdfKey: objectKey,
+    pdfBytes: bytes.length,
+    renderMs: Date.now() - renderStartedAt,
+    rendererVersion: `worker-local:${getRendererVersion(env)}`,
+  };
+};
+
+const callRendererService = async (
+  renderPayload: RendererRenderRequest,
+  env: Env,
+): Promise<RendererRenderSuccess> => {
+  const baseUrl = env.RENDERER_BASE_URL?.trim();
+  if (!baseUrl) {
+    throw new RenderExecutionError("RENDERER_HTTP_FAILED", "RENDERER_BASE_URL is not configured");
+  }
+  const timeoutMs = getRendererTimeoutMs(env);
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort("renderer-timeout"), timeoutMs);
+  const url = `${baseUrl.replace(/\/$/, "")}/internal/render`;
+  console.info("[DBG_RENDERER_CALL_START]", {
+    jobId: renderPayload.jobId,
+    templateId: renderPayload.meta.templateId,
+    tenantId: renderPayload.meta.tenantId,
+    rendererVersion: renderPayload.meta.rendererVersion,
+    renderMode: resolveRenderModeSetting(env),
+    pdfKey: renderPayload.assets.pdfKey ?? null,
+    pdfBytes: null,
+    renderMs: null,
+    status: "running",
+    errorCode: null,
+    timeoutMs,
+    url,
+  });
+  try {
+    const response = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...buildRendererInternalHeaders(env, renderPayload.meta.requestId ?? renderPayload.jobId, renderPayload.jobId),
+      },
+      body: JSON.stringify(renderPayload),
+      signal: controller.signal,
+    });
+    const parsed = (await response.json().catch(() => null)) as RendererRenderResponse | null;
+    if (!response.ok) {
+      const code = parsed && !parsed.ok ? parsed.errorCode : "RENDERER_HTTP_FAILED";
+      const message =
+        parsed && !parsed.ok ? parsed.errorMessage : `renderer http ${response.status}`;
+      console.error("[DBG_RENDERER_CALL_ERROR]", {
+        jobId: renderPayload.jobId,
+        templateId: renderPayload.meta.templateId,
+        tenantId: renderPayload.meta.tenantId,
+        rendererVersion: renderPayload.meta.rendererVersion,
+        renderMode: resolveRenderModeSetting(env),
+        status: response.status,
+        errorCode: code,
+      });
+      throw new RenderExecutionError(code, message);
+    }
+    if (!parsed || !parsed.ok) {
+      console.error("[DBG_RENDERER_CALL_ERROR]", {
+        jobId: renderPayload.jobId,
+        templateId: renderPayload.meta.templateId,
+        tenantId: renderPayload.meta.tenantId,
+        rendererVersion: renderPayload.meta.rendererVersion,
+        renderMode: resolveRenderModeSetting(env),
+        status: response.status,
+        errorCode: parsed && !parsed.ok ? parsed.errorCode : "RENDERER_HTTP_FAILED",
+      });
+      throw new RenderExecutionError(
+        parsed && !parsed.ok ? parsed.errorCode : "RENDERER_HTTP_FAILED",
+        parsed && !parsed.ok ? parsed.errorMessage : "renderer returned invalid payload",
+      );
+    }
+    console.info("[DBG_RENDERER_CALL_DONE]", {
+      jobId: parsed.jobId,
+      templateId: renderPayload.meta.templateId,
+      tenantId: renderPayload.meta.tenantId,
+      renderMode: resolveRenderModeSetting(env),
+      pdfKey: parsed.pdfKey,
+      renderMs: parsed.renderMs,
+      pdfBytes: parsed.pdfBytes,
+      rendererVersion: parsed.rendererVersion,
+      status: "done",
+      errorCode: null,
+    });
+    return parsed;
+  } catch (error) {
+    if ((error as any)?.name === "AbortError") {
+      console.error("[DBG_RENDERER_CALL_ERROR]", {
+        jobId: renderPayload.jobId,
+        templateId: renderPayload.meta.templateId,
+        tenantId: renderPayload.meta.tenantId,
+        rendererVersion: renderPayload.meta.rendererVersion,
+        renderMode: resolveRenderModeSetting(env),
+        pdfKey: renderPayload.assets.pdfKey ?? null,
+        pdfBytes: null,
+        renderMs: null,
+        status: "failed",
+        errorCode: "RENDERER_TIMEOUT",
+      });
+      throw new RenderExecutionError("RENDERER_TIMEOUT", `renderer timeout after ${timeoutMs}ms`);
+    }
+    const normalized = normalizeRendererError(error);
+    console.error("[DBG_RENDERER_CALL_ERROR]", {
+      jobId: renderPayload.jobId,
+      templateId: renderPayload.meta.templateId,
+      tenantId: renderPayload.meta.tenantId,
+      rendererVersion: renderPayload.meta.rendererVersion,
+      renderMode: resolveRenderModeSetting(env),
+      pdfKey: renderPayload.assets.pdfKey ?? null,
+      pdfBytes: null,
+      renderMs: null,
+      status: "failed",
+      errorCode: normalized.errorCode,
+    });
+    throw error;
+  } finally {
+    clearTimeout(timeout);
+  }
+};
+
+const renderRemotePdf = async (
+  env: Env,
+  payload: RenderJobMessage,
+): Promise<RendererRenderSuccess> => {
+  const requestId = `${payload.jobId}:${Date.now()}`;
+  const prepared = await prepareRenderJobExecution(env, payload, requestId);
+  await updateRenderJobStatus(env, payload.jobId, {
+    status: "running",
+    templateRevision: prepared.templateRevision,
+    rendererVersion: prepared.rendererVersion,
+  });
+  const rendererPayload: RendererRenderRequest = {
+    jobId: payload.jobId,
+    template: prepared.template,
+    data: prepared.data,
+    assets: {
+      backgroundKey: prepared.backgroundKey,
+      backgroundIncludesCompanyLogo: prepared.backgroundIncludesCompanyLogo,
+      tenantLogo: prepared.tenantLogo,
+      pdfKey: buildRenderOutputKey(payload.jobId),
+    },
+    meta: {
+      tenantId: payload.tenantKey,
+      templateId: prepared.template.id ?? payload.templateId,
+      templateRevision: prepared.templateRevision,
+      rendererVersion: prepared.rendererVersion,
+      requestId: prepared.requestId,
+      jpFontFamily: payload.jpFontFamily,
+    },
+    options: {
+      previewMode: "record",
+      renderMode: "final",
+      useJpFont: prepared.useJpFont,
+      superFastMode: prepared.superFastMode,
+      skipLogo: prepared.skipLogo,
+      skipStaticLabels: prepared.skipStaticLabels,
+      useBaseBackgroundDoc: prepared.useBaseBackgroundDoc,
+    },
+  };
+  return callRendererService(rendererPayload, env);
+};
+
+const executeRenderJob = async (
+  env: Env,
+  payload: RenderJobMessage,
+): Promise<RendererRenderSuccess> => {
+  if (resolveRenderModeSetting(env) === "remote") {
+    return renderRemotePdf(env, payload);
+  }
+  return renderLocalPdf(env, payload);
+};
+
 const renderPdfInternal = async (
   env: Env,
   payload: RenderJobMessage,
@@ -5984,7 +7228,7 @@ const renderPdfInternal = async (
     throw new Error(`render internal failed (${response.status}): ${errorText.slice(0, 500)}`);
   }
   const bytes = new Uint8Array(await response.arrayBuffer());
-  const objectKey = `jobs/output/${payload.tenantKey}/${payload.jobId}.pdf`;
+  const objectKey = buildRenderOutputKey(payload.jobId);
   return { bytes, objectKey };
 };
 
@@ -6005,41 +7249,35 @@ export default {
       });
       try {
         if (!jobsKv) throw new Error("RENDER_JOBS_KV_OR_RENDER_CACHE_REQUIRED");
-        if (!env.TENANT_ASSETS) throw new Error("TENANT_ASSETS not configured");
-        await updateRenderJobStatus(env, payload.jobId, {
-          status: "processing",
-          startedAt: new Date().toISOString(),
-          error: null,
+        await markRenderJobRunning(env, payload.jobId, {
+          rendererVersion:
+            resolveRenderModeSetting(env) === "remote"
+              ? getRendererVersion(env)
+              : `worker-local:${getRendererVersion(env)}`,
+          attempt: (await getRenderJobRecord(env, payload.jobId))?.attempt ?? 1,
         });
-        console.info("[DBG_RENDER_JOB_STATUS]", { jobId: payload.jobId, status: "processing" });
-        const { bytes, objectKey } = await renderPdfInternal(env, payload);
-        await env.TENANT_ASSETS.put(objectKey, bytes, {
-          httpMetadata: { contentType: "application/pdf" },
-        });
-        await updateRenderJobStatus(env, payload.jobId, {
-          status: "done",
-          completedAt: new Date().toISOString(),
-          pdfObjectKey: objectKey,
-          error: null,
+        console.info("[DBG_RENDER_JOB_STATUS]", { jobId: payload.jobId, status: "running" });
+        const result = await executeRenderJob(env, payload);
+        await markRenderJobDone(env, payload.jobId, {
+          pdfKey: result.pdfKey,
+          pdfBytes: result.pdfBytes,
+          renderMs: result.renderMs,
+          rendererVersion: result.rendererVersion,
         });
         const dedupJobId = await jobsKv.get(payload.dedupKey);
         if (dedupJobId === payload.jobId) {
           await jobsKv.delete(payload.dedupKey);
         }
         console.info("[DBG_RENDER_JOB_STATUS]", { jobId: payload.jobId, status: "done" });
-        console.info("[DBG_RENDER_JOB_DONE]", {
-          jobId: payload.jobId,
-          pdfObjectKey: objectKey,
-          bytesLen: bytes.length,
-        });
         message.ack();
       } catch (error) {
-        const messageText = error instanceof Error ? error.message : String(error);
+        const normalized = normalizeRendererError(error);
         if (jobsKv) {
-          await updateRenderJobStatus(env, payload.jobId, {
-            status: "failed",
-            completedAt: new Date().toISOString(),
-            error: messageText,
+          await markRenderJobFailed(env, payload.jobId, {
+            errorCode: normalized.errorCode,
+            errorMessage: normalized.errorMessage,
+            rendererVersion:
+              resolveRenderModeSetting(env) === "remote" ? getRendererVersion(env) : null,
           });
           const dedupJobId = await jobsKv.get(payload.dedupKey);
           if (dedupJobId === payload.jobId) {
@@ -6049,7 +7287,8 @@ export default {
         console.info("[DBG_RENDER_JOB_STATUS]", { jobId: payload.jobId, status: "failed" });
         console.error("[DBG_RENDER_JOB_FAIL]", {
           jobId: payload.jobId,
-          error: messageText,
+          errorCode: normalized.errorCode,
+          error: normalized.errorMessage,
         });
         message.ack();
       }
