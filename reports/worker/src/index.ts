@@ -11,11 +11,14 @@ import type {
 import { TEMPLATE_SCHEMA_VERSION, getPageDimensions } from "../../shared/template.js";
 import type {
   RendererErrorCode,
+  RendererJobResultRequest,
+  RendererJobTransitionRequest,
   RendererInlineAsset,
   RendererRenderRequest,
   RendererRenderResponse,
   RendererRenderSuccess,
   RenderJobStatus,
+  StoredRenderJobPayload,
 } from "../../shared/rendering.js";
 
 import { renderLabelCalibrationPdf, renderTemplateToPdf } from "./pdf/renderTemplate.ts";
@@ -50,6 +53,13 @@ import {
   updateTenantSettings,
 } from "./auth/tenantAuth.ts";
 import { canonicalizeAppId, canonicalizeKintoneBaseUrl } from "./utils/canonicalize.ts";
+import {
+  getRenderLogTier,
+  logRenderError,
+  logRenderInfo,
+  type RenderLogTier,
+} from "./logging/renderLogs.ts";
+import { runCloudRunJob, type CloudRunJobDispatchConfig } from "./lib/gcp/runJobs.ts";
 
 
 // Wrangler の env 定義（あってもなくても動くよう optional にする）
@@ -60,11 +70,21 @@ export interface Env {
   JP_FONT_MPLUS_URL?: string;
   LATIN_FONT_URL?: string;
   ADMIN_API_KEY?: string;
+  RENDER_LOG_LEVEL?: string;
   RENDER_MODE?: "local" | "remote";
   RENDERER_BASE_URL?: string;
   RENDERER_INTERNAL_TOKEN?: string;
   RENDERER_REQUEST_TIMEOUT_MS?: string;
   RENDERER_VERSION?: string;
+  GCP_PROJECT_ID?: string;
+  GCP_REGION?: string;
+  CLOUD_RUN_RENDER_JOB_NAME?: string;
+  CLOUD_RUN_RENDER_JOB_CONTAINER_NAME?: string;
+  GCP_SERVICE_ACCOUNT_CLIENT_EMAIL?: string;
+  GCP_SERVICE_ACCOUNT_PRIVATE_KEY?: string;
+  GCP_TOKEN_URI?: string;
+  CLOUD_RUN_RENDER_JOB_REQUEST_TIMEOUT_MS?: string;
+  CLOUD_RUN_RENDER_JOB_TASK_TIMEOUT?: string;
   TEMPLATE_KV: KVNamespace;
   USER_TEMPLATES_KV: KVNamespace;
   SESSIONS_KV: KVNamespace;
@@ -106,8 +126,19 @@ type RenderJobRequestBody = {
   templateId?: string;
   recordId?: string | number;
   recordRevision?: string | number;
+  mode?: "print" | "save";
   kintoneBaseUrl?: string;
   appId?: string | number;
+  openWhenDone?: boolean;
+  kintone?: {
+    baseUrl?: string;
+    appId?: string | number;
+  };
+  context?: {
+    tenantKey?: string;
+    userAgent?: string;
+    source?: string;
+  };
   jpFontFamily?: JpFontFamily;
   kintoneApiToken?: string;
   sessionToken?: string;
@@ -117,6 +148,7 @@ type RenderJobMessage = {
   templateId: string;
   recordId: string;
   recordRevision: string;
+  mode: RenderJobMode;
   kintoneBaseUrl: string;
   appId: string;
   jpFontFamily: JpFontFamily;
@@ -126,6 +158,7 @@ type RenderJobMessage = {
   dedupKey: string;
   requestedAt: string;
 };
+type RenderJobMode = "print" | "save";
 type RenderJobRecord = {
   jobId: string;
   status: RenderJobStatus;
@@ -137,6 +170,8 @@ type RenderJobRecord = {
   appId: string;
   tenantKey: string;
   tenantId: string;
+  mode: RenderJobMode;
+  source?: string | null;
   jpFontFamily: JpFontFamily;
   dedupKey: string;
   requestedAt: string;
@@ -147,14 +182,25 @@ type RenderJobRecord = {
   finishedAt?: string | null;
   pdfKey?: string | null;
   pdfObjectKey?: string | null;
+  pdfUrl?: string | null;
   pdfBytes?: number | null;
   renderMs?: number | null;
   errorCode?: RendererErrorCode | null;
   errorMessage?: string | null;
   error?: string | null;
   rendererVersion?: string | null;
+  executionName?: string | null;
+  executionDispatchedAt?: string | null;
+  renderStartedAt?: string | null;
+  renderFinishedAt?: string | null;
+  failureStage?: string | null;
+  errorSummary?: string | null;
+  errorDetails?: string | null;
+  requestedBy?: string | null;
   attempt: number;
 };
+
+type PublicRenderJobStatus = "queued" | "running" | "done" | "error";
 
 // CORS 設定
 const CORS_HEADERS: Record<string, string> = {
@@ -165,8 +211,13 @@ const CORS_HEADERS: Record<string, string> = {
 };
 
 const SESSION_TTL_SECONDS = 60 * 60;
-const DEFAULT_RENDERER_TIMEOUT_MS = 60_000;
+const DEFAULT_RENDERER_TIMEOUT_MS = 120_000;
 const DEFAULT_RENDERER_VERSION = "v1";
+const DEFAULT_GCP_RUN_JOB_REQUEST_TIMEOUT_MS = 30_000;
+const DEFAULT_RENDER_JOB_PAYLOAD_TTL_SECONDS = 60 * 60 * 24;
+const RENDER_JOB_DEDUP_REUSE_QUEUED_MS = 60_000;
+const RENDER_JOB_STALE_PROCESSING_MS = 10 * 60_000;
+const RENDER_JOBS_QUEUE_NAME = "render-jobs";
 const INTERNAL_RENDERER_HEADER = "x-renderer-internal-token";
 const DEBUG_PATTERN = /(^|[?#&])debug=(1|true)($|[&#])/i;
 
@@ -1182,7 +1233,83 @@ const getRendererTimeoutMs = (env: Env) => {
   return parsed;
 };
 
+const getCloudRunJobRequestTimeoutMs = (env: Env) => {
+  const parsed = Number(env.CLOUD_RUN_RENDER_JOB_REQUEST_TIMEOUT_MS ?? "");
+  if (!Number.isFinite(parsed) || parsed <= 0) return DEFAULT_GCP_RUN_JOB_REQUEST_TIMEOUT_MS;
+  return parsed;
+};
+
+const getCloudRunJobDispatchConfig = (env: Env): CloudRunJobDispatchConfig => {
+  const projectId = env.GCP_PROJECT_ID?.trim() ?? "";
+  const region = env.GCP_REGION?.trim() ?? "";
+  const jobName = env.CLOUD_RUN_RENDER_JOB_NAME?.trim() ?? "";
+  const serviceAccountClientEmail = env.GCP_SERVICE_ACCOUNT_CLIENT_EMAIL?.trim() ?? "";
+  const serviceAccountPrivateKey = env.GCP_SERVICE_ACCOUNT_PRIVATE_KEY?.trim() ?? "";
+  if (!projectId || !region || !jobName) {
+    throw new RenderExecutionError(
+      "RENDERER_HTTP_FAILED",
+      "Cloud Run Job config is not configured",
+    );
+  }
+  if (!serviceAccountClientEmail || !serviceAccountPrivateKey) {
+    throw new RenderExecutionError(
+      "UNAUTHORIZED_RENDERER_CALL",
+      "Google service account credentials are not configured",
+    );
+  }
+  return {
+    projectId,
+    region,
+    jobName,
+    serviceAccountClientEmail,
+    serviceAccountPrivateKey,
+    tokenUri: env.GCP_TOKEN_URI?.trim() ?? null,
+    requestTimeoutMs: getCloudRunJobRequestTimeoutMs(env),
+    taskTimeout: env.CLOUD_RUN_RENDER_JOB_TASK_TIMEOUT?.trim() || "900s",
+  };
+};
+
 const buildRenderOutputKey = (jobId: string) => `renders/${jobId}/output.pdf`;
+const buildRenderJobPdfPath = (jobId: string) => `/render-jobs/${encodeURIComponent(jobId)}/pdf`;
+const buildRenderJobPdfUrl = (request: Request, jobId: string) =>
+  new URL(buildRenderJobPdfPath(jobId), request.url).toString();
+
+const toPublicRenderJobStatus = (status: RenderJobStatus): PublicRenderJobStatus => {
+  if (status === "done") return "done";
+  if (status === "failed") return "error";
+  if (status === "running" || status === "processing") return "running";
+  return "queued";
+};
+
+const buildRenderJobPublicPayload = (request: Request, record: RenderJobRecord) => {
+  const status = toPublicRenderJobStatus(record.status);
+  const pdfUrl = status === "done"
+    ? (
+        record.pdfUrl
+          ? new URL(record.pdfUrl, request.url).toString()
+          : buildRenderJobPdfUrl(request, record.jobId)
+      )
+    : null;
+  return {
+    ok: status !== "error",
+    jobId: record.jobId,
+    status,
+    rawStatus: record.status,
+    templateId: record.templateId,
+    recordId: record.recordId,
+    mode: record.mode,
+    source: record.source ?? null,
+    executionName: record.executionName ?? null,
+    createdAt: record.createdAt ?? record.requestedAt ?? null,
+    startedAt: record.renderStartedAt ?? record.startedAt ?? null,
+    finishedAt: record.renderFinishedAt ?? record.finishedAt ?? record.completedAt ?? null,
+    pdfUrl,
+    pdfKey: record.pdfKey ?? record.pdfObjectKey ?? null,
+    errorCode: record.errorCode ?? null,
+    errorMessage: record.errorMessage ?? record.error ?? null,
+    rendererVersion: record.rendererVersion ?? null,
+  };
+};
 
 const logRenderJobEvent = (
   tag: string,
@@ -1190,23 +1317,77 @@ const logRenderJobEvent = (
   recordLike: Partial<RenderJobRecord> & {
     jobId?: string | null;
     templateId?: string | null;
+    recordId?: string | null;
+    tenantKey?: string | null;
     tenantId?: string | null;
+    mode?: RenderJobMode | null;
+    source?: string | null;
     status?: RenderJobStatus | null;
   },
   extra?: Record<string, unknown>,
+  tier: RenderLogTier = "always",
 ) => {
-  console.info(tag, {
+  logRenderInfo(env, tier, tag, {
     jobId: recordLike.jobId ?? null,
     templateId: recordLike.templateId ?? null,
+    recordId: recordLike.recordId ?? null,
+    tenantKey: recordLike.tenantKey ?? null,
     tenantId: recordLike.tenantId ?? null,
+    mode: recordLike.mode ?? null,
+    source: recordLike.source ?? null,
     rendererVersion: recordLike.rendererVersion ?? getRendererVersion(env),
     renderMode: resolveRenderModeSetting(env),
+    renderEngine: resolveRenderModeSetting(env),
     pdfKey: recordLike.pdfKey ?? recordLike.pdfObjectKey ?? null,
     pdfBytes: recordLike.pdfBytes ?? null,
     renderMs: recordLike.renderMs ?? null,
     status: recordLike.status ?? null,
     errorCode: recordLike.errorCode ?? null,
+    executionName: recordLike.executionName ?? null,
+    renderStartedAt: recordLike.renderStartedAt ?? recordLike.startedAt ?? null,
+    renderFinishedAt: recordLike.renderFinishedAt ?? recordLike.finishedAt ?? null,
+    failureStage: recordLike.failureStage ?? null,
     ...extra,
+  });
+};
+
+const logRenderSummary = (
+  env: Env,
+  summary: {
+    jobId: string;
+    templateId: string;
+    tenantId: string;
+    renderMs: number | null;
+    pdfBytes: number | null;
+    backgroundBytes: number | null;
+    status: RenderJobStatus;
+    rendererVersion?: string | null;
+    errorCode?: RendererErrorCode | null;
+    executionName?: string | null;
+    renderStartedAt?: string | null;
+    renderFinishedAt?: string | null;
+    failureStage?: string | null;
+  },
+) => {
+  logRenderInfo(env, "always", "[DBG_RENDER_SUMMARY]", {
+    jobId: summary.jobId,
+    templateId: summary.templateId,
+    tenantId: summary.tenantId,
+    renderEngine: resolveRenderModeSetting(env),
+    renderMode: resolveRenderModeSetting(env),
+    rendererVersion: summary.rendererVersion ?? getRendererVersion(env),
+    timeoutMs: getRendererTimeoutMs(env),
+    renderMs: summary.renderMs,
+    pdfBytes: summary.pdfBytes,
+    backgroundBytes: summary.backgroundBytes,
+    status: summary.status,
+    errorCode: summary.errorCode ?? null,
+    executionName: summary.executionName ?? null,
+    renderStartedAt: summary.renderStartedAt ?? null,
+    renderFinishedAt: summary.renderFinishedAt ?? null,
+    durationMs: summary.renderMs,
+    outputBytes: summary.pdfBytes,
+    failureStage: summary.failureStage ?? null,
   });
 };
 
@@ -1227,6 +1408,12 @@ const authorizeRendererInternalRequest = (request: Request, env: Env): Response 
   const expected = env.RENDERER_INTERNAL_TOKEN?.trim();
   const actual = request.headers.get(INTERNAL_RENDERER_HEADER)?.trim() ?? "";
   if (!expected || !actual || expected !== actual) {
+    logRenderError(env, "always", "[DBG_RENDERER_INTERNAL_AUTH_MISMATCH]", {
+      route: new URL(request.url).pathname,
+      requestId: request.headers.get("x-renderer-request-id") ?? null,
+      expectedLength: expected?.length ?? 0,
+      actualLength: actual.length,
+    });
     return jsonError(401, {
       error: "UNAUTHORIZED_RENDERER_CALL",
       errorCode: "UNAUTHORIZED_RENDERER_CALL",
@@ -1258,13 +1445,14 @@ const getRenderJobsKv = (env: Env): KVNamespace | null =>
 
 const buildRenderJobKey = (jobId: string) => `render_job:${jobId}`;
 const buildRenderJobDedupKey = (signatureHash: string) => `render_job_dedup:${signatureHash}`;
+const buildRenderJobPayloadKey = (jobId: string) => `render_job_payload:${jobId}`;
 
 const putRenderJobRecord = async (env: Env, record: RenderJobRecord) => {
   const store = getRenderJobsStore(env);
   if (!store) throw new Error("RENDER_JOBS_KV_OR_RENDER_CACHE_REQUIRED");
   const key = buildRenderJobKey(record.jobId);
   await store.kv.put(key, JSON.stringify(record));
-  console.info("[DBG_RENDER_JOB_STORE_WRITE]", {
+  logRenderInfo(env, "debug", "[DBG_RENDER_JOB_STORE_WRITE]", {
     jobId: record.jobId,
     status: record.status,
     store: store.store,
@@ -1281,7 +1469,7 @@ const getRenderJobRecord = async (
   const key = buildRenderJobKey(jobId);
   const raw = await store.kv.get(key);
   if (!raw) {
-    console.info("[DBG_RENDER_JOB_STORE_READ]", {
+    logRenderInfo(env, "debug", "[DBG_RENDER_JOB_STORE_READ]", {
       jobId,
       status: null,
       store: store.store,
@@ -1303,6 +1491,8 @@ const getRenderJobRecord = async (
       appId: String(parsed.appId ?? ""),
       tenantKey: String(parsed.tenantKey ?? ""),
       tenantId: String(parsed.tenantId ?? parsed.tenantKey ?? ""),
+      mode: parsed.mode === "save" ? "save" : "print",
+      source: parsed.source ?? null,
       jpFontFamily: (parsed.jpFontFamily as JpFontFamily | undefined) ?? "noto",
       dedupKey: String(parsed.dedupKey ?? ""),
       requestedAt: String(parsed.requestedAt ?? parsed.createdAt ?? new Date().toISOString()),
@@ -1313,15 +1503,24 @@ const getRenderJobRecord = async (
       finishedAt: parsed.finishedAt ?? parsed.completedAt ?? null,
       pdfKey: parsed.pdfKey ?? parsed.pdfObjectKey ?? null,
       pdfObjectKey: parsed.pdfObjectKey ?? parsed.pdfKey ?? null,
+      pdfUrl: parsed.pdfUrl ?? null,
       pdfBytes: parsed.pdfBytes ?? null,
       renderMs: parsed.renderMs ?? null,
       errorCode: parsed.errorCode ?? null,
       errorMessage: parsed.errorMessage ?? parsed.error ?? null,
       error: parsed.error ?? parsed.errorMessage ?? null,
       rendererVersion: parsed.rendererVersion ?? null,
+      executionName: parsed.executionName ?? null,
+      executionDispatchedAt: parsed.executionDispatchedAt ?? null,
+      renderStartedAt: parsed.renderStartedAt ?? parsed.startedAt ?? null,
+      renderFinishedAt: parsed.renderFinishedAt ?? parsed.finishedAt ?? parsed.completedAt ?? null,
+      failureStage: parsed.failureStage ?? null,
+      errorSummary: parsed.errorSummary ?? parsed.errorMessage ?? parsed.error ?? null,
+      errorDetails: parsed.errorDetails ?? null,
+      requestedBy: parsed.requestedBy ?? parsed.source ?? null,
       attempt: Number.isFinite(parsed.attempt) ? Number(parsed.attempt) : 1,
     };
-    console.info("[DBG_RENDER_JOB_STORE_READ]", {
+    logRenderInfo(env, "debug", "[DBG_RENDER_JOB_STORE_READ]", {
       jobId,
       status: normalized.status,
       store: store.store,
@@ -1330,7 +1529,7 @@ const getRenderJobRecord = async (
     });
     return normalized;
   } catch {
-    console.info("[DBG_RENDER_JOB_STORE_READ]", {
+    logRenderInfo(env, "debug", "[DBG_RENDER_JOB_STORE_READ]", {
       jobId,
       status: null,
       store: store.store,
@@ -1339,6 +1538,92 @@ const getRenderJobRecord = async (
     });
     return null;
   }
+};
+
+const RENDER_JOB_RESTORE_MAX_AGE_MS = 24 * 60 * 60_000;
+const ACTIVE_RENDER_JOB_STATUSES = new Set<RenderJobStatus>([
+  "queued",
+  "leased",
+  "dispatched",
+  "processing",
+  "running",
+]);
+
+const getRecordAgeMs = (record: RenderJobRecord) => {
+  const base = record.updatedAt ?? record.finishedAt ?? record.createdAt ?? record.requestedAt;
+  const parsed = Date.parse(base ?? "");
+  if (!Number.isFinite(parsed)) return null;
+  return Date.now() - parsed;
+};
+
+const shouldRestoreLatestRenderJob = (record: RenderJobRecord) => {
+  if (ACTIVE_RENDER_JOB_STATUSES.has(record.status)) return true;
+  const ageMs = getRecordAgeMs(record);
+  if (ageMs == null) return false;
+  return ageMs <= RENDER_JOB_RESTORE_MAX_AGE_MS;
+};
+
+const compareRenderJobRecordDesc = (left: RenderJobRecord, right: RenderJobRecord) => {
+  const rightTime = Date.parse(right.createdAt ?? right.requestedAt ?? "") || 0;
+  const leftTime = Date.parse(left.createdAt ?? left.requestedAt ?? "") || 0;
+  return rightTime - leftTime;
+};
+
+const listRenderJobRecords = async (env: Env): Promise<RenderJobRecord[]> => {
+  const store = getRenderJobsStore(env);
+  if (!store) return [];
+  const records: RenderJobRecord[] = [];
+  let cursor: string | undefined;
+  do {
+    const page = await store.kv.list({ prefix: "render_job:", cursor });
+    for (const key of page.keys) {
+      const jobId = key.name.slice("render_job:".length);
+      if (!jobId || jobId.startsWith("payload:") || jobId.startsWith("dedup:")) continue;
+      const record = await getRenderJobRecord(env, jobId);
+      if (record) records.push(record);
+    }
+    cursor = page.list_complete ? undefined : page.cursor;
+  } while (cursor);
+  return records;
+};
+
+const findActiveRenderJobForRecord = async (
+  env: Env,
+  args: { tenantKey: string; templateId: string; recordId: string; mode: RenderJobMode },
+): Promise<RenderJobRecord | null> => {
+  const records = await listRenderJobRecords(env);
+  const matched = records
+    .filter((record) =>
+      record.tenantKey === args.tenantKey &&
+      record.templateId === args.templateId &&
+      record.recordId === args.recordId &&
+      record.mode === args.mode &&
+      ACTIVE_RENDER_JOB_STATUSES.has(record.status),
+    )
+    .sort(compareRenderJobRecordDesc);
+  return matched[0] ?? null;
+};
+
+const findLatestRenderJobForRecord = async (
+  env: Env,
+  args: { tenantKey: string; templateId: string; recordId: string; mode: RenderJobMode },
+): Promise<RenderJobRecord | null> => {
+  const records = await listRenderJobRecords(env);
+  const matched = records
+    .filter((record) =>
+      record.tenantKey === args.tenantKey &&
+      record.templateId === args.templateId &&
+      record.recordId === args.recordId &&
+      record.mode === args.mode &&
+      shouldRestoreLatestRenderJob(record),
+    )
+    .sort((left, right) => {
+      const leftActive = ACTIVE_RENDER_JOB_STATUSES.has(left.status) ? 1 : 0;
+      const rightActive = ACTIVE_RENDER_JOB_STATUSES.has(right.status) ? 1 : 0;
+      if (leftActive !== rightActive) return rightActive - leftActive;
+      return compareRenderJobRecordDesc(left, right);
+    });
+  return matched[0] ?? null;
 };
 
 const updateRenderJobStatus = async (
@@ -1355,7 +1640,7 @@ const updateRenderJobStatus = async (
     updatedAt: patch.updatedAt ?? now,
   };
   await putRenderJobRecord(env, next);
-  logRenderJobEvent("[DBG_RENDER_JOB_STATUS_UPDATE]", env, next);
+  logRenderJobEvent("[DBG_RENDER_JOB_STATUS_UPDATE]", env, next, undefined, "debug");
   return next;
 };
 
@@ -1365,10 +1650,97 @@ const createRenderJobRecord = async (env: Env, record: RenderJobRecord) => {
   return record;
 };
 
+const putStoredRenderJobPayload = async (env: Env, payload: StoredRenderJobPayload) => {
+  const store = getRenderJobsStore(env);
+  if (!store) throw new Error("RENDER_JOBS_KV_OR_RENDER_CACHE_REQUIRED");
+  const key = buildRenderJobPayloadKey(payload.jobId);
+  await store.kv.put(key, JSON.stringify(payload), {
+    expirationTtl: DEFAULT_RENDER_JOB_PAYLOAD_TTL_SECONDS,
+  });
+  logRenderInfo(env, "debug", "[DBG_RENDER_JOB_PAYLOAD_STORE_WRITE]", {
+    jobId: payload.jobId,
+    key,
+    status: payload.record.status,
+  });
+};
+
+const getStoredRenderJobPayload = async (
+  env: Env,
+  jobId: string,
+): Promise<StoredRenderJobPayload | null> => {
+  const store = getRenderJobsStore(env);
+  if (!store) return null;
+  const key = buildRenderJobPayloadKey(jobId);
+  const raw = await store.kv.get(key);
+  if (!raw) return null;
+  try {
+    return JSON.parse(raw) as StoredRenderJobPayload;
+  } catch {
+    return null;
+  }
+};
+
 const markRenderJobRunning = async (env: Env, jobId: string, patch?: Partial<RenderJobRecord>) => {
   const next = await updateRenderJobStatus(env, jobId, {
     ...patch,
     status: "running",
+    startedAt: patch?.startedAt ?? new Date().toISOString(),
+    renderStartedAt: patch?.renderStartedAt ?? new Date().toISOString(),
+    error: null,
+    errorCode: null,
+    errorMessage: null,
+  });
+  if (next) {
+    logRenderJobEvent("[DBG_RENDER_JOB_START]", env, next, {
+      attempt: next.attempt,
+    }, "debug");
+    logRenderInfo(env, "always", "[RENDER_JOB_STARTED]", {
+      jobId: next.jobId,
+      templateId: next.templateId,
+      recordId: next.recordId,
+      tenantKey: next.tenantKey,
+      executionName: next.executionName ?? null,
+      status: "running",
+    });
+  }
+  return next;
+};
+
+const markRenderJobLeased = async (
+  env: Env,
+  jobId: string,
+  patch?: Partial<RenderJobRecord>,
+) =>
+  updateRenderJobStatus(env, jobId, {
+    ...patch,
+    status: "leased",
+    error: null,
+    errorCode: null,
+    errorMessage: null,
+  });
+
+const markRenderJobDispatched = async (
+  env: Env,
+  jobId: string,
+  patch?: Partial<RenderJobRecord>,
+) =>
+  updateRenderJobStatus(env, jobId, {
+    ...patch,
+    status: "dispatched",
+    executionDispatchedAt: patch?.executionDispatchedAt ?? new Date().toISOString(),
+    error: null,
+    errorCode: null,
+    errorMessage: null,
+  });
+
+const markRenderJobProcessing = async (
+  env: Env,
+  jobId: string,
+  patch?: Partial<RenderJobRecord>,
+) => {
+  const next = await updateRenderJobStatus(env, jobId, {
+    ...patch,
+    status: "processing",
     startedAt: patch?.startedAt ?? new Date().toISOString(),
     error: null,
     errorCode: null,
@@ -1377,7 +1749,7 @@ const markRenderJobRunning = async (env: Env, jobId: string, patch?: Partial<Ren
   if (next) {
     logRenderJobEvent("[DBG_RENDER_JOB_START]", env, next, {
       attempt: next.attempt,
-    });
+    }, "debug");
   }
   return next;
 };
@@ -1391,6 +1763,9 @@ const markRenderJobDone = async (
     renderMs: number;
     rendererVersion: string;
     finishedAt?: string;
+    executionName?: string | null;
+    renderStartedAt?: string | null;
+    renderFinishedAt?: string | null;
   },
 ) => {
   const finishedAt = patch.finishedAt ?? new Date().toISOString();
@@ -1400,15 +1775,30 @@ const markRenderJobDone = async (
     completedAt: finishedAt,
     pdfKey: patch.pdfKey,
     pdfObjectKey: patch.pdfKey,
+    pdfUrl: buildRenderJobPdfPath(jobId),
     pdfBytes: patch.pdfBytes,
     renderMs: patch.renderMs,
     rendererVersion: patch.rendererVersion,
+    executionName: patch.executionName ?? null,
+    renderStartedAt: patch.renderStartedAt ?? finishedAt,
+    renderFinishedAt: patch.renderFinishedAt ?? finishedAt,
+    failureStage: null,
+    errorSummary: null,
+    errorDetails: null,
     error: null,
     errorCode: null,
     errorMessage: null,
   });
   if (next) {
     logRenderJobEvent("[DBG_RENDER_JOB_DONE]", env, next);
+    logRenderInfo(env, "always", "[RENDER_JOB_DONE]", {
+      jobId: next.jobId,
+      templateId: next.templateId,
+      recordId: next.recordId,
+      tenantKey: next.tenantKey,
+      executionName: next.executionName ?? null,
+      status: "done",
+    });
   }
   return next;
 };
@@ -1421,6 +1811,12 @@ const markRenderJobFailed = async (
     errorMessage: string;
     rendererVersion?: string | null;
     finishedAt?: string;
+    executionName?: string | null;
+    renderStartedAt?: string | null;
+    renderFinishedAt?: string | null;
+    failureStage?: string | null;
+    errorSummary?: string | null;
+    errorDetails?: string | null;
   },
 ) => {
   const finishedAt = patch.finishedAt ?? new Date().toISOString();
@@ -1428,14 +1824,30 @@ const markRenderJobFailed = async (
     status: "failed",
     finishedAt,
     completedAt: finishedAt,
+    pdfUrl: null,
+    executionName: patch.executionName ?? null,
+    renderStartedAt: patch.renderStartedAt ?? null,
+    renderFinishedAt: patch.renderFinishedAt ?? finishedAt,
+    failureStage: patch.failureStage ?? null,
     errorCode: patch.errorCode,
     errorMessage: patch.errorMessage,
+    errorSummary: patch.errorSummary ?? patch.errorMessage,
+    errorDetails: patch.errorDetails ?? null,
     error: patch.errorMessage,
     rendererVersion: patch.rendererVersion ?? null,
   });
   if (next) {
     logRenderJobEvent("[DBG_RENDER_JOB_FAILED]", env, next, {
       errorMessage: next.errorMessage,
+    });
+    logRenderInfo(env, "always", "[RENDER_JOB_ERROR]", {
+      jobId: next.jobId,
+      templateId: next.templateId,
+      recordId: next.recordId,
+      tenantKey: next.tenantKey,
+      executionName: next.executionName ?? null,
+      status: "error",
+      errorCode: next.errorCode ?? null,
     });
   }
   return next;
@@ -1454,6 +1866,7 @@ const reconcileRenderJobDoneFromOutput = async (
     status: "done",
     finishedAt: record.finishedAt ?? new Date().toISOString(),
     completedAt: record.completedAt ?? record.finishedAt ?? new Date().toISOString(),
+    renderFinishedAt: record.renderFinishedAt ?? record.finishedAt ?? new Date().toISOString(),
     pdfKey: pdfObjectKey,
     pdfObjectKey,
     pdfBytes: object.size ?? record.pdfBytes ?? null,
@@ -1462,6 +1875,22 @@ const reconcileRenderJobDoneFromOutput = async (
     errorMessage: null,
   });
   return updated ?? { ...record, status: "done", pdfKey: pdfObjectKey, pdfObjectKey };
+};
+
+const clearRenderJobDedup = async (env: Env, record: Pick<RenderJobRecord, "jobId" | "dedupKey">) => {
+  const jobsKv = getRenderJobsKv(env);
+  if (!jobsKv || !record.dedupKey) return;
+  const dedupJobId = await jobsKv.get(record.dedupKey);
+  if (dedupJobId === record.jobId) {
+    await jobsKv.delete(record.dedupKey);
+  }
+};
+
+const getRenderJobAgeMs = (record: Pick<RenderJobRecord, "updatedAt" | "createdAt" | "requestedAt">) => {
+  const base = record.updatedAt || record.createdAt || record.requestedAt;
+  const parsed = base ? Date.parse(base) : Number.NaN;
+  if (!Number.isFinite(parsed)) return null;
+  return Math.max(0, Date.now() - parsed);
 };
 
 const normalizeRenderJobIdValue = (
@@ -1567,7 +1996,7 @@ const resolveSessionKintoneApiToken = async (
   appId: string,
 ): Promise<string> => {
   if (!sessionToken) {
-    console.info("[DBG_RENDER_JOB_SESSION_RESOLVE]", {
+    logRenderInfo(env, "debug", "[DBG_RENDER_JOB_SESSION_RESOLVE]", {
       hasSessionToken: false,
       sessionFound: false,
       tenantKey,
@@ -1583,7 +2012,7 @@ const resolveSessionKintoneApiToken = async (
   const appIdStr = String(appId ?? "").trim();
   const loaded = await loadEditorSession(env, sessionToken);
   if ("error" in loaded) {
-    console.info("[DBG_RENDER_JOB_SESSION_RESOLVE]", {
+    logRenderInfo(env, "debug", "[DBG_RENDER_JOB_SESSION_RESOLVE]", {
       hasSessionToken: true,
       sessionFound: false,
       tenantKey,
@@ -1603,7 +2032,7 @@ const resolveSessionKintoneApiToken = async (
       loaded.session.appId,
     );
   } catch {
-    console.info("[DBG_RENDER_JOB_SESSION_RESOLVE]", {
+    logRenderInfo(env, "debug", "[DBG_RENDER_JOB_SESSION_RESOLVE]", {
       hasSessionToken: true,
       sessionFound: true,
       tenantKey,
@@ -1617,7 +2046,7 @@ const resolveSessionKintoneApiToken = async (
     return "";
   }
   if (sessionTenantKey !== tenantKey) {
-    console.info("[DBG_RENDER_JOB_SESSION_RESOLVE]", {
+    logRenderInfo(env, "debug", "[DBG_RENDER_JOB_SESSION_RESOLVE]", {
       hasSessionToken: true,
       sessionFound: true,
       tenantKey,
@@ -1645,7 +2074,7 @@ const resolveSessionKintoneApiToken = async (
     (normalizedAppId ? loaded.session.tokensByAppId?.[normalizedAppId] : undefined) ??
     "";
   if (sessionMapToken) {
-    console.info("[DBG_RENDER_JOB_SESSION_RESOLVE]", {
+    logRenderInfo(env, "debug", "[DBG_RENDER_JOB_SESSION_RESOLVE]", {
       hasSessionToken: true,
       sessionFound: true,
       tenantKey,
@@ -1662,7 +2091,7 @@ const resolveSessionKintoneApiToken = async (
 
   const directToken = loaded.session.kintoneApiToken?.trim() ?? "";
   if (directToken) {
-    console.info("[DBG_RENDER_JOB_SESSION_RESOLVE]", {
+    logRenderInfo(env, "debug", "[DBG_RENDER_JOB_SESSION_RESOLVE]", {
       hasSessionToken: true,
       sessionFound: true,
       tenantKey,
@@ -1685,7 +2114,7 @@ const resolveSessionKintoneApiToken = async (
   ];
   const tenantToken = resolveTenantStoredKintoneApiToken(tenantRecord, appId);
   if (!tenantToken || !env.SESSIONS_KV) {
-    console.info("[DBG_RENDER_JOB_SESSION_RESOLVE]", {
+    logRenderInfo(env, "debug", "[DBG_RENDER_JOB_SESSION_RESOLVE]", {
       hasSessionToken: true,
       sessionFound: true,
       tenantKey,
@@ -1719,7 +2148,7 @@ const resolveSessionKintoneApiToken = async (
       { expirationTtl: ttlSeconds },
     );
   }
-  console.info("[DBG_RENDER_JOB_SESSION_RESOLVE]", {
+  logRenderInfo(env, "debug", "[DBG_RENDER_JOB_SESSION_RESOLVE]", {
     hasSessionToken: true,
     sessionFound: true,
     tenantKey,
@@ -1760,7 +2189,7 @@ const fetchKintoneRecordForJob = async (
     token = payload.kintoneApiToken?.trim() ?? "";
     if (token) tokenSource = "body";
   }
-  console.info("[DBG_RENDER_JOB_KINTONE_AUTH]", {
+  logRenderInfo(env, "debug", "[DBG_RENDER_JOB_KINTONE_AUTH]", {
     jobId: payload.jobId,
     tenantKey: payload.tenantKey,
     hasToken: Boolean(token),
@@ -1800,7 +2229,7 @@ const fetchKintoneRecordForJob = async (
     if (fieldObj.type !== "SUBTABLE") continue;
     const normalizedRows = (record as Record<string, unknown>)[fieldCode];
     const rawRows = fieldObj.value;
-    console.info("[DBG_RENDER_JOB_RECORD_SHAPE]", {
+    logRenderInfo(env, "debug", "[DBG_RENDER_JOB_RECORD_SHAPE]", {
       recordId: payload.recordId,
       tableFieldCode: fieldCode,
       isArray: Array.isArray(normalizedRows),
@@ -1859,7 +2288,7 @@ const resolveTenantLogoAuth = async (
   if (hasBearer) {
     const verified = await verifyEditorToken(env.USER_TEMPLATES_KV, bearerToken);
     if (!verified) {
-      console.info("[DBG_TENANT_LOGO_AUTH]", {
+      logRenderInfo(env, "debug", "[DBG_TENANT_LOGO_AUTH]", {
         hasApiKey,
         hasBearer,
         authMode: "bearer",
@@ -1875,7 +2304,7 @@ const resolveTenantLogoAuth = async (
       url.searchParams.has("kintoneBaseUrl") || url.searchParams.has("appId");
     const queryResult = resolveTenantKeyFromQuery(url);
     if (queryResult.error && queryParamsPresent) {
-      console.info("[DBG_TENANT_LOGO_AUTH]", {
+      logRenderInfo(env, "debug", "[DBG_TENANT_LOGO_AUTH]", {
         hasApiKey,
         hasBearer,
         authMode: "bearer",
@@ -1887,7 +2316,7 @@ const resolveTenantLogoAuth = async (
     }
     const tenantKeyQuery = queryResult.error ? "" : queryResult.tenantKey;
     if (tenantKeyQuery && tenantKeyQuery !== verified.tenantId) {
-      console.info("[DBG_TENANT_LOGO_AUTH]", {
+      logRenderInfo(env, "debug", "[DBG_TENANT_LOGO_AUTH]", {
         hasApiKey,
         hasBearer,
         authMode: "bearer",
@@ -1899,7 +2328,7 @@ const resolveTenantLogoAuth = async (
         error: jsonError(403, { error: "FORBIDDEN", reason: "tenant mismatch" }),
       };
     }
-    console.info("[DBG_TENANT_LOGO_AUTH]", {
+    logRenderInfo(env, "debug", "[DBG_TENANT_LOGO_AUTH]", {
       hasApiKey,
       hasBearer,
       authMode: "bearer",
@@ -1917,7 +2346,7 @@ const resolveTenantLogoAuth = async (
   }
 
   if (env.ADMIN_API_KEY && !hasApiKey) {
-    console.info("[DBG_TENANT_LOGO_AUTH]", {
+    logRenderInfo(env, "debug", "[DBG_TENANT_LOGO_AUTH]", {
       hasApiKey,
       hasBearer,
       authMode: "admin",
@@ -1932,7 +2361,7 @@ const resolveTenantLogoAuth = async (
 
   const queryResult = resolveTenantKeyFromQuery(url);
   if (queryResult.error) {
-    console.info("[DBG_TENANT_LOGO_AUTH]", {
+    logRenderInfo(env, "debug", "[DBG_TENANT_LOGO_AUTH]", {
       hasApiKey,
       hasBearer,
       authMode: "admin",
@@ -1943,7 +2372,7 @@ const resolveTenantLogoAuth = async (
     return { error: queryResult.error };
   }
 
-  console.info("[DBG_TENANT_LOGO_AUTH]", {
+  logRenderInfo(env, "debug", "[DBG_TENANT_LOGO_AUTH]", {
     hasApiKey,
     hasBearer,
     authMode: "admin",
@@ -4773,11 +5202,11 @@ const handleHttpRequest = async (request: Request, env: Env): Promise<Response> 
             backgroundTenantLogo = null;
           }
         }
-        console.info("[DBG_BACKGROUND_FONT_POLICY]", {
+        logRenderInfo(env, "debug", "[DBG_BACKGROUND_FONT_POLICY]", {
           jpBytesLen: fonts.jp?.length ?? 0,
           subset: false,
         });
-        console.info("[DBG_JP_FONT_CANDIDATE]", {
+        logRenderInfo(env, "verbose", "[DBG_JP_FONT_CANDIDATE]", {
           scope: "background_build",
           fontFamily: backgroundJpSelection.requestedFamily,
           resolvedFamily: backgroundJpSelection.resolvedFamily,
@@ -4792,6 +5221,7 @@ const handleHttpRequest = async (request: Request, env: Env): Promise<Response> 
         });
         const { bytes, stats } = await renderTemplateToPdf(template, undefined, fonts, {
           debug: debugEnabled,
+          logLevel: getRenderLogTier(env),
           previewMode: "record",
           renderMode: "layout",
           useJpFont,
@@ -5056,7 +5486,7 @@ const handleHttpRequest = async (request: Request, env: Env): Promise<Response> 
           const jpBytesHead = Array.from((jpBytes ?? new Uint8Array()).slice(0, 16))
             .map((b) => b.toString(16).padStart(2, "0"))
             .join("");
-          console.info("[DBG_JP_FONT_CANDIDATE]", {
+          logRenderInfo(env, "verbose", "[DBG_JP_FONT_CANDIDATE]", {
             fontFamily: jpSelection.requestedFamily,
             resolvedFamily: jpSelection.resolvedFamily,
             sourceUrl: jpSelection.sourceUrl,
@@ -5090,7 +5520,7 @@ const handleHttpRequest = async (request: Request, env: Env): Promise<Response> 
           console.log("[DBG_FONT_TEST] before embed jp subset=true");
           const jpFontSubset = await pdfDoc.embedFont(jpBytes, { subset: true });
           console.log("[DBG_FONT_TEST] after embed jp subset=true");
-          console.info("[DBG_JP_FONT_CANDIDATE]", {
+          logRenderInfo(env, "verbose", "[DBG_JP_FONT_CANDIDATE]", {
             fontFamily: jpSelection.requestedFamily,
             resolvedFamily: jpSelection.resolvedFamily,
             sourceUrl: jpSelection.sourceUrl,
@@ -5107,7 +5537,7 @@ const handleHttpRequest = async (request: Request, env: Env): Promise<Response> 
           console.log("[DBG_FONT_TEST] before embed jp subset=false");
           const jpFontFull = await pdfDoc.embedFont(jpBytes, { subset: false });
           console.log("[DBG_FONT_TEST] after embed jp subset=false");
-          console.info("[DBG_JP_FONT_CANDIDATE]", {
+          logRenderInfo(env, "verbose", "[DBG_JP_FONT_CANDIDATE]", {
             fontFamily: jpSelection.requestedFamily,
             resolvedFamily: jpSelection.resolvedFamily,
             sourceUrl: jpSelection.sourceUrl,
@@ -5178,7 +5608,7 @@ const handleHttpRequest = async (request: Request, env: Env): Promise<Response> 
         const metaFingerprint = bgObject.customMetadata?.templateFingerprint ?? null;
         const savedAt = bgObject.customMetadata?.generatedAt ?? null;
         const etag = bgObject.httpEtag ?? null;
-        console.info("[DBG_BACKGROUND_FETCH]", {
+        logRenderInfo(env, "debug", "[DBG_BACKGROUND_FETCH]", {
           templateId,
           tenantKey: tenantResult.tenantKey,
           objectKey: bgKey,
@@ -5229,7 +5659,7 @@ const handleHttpRequest = async (request: Request, env: Env): Promise<Response> 
           });
         }
         const bytes = await object.arrayBuffer();
-        console.info("[DBG_RENDERER_ASSET_FETCH]", {
+        logRenderInfo(env, "debug", "[DBG_RENDERER_ASSET_FETCH]", {
           key,
           bytesLen: bytes.byteLength,
           contentType: object.httpMetadata?.contentType ?? "application/octet-stream",
@@ -5242,6 +5672,153 @@ const handleHttpRequest = async (request: Request, env: Env): Promise<Response> 
             "Cache-Control": "no-store",
           },
         });
+      }
+
+      const internalRenderJobPayloadMatch = url.pathname.match(/^\/internal\/render-jobs\/([^/]+)\/payload$/);
+      if (internalRenderJobPayloadMatch && request.method === "GET") {
+        const jobId = internalRenderJobPayloadMatch[1];
+        const requestId = request.headers.get("x-renderer-request-id") ?? null;
+        const authError = authorizeRendererInternalRequest(request, env);
+        logRenderInfo(env, "always", "[DBG_RENDERER_INTERNAL_ROUTE]", {
+          route: "/internal/render-jobs/:id/payload",
+          jobId,
+          requestId,
+          authorized: !authError,
+        });
+        if (authError) return authError;
+        const record = await getRenderJobRecord(env, jobId);
+        const storedPayload = await getStoredRenderJobPayload(env, jobId);
+        if (!record || !storedPayload) {
+          return jsonError(404, {
+            error: "JOB_NOT_FOUND",
+            errorCode: "JOB_NOT_FOUND",
+            errorMessage: "job payload not found",
+          });
+        }
+        return new Response(
+          JSON.stringify({
+            ...storedPayload,
+            record: {
+              ...storedPayload.record,
+              status: record.status,
+              rendererVersion: record.rendererVersion ?? storedPayload.record.rendererVersion ?? null,
+              executionName: record.executionName ?? storedPayload.record.executionName ?? null,
+              attempt: record.attempt,
+              executionDispatchedAt: record.executionDispatchedAt ?? null,
+              renderStartedAt: record.renderStartedAt ?? record.startedAt ?? null,
+              renderFinishedAt: record.renderFinishedAt ?? record.finishedAt ?? null,
+              failureStage: record.failureStage ?? null,
+            },
+          }),
+          {
+            status: 200,
+            headers: {
+              ...CORS_HEADERS,
+              "Content-Type": "application/json",
+            },
+          },
+        );
+      }
+
+      const internalRenderJobTransitionMatch = url.pathname.match(/^\/internal\/render-jobs\/([^/]+)\/transition$/);
+      if (internalRenderJobTransitionMatch && request.method === "POST") {
+        const jobId = internalRenderJobTransitionMatch[1];
+        const requestId = request.headers.get("x-renderer-request-id") ?? null;
+        const authError = authorizeRendererInternalRequest(request, env);
+        logRenderInfo(env, "always", "[DBG_RENDERER_INTERNAL_ROUTE]", {
+          route: "/internal/render-jobs/:id/transition",
+          jobId,
+          requestId,
+          authorized: !authError,
+        });
+        if (authError) return authError;
+        const record = await getRenderJobRecord(env, jobId);
+        if (!record) {
+          return jsonError(404, {
+            error: "JOB_NOT_FOUND",
+            errorCode: "JOB_NOT_FOUND",
+            errorMessage: "job not found",
+          });
+        }
+        let payload: RendererJobTransitionRequest | null = null;
+        try {
+          payload = (await request.json()) as RendererJobTransitionRequest;
+        } catch {
+          return jsonError(400, {
+            error: "INVALID_PAYLOAD",
+            errorCode: "INVALID_PAYLOAD",
+            errorMessage: "invalid transition payload",
+          });
+        }
+        if (!payload || payload.status !== "running") {
+          return jsonError(400, {
+            error: "INVALID_PAYLOAD",
+            errorCode: "INVALID_PAYLOAD",
+            errorMessage: "unsupported transition",
+          });
+        }
+        if (record.status === "done") {
+          return new Response(
+            JSON.stringify({
+              ok: true,
+              jobId,
+              status: "done",
+              skip: true,
+              executionName: record.executionName ?? null,
+            }),
+            {
+              status: 200,
+              headers: {
+                ...CORS_HEADERS,
+                "Content-Type": "application/json",
+              },
+            },
+          );
+        }
+        if (
+          record.status === "running" &&
+          record.executionName &&
+          payload.executionName &&
+          record.executionName !== payload.executionName
+        ) {
+          return new Response(
+            JSON.stringify({
+              ok: true,
+              jobId,
+              status: "running",
+              skip: true,
+              executionName: record.executionName,
+            }),
+            {
+              status: 200,
+              headers: {
+                ...CORS_HEADERS,
+                "Content-Type": "application/json",
+              },
+            },
+          );
+        }
+        const next = await markRenderJobRunning(env, jobId, {
+          rendererVersion: payload.rendererVersion ?? record.rendererVersion ?? getRendererVersion(env),
+          executionName: payload.executionName ?? record.executionName ?? null,
+          renderStartedAt: payload.renderStartedAt ?? new Date().toISOString(),
+          attempt: payload.attempt ?? record.attempt,
+        });
+        return new Response(
+          JSON.stringify({
+            ok: true,
+            jobId,
+            status: next?.status ?? "running",
+            executionName: next?.executionName ?? payload.executionName ?? null,
+          }),
+          {
+            status: 200,
+            headers: {
+              ...CORS_HEADERS,
+              "Content-Type": "application/json",
+            },
+          },
+        );
       }
 
       const internalRenderJobFileMatch = url.pathname.match(/^\/internal\/render-jobs\/([^/]+)\/file$/);
@@ -5296,7 +5873,7 @@ const handleHttpRequest = async (request: Request, env: Env): Promise<Response> 
             rendererVersion,
           },
         });
-        console.info("[DBG_RENDERER_UPLOAD_DONE]", {
+        logRenderInfo(env, "debug", "[DBG_RENDERER_UPLOAD_DONE]", {
           jobId,
           templateId: record.templateId,
           tenantId: record.tenantId,
@@ -5321,6 +5898,107 @@ const handleHttpRequest = async (request: Request, env: Env): Promise<Response> 
         );
       }
 
+      const internalRenderJobResultMatch = url.pathname.match(/^\/internal\/render-jobs\/([^/]+)\/result$/);
+      if (internalRenderJobResultMatch && request.method === "POST") {
+        const authError = authorizeRendererInternalRequest(request, env);
+        if (authError) return authError;
+        const jobId = internalRenderJobResultMatch[1];
+        const record = await getRenderJobRecord(env, jobId);
+        if (!record) {
+          return jsonError(404, {
+            error: "JOB_NOT_FOUND",
+            errorCode: "JOB_NOT_FOUND",
+            errorMessage: "job not found",
+          });
+        }
+        let payload: RendererJobResultRequest | null = null;
+        try {
+          payload = (await request.json()) as RendererJobResultRequest;
+        } catch {
+          return jsonError(400, {
+            error: "INVALID_PAYLOAD",
+            errorCode: "INVALID_PAYLOAD",
+            errorMessage: "invalid result payload",
+          });
+        }
+        if (!payload || (payload.status !== "done" && payload.status !== "failed")) {
+          return jsonError(400, {
+            error: "INVALID_PAYLOAD",
+            errorCode: "INVALID_PAYLOAD",
+            errorMessage: "missing status",
+          });
+        }
+
+        if (payload.status === "done") {
+          await markRenderJobDone(env, jobId, {
+            pdfKey: payload.pdfKey,
+            pdfBytes: payload.pdfBytes,
+            renderMs: payload.renderMs,
+            rendererVersion: payload.rendererVersion,
+            executionName: payload.executionName ?? record.executionName ?? null,
+            renderStartedAt: payload.renderStartedAt ?? record.renderStartedAt ?? null,
+            renderFinishedAt: payload.renderFinishedAt ?? new Date().toISOString(),
+          });
+          logRenderSummary(env, {
+            jobId,
+            templateId: record.templateId,
+            tenantId: record.tenantId,
+            renderMs: payload.renderMs,
+            pdfBytes: payload.pdfBytes,
+            backgroundBytes: payload.backgroundBytes ?? null,
+            status: "done",
+            rendererVersion: payload.rendererVersion,
+            executionName: payload.executionName ?? record.executionName ?? null,
+            renderStartedAt: payload.renderStartedAt ?? record.renderStartedAt ?? null,
+            renderFinishedAt: payload.renderFinishedAt ?? new Date().toISOString(),
+          });
+        } else {
+          await markRenderJobFailed(env, jobId, {
+            errorCode: payload.errorCode,
+            errorMessage: payload.errorMessage,
+            rendererVersion: payload.rendererVersion,
+            executionName: payload.executionName ?? record.executionName ?? null,
+            renderStartedAt: payload.renderStartedAt ?? record.renderStartedAt ?? null,
+            renderFinishedAt: payload.renderFinishedAt ?? new Date().toISOString(),
+            failureStage: payload.failureStage ?? null,
+            errorSummary: payload.errorSummary ?? payload.errorMessage,
+            errorDetails: payload.errorDetails ?? null,
+          });
+          logRenderSummary(env, {
+            jobId,
+            templateId: record.templateId,
+            tenantId: record.tenantId,
+            renderMs: payload.renderMs ?? null,
+            pdfBytes: null,
+            backgroundBytes: payload.backgroundBytes ?? null,
+            status: "failed",
+            rendererVersion: payload.rendererVersion,
+            errorCode: payload.errorCode,
+            executionName: payload.executionName ?? record.executionName ?? null,
+            renderStartedAt: payload.renderStartedAt ?? record.renderStartedAt ?? null,
+            renderFinishedAt: payload.renderFinishedAt ?? new Date().toISOString(),
+            failureStage: payload.failureStage ?? null,
+          });
+        }
+
+        await clearRenderJobDedup(env, record);
+
+        return new Response(
+          JSON.stringify({
+            ok: true,
+            jobId,
+            status: payload.status,
+          }),
+          {
+            status: 200,
+            headers: {
+              ...CORS_HEADERS,
+              "Content-Type": "application/json",
+            },
+          },
+        );
+      }
+
       if (url.pathname === "/render-jobs" && request.method === "POST") {
         const jobsKv = getRenderJobsKv(env);
         if (!jobsKv || !env.RENDER_JOBS_QUEUE) {
@@ -5332,7 +6010,7 @@ const handleHttpRequest = async (request: Request, env: Env): Promise<Response> 
         } catch {
           return jsonError(400, { error: "BAD_REQUEST", reason: "invalid json body" });
         }
-        console.info("[DBG_RENDER_JOB_SESSION_INPUT]", {
+        logRenderInfo(env, "debug", "[DBG_RENDER_JOB_SESSION_INPUT]", {
           hasSessionToken: Boolean(payload?.sessionToken),
           sessionTokenPrefix:
             typeof payload?.sessionToken === "string"
@@ -5341,8 +6019,9 @@ const handleHttpRequest = async (request: Request, env: Env): Promise<Response> 
           hasKintoneApiToken: Boolean(payload?.kintoneApiToken),
           recordId: payload?.recordId ?? null,
           recordRevision: payload?.recordRevision ?? null,
-          appId: payload?.appId ?? null,
-          kintoneBaseUrl: payload?.kintoneBaseUrl ?? null,
+          appId: payload?.appId ?? payload?.kintone?.appId ?? null,
+          kintoneBaseUrl: payload?.kintoneBaseUrl ?? payload?.kintone?.baseUrl ?? null,
+          source: payload?.context?.source ?? null,
         });
         const templateId = String(payload?.templateId ?? "").trim();
         const normalizedRecordId = normalizeRenderJobIdValue(payload?.recordId, "recordId");
@@ -5354,13 +6033,15 @@ const handleHttpRequest = async (request: Request, env: Env): Promise<Response> 
         const recordRevision = normalizedRecordRevision?.value ?? "";
         const recordRevisionType = normalizedRecordRevision?.type ??
           (Array.isArray(payload?.recordRevision) ? "array" : typeof payload?.recordRevision);
-        console.info("[DBG_RENDER_JOB_PAYLOAD]", {
+        logRenderInfo(env, "debug", "[DBG_RENDER_JOB_PAYLOAD]", {
           recordId,
           recordRevision,
           recordRevisionType,
         });
-        const kintoneBaseUrlRaw = String(payload?.kintoneBaseUrl ?? "").trim();
-        const appIdRaw = payload?.appId;
+        const kintoneBaseUrlRaw = String(
+          payload?.kintoneBaseUrl ?? payload?.kintone?.baseUrl ?? "",
+        ).trim();
+        const appIdRaw = payload?.appId ?? payload?.kintone?.appId;
         if (payload?.recordId != null && !normalizedRecordId) {
           return jsonError(400, {
             error: "BAD_REQUEST",
@@ -5391,6 +6072,7 @@ const handleHttpRequest = async (request: Request, env: Env): Promise<Response> 
           return jsonError(400, { error: "BAD_REQUEST", reason: "invalid appId" });
         }
         const tenantKey = buildTenantKey(normalizedBaseUrl, normalizedAppId);
+        const mode: RenderJobMode = payload?.mode === "save" ? "save" : "print";
         const authHeader = request.headers.get("Authorization") ?? "";
         const bearerToken = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : "";
         const hasBearer = Boolean(bearerToken);
@@ -5459,7 +6141,7 @@ const handleHttpRequest = async (request: Request, env: Env): Promise<Response> 
           resolvedKintoneApiToken = tokenFromBody;
           tokenSource = "body";
         }
-        console.info("[DBG_RENDER_JOB_KINTONE_AUTH]", {
+        logRenderInfo(env, "debug", "[DBG_RENDER_JOB_KINTONE_AUTH]", {
           jobId: null,
           tenantKey,
           hasToken: Boolean(resolvedKintoneApiToken),
@@ -5475,12 +6157,44 @@ const handleHttpRequest = async (request: Request, env: Env): Promise<Response> 
           env,
           payload?.jpFontFamily ?? url.searchParams.get("jpFontFamily"),
         );
+        const activeJob = await findActiveRenderJobForRecord(env, {
+          tenantKey,
+          templateId,
+          recordId,
+          mode,
+        });
+        if (activeJob) {
+          logRenderInfo(env, "always", "[RENDER_JOB_REUSED]", {
+            jobId: activeJob.jobId,
+            templateId: activeJob.templateId,
+            recordId: activeJob.recordId,
+            tenantKey: activeJob.tenantKey,
+            mode: activeJob.mode,
+            executionName: activeJob.executionName ?? null,
+          });
+          return new Response(
+            JSON.stringify({
+              ...buildRenderJobPublicPayload(request, activeJob),
+              reused: true,
+            }),
+            {
+              status: 202,
+              headers: {
+                ...CORS_HEADERS,
+                "Content-Type": "application/json",
+                "Cache-Control": "no-store, no-cache, must-revalidate",
+                Pragma: "no-cache",
+              },
+            },
+          );
+        }
         const dedupSignature = {
           templateId,
           recordId,
           recordRevision,
           jpFontFamily: jpSelection.requestedFamily,
           tenantKey,
+          mode,
         };
         const dedupJson = stableStringify(dedupSignature);
         const dedupHash = (await sha256Hex(dedupJson)) ?? hashStringFNV1a(dedupJson);
@@ -5488,28 +6202,84 @@ const handleHttpRequest = async (request: Request, env: Env): Promise<Response> 
         const existingJobId = await jobsKv.get(dedupKey);
         if (existingJobId) {
           const existingRecord = await getRenderJobRecord(env, existingJobId);
-          if (
-            existingRecord &&
-            (existingRecord.status === "queued" || existingRecord.status === "running")
-          ) {
-            logRenderJobEvent("[DBG_RENDER_JOB_CREATE]", env, existingRecord, {
-              dedupHit: true,
-              recordId,
-              recordRevision,
-              jpFontFamily: existingRecord.jpFontFamily,
-            });
-            return new Response(
-              JSON.stringify({ jobId: existingJobId, status: existingRecord.status }),
-              {
-                status: 202,
-                headers: {
-                  ...CORS_HEADERS,
-                  "Content-Type": "application/json",
-                  "Cache-Control": "no-store, no-cache, must-revalidate",
-                  Pragma: "no-cache",
+          if (existingRecord) {
+            const ageMs = getRenderJobAgeMs(existingRecord);
+            const isReusableQueued =
+              existingRecord.status === "queued" &&
+              ageMs != null &&
+              ageMs <= RENDER_JOB_DEDUP_REUSE_QUEUED_MS;
+            if (isReusableQueued) {
+              logRenderInfo(env, "always", "[DBG_RENDER_JOB_DEDUP_REUSED]", {
+                jobId: existingJobId,
+                templateId: existingRecord.templateId,
+                tenantId: existingRecord.tenantId,
+                existingStatus: existingRecord.status,
+                ageMs,
+                dedupKey,
+              });
+              logRenderJobEvent("[DBG_RENDER_JOB_CREATE]", env, existingRecord, {
+                dedupHit: true,
+                recordId,
+                recordRevision,
+                jpFontFamily: existingRecord.jpFontFamily,
+              });
+              return new Response(
+                JSON.stringify({
+                  ...buildRenderJobPublicPayload(request, existingRecord),
+                  reused: true,
+                }),
+                {
+                  status: 202,
+                  headers: {
+                    ...CORS_HEADERS,
+                    "Content-Type": "application/json",
+                    "Cache-Control": "no-store, no-cache, must-revalidate",
+                    Pragma: "no-cache",
+                  },
                 },
-              },
-            );
+              );
+            }
+
+            if (
+              (
+                existingRecord.status === "processing" ||
+                existingRecord.status === "running" ||
+                existingRecord.status === "leased" ||
+                existingRecord.status === "dispatched"
+              ) &&
+              ageMs != null &&
+              ageMs >= RENDER_JOB_STALE_PROCESSING_MS
+            ) {
+              await markRenderJobFailed(env, existingRecord.jobId, {
+                errorCode: "STALE_JOB",
+                errorMessage: "stale processing job superseded by a new request",
+                rendererVersion: existingRecord.rendererVersion ?? getRendererVersion(env),
+              });
+            }
+
+            await clearRenderJobDedup(env, existingRecord);
+            logRenderInfo(env, "always", "[DBG_RENDER_JOB_DEDUP_SKIPPED]", {
+              jobId: existingJobId,
+              templateId: existingRecord.templateId,
+              tenantId: existingRecord.tenantId,
+              existingStatus: existingRecord.status,
+              ageMs,
+              dedupKey,
+              reason:
+                existingRecord.status === "done"
+                  ? "done_reuse_disabled"
+                  : existingRecord.status === "queued"
+                    ? "queued_too_old"
+                    : existingRecord.status === "failed"
+                      ? "failed_not_reused"
+                      : existingRecord.status === "leased"
+                        ? "leased_not_reused"
+                        : existingRecord.status === "dispatched"
+                          ? "dispatched_not_reused"
+                      : ageMs != null && ageMs >= RENDER_JOB_STALE_PROCESSING_MS
+                        ? "stale_processing"
+                        : "processing_not_reused",
+            });
           }
         }
 
@@ -5528,6 +6298,8 @@ const handleHttpRequest = async (request: Request, env: Env): Promise<Response> 
           appId: normalizedAppId,
           tenantKey,
           tenantId: tenantKey,
+          mode,
+          source: payload?.context?.source?.trim() || null,
           jpFontFamily: jpSelection.requestedFamily,
           dedupKey,
           requestedAt: now,
@@ -5538,6 +6310,7 @@ const handleHttpRequest = async (request: Request, env: Env): Promise<Response> 
           completedAt: null,
           pdfKey: null,
           pdfObjectKey: null,
+          pdfUrl: null,
           pdfBytes: null,
           renderMs: null,
           errorCode: null,
@@ -5547,9 +6320,25 @@ const handleHttpRequest = async (request: Request, env: Env): Promise<Response> 
             resolveRenderModeSetting(env) === "remote"
               ? getRendererVersion(env)
               : `worker-local:${getRendererVersion(env)}`,
+          executionName: null,
+          executionDispatchedAt: null,
+          renderStartedAt: null,
+          renderFinishedAt: null,
+          failureStage: null,
+          errorSummary: null,
+          errorDetails: null,
+          requestedBy: payload?.context?.source?.trim() || null,
           attempt: 1,
         };
         await createRenderJobRecord(env, record);
+        logRenderInfo(env, "always", "[RENDER_JOB_ACCEPTED]", {
+          jobId,
+          templateId,
+          recordId,
+          tenantKey,
+          executionName: null,
+          status: "queued",
+        });
         await jobsKv.put(dedupKey, jobId, { expirationTtl: 60 * 30 });
         try {
           const queuePayload: RenderJobMessage = {
@@ -5557,6 +6346,7 @@ const handleHttpRequest = async (request: Request, env: Env): Promise<Response> 
             templateId,
             recordId,
             recordRevision,
+            mode,
             kintoneBaseUrl: normalizedBaseUrl,
             appId: normalizedAppId,
             jpFontFamily: jpSelection.requestedFamily,
@@ -5566,9 +6356,31 @@ const handleHttpRequest = async (request: Request, env: Env): Promise<Response> 
             dedupKey,
             requestedAt: now,
           };
+          logRenderInfo(env, "always", "[DBG_RENDER_JOB_ENQUEUE_START]", {
+            jobId,
+            templateId,
+            tenantId: tenantKey,
+            queue: RENDER_JOBS_QUEUE_NAME,
+            status: "queued",
+          });
           await env.RENDER_JOBS_QUEUE.send(queuePayload);
+          logRenderInfo(env, "always", "[DBG_RENDER_JOB_ENQUEUE_DONE]", {
+            jobId,
+            templateId,
+            tenantId: tenantKey,
+            queue: RENDER_JOBS_QUEUE_NAME,
+            status: "queued",
+          });
         } catch (error) {
           const message = error instanceof Error ? error.message : String(error);
+          logRenderError(env, "always", "[DBG_RENDER_JOB_ENQUEUE_ERROR]", {
+            jobId,
+            templateId,
+            tenantId: tenantKey,
+            queue: RENDER_JOBS_QUEUE_NAME,
+            status: "failed",
+            errorMessage: message,
+          });
           await markRenderJobFailed(env, jobId, {
             errorCode: "RENDER_FAILED",
             errorMessage: message,
@@ -5577,8 +6389,11 @@ const handleHttpRequest = async (request: Request, env: Env): Promise<Response> 
           await jobsKv.delete(dedupKey);
           return jsonError(500, { error: "QUEUE_SEND_FAILED", message });
         }
-        console.info("[DBG_RENDER_JOB_STATUS]", { jobId, status: "queued" });
-        return new Response(JSON.stringify({ jobId, status: "queued" }), {
+        logRenderInfo(env, "debug", "[DBG_RENDER_JOB_STATUS]", { jobId, status: "queued" });
+        return new Response(JSON.stringify({
+          ...buildRenderJobPublicPayload(request, record),
+          reused: false,
+        }), {
           status: 202,
           headers: {
             ...CORS_HEADERS,
@@ -5589,12 +6404,96 @@ const handleHttpRequest = async (request: Request, env: Env): Promise<Response> 
         });
       }
 
+      if (url.pathname === "/render-jobs/latest" && request.method === "GET") {
+        const templateId = String(url.searchParams.get("templateId") ?? "").trim();
+        const recordId = String(url.searchParams.get("recordId") ?? "").trim();
+        const mode: RenderJobMode = url.searchParams.get("mode") === "save" ? "save" : "print";
+        if (!templateId || !recordId) {
+          return jsonError(400, {
+            error: "BAD_REQUEST",
+            reason: "missing templateId or recordId",
+          });
+        }
+
+        const authHeader = request.headers.get("Authorization") ?? "";
+        const bearerToken = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : "";
+        const sessionToken =
+          (request.headers.get("x-session-token") ?? url.searchParams.get("sessionToken") ?? "").trim();
+        let tenantKey = "";
+        if (bearerToken) {
+          const verified = await verifyEditorToken(env.USER_TEMPLATES_KV, bearerToken);
+          if (!verified) {
+            return jsonError(401, { error: "UNAUTHORIZED", reason: "missing token or invalid" });
+          }
+          tenantKey = verified.tenantId;
+        } else if (sessionToken) {
+          const loaded = await loadEditorSession(env, sessionToken);
+          if ("error" in loaded) {
+            return jsonError(401, { error: "UNAUTHORIZED", reason: "missing token or invalid" });
+          }
+          tenantKey = buildTenantKey(loaded.session.kintoneBaseUrl, loaded.session.appId);
+        } else {
+          return jsonError(401, { error: "UNAUTHORIZED", reason: "missing token or invalid" });
+        }
+
+        const latest = await findLatestRenderJobForRecord(env, {
+          tenantKey,
+          templateId,
+          recordId,
+          mode,
+        });
+        if (!latest) {
+          logRenderInfo(env, "always", "[RENDER_JOB_LATEST_MISS]", {
+            jobId: null,
+            templateId,
+            recordId,
+            tenantKey,
+            mode,
+            executionName: null,
+          });
+          return new Response(JSON.stringify({ ok: true, job: null }), {
+            status: 200,
+            headers: {
+              ...CORS_HEADERS,
+              "Content-Type": "application/json",
+              "Cache-Control": "no-store, no-cache, must-revalidate",
+              Pragma: "no-cache",
+            },
+          });
+        }
+
+        const reconciled = await reconcileRenderJobDoneFromOutput(env, latest);
+        logRenderInfo(env, "always", "[RENDER_JOB_LATEST_FOUND]", {
+          jobId: reconciled.jobId,
+          templateId: reconciled.templateId,
+          recordId: reconciled.recordId,
+          tenantKey: reconciled.tenantKey,
+          mode: reconciled.mode,
+          executionName: reconciled.executionName ?? null,
+        });
+        return new Response(
+          JSON.stringify({
+            ok: true,
+            job: buildRenderJobPublicPayload(request, reconciled),
+          }),
+          {
+            status: 200,
+            headers: {
+              ...CORS_HEADERS,
+              "Content-Type": "application/json",
+              "Cache-Control": "no-store, no-cache, must-revalidate",
+              Pragma: "no-cache",
+            },
+          },
+        );
+      }
+
       const renderJobPdfMatch = url.pathname.match(/^\/render-jobs\/([^/]+)\/(pdf|file)$/);
       if (renderJobPdfMatch && request.method === "GET") {
         const jobId = renderJobPdfMatch[1];
         const initialRecord = await getRenderJobRecord(env, jobId);
         if (!initialRecord) {
-          console.info("[DBG_RENDER_JOB_FILE_FETCH]", {
+          logRenderInfo(env, "debug", "[DBG_RENDER_JOB_FILE_FETCH]", {
             jobId,
             status: null,
             errorCode: "JOB_NOT_FOUND",
@@ -5613,7 +6512,7 @@ const handleHttpRequest = async (request: Request, env: Env): Promise<Response> 
           logRenderJobEvent("[DBG_RENDER_JOB_FILE_FETCH]", env, record, {
             errorCode: "FILE_NOT_READY",
             requestedPath: renderJobPdfMatch[2],
-          });
+          }, "debug");
           return jsonError(409, {
             error: "FILE_NOT_READY",
             errorCode: "FILE_NOT_READY",
@@ -5627,7 +6526,7 @@ const handleHttpRequest = async (request: Request, env: Env): Promise<Response> 
           logRenderJobEvent("[DBG_RENDER_JOB_FILE_FETCH]", env, record, {
             errorCode: "UPLOAD_FAILED",
             requestedPath: renderJobPdfMatch[2],
-          });
+          }, "debug");
           return jsonError(500, {
             error: "UPLOAD_FAILED",
             errorCode: "UPLOAD_FAILED",
@@ -5640,7 +6539,7 @@ const handleHttpRequest = async (request: Request, env: Env): Promise<Response> 
           logRenderJobEvent("[DBG_RENDER_JOB_FILE_FETCH]", env, record, {
             errorCode: "UPLOAD_FAILED",
             requestedPath: renderJobPdfMatch[2],
-          });
+          }, "debug");
           return jsonError(500, {
             error: "UPLOAD_FAILED",
             errorCode: "UPLOAD_FAILED",
@@ -5653,8 +6552,8 @@ const handleHttpRequest = async (request: Request, env: Env): Promise<Response> 
           requestedPath: renderJobPdfMatch[2],
           pdfKey,
           pdfBytes: bytes.byteLength,
-        });
-        console.info("[DBG_RENDER_JOB_DOWNLOAD]", {
+        }, "debug");
+        logRenderInfo(env, "always", "[DBG_RENDER_JOB_DOWNLOAD]", {
           jobId,
           status: record.status,
           pdfKey,
@@ -5686,33 +6585,30 @@ const handleHttpRequest = async (request: Request, env: Env): Promise<Response> 
         const record = await reconcileRenderJobDoneFromOutput(env, initialRecord);
         const authError = await authorizeRenderJobAccess(request, env, record.tenantKey, url);
         if (authError) return authError;
-        console.info("[DBG_RENDER_JOB_POLL]", {
+        logRenderInfo(env, "debug", "[DBG_RENDER_JOB_POLL]", {
           jobId: record.jobId,
           status: record.status,
         });
-        console.info("[DBG_RENDER_JOB_STATUS]", {
+        logRenderInfo(env, "debug", "[DBG_RENDER_JOB_STATUS]", {
           jobId: record.jobId,
           status: record.status,
           pdfKey: record.pdfKey ?? record.pdfObjectKey ?? null,
         });
         return new Response(
           JSON.stringify({
-            jobId: record.jobId,
-            status: record.status,
-            templateId: record.templateId,
+            ...buildRenderJobPublicPayload(request, record),
             templateRevision: record.templateRevision ?? null,
             tenantId: record.tenantId,
-            pdfKey: record.pdfKey ?? record.pdfObjectKey ?? null,
-            pdfObjectKey: record.pdfKey ?? record.pdfObjectKey ?? null,
+            tenantKey: record.tenantKey,
             pdfBytes: record.pdfBytes ?? null,
             renderMs: record.renderMs ?? null,
-            errorCode: record.errorCode ?? null,
-            errorMessage: record.errorMessage ?? record.error ?? null,
-            error: record.errorMessage ?? record.error ?? null,
-            rendererVersion: record.rendererVersion ?? null,
-            createdAt: record.createdAt ?? record.requestedAt ?? null,
+            executionDispatchedAt: record.executionDispatchedAt ?? null,
+            renderStartedAt: record.renderStartedAt ?? record.startedAt ?? null,
+            renderFinishedAt: record.renderFinishedAt ?? record.finishedAt ?? null,
+            failureStage: record.failureStage ?? null,
+            errorSummary: record.errorSummary ?? record.errorMessage ?? null,
+            errorDetails: record.errorDetails ?? null,
             updatedAt: record.updatedAt ?? record.requestedAt ?? null,
-            finishedAt: record.finishedAt ?? record.completedAt ?? null,
           }),
           {
             status: 200,
@@ -5757,7 +6653,7 @@ const handleHttpRequest = async (request: Request, env: Env): Promise<Response> 
           }
 
           if (debugEnabled) {
-            console.info("[DBG_DEBUG_FLAGS]", {
+            logRenderInfo(env, "debug", "[DBG_DEBUG_FLAGS]", {
               url: request.url,
               debugFromQuery,
               debugFromHash,
@@ -5819,7 +6715,7 @@ const handleHttpRequest = async (request: Request, env: Env): Promise<Response> 
             null;
           const hasBodyTemplate = Boolean(body?.template);
           if (debugEnabled) {
-            console.info("[DBG_RENDER_INCOMING]", {
+            logRenderInfo(env, "debug", "[DBG_RENDER_INCOMING]", {
               requestId,
               templateId: templateIdInBody,
               userTemplateId: userTemplateIdInBody,
@@ -5860,7 +6756,7 @@ const handleHttpRequest = async (request: Request, env: Env): Promise<Response> 
           }
 
           if (url.pathname === "/render") {
-            console.info("[render] debugFlag", {
+            logRenderInfo(env, "debug", "[render] debugFlag", {
               debug: debugEnabled,
               requestId,
             });
@@ -5957,7 +6853,7 @@ const handleHttpRequest = async (request: Request, env: Env): Promise<Response> 
               (template as any).revision ??
               (template as any).meta?.revision ??
               null;
-            console.info("[DBG_RENDER_RESOLVED]", {
+            logRenderInfo(env, "debug", "[DBG_RENDER_RESOLVED]", {
               requestId,
               resolvedSource,
               resolvedTemplateId: template.id ?? templateIdInBody ?? "",
@@ -5969,7 +6865,7 @@ const handleHttpRequest = async (request: Request, env: Env): Promise<Response> 
               resolvedUpdatedAt: updatedAt,
               resolvedRevision: revision,
             });
-            console.info("[DBG_RENDER_DOCMETA]", {
+            logRenderInfo(env, "debug", "[DBG_RENDER_DOCMETA]", {
               requestId,
               templateId: template.id ?? templateIdInBody ?? "",
               elements: pickDocMeta(template as TemplateDefinition),
@@ -5996,7 +6892,7 @@ const handleHttpRequest = async (request: Request, env: Env): Promise<Response> 
             }));
           })();
 
-          console.info("[render] request", {
+          logRenderInfo(env, "debug", "[render] request", {
             requestId,
             method: request.method,
             url: request.url,
@@ -6010,7 +6906,10 @@ const handleHttpRequest = async (request: Request, env: Env): Promise<Response> 
           });
 
           const fixtureName = url.searchParams.get("fixture");
-          console.log("fixture=", fixtureName);
+          logRenderInfo(env, "verbose", "[DBG_RENDER_FIXTURE]", {
+            requestId,
+            fixture: fixtureName ?? null,
+          });
           const fixtureData = fixtureName ? getFixtureData(fixtureName) : undefined;
           if (fixtureName && !fixtureData) {
             return new Response(`Unknown fixture: ${fixtureName}`, {
@@ -6207,7 +7106,7 @@ const handleHttpRequest = async (request: Request, env: Env): Promise<Response> 
         if (renderMode === "final") {
           const profile = buildTextProfile(templateForRender, dataForRender, previewMode);
           if (profile.length > 0) {
-            console.info("[DBG_TEXT_PROFILE]", {
+            logRenderInfo(env, "verbose", "[DBG_TEXT_PROFILE]", {
               requestId,
               recordId: recordKey.recordId || null,
               recordRevision: recordKey.recordRevision || null,
@@ -6230,7 +7129,7 @@ const handleHttpRequest = async (request: Request, env: Env): Promise<Response> 
             ? performance.now()
             : Date.now();
         const logTiming = (phaseName: string, ms: number) => {
-          console.info("[DBG_RENDER_TIMING]", {
+          logRenderInfo(env, "verbose", "[DBG_RENDER_TIMING]", {
             requestId,
             phase: phaseName,
             ms: Math.round(ms),
@@ -6319,7 +7218,7 @@ const handleHttpRequest = async (request: Request, env: Env): Promise<Response> 
           if (cachedObject) {
             cachedFinalPdf = await cachedObject.arrayBuffer();
           } else {
-            console.info("[DBG_RENDER_CACHE]", {
+            logRenderInfo(env, "debug", "[DBG_RENDER_CACHE]", {
               requestId,
               mode: "final",
               status: "MISS",
@@ -6331,7 +7230,7 @@ const handleHttpRequest = async (request: Request, env: Env): Promise<Response> 
         }
 
         if (cachedPdf) {
-            console.info("[DBG_RENDER_CACHE]", {
+            logRenderInfo(env, "debug", "[DBG_RENDER_CACHE]", {
               requestId,
               status: "HIT",
               cacheKey,
@@ -6350,7 +7249,7 @@ const handleHttpRequest = async (request: Request, env: Env): Promise<Response> 
         }
 
         if (cachedFinalPdf) {
-          console.info("[DBG_RENDER_CACHE]", {
+          logRenderInfo(env, "debug", "[DBG_RENDER_CACHE]", {
             requestId,
             mode: "final",
             status: "HIT_R2",
@@ -6422,7 +7321,7 @@ const handleHttpRequest = async (request: Request, env: Env): Promise<Response> 
           logTiming("load_background_bytes", 0);
         }
         if (debugEnabled || renderMode === "final") {
-          console.info("[DBG_BACKGROUND_RENDER]", {
+          logRenderInfo(env, "debug", "[DBG_BACKGROUND_RENDER]", {
             templateId: backgroundTemplateId,
             backgroundFound,
             pageCount: backgroundPageCount,
@@ -6444,7 +7343,7 @@ const handleHttpRequest = async (request: Request, env: Env): Promise<Response> 
 
         hasLogoForDiag = Boolean(tenantLogoForRender);
         logoBytesLenForDiag = tenantLogoForRender?.bytes?.length ?? 0;
-        console.info("[DBG_LOGO]", {
+        logRenderInfo(env, "debug", "[DBG_LOGO]", {
           tenantKey: tenantKeyForDiag,
           found: Boolean(tenantLogoForRender),
           bytes: tenantLogoForRender?.bytes?.length ?? 0,
@@ -6453,7 +7352,7 @@ const handleHttpRequest = async (request: Request, env: Env): Promise<Response> 
           skipLogo,
         });
         if (debugEnabled) {
-          console.info("[DBG_TENANT_PROFILE]", {
+          logRenderInfo(env, "debug", "[DBG_TENANT_PROFILE]", {
             hasLogo: hasLogoForDiag,
             companyNameLen: renderCompanyProfile?.companyName?.length ?? 0,
             addressLen: renderCompanyProfile?.companyAddress?.length ?? 0,
@@ -6465,7 +7364,7 @@ const handleHttpRequest = async (request: Request, env: Env): Promise<Response> 
         const superFastMode =
           renderMode === "final" && !debugEnabled && !cachedFinalPdf && !!tenantLogoForRender;
         if (superFastMode) {
-          console.info("[DBG_SUPER_FAST_MODE]", {
+          logRenderInfo(env, "debug", "[DBG_SUPER_FAST_MODE]", {
             requestId,
             enabled: true,
             reason: "final_miss",
@@ -6515,7 +7414,7 @@ const handleHttpRequest = async (request: Request, env: Env): Promise<Response> 
               : templateForRender,
             previewMode,
           ).some((text) => hasAscii(text));
-        console.info("[DBG_OVERLAY_MODE]", {
+        logRenderInfo(env, "verbose", "[DBG_OVERLAY_MODE]", {
           backgroundFound,
           skipLogo,
           skipStaticLabels,
@@ -6534,14 +7433,14 @@ const handleHttpRequest = async (request: Request, env: Env): Promise<Response> 
             jpFontFamily: renderJpSelection.requestedFamily,
           });
           logTiming("load_font_bytes", nowMs() - fontStart);
-          console.info("[DBG_FONT_POLICY]", {
+          logRenderInfo(env, "debug", "[DBG_FONT_POLICY]", {
             requestId,
             renderMode,
             useJpFont,
             latinSource: fonts.latin ? "custom" : "standard",
             jpBytes: fonts.jp?.length ?? 0,
           });
-          console.info("[DBG_JP_FONT_CANDIDATE]", {
+          logRenderInfo(env, "verbose", "[DBG_JP_FONT_CANDIDATE]", {
             scope: "render",
             requestId,
             fontFamily: renderJpSelection.requestedFamily,
@@ -6592,6 +7491,7 @@ const handleHttpRequest = async (request: Request, env: Env): Promise<Response> 
               fonts,
               {
                 debug,
+                logLevel: getRenderLogTier(env),
                 previewMode,
                 renderMode,
                 useJpFont,
@@ -6627,10 +7527,10 @@ const handleHttpRequest = async (request: Request, env: Env): Promise<Response> 
 
             const pdfBytes = new Uint8Array(rawPdfBytes);
             if (debugEnabled) {
-              console.info("[DBG_PDF_SIZE]", { requestId, bytes: pdfBytes.length });
+              logRenderInfo(env, "debug", "[DBG_PDF_SIZE]", { requestId, bytes: pdfBytes.length });
             }
             if (debugEnabled || renderMode === "final") {
-              console.info("[DBG_FINAL_OUTPUT]", {
+              logRenderInfo(env, "verbose", "[DBG_FINAL_OUTPUT]", {
                 requestId,
                 bytesLen: pdfBytes.length,
                 backgroundFound,
@@ -6652,14 +7552,14 @@ const handleHttpRequest = async (request: Request, env: Env): Promise<Response> 
               try {
                 await env.RENDER_CACHE.put(cacheKey, pdfBytes, { expirationTtl: 60 });
                 renderCacheHeader = "PUT";
-                console.info("[DBG_RENDER_CACHE]", {
+                logRenderInfo(env, "debug", "[DBG_RENDER_CACHE]", {
                   requestId,
                   status: "PUT",
                   cacheKey,
                 });
               } catch {
                 renderCacheHeader = "PUT_FAILED";
-                console.info("[DBG_RENDER_CACHE]", {
+                logRenderInfo(env, "debug", "[DBG_RENDER_CACHE]", {
                   requestId,
                   status: "PUT_FAILED",
                   cacheKey,
@@ -6673,7 +7573,7 @@ const handleHttpRequest = async (request: Request, env: Env): Promise<Response> 
                   httpMetadata: { contentType: "application/pdf" },
                 });
                 renderCacheHeader = "PUT_R2";
-                console.info("[DBG_RENDER_CACHE]", {
+                logRenderInfo(env, "debug", "[DBG_RENDER_CACHE]", {
                   requestId,
                   mode: "final",
                   status: "PUT_R2",
@@ -6682,7 +7582,7 @@ const handleHttpRequest = async (request: Request, env: Env): Promise<Response> 
                 });
               } catch {
                 renderCacheHeader = "PUT_R2_FAILED";
-                console.info("[DBG_RENDER_CACHE]", {
+                logRenderInfo(env, "debug", "[DBG_RENDER_CACHE]", {
                   requestId,
                   mode: "final",
                   status: "PUT_R2_FAILED",
@@ -6795,6 +7695,9 @@ const normalizeRendererError = (
   const message = error instanceof Error ? error.message : String(error);
   if (/UNAUTHORIZED_RENDERER_CALL/i.test(message)) {
     return { errorCode: "UNAUTHORIZED_RENDERER_CALL", errorMessage: "Renderer authorization failed" };
+  }
+  if (/TABLE_RENDER_STUCK/i.test(message)) {
+    return { errorCode: "TABLE_RENDER_STUCK", errorMessage: "Table render stuck" };
   }
   if (/BACKGROUND_FETCH_FAILED/i.test(message) || /background/i.test(message)) {
     return { errorCode: "BACKGROUND_FETCH_FAILED", errorMessage: "Background fetch failed" };
@@ -7017,138 +7920,18 @@ const renderLocalPdf = async (
     jobId: payload.jobId,
     pdfKey: objectKey,
     pdfBytes: bytes.length,
+    backgroundBytes: null,
     renderMs: Date.now() - renderStartedAt,
     rendererVersion: `worker-local:${getRendererVersion(env)}`,
   };
 };
 
-const callRendererService = async (
-  renderPayload: RendererRenderRequest,
-  env: Env,
-): Promise<RendererRenderSuccess> => {
-  const baseUrl = env.RENDERER_BASE_URL?.trim();
-  if (!baseUrl) {
-    throw new RenderExecutionError("RENDERER_HTTP_FAILED", "RENDERER_BASE_URL is not configured");
-  }
-  const timeoutMs = getRendererTimeoutMs(env);
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort("renderer-timeout"), timeoutMs);
-  const url = `${baseUrl.replace(/\/$/, "")}/internal/render`;
-  console.info("[DBG_RENDERER_CALL_START]", {
-    jobId: renderPayload.jobId,
-    templateId: renderPayload.meta.templateId,
-    tenantId: renderPayload.meta.tenantId,
-    rendererVersion: renderPayload.meta.rendererVersion,
-    renderMode: resolveRenderModeSetting(env),
-    pdfKey: renderPayload.assets.pdfKey ?? null,
-    pdfBytes: null,
-    renderMs: null,
-    status: "running",
-    errorCode: null,
-    timeoutMs,
-    url,
-  });
-  try {
-    const response = await fetch(url, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        ...buildRendererInternalHeaders(env, renderPayload.meta.requestId ?? renderPayload.jobId, renderPayload.jobId),
-      },
-      body: JSON.stringify(renderPayload),
-      signal: controller.signal,
-    });
-    const parsed = (await response.json().catch(() => null)) as RendererRenderResponse | null;
-    if (!response.ok) {
-      const code = parsed && !parsed.ok ? parsed.errorCode : "RENDERER_HTTP_FAILED";
-      const message =
-        parsed && !parsed.ok ? parsed.errorMessage : `renderer http ${response.status}`;
-      console.error("[DBG_RENDERER_CALL_ERROR]", {
-        jobId: renderPayload.jobId,
-        templateId: renderPayload.meta.templateId,
-        tenantId: renderPayload.meta.tenantId,
-        rendererVersion: renderPayload.meta.rendererVersion,
-        renderMode: resolveRenderModeSetting(env),
-        status: response.status,
-        errorCode: code,
-      });
-      throw new RenderExecutionError(code, message);
-    }
-    if (!parsed || !parsed.ok) {
-      console.error("[DBG_RENDERER_CALL_ERROR]", {
-        jobId: renderPayload.jobId,
-        templateId: renderPayload.meta.templateId,
-        tenantId: renderPayload.meta.tenantId,
-        rendererVersion: renderPayload.meta.rendererVersion,
-        renderMode: resolveRenderModeSetting(env),
-        status: response.status,
-        errorCode: parsed && !parsed.ok ? parsed.errorCode : "RENDERER_HTTP_FAILED",
-      });
-      throw new RenderExecutionError(
-        parsed && !parsed.ok ? parsed.errorCode : "RENDERER_HTTP_FAILED",
-        parsed && !parsed.ok ? parsed.errorMessage : "renderer returned invalid payload",
-      );
-    }
-    console.info("[DBG_RENDERER_CALL_DONE]", {
-      jobId: parsed.jobId,
-      templateId: renderPayload.meta.templateId,
-      tenantId: renderPayload.meta.tenantId,
-      renderMode: resolveRenderModeSetting(env),
-      pdfKey: parsed.pdfKey,
-      renderMs: parsed.renderMs,
-      pdfBytes: parsed.pdfBytes,
-      rendererVersion: parsed.rendererVersion,
-      status: "done",
-      errorCode: null,
-    });
-    return parsed;
-  } catch (error) {
-    if ((error as any)?.name === "AbortError") {
-      console.error("[DBG_RENDERER_CALL_ERROR]", {
-        jobId: renderPayload.jobId,
-        templateId: renderPayload.meta.templateId,
-        tenantId: renderPayload.meta.tenantId,
-        rendererVersion: renderPayload.meta.rendererVersion,
-        renderMode: resolveRenderModeSetting(env),
-        pdfKey: renderPayload.assets.pdfKey ?? null,
-        pdfBytes: null,
-        renderMs: null,
-        status: "failed",
-        errorCode: "RENDERER_TIMEOUT",
-      });
-      throw new RenderExecutionError("RENDERER_TIMEOUT", `renderer timeout after ${timeoutMs}ms`);
-    }
-    const normalized = normalizeRendererError(error);
-    console.error("[DBG_RENDERER_CALL_ERROR]", {
-      jobId: renderPayload.jobId,
-      templateId: renderPayload.meta.templateId,
-      tenantId: renderPayload.meta.tenantId,
-      rendererVersion: renderPayload.meta.rendererVersion,
-      renderMode: resolveRenderModeSetting(env),
-      pdfKey: renderPayload.assets.pdfKey ?? null,
-      pdfBytes: null,
-      renderMs: null,
-      status: "failed",
-      errorCode: normalized.errorCode,
-    });
-    throw error;
-  } finally {
-    clearTimeout(timeout);
-  }
-};
-
-const renderRemotePdf = async (
-  env: Env,
+const buildStoredRenderJobPayload = (
   payload: RenderJobMessage,
-): Promise<RendererRenderSuccess> => {
-  const requestId = `${payload.jobId}:${Date.now()}`;
-  const prepared = await prepareRenderJobExecution(env, payload, requestId);
-  await updateRenderJobStatus(env, payload.jobId, {
-    status: "running",
-    templateRevision: prepared.templateRevision,
-    rendererVersion: prepared.rendererVersion,
-  });
-  const rendererPayload: RendererRenderRequest = {
+  prepared: PreparedRenderJobExecution,
+): StoredRenderJobPayload => ({
+  jobId: payload.jobId,
+  renderRequest: {
     jobId: payload.jobId,
     template: prepared.template,
     data: prepared.data,
@@ -7175,18 +7958,117 @@ const renderRemotePdf = async (
       skipStaticLabels: prepared.skipStaticLabels,
       useBaseBackgroundDoc: prepared.useBaseBackgroundDoc,
     },
-  };
-  return callRendererService(rendererPayload, env);
+  },
+  record: {
+    jobId: payload.jobId,
+    status: "queued",
+    templateId: prepared.template.id ?? payload.templateId,
+    tenantId: payload.tenantKey,
+    rendererVersion: prepared.rendererVersion,
+    attempt: 1,
+  },
+});
+
+const dispatchRendererJob = async (
+  env: Env,
+  args: {
+    jobId: string;
+    templateId: string;
+    tenantId: string;
+    requestId: string;
+    rendererVersion: string;
+  },
+) => {
+  const config = getCloudRunJobDispatchConfig(env);
+  logRenderInfo(env, "always", "[DBG_RENDERER_CALL_START]", {
+    jobId: args.jobId,
+    templateId: args.templateId,
+    tenantId: args.tenantId,
+    rendererVersion: args.rendererVersion,
+    renderMode: resolveRenderModeSetting(env),
+    renderEngine: "cloud_run_job",
+    status: "leased",
+    errorCode: null,
+    timeoutMs: config.requestTimeoutMs ?? null,
+    targetJobName: config.jobName,
+  });
+  try {
+    const dispatched = await runCloudRunJob(config, {
+      jobId: args.jobId,
+      requestId: args.requestId,
+      containerName: env.CLOUD_RUN_RENDER_JOB_CONTAINER_NAME?.trim() ?? null,
+    });
+    logRenderInfo(env, "always", "[DBG_RENDERER_CALL_DONE]", {
+      jobId: args.jobId,
+      templateId: args.templateId,
+      tenantId: args.tenantId,
+      rendererVersion: args.rendererVersion,
+      renderMode: resolveRenderModeSetting(env),
+      renderEngine: "cloud_run_job",
+      executionName: dispatched.executionName,
+      operationName: dispatched.operationName,
+      status: "dispatched",
+      errorCode: null,
+    });
+    logRenderInfo(env, "always", "[RENDER_JOB_EXECUTION_REQUESTED]", {
+      jobId: args.jobId,
+      templateId: args.templateId,
+      recordId: null,
+      tenantKey: args.tenantId,
+      executionName: dispatched.executionName,
+      status: "dispatched",
+    });
+    return dispatched;
+  } catch (error) {
+    const normalized = normalizeRendererError(error);
+    logRenderError(env, "always", "[DBG_RENDERER_CALL_ERROR]", {
+      jobId: args.jobId,
+      templateId: args.templateId,
+      tenantId: args.tenantId,
+      rendererVersion: args.rendererVersion,
+      renderMode: resolveRenderModeSetting(env),
+      renderEngine: "cloud_run_job",
+      status: "failed",
+      errorCode: normalized.errorCode,
+    });
+    throw error;
+  }
 };
 
-const executeRenderJob = async (
+const renderRemotePdf = async (
   env: Env,
   payload: RenderJobMessage,
-): Promise<RendererRenderSuccess> => {
-  if (resolveRenderModeSetting(env) === "remote") {
-    return renderRemotePdf(env, payload);
-  }
-  return renderLocalPdf(env, payload);
+): Promise<{
+  handoff: {
+    jobId: string;
+    rendererVersion: string;
+    status: "dispatched";
+    executionName: string | null;
+    executionDispatchedAt: string;
+  };
+  templateRevision: number | null;
+}> => {
+  const requestId = `${payload.jobId}:${Date.now()}`;
+  const prepared = await prepareRenderJobExecution(env, payload, requestId);
+  const storedPayload = buildStoredRenderJobPayload(payload, prepared);
+  await putStoredRenderJobPayload(env, storedPayload);
+  const dispatched = await dispatchRendererJob(env, {
+    jobId: payload.jobId,
+    templateId: prepared.template.id ?? payload.templateId,
+    tenantId: payload.tenantKey,
+    requestId,
+    rendererVersion: prepared.rendererVersion,
+  });
+  return {
+    handoff: {
+      jobId: payload.jobId,
+      rendererVersion: prepared.rendererVersion,
+      status: "dispatched",
+      executionName: dispatched.executionName,
+      executionDispatchedAt: dispatched.dispatchedAt,
+    },
+    templateRevision: prepared.templateRevision,
+  };
 };
 
 const renderPdfInternal = async (
@@ -7237,58 +8119,125 @@ export default {
     return handleHttpRequest(request, env);
   },
   async queue(batch: MessageBatch<RenderJobMessage>, env: Env): Promise<void> {
-    const jobsKv = getRenderJobsKv(env);
     for (const message of batch.messages) {
       const payload = message.body as RenderJobMessage;
-      console.info("[DBG_RENDER_JOB_CONSUME]", {
+      const renderEngine = resolveRenderModeSetting(env);
+      logRenderInfo(env, "always", "[DBG_RENDER_JOB_CONSUME]", {
         jobId: payload.jobId,
         templateId: payload.templateId,
+        tenantId: payload.tenantKey,
+        queue: RENDER_JOBS_QUEUE_NAME,
         recordId: payload.recordId,
         recordRevision: payload.recordRevision,
         jpFontFamily: payload.jpFontFamily,
       });
+      logRenderInfo(env, "always", "[DBG_RENDER_ENGINE_SELECTED]", {
+        jobId: payload.jobId,
+        templateId: payload.templateId,
+        tenantId: payload.tenantKey,
+        rendererVersion:
+          renderEngine === "remote"
+            ? getRendererVersion(env)
+            : `worker-local:${getRendererVersion(env)}`,
+        renderEngine,
+        renderMode: renderEngine,
+      });
       try {
-        if (!jobsKv) throw new Error("RENDER_JOBS_KV_OR_RENDER_CACHE_REQUIRED");
+        if (!getRenderJobsKv(env)) throw new Error("RENDER_JOBS_KV_OR_RENDER_CACHE_REQUIRED");
+        const currentRecord = await getRenderJobRecord(env, payload.jobId);
+        if (renderEngine === "remote") {
+          await markRenderJobLeased(env, payload.jobId, {
+            rendererVersion: getRendererVersion(env),
+            attempt: currentRecord?.attempt ?? 1,
+          });
+          const remote = await renderRemotePdf(env, payload);
+          await markRenderJobDispatched(env, payload.jobId, {
+            templateRevision: remote.templateRevision,
+            rendererVersion: remote.handoff.rendererVersion,
+            executionName: remote.handoff.executionName,
+            executionDispatchedAt: remote.handoff.executionDispatchedAt,
+            attempt: currentRecord?.attempt ?? 1,
+          });
+          logRenderInfo(env, "always", "[DBG_RENDER_JOB_HANDOFF]", {
+            jobId: payload.jobId,
+            templateId: payload.templateId,
+            tenantId: payload.tenantKey,
+            rendererVersion: remote.handoff.rendererVersion,
+            renderEngine,
+            executionName: remote.handoff.executionName,
+            status: remote.handoff.status,
+          });
+          message.ack();
+          continue;
+        }
+
         await markRenderJobRunning(env, payload.jobId, {
-          rendererVersion:
-            resolveRenderModeSetting(env) === "remote"
-              ? getRendererVersion(env)
-              : `worker-local:${getRendererVersion(env)}`,
-          attempt: (await getRenderJobRecord(env, payload.jobId))?.attempt ?? 1,
+          rendererVersion: `worker-local:${getRendererVersion(env)}`,
+          attempt: currentRecord?.attempt ?? 1,
         });
-        console.info("[DBG_RENDER_JOB_STATUS]", { jobId: payload.jobId, status: "running" });
-        const result = await executeRenderJob(env, payload);
+        logRenderInfo(env, "debug", "[DBG_RENDER_JOB_STATUS]", {
+          jobId: payload.jobId,
+          status: "running",
+        });
+        const result = await renderLocalPdf(env, payload);
         await markRenderJobDone(env, payload.jobId, {
           pdfKey: result.pdfKey,
           pdfBytes: result.pdfBytes,
           renderMs: result.renderMs,
           rendererVersion: result.rendererVersion,
         });
-        const dedupJobId = await jobsKv.get(payload.dedupKey);
-        if (dedupJobId === payload.jobId) {
-          await jobsKv.delete(payload.dedupKey);
-        }
-        console.info("[DBG_RENDER_JOB_STATUS]", { jobId: payload.jobId, status: "done" });
+        await clearRenderJobDedup(env, {
+          jobId: payload.jobId,
+          dedupKey: payload.dedupKey,
+        });
+        logRenderInfo(env, "debug", "[DBG_RENDER_JOB_STATUS]", {
+          jobId: payload.jobId,
+          status: "done",
+        });
+        logRenderSummary(env, {
+          jobId: payload.jobId,
+          templateId: payload.templateId,
+          tenantId: payload.tenantKey,
+          renderMs: result.renderMs,
+          pdfBytes: result.pdfBytes,
+          backgroundBytes: result.backgroundBytes ?? null,
+          status: "done",
+          rendererVersion: result.rendererVersion,
+        });
         message.ack();
       } catch (error) {
         const normalized = normalizeRendererError(error);
-        if (jobsKv) {
-          await markRenderJobFailed(env, payload.jobId, {
-            errorCode: normalized.errorCode,
-            errorMessage: normalized.errorMessage,
-            rendererVersion:
-              resolveRenderModeSetting(env) === "remote" ? getRendererVersion(env) : null,
-          });
-          const dedupJobId = await jobsKv.get(payload.dedupKey);
-          if (dedupJobId === payload.jobId) {
-            await jobsKv.delete(payload.dedupKey);
-          }
-        }
-        console.info("[DBG_RENDER_JOB_STATUS]", { jobId: payload.jobId, status: "failed" });
-        console.error("[DBG_RENDER_JOB_FAIL]", {
+        await markRenderJobFailed(env, payload.jobId, {
+          errorCode: normalized.errorCode,
+          errorMessage: normalized.errorMessage,
+          rendererVersion: renderEngine === "remote" ? getRendererVersion(env) : null,
+        });
+        await clearRenderJobDedup(env, {
+          jobId: payload.jobId,
+          dedupKey: payload.dedupKey,
+        });
+        logRenderInfo(env, "debug", "[DBG_RENDER_JOB_STATUS]", {
+          jobId: payload.jobId,
+          status: "failed",
+        });
+        logRenderError(env, "debug", "[DBG_RENDER_JOB_FAIL]", {
           jobId: payload.jobId,
           errorCode: normalized.errorCode,
           error: normalized.errorMessage,
+        });
+        logRenderSummary(env, {
+          jobId: payload.jobId,
+          templateId: payload.templateId,
+          tenantId: payload.tenantKey,
+          renderMs: null,
+          pdfBytes: null,
+          backgroundBytes: null,
+          status: "failed",
+          rendererVersion:
+            renderEngine === "remote"
+              ? getRendererVersion(env)
+              : `worker-local:${getRendererVersion(env)}`,
+          errorCode: normalized.errorCode,
         });
         message.ack();
       }

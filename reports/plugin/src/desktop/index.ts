@@ -2,8 +2,13 @@ import { WORKER_BASE_URL } from '../constants';
 import type { PluginConfig } from '../config/index.ts';
 import { isDebugEnabled } from '../../../src/shared/debugFlag';
 import {
+  buildRenderJobPdfUrl,
+  createRenderJob,
+  fetchLatestRenderJob,
   JOB_STATUS_LABEL,
   requestRenderJobPdf,
+  waitForRenderJob,
+  type RenderJobStatusPayload,
   type RenderJobStatus,
 } from '../renderJobs';
 
@@ -126,6 +131,61 @@ const injectStyles = () => {
       cursor: not-allowed;
       opacity: 0.9;
     }
+    .plugbits-job-box {
+      margin-top: 10px;
+      padding: 10px 12px;
+      border: 1px solid #dbe3f0;
+      border-radius: 8px;
+      background: #f8fafc;
+      min-width: 300px;
+    }
+    .plugbits-job-box[data-status="running"],
+    .plugbits-job-box[data-status="queued"] {
+      border-color: #bfdbfe;
+      background: #eff6ff;
+    }
+    .plugbits-job-box[data-status="done"] {
+      border-color: #bbf7d0;
+      background: #f0fdf4;
+    }
+    .plugbits-job-box[data-status="error"] {
+      border-color: #fecaca;
+      background: #fef2f2;
+    }
+    .plugbits-job-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: #0f172a;
+      margin: 0 0 4px;
+    }
+    .plugbits-job-hint {
+      font-size: 12px;
+      color: #475569;
+      margin: 0;
+    }
+    .plugbits-job-meta {
+      font-size: 11px;
+      color: #64748b;
+      margin-top: 6px;
+      word-break: break-all;
+    }
+    .plugbits-job-actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 10px;
+    }
+    .plugbits-job-actions button {
+      padding: 6px 10px;
+      border-radius: 6px;
+      border: 1px solid #cbd5e1;
+      background: #fff;
+      cursor: pointer;
+      font-weight: 600;
+    }
+    .plugbits-job-actions button:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
   `;
   document.head.appendChild(style);
 };
@@ -161,6 +221,132 @@ const showToast = (message: string, type: ToastType = 'info') => {
 
 const notify = (message: string, type: ToastType = 'info') => {
   showToast(message, type);
+};
+
+type PrintJobUiState = {
+  visible: boolean;
+  status: RenderJobStatus;
+  jobId: string | null;
+  message: string;
+  hint: string;
+  pdfUrl: string | null;
+  canRetry: boolean;
+};
+
+type DetailViewContext = {
+  appId: string;
+  recordId: string;
+  recordRevision: string | null;
+  record: any;
+  templateId: string | null;
+  mode: 'print';
+};
+
+const PRINT_STATUS_HINT = 'このまま画面を閉じても処理は継続します';
+const RESTORE_CONTEXT_WAIT_MS = 1500;
+const RESTORE_CONTEXT_RETRY_MS = 150;
+
+const logDetailEvent = (
+  tag:
+    | '[RENDER_JOB_DETAIL_SHOW_BEGIN]'
+    | '[RENDER_JOB_DETAIL_SHOW_ERROR]'
+    | '[RENDER_JOB_RESTORE_BEGIN]'
+    | '[RENDER_JOB_RESTORE_DONE]'
+    | '[RENDER_JOB_RESTORE_CONTEXT]'
+    | '[RENDER_JOB_RESTORE_SKIPPED]'
+    | '[RENDER_JOB_RESTORE_REQUEST]'
+    | '[RENDER_JOB_RESTORE_RESULT]'
+    | '[RENDER_JOB_RESTORE_UI_APPLIED]',
+  payload: Record<string, unknown>,
+) => {
+  const serialized = JSON.stringify(payload);
+  if (tag === '[RENDER_JOB_DETAIL_SHOW_ERROR]') {
+    console.error(tag, serialized);
+    return;
+  }
+  console.log(tag, serialized);
+};
+
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+const resolveRestoreContext = async (detail: DetailViewContext) => {
+  const deadline = Date.now() + RESTORE_CONTEXT_WAIT_MS;
+  let config = getConfig();
+  let appId = detail.appId;
+  let templateId = config?.templateId?.trim() || detail.templateId || '';
+  const recordId = detail.recordId;
+
+  while (Date.now() < deadline) {
+    if (recordId && appId && templateId) {
+      return {
+        config,
+        appId,
+        recordId,
+        templateId,
+      };
+    }
+    await sleep(RESTORE_CONTEXT_RETRY_MS);
+    config = getConfig();
+    appId = String((window as any).kintone?.app?.getId?.() ?? detail.appId ?? '').trim();
+    templateId = config?.templateId?.trim() || detail.templateId || '';
+  }
+
+  return {
+    config,
+    appId,
+    recordId,
+    templateId,
+  };
+};
+
+const createJobBox = (onOpen: () => void, onRetry: () => void) => {
+  const box = document.createElement('div');
+  box.className = 'plugbits-job-box';
+  box.hidden = true;
+
+  const title = document.createElement('p');
+  title.className = 'plugbits-job-title';
+  box.appendChild(title);
+
+  const hint = document.createElement('p');
+  hint.className = 'plugbits-job-hint';
+  box.appendChild(hint);
+
+  const meta = document.createElement('div');
+  meta.className = 'plugbits-job-meta';
+  box.appendChild(meta);
+
+  const actions = document.createElement('div');
+  actions.className = 'plugbits-job-actions';
+
+  const openButton = document.createElement('button');
+  openButton.type = 'button';
+  openButton.textContent = 'PDFを開く';
+  openButton.addEventListener('click', onOpen);
+  actions.appendChild(openButton);
+
+  const retryButton = document.createElement('button');
+  retryButton.type = 'button';
+  retryButton.textContent = '再試行';
+  retryButton.addEventListener('click', onRetry);
+  actions.appendChild(retryButton);
+
+  box.appendChild(actions);
+
+  return { box, title, hint, meta, openButton, retryButton };
+};
+
+const renderJobBox = (
+  elements: ReturnType<typeof createJobBox>,
+  state: PrintJobUiState,
+) => {
+  elements.box.hidden = !state.visible;
+  elements.box.dataset.status = state.status;
+  elements.title.textContent = state.message;
+  elements.hint.textContent = state.hint;
+  elements.meta.textContent = state.jobId ? `jobId: ${state.jobId}` : '';
+  elements.openButton.hidden = !state.pdfUrl;
+  elements.retryButton.hidden = !state.canRetry;
 };
 
 const showConfigWarning = (message: string) => {
@@ -324,6 +510,7 @@ const callRenderApi = async (
     templateId: config.templateId,
     recordId,
     recordRevision,
+    mode: 'save',
     kintoneApiToken: config.kintoneApiToken,
     debugEnabled: isDebugEnabled(),
     onStatus,
@@ -407,7 +594,7 @@ const checkTemplateAvailability = async (
   }
 };
 
-const addButton = (config: PluginConfig | null) => {
+const addButton = (config: PluginConfig | null, detail: DetailViewContext) => {
   const headerMenuSpace =
     (window as any).kintone?.app?.record?.getHeaderMenuSpaceElement?.() || null;
   const toolbar = headerMenuSpace || document.querySelector('.gaia-argoui-app-toolbar') || document.body;
@@ -422,41 +609,280 @@ const addButton = (config: PluginConfig | null) => {
   const printButton = createButton('印刷', 'primary');
   printButton.id = 'plugbits-print-button';
   let isPrinting = false;
-  printButton.addEventListener('click', async () => {
+  let activeMonitorId = 0;
+  let lastPdfUrl: string | null = null;
+  let currentClient:
+    | { sessionToken: string; job: RenderJobStatusPayload; baseUrl: string; debugEnabled: boolean }
+    | null = null;
+  const jobBox = createJobBox(
+    () => {
+      if (!currentClient?.job?.jobId) return;
+      const url = buildRenderJobPdfUrl({
+        workerBaseUrl: currentClient.baseUrl,
+        jobId: currentClient.job.jobId,
+        sessionToken: currentClient.sessionToken,
+        debugEnabled: currentClient.debugEnabled,
+      });
+      window.open(url, '_blank', 'noopener,noreferrer');
+    },
+    () => {
+      void startPrintJob();
+    },
+  );
+
+  const setPrintUi = (state: PrintJobUiState) => {
+    renderJobBox(jobBox, state);
+    logDetailEvent('[RENDER_JOB_RESTORE_UI_APPLIED]', {
+      appId: detail.appId,
+      recordId: detail.recordId,
+      templateId: detail.templateId,
+      mode: detail.mode,
+      appliedState: state.visible ? state.status : 'print',
+    });
+    if (state.status === 'queued' || state.status === 'running') {
+      setButtonStatus(printButton, JOB_STATUS_LABEL[state.status]);
+      return;
+    }
+    setButtonLoading(printButton, false);
+  };
+
+  const resetPrintUi = () => {
+    setPrintUi({
+      visible: false,
+      status: 'queued',
+      jobId: null,
+      message: '印刷用PDFを準備',
+      hint: PRINT_STATUS_HINT,
+      pdfUrl: null,
+      canRetry: false,
+    });
+    setButtonLoading(printButton, false);
+  };
+
+  const applyRenderStatus = (
+    payload: RenderJobStatusPayload,
+    options?: { autoOpen?: boolean },
+  ) => {
+    if (currentClient) {
+      currentClient.job = payload;
+    }
+    const pdfUrl =
+      payload.status === 'done' && currentClient
+        ? buildRenderJobPdfUrl({
+            workerBaseUrl: currentClient.baseUrl,
+            jobId: payload.jobId,
+            sessionToken: currentClient.sessionToken,
+            debugEnabled: currentClient.debugEnabled,
+          })
+        : null;
+    const previousPdfUrl = lastPdfUrl;
+    lastPdfUrl = pdfUrl;
+    const state: PrintJobUiState = payload.status === 'done'
+      ? {
+          visible: true,
+          status: 'done',
+          jobId: payload.jobId,
+          message: JOB_STATUS_LABEL.done,
+          hint: PRINT_STATUS_HINT,
+          pdfUrl,
+          canRetry: false,
+        }
+      : payload.status === 'error'
+        ? {
+            visible: true,
+            status: 'error',
+            jobId: payload.jobId,
+            message: JOB_STATUS_LABEL.error,
+            hint: 'もう一度お試しください',
+            pdfUrl: null,
+            canRetry: true,
+          }
+        : {
+            visible: true,
+            status: payload.status,
+            jobId: payload.jobId,
+            message: JOB_STATUS_LABEL[payload.status],
+            hint: PRINT_STATUS_HINT,
+            pdfUrl: null,
+            canRetry: false,
+          };
+    setPrintUi(state);
+    if (
+      options?.autoOpen &&
+      pdfUrl &&
+      document.visibilityState === 'visible' &&
+      pdfUrl !== previousPdfUrl
+    ) {
+      window.open(pdfUrl, '_blank', 'noopener,noreferrer');
+    }
+  };
+
+  const monitorPrintJob = (
+    client: { sessionToken: string; job: RenderJobStatusPayload; baseUrl: string; debugEnabled: boolean },
+    monitorId: number,
+    options?: { autoOpenOnDone?: boolean; notifyOnDone?: boolean },
+  ) => {
+    void (async () => {
+      try {
+        const finalStatus = await waitForRenderJob({
+          baseUrl: client.baseUrl,
+          sessionToken: client.sessionToken,
+          jobId: client.job.jobId,
+          debugEnabled: client.debugEnabled,
+          onStatus: (status) => {
+            if (activeMonitorId !== monitorId) return;
+            applyRenderStatus({
+              ...client.job,
+              status,
+            });
+          },
+        });
+        if (activeMonitorId !== monitorId) return;
+        currentClient = { ...client, job: finalStatus };
+        applyRenderStatus(finalStatus, { autoOpen: options?.autoOpenOnDone === true && finalStatus.status === 'done' });
+        if (options?.notifyOnDone) {
+          notify(finalStatus.status === 'done' ? 'PDFの準備ができました' : 'PDF生成に失敗しました', finalStatus.status === 'done' ? 'success' : 'error');
+        }
+      } catch (error) {
+        if (activeMonitorId !== monitorId) return;
+        setPrintUi({
+          visible: true,
+          status: 'running',
+          jobId: client.job.jobId,
+          message: JOB_STATUS_LABEL.running,
+          hint:
+            error instanceof Error
+              ? error.message
+              : '生成に時間がかかっています。しばらくしてから再確認してください。',
+          pdfUrl: null,
+          canRetry: false,
+        });
+        notify(
+          error instanceof Error
+            ? error.message
+            : '生成に時間がかかっています。しばらくしてから再確認してください。',
+          'info',
+        );
+      } finally {
+        if (activeMonitorId === monitorId) {
+          setButtonLoading(printButton, false);
+          isPrinting = false;
+        }
+      }
+    })();
+  };
+
+  const resumePrintJob = async () => {
+    const baseLog = {
+      appId: detail.appId,
+      recordId: detail.recordId,
+      templateId: detail.templateId ?? null,
+      mode: detail.mode,
+      source: 'detail-show',
+    };
+    logDetailEvent('[RENDER_JOB_RESTORE_BEGIN]', baseLog);
+    let restoredStatus: RenderJobStatus | null = null;
+    try {
+      const resolved = await resolveRestoreContext(detail);
+      logDetailEvent('[RENDER_JOB_RESTORE_CONTEXT]', {
+        appId: resolved.appId || null,
+        recordId: resolved.recordId || null,
+        templateId: resolved.templateId || null,
+        mode: detail.mode,
+        source: 'detail-show',
+      });
+      const skipReason =
+        !resolved.config ? 'config_not_ready'
+        : !resolved.templateId ? 'missing_templateId'
+        : !resolved.recordId ? 'missing_recordId'
+        : !resolved.appId ? 'missing_appId'
+        : null;
+      if (skipReason) {
+        logDetailEvent('[RENDER_JOB_RESTORE_SKIPPED]', {
+          ...baseLog,
+          reason: skipReason,
+        });
+        resetPrintUi();
+        return;
+      }
+      logDetailEvent('[RENDER_JOB_RESTORE_REQUEST]', {
+        appId: resolved.appId,
+        recordId: resolved.recordId,
+        templateId: resolved.templateId,
+        mode: detail.mode,
+        source: 'detail-show',
+      });
+      const latest = await fetchLatestRenderJob({
+        workerBaseUrl: WORKER_BASE_URL,
+        kintoneBaseUrl: location.origin,
+        appId: resolved.appId,
+        templateId: resolved.templateId,
+        recordId: resolved.recordId,
+        mode: 'print',
+        kintoneApiToken: resolved.config.kintoneApiToken,
+        debugEnabled: isDebugEnabled(),
+      });
+      logDetailEvent('[RENDER_JOB_RESTORE_RESULT]', {
+        appId: resolved.appId,
+        recordId: resolved.recordId,
+        templateId: resolved.templateId,
+        mode: detail.mode,
+        found: Boolean(latest),
+        jobId: latest?.job.jobId ?? null,
+        status: latest?.job.status ?? null,
+      });
+      if (!latest) {
+        resetPrintUi();
+        return;
+      }
+      currentClient = latest;
+      restoredStatus = latest.job.status;
+      applyRenderStatus(latest.job);
+      if (latest.job.status === 'queued' || latest.job.status === 'running') {
+        isPrinting = true;
+        const monitorId = Date.now();
+        activeMonitorId = monitorId;
+        monitorPrintJob(latest, monitorId, { autoOpenOnDone: false, notifyOnDone: true });
+      } else {
+        setButtonLoading(printButton, false);
+      }
+    } catch (error) {
+      console.error('PlugBits latest job restore failed', error);
+      resetPrintUi();
+    } finally {
+      logDetailEvent('[RENDER_JOB_RESTORE_DONE]', {
+        ...baseLog,
+        status: restoredStatus,
+      });
+    }
+  };
+
+  const startPrintJob = async () => {
     if (isPrinting) return;
     isPrinting = true;
+    lastPdfUrl = null;
+    const monitorId = Date.now();
+    activeMonitorId = monitorId;
     setButtonLoading(printButton, true);
-    const pdfWindow = openPdfWindow();
-    if (!pdfWindow) return;
+
     const latestConfig = getConfig();
     if (!latestConfig || !latestConfig.templateId) {
       notify('プラグイン設定でテンプレを選んでください', 'error');
-      closePdfWindow(pdfWindow);
       setButtonLoading(printButton, false);
       isPrinting = false;
       return;
     }
-    const record = (window as any).kintone?.app?.record?.get()?.record;
+    const record = detail.record;
     if (!record) {
-      notify('レコード情報を取得できません');
-      closePdfWindow(pdfWindow);
+      notify('レコード情報を取得できません', 'error');
       setButtonLoading(printButton, false);
       isPrinting = false;
       return;
     }
-
     const recordId = record.$id?.value;
-    if (!recordId) {
-      notify('レコードIDが取得できません');
-      closePdfWindow(pdfWindow);
-      setButtonLoading(printButton, false);
-      isPrinting = false;
-      return;
-    }
     const recordRevision = record.$revision?.value;
-    if (!recordRevision) {
-      notify('レコードのリビジョンが取得できません', 'error');
-      closePdfWindow(pdfWindow);
+    if (!recordId || !recordRevision) {
+      notify('レコード情報を取得できません', 'error');
       setButtonLoading(printButton, false);
       isPrinting = false;
       return;
@@ -467,34 +893,72 @@ const addButton = (config: PluginConfig | null) => {
       onError: (message) => notify(message, 'error'),
     });
     if (!templateOk) {
-      closePdfWindow(pdfWindow);
       setButtonLoading(printButton, false);
       isPrinting = false;
       return;
     }
 
     try {
-      setButtonStatus(printButton, 'PDFを生成中です...');
-      const pdfBlob = await callRenderApi(
-        latestConfig,
-        String(recordId),
-        String(recordRevision),
-        (status) => updateJobStatusLabel(printButton, status),
-      );
-      const url = URL.createObjectURL(pdfBlob);
-      pdfWindow.location.href = url;
-      notify('ダウンロード可能', 'success');
+      const appId = detail.appId;
+      if (!appId) {
+        throw new Error('アプリIDが取得できません');
+      }
+      const created = await createRenderJob({
+        workerBaseUrl: WORKER_BASE_URL,
+        kintoneBaseUrl: location.origin,
+        appId,
+        templateId: latestConfig.templateId,
+        recordId: String(recordId),
+        recordRevision: String(recordRevision),
+        mode: 'print',
+        kintoneApiToken: latestConfig.kintoneApiToken,
+        debugEnabled: isDebugEnabled(),
+        openWhenDone: true,
+      });
+      if (activeMonitorId !== monitorId) return;
+      currentClient = created;
+      notify(created.job.reused ? '進行中のPDF生成を引き継ぎました' : 'PDF生成を開始しました', 'info');
+      applyRenderStatus(created.job);
+      if (created.job.status === 'done' || created.job.status === 'error') {
+        applyRenderStatus(created.job, { autoOpen: created.job.status === 'done' });
+        setButtonLoading(printButton, false);
+        isPrinting = false;
+        return;
+      }
+      monitorPrintJob(created, monitorId, { autoOpenOnDone: true, notifyOnDone: true });
     } catch (error) {
       console.error(error);
-      closePdfWindow(pdfWindow);
-      notify(error instanceof Error ? error.message : 'PDF生成に失敗しました', 'error');
-    } finally {
+      setPrintUi({
+        visible: true,
+        status: 'error',
+        jobId: currentClient?.job.jobId ?? null,
+        message: JOB_STATUS_LABEL.error,
+        hint: 'もう一度お試しください',
+        pdfUrl: null,
+        canRetry: true,
+      });
+      notify('PDF生成に失敗しました', 'error');
       setButtonLoading(printButton, false);
       isPrinting = false;
     }
-  });
+  };
 
+  printButton.addEventListener('click', () => {
+    void startPrintJob();
+  });
   root.appendChild(printButton);
+  root.appendChild(jobBox.box);
+  renderJobBox(jobBox, {
+    visible: true,
+    status: 'queued',
+    jobId: null,
+    message: '印刷用PDFを準備',
+    hint: PRINT_STATUS_HINT,
+    pdfUrl: null,
+    canRetry: false,
+  });
+  setButtonStatus(printButton, '確認中...');
+  void resumePrintJob();
 
   if (config?.enableSaveButton) {
     const saveButton = createButton('保存');
@@ -528,7 +992,7 @@ const addButton = (config: PluginConfig | null) => {
         isSaving = false;
         return;
       }
-      const record = (window as any).kintone?.app?.record?.get()?.record;
+      const record = detail.record;
       if (!record) {
         notify('レコード情報を取得できません');
         closePdfWindow(pdfWindow);
@@ -592,18 +1056,46 @@ const addButton = (config: PluginConfig | null) => {
   toolbar.appendChild(root);
 };
 
-const setupRecordDetailButton = () => {
+const handleRecordDetailShow = (event: any) => {
   const config = getConfig();
   if (!config || !isConfigComplete(config)) {
     console.warn('PlugBits: プラグインが未設定です');
     showConfigWarning('PlugBits PDF: プラグインの設定が完了していません');
   }
 
-  const events = ['app.record.detail.show'];
-  (window as any).kintone?.events?.on(events, (event: any) => {
-    addButton(getConfig());
-    return event;
+  const appId = String((window as any).kintone?.app?.getId?.() ?? '');
+  const record = event?.record ?? null;
+  const recordId = String(event?.recordId ?? record?.$id?.value ?? '').trim();
+  const recordRevision = String(record?.$revision?.value ?? '').trim() || null;
+  const detail: DetailViewContext = {
+    appId,
+    recordId,
+    recordRevision,
+    record,
+    templateId: config?.templateId ?? null,
+    mode: 'print',
+  };
+
+  logDetailEvent('[RENDER_JOB_DETAIL_SHOW_BEGIN]', {
+    appId,
+    recordId,
+    templateId: detail.templateId,
+    mode: detail.mode,
   });
+
+  try {
+    addButton(config, detail);
+  } catch (error) {
+    logDetailEvent('[RENDER_JOB_DETAIL_SHOW_ERROR]', {
+      appId,
+      recordId,
+      templateId: detail.templateId,
+      mode: detail.mode,
+      errorMessage: error instanceof Error ? error.message : String(error),
+    });
+  }
+
+  return event;
 };
 
-document.addEventListener('DOMContentLoaded', setupRecordDetailButton);
+(window as any).kintone?.events?.on?.(['app.record.detail.show'], handleRecordDetailShow);

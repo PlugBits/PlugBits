@@ -1,22 +1,24 @@
 FROM node:20-alpine AS build
-WORKDIR /app
+WORKDIR /app/renderer
 
-COPY renderer/package.json ./renderer/package.json
-RUN cd renderer && npm install
+COPY package.json ./package.json
+COPY package-lock.json ./package-lock.json
+COPY tsconfig.json ./tsconfig.json
+COPY src ./src
+COPY assets ./assets
 
-COPY shared ./shared
-COPY worker/src/pdf ./worker/src/pdf
-COPY renderer ./renderer
-
-RUN cd renderer && npm run build
+RUN npm ci
+RUN npm run build
 
 FROM node:20-alpine AS runtime
 WORKDIR /app/renderer
 ENV NODE_ENV=production
 
 COPY --from=build /app/renderer/package.json ./package.json
+COPY --from=build /app/renderer/package-lock.json ./package-lock.json
 COPY --from=build /app/renderer/node_modules ./node_modules
 COPY --from=build /app/renderer/dist ./dist
 COPY --from=build /app/renderer/assets ./assets
 
-CMD ["node", "dist/renderer/src/server.js"]
+ENTRYPOINT ["node"]
+CMD ["dist/src/server.js"]

@@ -38,6 +38,7 @@ type WarnFn = (
 type PreviewMode = 'record' | 'fieldCode';
 type RenderMode = 'layout' | 'preview' | 'final';
 type RenderLayer = 'full' | 'background' | 'dynamic';
+type RenderLogLevel = 'always' | 'debug' | 'verbose';
 const MAX_TEXT_LENGTH = 200;
 const FINAL_MAX_ROWS = 300;
 const FINAL_MAX_PAGES = 10;
@@ -1382,6 +1383,7 @@ export async function renderTemplateToPdf(
   fonts: { jp: Uint8Array | null; latin: Uint8Array | null },
   options?: {
     debug?: boolean;
+    logLevel?: RenderLogLevel;
     previewMode?: PreviewMode;
     renderMode?: RenderMode;
     useJpFont?: boolean;
@@ -1405,6 +1407,11 @@ export async function renderTemplateToPdf(
 }> {
   const warnings = new Set<string>();
   const debugEnabled = options?.debug === true;
+  const logLevel = options?.logLevel ?? (debugEnabled ? 'debug' : 'always');
+  const shouldLog = (tier: RenderLogLevel) => {
+    const rank: Record<RenderLogLevel, number> = { always: 0, debug: 1, verbose: 2 };
+    return rank[logLevel] >= rank[tier];
+  };
   const debugOverlayEnabled = debugEnabled;
   const requestId = options?.requestId;
   const onPageInfo = options?.onPageInfo;
@@ -1856,7 +1863,7 @@ export async function renderTemplateToPdf(
   renderStats.jpTextsAfterFilter = preparedTextProfile.jpTexts;
   renderStats.latinTextsAfterFilter = preparedTextProfile.latinTexts;
   renderStats.emptyTextsAfterFilter = preparedTextProfile.removedEmpty;
-  if (debugEnabled || renderMode === 'final') {
+  if (shouldLog('verbose')) {
     console.info('[DBG_TEXT_FILTER]', {
       requestId,
       beforeTotal: preparedTextProfile.beforeTotal,
@@ -1867,7 +1874,7 @@ export async function renderTemplateToPdf(
   }
   const needsJpFont = Boolean(options?.useJpFont && fonts.jp && preparedTextProfile.jpTexts > 0);
   const needsLatinFont = preparedTextProfile.latinTexts > 0 || !needsJpFont;
-  if (debugEnabled || renderMode === 'final') {
+  if (shouldLog('verbose')) {
     console.info('[DBG_OVERLAY_MODE]', {
       backgroundFound: backgroundEnabled,
       skipLogo: options?.skipLogo === true,
@@ -2489,7 +2496,7 @@ export async function renderTemplateToPdf(
   }
 
   const saveStart = nowMs();
-  if (debugEnabled || renderMode === 'final') {
+  if (shouldLog('verbose')) {
     console.info('[DBG_FONT_USAGE]', {
       requestId,
       totalTexts: renderStats.textRunsBeforeFilter,
@@ -2508,7 +2515,7 @@ export async function renderTemplateToPdf(
     backgroundBytesLen +
     renderStats.textRunsAfterFilter * 48 +
     (renderStats.companyLogoDrawn ? options?.tenantLogo?.bytes?.length ?? 0 : 0);
-  if (debugEnabled || renderMode === 'final') {
+  if (shouldLog('verbose')) {
     console.info('[DBG_SAVE_PROFILE]', {
       requestId,
       totalTexts: renderStats.textRunsBeforeFilter,
@@ -4903,7 +4910,7 @@ function drawTable(
       continue;
     }
 
-    if ((debugEnabled || renderMode === 'final') && i % 50 === 0) {
+    if (shouldLog('verbose') && i % 50 === 0) {
       console.info('[DBG_TABLE_LOOP]', {
         tableId: element.id,
         rowIndex: i,

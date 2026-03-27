@@ -1,77 +1,89 @@
 import { appendDebugParam } from '../../src/shared/appendDebug';
 
-export type RenderJobStatus = 'queued' | 'running' | 'done' | 'failed';
+export type RenderJobRawStatus =
+  | 'queued'
+  | 'leased'
+  | 'dispatched'
+  | 'processing'
+  | 'running'
+  | 'done'
+  | 'failed';
 
-type RenderJobCreateResponse = {
-  jobId?: string;
-  status?: RenderJobStatus;
+export type RenderJobStatus = 'queued' | 'running' | 'done' | 'error';
+
+export type RenderJobStatusPayload = {
+  ok: boolean;
+  jobId: string;
+  status: RenderJobStatus;
+  rawStatus?: RenderJobRawStatus | null;
+  templateId?: string | null;
+  recordId?: string | null;
+  mode?: 'print' | 'save' | null;
+  source?: string | null;
+  executionName?: string | null;
+  createdAt?: string | null;
+  startedAt?: string | null;
+  finishedAt?: string | null;
+  pdfUrl?: string | null;
+  errorCode?: string | null;
+  errorMessage?: string | null;
+  rendererVersion?: string | null;
+  reused?: boolean;
 };
 
-type RenderJobPollResponse = {
-  jobId?: string;
-  status?: RenderJobStatus;
-  error?: string | null;
+type RenderJobCreateResponse = Partial<RenderJobStatusPayload>;
+type RenderJobLatestResponse = {
+  ok?: boolean;
+  job?: RenderJobCreateResponse | null;
 };
 
-type RequestRenderJobPdfOptions = {
+type RequestRenderJobOptions = {
   workerBaseUrl: string;
   kintoneBaseUrl: string;
   appId: string;
   templateId: string;
   recordId: string;
   recordRevision: string;
+  mode?: 'print' | 'save';
   kintoneApiToken?: string;
   jpFontFamily?: string;
   debugEnabled?: boolean;
   onStatus?: (status: RenderJobStatus) => void;
+  source?: string;
+  openWhenDone?: boolean;
 };
 
-const POLL_INTERVAL_MS = 2500;
-const POLL_MAX_ATTEMPTS = 120;
+type RenderJobClientContext = {
+  baseUrl: string;
+  debugEnabled: boolean;
+  sessionToken: string;
+  requestKey: string;
+  job: RenderJobStatusPayload;
+};
+
+type PollRenderJobOptions = {
+  baseUrl: string;
+  sessionToken: string;
+  jobId: string;
+  debugEnabled?: boolean;
+  onStatus?: (status: RenderJobStatus) => void;
+};
+
+const POLL_INTERVAL_MS = 2000;
+const POLL_MAX_ATTEMPTS = 60;
 
 const sessionTokenCache = new Map<string, { token: string; expiresAt: number }>();
-const activeCreateRequests = new Map<string, Promise<RenderJobCreateResponse>>();
-const activeJobPolls = new Set<string>();
-const activeJobDownloads = new Map<string, Promise<Blob>>();
+const activeCreateRequests = new Map<string, Promise<RenderJobClientContext>>();
 const downloadedJobBlobs = new Map<string, Blob>();
-const jobStatusListeners = new Map<string, Set<(status: RenderJobStatus) => void>>();
-const jobRequestBindings = new Map<string, Set<string>>();
 
 export const JOB_STATUS_LABEL: Record<RenderJobStatus, string> = {
-  queued: 'キュー待機中',
-  running: 'PDF生成中',
-  done: 'ダウンロード可能',
-  failed: '生成失敗。再試行してください',
+  queued: '生成待ちです',
+  running: 'PDFを生成しています',
+  done: 'PDFの準備ができました',
+  error: 'PDF生成に失敗しました',
 };
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
-
-const logTimerCount = () => {
-  console.log('[DBG_PLUGIN_JOB_TIMER_COUNT]', {
-    activeJobIds: Array.from(activeJobPolls),
-    timerCount: activeJobPolls.size,
-  });
-};
-
-const addJobStatusListener = (jobId: string, listener?: (status: RenderJobStatus) => void) => {
-  if (!listener) return;
-  const listeners = jobStatusListeners.get(jobId) ?? new Set<(status: RenderJobStatus) => void>();
-  listeners.add(listener);
-  jobStatusListeners.set(jobId, listeners);
-};
-
-const emitJobStatus = (jobId: string, status: RenderJobStatus) => {
-  console.log('[DBG_PLUGIN_JOB_STATUS]', { jobId, status });
-  const listeners = jobStatusListeners.get(jobId);
-  if (!listeners) return;
-  for (const listener of listeners) {
-    try {
-      listener(status);
-    } catch {
-      // ignore listener errors
-    }
-  }
-};
 
 const safeJson = async (res: Response) => {
   try {
@@ -85,11 +97,53 @@ const buildErrorMessage = async (res: Response, fallback: string) => {
   const parsed = await safeJson(res);
   const jsonReason =
     (parsed && typeof parsed === 'object' && (parsed as any).reason) ||
+    (parsed && typeof parsed === 'object' && (parsed as any).errorMessage) ||
     (parsed && typeof parsed === 'object' && (parsed as any).error) ||
     '';
   if (jsonReason) return String(jsonReason);
   const text = await res.text().catch(() => '');
   return text || fallback;
+};
+
+const normalizePublicStatus = (status?: string | null): RenderJobStatus => {
+  if (status === 'done') return 'done';
+  if (status === 'failed' || status === 'error') return 'error';
+  if (status === 'running' || status === 'processing') return 'running';
+  return 'queued';
+};
+
+const normalizeStatusPayload = (
+  payload: RenderJobCreateResponse | null | undefined,
+  baseUrl: string,
+  fallbackJobId = '',
+): RenderJobStatusPayload => {
+  const jobId = String(payload?.jobId ?? fallbackJobId ?? '').trim();
+  const rawStatus = (payload?.rawStatus ?? payload?.status ?? 'queued') as RenderJobRawStatus;
+  const status = normalizePublicStatus(String(payload?.status ?? rawStatus ?? 'queued'));
+  const pdfUrl = payload?.pdfUrl
+    ? String(payload.pdfUrl)
+    : jobId && status === 'done'
+      ? `${baseUrl.replace(/\/$/, '')}/render-jobs/${encodeURIComponent(jobId)}/pdf`
+      : null;
+  return {
+    ok: payload?.ok ?? status !== 'error',
+    jobId,
+    status,
+    rawStatus,
+    templateId: payload?.templateId ?? null,
+    recordId: payload?.recordId ?? null,
+    mode: (payload?.mode as 'print' | 'save' | undefined) ?? null,
+    source: (payload?.source as string | undefined) ?? null,
+    executionName: payload?.executionName ?? null,
+    createdAt: payload?.createdAt ?? null,
+    startedAt: payload?.startedAt ?? null,
+    finishedAt: payload?.finishedAt ?? null,
+    pdfUrl,
+    errorCode: payload?.errorCode ?? null,
+    errorMessage: payload?.errorMessage ?? null,
+    rendererVersion: payload?.rendererVersion ?? null,
+    reused: payload?.reused === true,
+  };
 };
 
 const buildCreateSignature = (args: {
@@ -99,6 +153,7 @@ const buildCreateSignature = (args: {
   kintoneBaseUrl: string;
   appId: string;
   jpFontFamily: string;
+  mode: 'print' | 'save';
 }) =>
   [
     args.templateId,
@@ -107,14 +162,8 @@ const buildCreateSignature = (args: {
     args.kintoneBaseUrl,
     args.appId,
     args.jpFontFamily,
+    args.mode,
   ].join('::');
-
-const bindRequestToJob = (requestKey: string, jobId: string, recordId: string, recordRevision: string) => {
-  const bindings = jobRequestBindings.get(jobId) ?? new Set<string>();
-  bindings.add(requestKey);
-  jobRequestBindings.set(jobId, bindings);
-  console.log('[DBG_PLUGIN_JOB_BIND_UI]', { recordId, recordRevision, jobId });
-};
 
 const exchangeSessionForJobs = async (
   workerBaseUrl: string,
@@ -123,14 +172,7 @@ const exchangeSessionForJobs = async (
   appId: string,
   kintoneApiToken: string,
 ) => {
-  console.log('[DBG_PLUGIN_SESSION_EXCHANGE]', {
-    hasSessionToken: Boolean(sessionToken),
-    hasKintoneApiToken: Boolean(kintoneApiToken),
-    tokenLength: kintoneApiToken.length,
-    appId,
-    kintoneBaseUrl,
-  });
-  const exchangeRes = await fetch(`${workerBaseUrl.replace(/\/$/, '')}/editor/session/exchange`, {
+  const exchangeRes = await fetch(`${workerBaseUrl}/editor/session/exchange`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -159,7 +201,6 @@ const getSessionTokenForJobs = async (
   const key = `${kintoneBaseUrl}__${appId}`;
   const cached = sessionTokenCache.get(key);
   if (cached && cached.expiresAt - 60_000 > Date.now()) {
-    // Always refresh token binding before /render-jobs.
     await exchangeSessionForJobs(
       workerBaseUrl,
       cached.token,
@@ -170,7 +211,7 @@ const getSessionTokenForJobs = async (
     return cached.token;
   }
 
-  const sessionRes = await fetch(`${workerBaseUrl.replace(/\/$/, '')}/editor/session`, {
+  const sessionRes = await fetch(`${workerBaseUrl}/editor/session`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -194,14 +235,32 @@ const getSessionTokenForJobs = async (
     appId,
     normalizedToken,
   );
-  const expiresAt = Date.now() + 50 * 60_000;
-  sessionTokenCache.set(key, { token: sessionToken, expiresAt });
+  sessionTokenCache.set(key, {
+    token: sessionToken,
+    expiresAt: Date.now() + 50 * 60_000,
+  });
   return sessionToken;
 };
 
-export const requestRenderJobPdf = async (
-  options: RequestRenderJobPdfOptions,
-): Promise<Blob> => {
+export const buildRenderJobPdfUrl = (args: {
+  workerBaseUrl: string;
+  jobId: string;
+  sessionToken: string;
+  debugEnabled?: boolean;
+}) => {
+  const url = new URL(
+    appendDebugParam(
+      `${args.workerBaseUrl.replace(/\/$/, '')}/render-jobs/${encodeURIComponent(args.jobId)}/pdf`,
+      args.debugEnabled === true,
+    ),
+  );
+  url.searchParams.set('sessionToken', args.sessionToken);
+  return url.toString();
+};
+
+export const createRenderJob = async (
+  options: RequestRenderJobOptions,
+): Promise<RenderJobClientContext> => {
   const {
     workerBaseUrl,
     kintoneBaseUrl,
@@ -209,18 +268,15 @@ export const requestRenderJobPdf = async (
     templateId,
     recordId,
     recordRevision,
+    mode = 'print',
     kintoneApiToken,
     jpFontFamily,
     debugEnabled = false,
-    onStatus,
+    source = 'plugin-record-detail',
+    openWhenDone = true,
   } = options;
-  const requestKey = `${templateId}::${recordId}::${recordRevision}::${appId}::${Date.now()}`;
   const baseUrl = workerBaseUrl.replace(/\/$/, '');
   const sessionToken = await getSessionTokenForJobs(baseUrl, kintoneBaseUrl, appId, kintoneApiToken);
-  const authHeaders: Record<string, string> = {
-    'Content-Type': 'application/json',
-    'x-session-token': sessionToken,
-  };
   const selectedFont = jpFontFamily ?? 'noto';
   const createSignature = buildCreateSignature({
     templateId,
@@ -229,169 +285,178 @@ export const requestRenderJobPdf = async (
     kintoneBaseUrl,
     appId,
     jpFontFamily: selectedFont,
+    mode,
   });
 
   let createPromise = activeCreateRequests.get(createSignature);
   if (!createPromise) {
-    console.log('[DBG_PLUGIN_JOB_CREATE_START]', {
-      requestKey,
-      recordId,
-      recordRevision,
-    });
     createPromise = (async () => {
+      const requestKey = `${templateId}::${recordId}::${recordRevision}::${Date.now()}`;
       const createUrl = appendDebugParam(`${baseUrl}/render-jobs`, debugEnabled);
-      const createBody: Record<string, unknown> = {
-        templateId,
-        recordId,
-        recordRevision,
-        kintoneBaseUrl,
-        appId,
-        sessionToken,
-        jpFontFamily: selectedFont,
-      };
-      console.log('[DBG_PLUGIN_RENDER_JOB_REQUEST]', {
-        hasSessionToken: Boolean(sessionToken),
-        sessionTokenLength: sessionToken.length,
-        hasKintoneApiToken: Boolean(kintoneApiToken),
-        tokenLength: String(kintoneApiToken ?? '').length,
-        recordId,
-        recordRevision,
-      });
-
       const createRes = await fetch(createUrl, {
         method: 'POST',
-        headers: authHeaders,
-        body: JSON.stringify(createBody),
+        headers: {
+          'Content-Type': 'application/json',
+          'x-session-token': sessionToken,
+        },
+        body: JSON.stringify({
+          templateId,
+          recordId,
+          recordRevision,
+          mode,
+          kintoneBaseUrl,
+          appId,
+          sessionToken,
+          jpFontFamily: selectedFont,
+          openWhenDone,
+          kintone: {
+            baseUrl: kintoneBaseUrl,
+            appId,
+          },
+          context: {
+            source,
+            userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : '',
+          },
+        }),
       });
       if (!createRes.ok) {
         throw new Error(await buildErrorMessage(createRes, 'PDF生成ジョブの作成に失敗しました'));
       }
-      const created = ((await safeJson(createRes)) as RenderJobCreateResponse | null) ?? {};
-      console.log('[DBG_PLUGIN_JOB_CREATE_DONE]', {
+      const created = normalizeStatusPayload(
+        (await safeJson(createRes)) as RenderJobCreateResponse | null,
+        baseUrl,
+      );
+      if (!created.jobId) {
+        throw new Error('jobId が取得できませんでした');
+      }
+      return {
+        baseUrl,
+        debugEnabled,
+        sessionToken,
         requestKey,
-        jobId: String(created.jobId ?? ''),
-      });
-      return created;
+        job: created,
+      };
     })().finally(() => {
       activeCreateRequests.delete(createSignature);
     });
     activeCreateRequests.set(createSignature, createPromise);
   }
 
-  const createPayload = await createPromise;
-  const jobId = String(createPayload?.jobId ?? '').trim();
-  if (!jobId) {
-    throw new Error('jobId が取得できませんでした');
+  return createPromise;
+};
+
+export const fetchLatestRenderJob = async (options: {
+  workerBaseUrl: string;
+  kintoneBaseUrl: string;
+  appId: string;
+  templateId: string;
+  recordId: string;
+  kintoneApiToken?: string;
+  debugEnabled?: boolean;
+  mode?: 'print' | 'save';
+}): Promise<RenderJobClientContext | null> => {
+  const baseUrl = options.workerBaseUrl.replace(/\/$/, '');
+  const sessionToken = await getSessionTokenForJobs(
+    baseUrl,
+    options.kintoneBaseUrl,
+    options.appId,
+    options.kintoneApiToken,
+  );
+  const latestUrl = new URL(`${baseUrl}/render-jobs/latest`);
+  latestUrl.searchParams.set('templateId', options.templateId);
+  latestUrl.searchParams.set('recordId', options.recordId);
+  latestUrl.searchParams.set('mode', options.mode ?? 'print');
+  if (options.debugEnabled) latestUrl.searchParams.set('debug', '1');
+  const res = await fetch(latestUrl.toString(), {
+    method: 'GET',
+    headers: { 'x-session-token': sessionToken },
+  });
+  if (!res.ok) {
+    throw new Error(await buildErrorMessage(res, '直近のPDF生成ジョブ取得に失敗しました'));
   }
-  bindRequestToJob(requestKey, jobId, recordId, recordRevision);
-  addJobStatusListener(jobId, onStatus);
-  emitJobStatus(jobId, createPayload?.status ?? 'queued');
+  const payload = (await safeJson(res)) as RenderJobLatestResponse | null;
+  if (!payload?.job) return null;
+  const job = normalizeStatusPayload(payload.job, baseUrl);
+  if (!job.jobId) return null;
+  return {
+    baseUrl,
+    debugEnabled: options.debugEnabled === true,
+    sessionToken,
+    requestKey: `${options.templateId}::${options.recordId}::${options.mode ?? 'print'}::latest`,
+    job,
+  };
+};
 
-  let downloadPromise = activeJobDownloads.get(jobId);
-  if (!downloadPromise) {
-    downloadPromise = (async () => {
-      if (downloadedJobBlobs.has(jobId)) {
-        console.log('[DBG_PLUGIN_JOB_DOWNLOAD_ONCE]', { jobId, alreadyDownloaded: true });
-        console.log('[DBG_PLUGIN_JOB_FINALIZE]', {
-          jobId,
-          status: 'done',
-          downloaded: true,
+export const fetchRenderJobStatus = async (args: PollRenderJobOptions): Promise<RenderJobStatusPayload> => {
+  const pollUrl = appendDebugParam(
+    `${args.baseUrl.replace(/\/$/, '')}/render-jobs/${encodeURIComponent(args.jobId)}`,
+    args.debugEnabled === true,
+  );
+  const pollRes = await fetch(pollUrl, {
+    method: 'GET',
+    headers: { 'x-session-token': args.sessionToken },
+  });
+  if (!pollRes.ok) {
+    throw new Error(await buildErrorMessage(pollRes, 'ジョブ状態の取得に失敗しました'));
+  }
+  return normalizeStatusPayload(
+    (await safeJson(pollRes)) as RenderJobCreateResponse | null,
+    args.baseUrl,
+    args.jobId,
+  );
+};
+
+export const waitForRenderJob = async (args: PollRenderJobOptions): Promise<RenderJobStatusPayload> => {
+  let lastStatus: RenderJobStatus | null = null;
+  for (let attempt = 0; attempt < POLL_MAX_ATTEMPTS; attempt += 1) {
+    const payload = await fetchRenderJobStatus(args);
+    if (payload.status !== lastStatus) {
+      lastStatus = payload.status;
+      args.onStatus?.(payload.status);
+    }
+    if (payload.status === 'done' || payload.status === 'error') {
+      return payload;
+    }
+    await sleep(POLL_INTERVAL_MS);
+  }
+  throw new Error('生成に時間がかかっています。しばらくしてから再確認してください。');
+};
+
+export const requestRenderJobPdf = async (
+  options: RequestRenderJobOptions,
+): Promise<Blob> => {
+  const client = await createRenderJob(options);
+  options.onStatus?.(client.job.status);
+  const finalStatus =
+    client.job.status === 'done' || client.job.status === 'error'
+      ? client.job
+      : await waitForRenderJob({
+          baseUrl: client.baseUrl,
+          sessionToken: client.sessionToken,
+          jobId: client.job.jobId,
+          debugEnabled: client.debugEnabled,
+          onStatus: options.onStatus,
         });
-        return downloadedJobBlobs.get(jobId)!;
-      }
-
-      let currentStatus: RenderJobStatus = createPayload?.status ?? 'queued';
-      console.log('[DBG_PLUGIN_JOB_POLL_START]', { jobId });
-      activeJobPolls.add(jobId);
-      logTimerCount();
-      emitJobStatus(jobId, currentStatus);
-      let stopReason: string = currentStatus;
-
-      try {
-        for (let attempt = 0; attempt < POLL_MAX_ATTEMPTS; attempt += 1) {
-          if (currentStatus === 'done') break;
-          if (currentStatus === 'failed') {
-            throw new Error('生成失敗。再試行してください');
-          }
-          await sleep(POLL_INTERVAL_MS);
-
-          const pollUrl = appendDebugParam(
-            `${baseUrl}/render-jobs/${encodeURIComponent(jobId)}`,
-            debugEnabled,
-          );
-          const pollRes = await fetch(pollUrl, {
-            method: 'GET',
-            headers: { 'x-session-token': sessionToken },
-          });
-          if (!pollRes.ok) {
-            throw new Error(await buildErrorMessage(pollRes, 'ジョブ状態の取得に失敗しました'));
-          }
-          const pollPayload = (await safeJson(pollRes)) as RenderJobPollResponse | null;
-          const nextStatus = pollPayload?.status ?? 'running';
-          if (nextStatus !== currentStatus) {
-            currentStatus = nextStatus;
-            emitJobStatus(jobId, currentStatus);
-          }
-          if (currentStatus === 'failed') {
-            const reason =
-              typeof pollPayload?.error === 'string' && pollPayload.error.trim()
-                ? pollPayload.error
-                : '生成失敗。再試行してください';
-            stopReason = reason;
-            throw new Error(reason);
-          }
-          if (currentStatus === 'done') break;
-        }
-
-        if (currentStatus !== 'done') {
-          stopReason = 'timeout';
-          throw new Error('PDF生成がタイムアウトしました。時間をおいて再試行してください');
-        }
-        stopReason = 'done';
-
-        console.log('[DBG_PLUGIN_JOB_DOWNLOAD_ONCE]', { jobId, alreadyDownloaded: false });
-        const downloadUrl = appendDebugParam(
-          `${baseUrl}/render-jobs/${encodeURIComponent(jobId)}/file`,
-          debugEnabled,
-        );
-        const downloadRes = await fetch(downloadUrl, {
-          method: 'GET',
-          headers: { 'x-session-token': sessionToken },
-        });
-        if (!downloadRes.ok) {
-          throw new Error(await buildErrorMessage(downloadRes, 'PDFの取得に失敗しました'));
-        }
-        const blob = await downloadRes.blob();
-        downloadedJobBlobs.set(jobId, blob);
-        console.log('[DBG_PLUGIN_JOB_FINALIZE]', {
-          jobId,
-          status: 'done',
-          downloaded: true,
-        });
-        return blob;
-      } catch (error) {
-        console.log('[DBG_PLUGIN_JOB_FINALIZE]', {
-          jobId,
-          status: 'failed',
-          downloaded: false,
-        });
-        throw error;
-      } finally {
-        if (activeJobPolls.delete(jobId)) {
-          logTimerCount();
-        }
-        console.log('[DBG_PLUGIN_JOB_POLL_STOP]', {
-          jobId,
-          reason: stopReason,
-        });
-        jobStatusListeners.delete(jobId);
-        jobRequestBindings.delete(jobId);
-      }
-    })().finally(() => {
-      activeJobDownloads.delete(jobId);
-    });
-    activeJobDownloads.set(jobId, downloadPromise);
+  if (finalStatus.status === 'error') {
+    throw new Error('PDF生成に失敗しました。もう一度お試しください。');
   }
 
-  return downloadPromise;
+  if (downloadedJobBlobs.has(finalStatus.jobId)) {
+    return downloadedJobBlobs.get(finalStatus.jobId)!;
+  }
+
+  const downloadUrl = appendDebugParam(
+    `${client.baseUrl}/render-jobs/${encodeURIComponent(finalStatus.jobId)}/file`,
+    client.debugEnabled,
+  );
+  const downloadRes = await fetch(downloadUrl, {
+    method: 'GET',
+    headers: { 'x-session-token': client.sessionToken },
+  });
+  if (!downloadRes.ok) {
+    throw new Error(await buildErrorMessage(downloadRes, 'PDFの取得に失敗しました'));
+  }
+  const blob = await downloadRes.blob();
+  downloadedJobBlobs.set(finalStatus.jobId, blob);
+  return blob;
 };

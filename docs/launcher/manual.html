@@ -1,484 +1,471 @@
 <!DOCTYPE html>
 
 <html lang="ja">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>PlugBits Launcher — はじめかた</title>
-  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
-  <style>
-    :root {
-      --bg: #f5f6fa;
-      --surface: #ffffff;
-      --border: #e4e6ef;
-      --text: #1a1d2e;
-      --muted: #6b7280;
-      --accent: #3b5bdb;
-      --accent-light: #eef2ff;
-      --success: #2f9e44;
-      --success-light: #ebfbee;
-      --step-bg: #f8f9ff;
-      --radius: 12px;
-      --shadow: 0 1px 4px rgba(0,0,0,0.06), 0 4px 16px rgba(0,0,0,0.04);
-    }
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PlugBits Launcher — はじめかた</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+      :root {
+        --bg: #f5f6fa;
+        --surface: #ffffff;
+        --border: #e4e6ef;
+        --text: #1a1d2e;
+        --muted: #6b7280;
+        --accent: #3b5bdb;
+        --accent-light: #eef2ff;
+        --success: #2f9e44;
+        --success-light: #ebfbee;
+        --step-bg: #f8f9ff;
+        --radius: 12px;
+        --shadow: 0 1px 4px rgba(0,0,0,0.06), 0 4px 16px rgba(0,0,0,0.04);
+      }
 
 
-* { box-sizing: border-box; margin: 0; padding: 0; }
+      * { box-sizing: border-box; margin: 0; padding: 0; }
 
-body {
-  font-family: 'Noto Sans JP', sans-serif;
-  background: var(--bg);
-  color: var(--text);
-  line-height: 1.7;
-  font-size: 15px;
-}
+      body {
+        font-family: 'Noto Sans JP', sans-serif;
+        background: var(--bg);
+        color: var(--text);
+        line-height: 1.7;
+        font-size: 15px;
+      }
 
-/* Header */
-header {
-  background: var(--surface);
-  border-bottom: 1px solid var(--border);
-  padding: 20px 24px;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  position: sticky;
-  top: 0;
-  z-index: 100;
-}
+      /* Header */
+      header {
+        background: var(--surface);
+        border-bottom: 1px solid var(--border);
+        padding: 20px 24px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        position: sticky;
+        top: 0;
+        z-index: 100;
+      }
 
-.logo {
-  width: 36px;
-  height: 36px;
-  background: var(--accent);
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: white;
-  font-weight: 700;
-  font-size: 16px;
-  font-family: 'DM Mono', monospace;
-}
+      .logo {
+        width: 36px;
+        height: 36px;
+        background: var(--accent);
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-weight: 700;
+        font-size: 16px;
+        font-family: 'DM Mono', monospace;
+      }
 
-header h1 {
-  font-size: 16px;
-  font-weight: 700;
-  color: var(--text);
-}
+      header h1 {
+        font-size: 16px;
+        font-weight: 700;
+        color: var(--text);
+      }
 
-header span {
-  font-size: 13px;
-  color: var(--muted);
-  margin-left: 4px;
-}
+      header span {
+        font-size: 13px;
+        color: var(--muted);
+        margin-left: 4px;
+      }
 
-/* Layout */
-.container {
-  max-width: 780px;
-  margin: 0 auto;
-  padding: 40px 24px 80px;
-}
+      /* Layout */
+      .container {
+        max-width: 780px;
+        margin: 0 auto;
+        padding: 40px 24px 80px;
+      }
 
-/* Hero */
-.hero {
-  text-align: center;
-  margin-bottom: 48px;
-}
+      /* Hero */
+      .hero {
+        text-align: center;
+        margin-bottom: 48px;
+      }
 
-.hero h2 {
-  font-size: 28px;
-  font-weight: 700;
-  margin-bottom: 10px;
-  letter-spacing: -0.5px;
-}
+      .hero h2 {
+        font-size: 28px;
+        font-weight: 700;
+        margin-bottom: 10px;
+        letter-spacing: -0.5px;
+      }
 
-.hero p {
-  color: var(--muted);
-  font-size: 15px;
-}
+      .hero p {
+        color: var(--muted);
+        font-size: 15px;
+      }
 
-/* Notice */
-.notice {
-  background: var(--accent-light);
-  border: 1px solid #c5d0fa;
-  border-radius: var(--radius);
-  padding: 16px 20px;
-  margin-bottom: 40px;
-  font-size: 14px;
-  color: var(--accent);
-  display: flex;
-  gap: 10px;
-  align-items: flex-start;
-}
+      /* Notice */
+      .notice {
+        background: var(--accent-light);
+        border: 1px solid #c5d0fa;
+        border-radius: var(--radius);
+        padding: 16px 20px;
+        margin-bottom: 40px;
+        font-size: 14px;
+        color: var(--accent);
+        display: flex;
+        gap: 10px;
+        align-items: flex-start;
+      }
 
-.notice-icon { font-size: 18px; flex-shrink: 0; margin-top: 1px; }
+      .notice-icon { font-size: 18px; flex-shrink: 0; margin-top: 1px; }
 
-/* Section */
-.section {
-  margin-bottom: 48px;
-}
+      /* Section */
+      .section {
+        margin-bottom: 48px;
+      }
 
-.section-label {
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 1.5px;
-  text-transform: uppercase;
-  color: var(--accent);
-  margin-bottom: 8px;
-}
+      .section-label {
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 1.5px;
+        text-transform: uppercase;
+        color: var(--accent);
+        margin-bottom: 8px;
+      }
 
-.section h3 {
-  font-size: 20px;
-  font-weight: 700;
-  margin-bottom: 20px;
-  padding-bottom: 12px;
-  border-bottom: 2px solid var(--border);
-}
+      .section h3 {
+        font-size: 20px;
+        font-weight: 700;
+        margin-bottom: 20px;
+        padding-bottom: 12px;
+        border-bottom: 2px solid var(--border);
+      }
 
-/* Steps */
-.steps {
-  display: flex;
-  flex-direction: column;
-  gap: 0;
-}
+      /* Steps */
+      .steps {
+        display: flex;
+        flex-direction: column;
+        gap: 0;
+      }
 
-.step {
-  display: flex;
-  gap: 20px;
-  position: relative;
-}
+      .step {
+        display: flex;
+        gap: 20px;
+        position: relative;
+      }
 
-.step:not(:last-child)::before {
-  content: '';
-  position: absolute;
-  left: 19px;
-  top: 44px;
-  bottom: 0;
-  width: 2px;
-  background: var(--border);
-}
+      .step:not(:last-child)::before {
+        content: '';
+        position: absolute;
+        left: 19px;
+        top: 44px;
+        bottom: 0;
+        width: 2px;
+        background: var(--border);
+      }
 
-.step-num {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  background: var(--accent);
-  color: white;
-  font-weight: 700;
-  font-size: 14px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  font-family: 'DM Mono', monospace;
-  position: relative;
-  z-index: 1;
-}
+      .step-num {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: var(--accent);
+        color: white;
+        font-weight: 700;
+        font-size: 14px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        font-family: 'DM Mono', monospace;
+        position: relative;
+        z-index: 1;
+      }
 
-.step-body {
-  flex: 1;
-  padding-bottom: 32px;
-}
+      .step-body {
+        flex: 1;
+        padding-bottom: 32px;
+      }
 
-.step-body h4 {
-  font-size: 16px;
-  font-weight: 700;
-  margin-bottom: 8px;
-  margin-top: 8px;
-}
+      .step-body h4 {
+        font-size: 16px;
+        font-weight: 700;
+        margin-bottom: 8px;
+        margin-top: 8px;
+      }
 
-.step-body p {
-  color: var(--muted);
-  font-size: 14px;
-  margin-bottom: 16px;
-}
+      .step-body p {
+        color: var(--muted);
+        font-size: 14px;
+        margin-bottom: 16px;
+      }
 
-/* Screenshot */
-.screenshot {
-  border-radius: var(--radius);
-  border: 1px solid var(--border);
-  box-shadow: var(--shadow);
-  width: 100%;
-  display: block;
-  margin-top: 12px;
-}
+      /* Screenshot */
+      .screenshot {
+        border-radius: var(--radius);
+        border: 1px solid var(--border);
+        box-shadow: var(--shadow);
+        width: 100%;
+        display: block;
+        margin-top: 12px;
+      }
 
-.screenshot-sm {
-  max-width: 480px;
-}
+      .screenshot-sm {
+        max-width: 480px;
+      }
 
-.screenshot-caption {
-  font-size: 12px;
-  color: var(--muted);
-  margin-top: 8px;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
+      .screenshot-caption {
+        font-size: 12px;
+        color: var(--muted);
+        margin-top: 8px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
 
-/* Alert */
-.alert {
-  border-radius: 8px;
-  padding: 12px 16px;
-  font-size: 13px;
-  margin-top: 12px;
-  display: flex;
-  gap: 8px;
-  align-items: flex-start;
-}
+      /* Alert */
+      .alert {
+        border-radius: 8px;
+        padding: 12px 16px;
+        font-size: 13px;
+        margin-top: 12px;
+        display: flex;
+        gap: 8px;
+        align-items: flex-start;
+      }
 
-.alert-warning {
-  background: #fff9db;
-  border: 1px solid #ffd43b;
-  color: #74550a;
-}
+      .alert-warning {
+        background: #fff9db;
+        border: 1px solid #ffd43b;
+        color: #74550a;
+      }
 
-.alert-success {
-  background: var(--success-light);
-  border: 1px solid #8ce99a;
-  color: var(--success);
-}
+      .alert-success {
+        background: var(--success-light);
+        border: 1px solid #8ce99a;
+        color: var(--success);
+      }
 
-.alert-icon { flex-shrink: 0; margin-top: 1px; }
+      .alert-icon { flex-shrink: 0; margin-top: 1px; }
 
-/* Code */
-code {
-  font-family: 'DM Mono', monospace;
-  background: #f1f3f9;
-  padding: 2px 6px;
-  border-radius: 4px;
-  font-size: 13px;
-  color: var(--accent);
-}
+      /* Code */
+      code {
+        font-family: 'DM Mono', monospace;
+        background: #f1f3f9;
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-size: 13px;
+        color: var(--accent);
+      }
 
-/* FAQ */
-.faq-list {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
+      /* FAQ */
+      .faq-list {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
 
-.faq-item {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 20px;
-  box-shadow: var(--shadow);
-}
+      .faq-item {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 20px;
+        box-shadow: var(--shadow);
+      }
 
-.faq-item h4 {
-  font-size: 14px;
-  font-weight: 700;
-  margin-bottom: 8px;
-  display: flex;
-  gap: 8px;
-  align-items: flex-start;
-}
+      .faq-item h4 {
+        font-size: 14px;
+        font-weight: 700;
+        margin-bottom: 8px;
+        display: flex;
+        gap: 8px;
+        align-items: flex-start;
+      }
 
-.faq-item h4::before {
-  content: 'Q.';
-  color: var(--accent);
-  font-family: 'DM Mono', monospace;
-  flex-shrink: 0;
-}
+      .faq-item h4::before {
+        content: 'Q.';
+        color: var(--accent);
+        font-family: 'DM Mono', monospace;
+        flex-shrink: 0;
+      }
 
-.faq-item p {
-  font-size: 14px;
-  color: var(--muted);
-  padding-left: 26px;
-}
+      .faq-item p {
+        font-size: 14px;
+        color: var(--muted);
+        padding-left: 26px;
+      }
 
-/* Card */
-.card {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 24px;
-  box-shadow: var(--shadow);
-  margin-bottom: 16px;
-}
+      /* Card */
+      .card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 24px;
+        box-shadow: var(--shadow);
+        margin-bottom: 16px;
+      }
 
-/* Footer */
-footer {
-  text-align: center;
-  padding: 40px 24px;
-  color: var(--muted);
-  font-size: 13px;
-  border-top: 1px solid var(--border);
-  margin-top: 40px;
-}
+      /* Footer */
+      footer {
+        text-align: center;
+        padding: 40px 24px;
+        color: var(--muted);
+        font-size: 13px;
+        border-top: 1px solid var(--border);
+        margin-top: 40px;
+      }
 
-footer a {
-  color: var(--accent);
-  text-decoration: none;
-}
+      footer a {
+        color: var(--accent);
+        text-decoration: none;
+      }
 
-@media (max-width: 600px) {
-  .hero h2 { font-size: 22px; }
-  .container { padding: 24px 16px 60px; }
-}
+      @media (max-width: 600px) {
+        .hero h2 { font-size: 22px; }
+        .container { padding: 24px 16px 60px; }
+      }
 
+    </style>
+  </head>
+  <body>
 
-  </style>
-</head>
-<body>
-
-<header>
-  <div class="logo">P</div>
-  <div>
-    <h1>PlugBits Launcher <span>for kintone</span></h1>
-  </div>
-</header>
-
-<div class="container">
-
-  <div class="hero">
-    <h2>はじめかた</h2>
-    <p>インストールから最初の設定まで、5分で完了します。</p>
-  </div>
-
-  <div class="notice">
-    <span class="notice-icon">ℹ️</span>
-    <div>インストール直後は<strong>ホストアクセス許可</strong>の設定が必要です。この設定をしないと、ウォッチリストやショートカットが動作しません。下の手順に従って設定してください。</div>
-  </div>
-
-  <!-- STEP 1: ホスト設定 -->
-
-  <div class="section">
-    <div class="section-label">STEP 01</div>
-    <h3>ホストアクセス許可を設定する</h3>
-
-```
-<div class="steps">
-
-  <div class="step">
-    <div class="step-num">1</div>
-    <div class="step-body">
-      <h4>設定画面を開く</h4>
-      <p>サイドパネル右上の ⚙️ アイコンをクリックして設定画面を開きます。</p>
-      <img src="assets/setting-icon.png" alt="サイドパネルの初期状態" class="screenshot screenshot-sm">
-      <div class="screenshot-caption">⬆ サイドパネル右上の歯車アイコンから設定を開きます</div>
-    </div>
-  </div>
-
-  <div class="step">
-    <div class="step-num">2</div>
-    <div class="step-body">
-      <h4>kintoneのURLを入力して「このホストを許可」をクリック</h4>
-      <p>設定画面の「ホストアクセス許可」欄に、自社のkintone URL（例：<code>https://xxx.cybozu.com/k/</code>）を入力し、「このホストを許可」をクリックします。</p>
-      <img src="assets/host-access.png" alt="ホストアクセス許可の入力画面" class="screenshot">
-      <div class="screenshot-caption">⬆ 入力欄にkintoneのURLを貼り付けて「このホストを許可」をクリック</div>
-    </div>
-  </div>
-
-  <div class="step">
-    <div class="step-num">3</div>
-    <div class="step-body">
-      <h4>許可リクエストで「許可する」をクリック</h4>
-      <p>Chromeから確認ダイアログが表示されます。「許可する」をクリックしてください。</p>
-      <img src="assets/access-request.png" alt="Chromeの許可リクエスト" class="screenshot screenshot-sm">
-      <div class="screenshot-caption">⬆「許可する」をクリックしないと動作しません</div>
-      <div class="alert alert-warning">
-        <span class="alert-icon">⚠️</span>
-        <div>「拒否」を押してしまった場合は、Chromeのアドレスバー左のアイコンから権限を再設定できます。</div>
+    <header>
+      <div class="logo">P</div>
+      <div>
+        <h1>PlugBits Launcher <span>for kintone</span></h1>
       </div>
-    </div>
-  </div>
+    </header>
 
-  <div class="step">
-    <div class="step-num">4</div>
-    <div class="step-body">
-      <h4>「許可が完了しました」で設定完了</h4>
-      <p>完了ダイアログが表示されたらホスト設定は完了です。kintoneのページを再読み込みすると機能が有効になります。</p>
-      <img src="assets/approved.png" alt="許可完了ダイアログ" class="screenshot screenshot-sm">
-      <div class="alert alert-success">
-        <span class="alert-icon">✅</span>
-        <div>設定完了後、kintoneのページを<strong>再読み込み（F5）</strong>してください。</div>
+    <div class="container">
+
+      <div class="hero">
+        <h2>はじめかた</h2>
+        <p>インストールから最初の設定まで、5分で完了します。</p>
       </div>
+
+      <div class="notice">
+        <span class="notice-icon">ℹ️</span>
+        <div>インストール直後は<strong>ホストアクセス許可</strong>の設定が必要です。この設定をしないと、ウォッチリストやショートカットが動作しません。下の手順に従って設定してください。</div>
+      </div>
+
+      <!-- STEP 1: ホスト設定 -->
+
+      <div class="section">
+        <div class="section-label">STEP 01</div>
+        <h3>ホストアクセス許可を設定する</h3>
+
+      <div class="steps">
+
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-body">
+          <h4>設定画面を開く</h4>
+          <p>サイドパネル右上の ⚙️ アイコンをクリックして設定画面を開きます。</p>
+          <img src="assets/setting-icon.png" alt="サイドパネルの初期状態" class="screenshot screenshot-sm">
+          <div class="screenshot-caption">⬆ サイドパネル右上の歯車アイコンから設定を開きます</div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-body">
+          <h4>kintoneのURLを入力して「このホストを許可」をクリック</h4>
+          <p>設定画面の「ホストアクセス許可」欄に、自社のkintone URL（例：<code>https://xxx.cybozu.com/k/</code>）を入力し、「このホストを許可」をクリックします。</p>
+          <img src="assets/host-access.png" alt="ホストアクセス許可の入力画面" class="screenshot">
+          <div class="screenshot-caption">⬆ 入力欄にkintoneのURLを貼り付けて「このホストを許可」をクリック</div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-body">
+          <h4>許可リクエストで「許可する」をクリック</h4>
+          <p>Chromeから確認ダイアログが表示されます。「許可する」をクリックしてください。</p>
+          <img src="assets/access-request.png" alt="Chromeの許可リクエスト" class="screenshot screenshot-sm">
+          <div class="screenshot-caption">⬆「許可する」をクリックしないと動作しません</div>
+          <div class="alert alert-warning">
+            <span class="alert-icon">⚠️</span>
+            <div>「拒否」を押してしまった場合は、Chromeのアドレスバー左のアイコンから権限を再設定できます。</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-num">4</div>
+        <div class="step-body">
+          <h4>「許可が完了しました」で設定完了</h4>
+          <p>完了ダイアログが表示されたらホスト設定は完了です。kintoneのページを再読み込みすると機能が有効になります。</p>
+          <img src="assets/approved.png" alt="許可完了ダイアログ" class="screenshot screenshot-sm">
+          <div class="alert alert-success">
+            <span class="alert-icon">✅</span>
+            <div>設定完了後、kintoneのページを<strong>再読み込み（F5）</strong>してください。</div>
+          </div>
+        </div>
+      </div>
+
     </div>
-  </div>
 
-</div>
-```
+    <!-- STEP 2: ショートカット -->
 
-  </div>
+    <div class="section">
+      <div class="section-label">STEP 02</div>
+      <h3>ショートカットを登録する</h3>
 
-  <!-- STEP 2: ショートカット -->
+      <div class="card">
+        <p style="font-size:14px; color:var(--muted); margin-bottom:16px;">よく使うアプリ・ビュー・新規作成ページを右クリックから登録できます。</p>
+        <img src="assets/shortcut-click.png" alt="右クリックメニューからショートカット追加" class="screenshot">
+        <div class="screenshot-caption">⬆ kintone上で右クリック → PlugBits Launcher → ショートカットに追加</div>
+      </div>
 
-  <div class="section">
-    <div class="section-label">STEP 02</div>
-    <h3>ショートカットを登録する</h3>
+      <div class="alert alert-warning" style="margin-top:0;">
+        <span class="alert-icon">💡</span>
+        <div>「アプリトップ」「ビューを開く」「レコード新規」の3種類から選べます。よく使う一覧ビューはビュー単位で登録するのがおすすめです。</div>
+      </div>
 
-```
-<div class="card">
-  <p style="font-size:14px; color:var(--muted); margin-bottom:16px;">よく使うアプリ・ビュー・新規作成ページを右クリックから登録できます。</p>
-  <img src="assets/shortcut-click.png" alt="右クリックメニューからショートカット追加" class="screenshot">
-  <div class="screenshot-caption">⬆ kintone上で右クリック → PlugBits Launcher → ショートカットに追加</div>
-</div>
+    </div>
 
-<div class="alert alert-warning" style="margin-top:0;">
-  <span class="alert-icon">💡</span>
-  <div>「アプリトップ」「ビューを開く」「レコード新規」の3種類から選べます。よく使う一覧ビューはビュー単位で登録するのがおすすめです。</div>
-</div>
-```
+      <!-- STEP 3: ウォッチリスト -->
 
-  </div>
+      <div class="section">
+        <div class="section-label">STEP 03</div>
+        <h3>ウォッチリストを設定する</h3>
 
-  <!-- STEP 3: ウォッチリスト -->
+        <div class="card">
+          <p style="font-size:14px; color:var(--muted); margin-bottom:16px;">処理待ちなど、件数を常時監視したいビューを登録します。右クリック → ウォッチリストに追加から設定できます。</p>
+          <img src="assets/watchlist-click.png" alt="右クリックメニューからウォッチリスト追加" class="screenshot">
+          <div class="screenshot-caption">⬆ 右クリック → PlugBits Launcher → ウォッチリストに追加</div>
+        </div>
 
-  <div class="section">
-    <div class="section-label">STEP 03</div>
-    <h3>ウォッチリストを設定する</h3>
+      </div>
 
-```
-<div class="card">
-  <p style="font-size:14px; color:var(--muted); margin-bottom:16px;">処理待ちなど、件数を常時監視したいビューを登録します。右クリック → ウォッチリストに追加から設定できます。</p>
-  <img src="assets/watchlist-click.png" alt="右クリックメニューからウォッチリスト追加" class="screenshot">
-  <div class="screenshot-caption">⬆ 右クリック → PlugBits Launcher → ウォッチリストに追加</div>
-</div>
-```
+      <!-- FAQ -->
 
-  </div>
+      <div class="section">
+        <div class="section-label">FAQ</div>
+        <h3>よくある質問</h3>
+        <div class="faq-list">
 
-  <!-- FAQ -->
+        <div class="faq-item">
+          <h4>設定したのに動かない</h4>
+          <p>ホスト設定後にkintoneのページを再読み込み（F5）してください。再読み込みしないと反映されないことがあります。</p>
+        </div>
 
-  <div class="section">
-    <div class="section-label">FAQ</div>
-    <h3>よくある質問</h3>
-    <div class="faq-list">
+        <div class="faq-item">
+          <h4>InPrivate（プライベートウィンドウ）で使いたい</h4>
+          <p>Chromeの拡張機能設定から「InPrivateでの実行を許可」をオンにしてから、ホスト設定を行ってください。</p>
+        </div>
 
-```
-  <div class="faq-item">
-    <h4>設定したのに動かない</h4>
-    <p>ホスト設定後にkintoneのページを再読み込み（F5）してください。再読み込みしないと反映されないことがあります。</p>
-  </div>
+        <div class="faq-item">
+          <h4>kintone管理者の許可は必要ですか？</h4>
+          <p>不要です。PlugBits Launcherはkintoneの設定を変更しません。自分のブラウザにインストールするだけで使えます。</p>
+        </div>
 
-  <div class="faq-item">
-    <h4>InPrivate（プライベートウィンドウ）で使いたい</h4>
-    <p>Chromeの拡張機能設定から「InPrivateでの実行を許可」をオンにしてから、ホスト設定を行ってください。</p>
-  </div>
+        <div class="faq-item">
+          <h4>複数のkintone環境で使えますか？</h4>
+          <p>はい。ホストアクセス許可にそれぞれのURLを追加することで、複数環境で使えます。</p>
+        </div>
 
-  <div class="faq-item">
-    <h4>kintone管理者の許可は必要ですか？</h4>
-    <p>不要です。PlugBits Launcherはkintoneの設定を変更しません。自分のブラウザにインストールするだけで使えます。</p>
-  </div>
+      </div>
 
-  <div class="faq-item">
-    <h4>複数のkintone環境で使えますか？</h4>
-    <p>はい。ホストアクセス許可にそれぞれのURLを追加することで、複数環境で使えます。</p>
-  </div>
+    </div>
 
-</div>
-```
+    <footer>
+      <p>PlugBits Launcher for kintone &nbsp;·&nbsp; <a href="#">Chrome Web Store</a> &nbsp;·&nbsp; <a href="#">X (@PlugBits)</a></p>
+      <p style="margin-top:8px;">© 2026 PlugBits</p>
+    </footer>
 
-  </div>
-
-</div>
-
-<footer>
-  <p>PlugBits Launcher for kintone &nbsp;·&nbsp; <a href="#">Chrome Web Store</a> &nbsp;·&nbsp; <a href="#">X (@PlugBits)</a></p>
-  <p style="margin-top:8px;">© 2026 PlugBits</p>
-</footer>
-
-</body>
+  </body>
 </html>

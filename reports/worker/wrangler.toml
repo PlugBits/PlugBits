@@ -10,6 +10,18 @@ JP_FONT_FAMILY = "noto"
 JP_FONT_BIZUD_URL = "https://github.com/googlefonts/morisawa-biz-ud-gothic/raw/main/fonts/ttf/BIZUDGothic-Regular.ttf"
 JP_FONT_MPLUS_URL = "https://github.com/google/fonts/raw/main/ofl/mplus1p/MPLUS1p-Regular.ttf"
 
+RENDER_MODE = "remote"
+RENDERER_BASE_URL = "https://plugbits-reports-renderer-450917468567.asia-northeast1.run.app"
+RENDERER_INTERNAL_TOKEN = "plugbits-123"
+RENDERER_REQUEST_TIMEOUT_MS = "120000"
+RENDERER_VERSION = "v1"
+
+GCP_PROJECT_ID = "plugbits-reports"
+GCP_REGION = "asia-northeast1"
+CLOUD_RUN_RENDER_JOB_NAME = "plugbits-reports-renderer-job"
+CLOUD_RUN_RENDER_JOB_REQUEST_TIMEOUT_MS = "120000"
+CLOUD_RUN_RENDER_JOB_TASK_TIMEOUT = "900s"
+
 [[kv_namespaces]]
 binding = "TEMPLATE_KV"
 id = "d624574989f54971a833e53bcd1ef268"
