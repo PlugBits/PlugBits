@@ -395,8 +395,7 @@ kbd,
 .feature-media img {
   display: block;
   width: 100%;
-  aspect-ratio: 16 / 9;
-  object-fit: cover;
+  height: auto;
 }
 
 .feature-tag {
@@ -448,8 +447,7 @@ kbd,
 .feature-item-media img {
   display: block;
   width: 100%;
-  aspect-ratio: 16 / 10;
-  object-fit: cover;
+  height: auto;
 }
 
 .feature-item h4 {
