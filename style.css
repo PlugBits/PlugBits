@@ -583,8 +583,9 @@
 /* ===== Index リニューアル用スタイル ===== */
 
 /* Header */
-.kb-brand-link { display:flex; align-items:center; text-decoration:none !important; }
+.kb-brand-link { display:flex; align-items:center; gap:10px; text-decoration:none !important; }
 .kb-logo-img { height:40px; width:auto; display:block; }
+.kb-brand-name { font-size:20px; font-weight:800; color:var(--kb-text); letter-spacing:-.3px; }
 .kb-topbar-nav { display:flex; align-items:center; gap:20px; font-size:14px; font-weight:600; }
 .kb-topbar-nav a { color:var(--kb-sub); text-decoration:none; transition:color .16s; }
 .kb-topbar-nav a:hover { color:var(--kb-text); text-decoration:none; }
