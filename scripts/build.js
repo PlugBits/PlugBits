@@ -155,7 +155,7 @@ try{
   }
 
   // index pages (カード簡易版)
-  const cardsJa=products.map(p => {
+  const cardsJa=products.filter(p => (p.status || 'public') !== 'unlisted').map(p => {
     const status = p.status || 'public';
     const isComing = (status === 'coming-soon');
     const desc = shortText(p.short_summary_ja || p.summary_ja, 64);
@@ -185,7 +185,7 @@ try{
 
   let cardsEn='';
   if (ENABLE_EN) {
-    cardsEn = products.map(p => {
+    cardsEn = products.filter(p => (p.status || 'public') !== 'unlisted').map(p => {
       const usdAttr   = (ENABLE_USD && p.price_usd)
         ? ` data-price-usd="${esc(p.price_usd)}"`
         : '';
