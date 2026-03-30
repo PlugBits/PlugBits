@@ -580,3 +580,41 @@
 .is-coming-soon .kb-coming-label { display: inline-block; }
 .kb-price-coming {background: #999; color: #fff; border-radius: 999px; padding: 2px 8px; font-size: 12px;}
 
+/* ===== Index リニューアル用スタイル ===== */
+
+/* Header */
+.kb-brand-link { display:flex; align-items:center; text-decoration:none !important; }
+.kb-logo-img { height:40px; width:auto; display:block; }
+.kb-topbar-nav { display:flex; align-items:center; gap:20px; font-size:14px; font-weight:600; }
+.kb-topbar-nav a { color:var(--kb-sub); text-decoration:none; transition:color .16s; }
+.kb-topbar-nav a:hover { color:var(--kb-text); text-decoration:none; }
+
+/* Hero */
+.kb-eyebrow { font-size:13px; font-weight:700; letter-spacing:.1em; text-transform:uppercase; color:var(--kb-primary); margin:0 0 12px; }
+.kb-hero-actions { display:flex; flex-wrap:wrap; gap:12px; margin-top:28px; }
+.kb-cta-secondary { display:inline-flex; align-items:center; justify-content:center; min-height:46px; padding:12px 22px; border-radius:12px; background:#fff; color:var(--kb-primary); border:2px solid var(--kb-primary-200); font-weight:700; text-decoration:none; transition:border-color .16s, background .16s; }
+.kb-cta-secondary:hover { background:var(--kb-primary-050); border-color:var(--kb-primary-300); text-decoration:none; }
+
+/* Launcher Card */
+.kb-launcher-card { display:flex; align-items:center; gap:28px; background:#fff; border:1px solid var(--kb-line); border-radius:20px; padding:28px 32px; text-decoration:none; color:inherit; box-shadow:0 4px 16px rgba(15,23,42,.06); transition:box-shadow .2s, transform .2s; }
+.kb-launcher-card:hover { box-shadow:0 10px 28px rgba(47,100,226,.14); transform:translateY(-2px); text-decoration:none; }
+.kb-launcher-card-body { flex:1; display:flex; flex-direction:column; gap:10px; }
+.kb-launcher-tag { display:inline-block; font-size:12px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:var(--kb-primary); background:var(--kb-primary-100); border:1px solid var(--kb-primary-200); border-radius:999px; padding:4px 12px; align-self:flex-start; }
+.kb-launcher-card-body h3 { font-size:20px; font-weight:800; margin:0; line-height:1.3; }
+.kb-launcher-card-body p { margin:0; color:var(--kb-sub); font-size:15px; line-height:1.7; }
+.kb-launcher-cta { align-self:flex-start; margin-top:4px; }
+.kb-launcher-card-visual { flex-shrink:0; }
+.kb-launcher-logo { width:96px; height:96px; object-fit:contain; border-radius:20px; }
+
+/* 空状態 */
+.kb-coming-notice { margin-top:20px; padding:28px; text-align:center; border:1px dashed var(--kb-line); border-radius:16px; color:var(--kb-sub); }
+
+/* モバイル */
+@media (max-width:720px) {
+  .kb-topbar-nav a:not(:last-child) { display:none; }
+  .kb-hero-actions { flex-direction:column; }
+  .kb-cta-primary, .kb-cta-secondary { width:100%; }
+  .kb-launcher-card { flex-direction:column; padding:20px; gap:16px; }
+  .kb-launcher-card-visual { display:none; }
+}
+
