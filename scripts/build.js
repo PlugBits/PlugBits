@@ -239,6 +239,16 @@ try{
   copy('assets');
   // 単体ファイル
   ['style.css','terms.html','install2.html','robots.txt','sitemap-base.xml','404.html'].forEach(copy);
+  // docs/ 配下を dist/ へマージ（launcher, privacy 等）
+  const docsDir = path.join(ROOT, 'docs');
+  if (fs.existsSync(docsDir)) {
+    for (const entry of fs.readdirSync(docsDir)) {
+      if (entry === '.DS_Store') continue;
+      const src = path.join(docsDir, entry);
+      const dst = path.join(DIST, entry);
+      fs.cpSync(src, dst, { recursive: true, force: true });
+    }
+  }
 
   // sitemap
   const basePath=path.join(DIST,'sitemap-base.xml');
