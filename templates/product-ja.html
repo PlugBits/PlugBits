@@ -2,31 +2,49 @@
 <html lang="ja">
 <head>
   <meta charset="utf-8">
-  <title>%%TITLE_JA%% | Kintone向け小粒プラグイン</title>
+  <title>%%TITLE_JA%% | PlugBits</title>
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="description" content="%%SUMMARY_JA%%">
   <link rel="stylesheet" href="../style.css">
 </head>
 <body class="kb-root %%STATUS_CLASS%%">
-  <!-- Topbar -->
+
+  <!-- Header -->
   <div class="kb-container kb-topbar">
-    <a class="kb-back" href="../index.html">← 商品一覧に戻る</a>
+    <a class="kb-brand-link" href="/">
+      <img src="../assets/logo.png" alt="PlugBits" class="kb-logo-img">
+      <div class="kb-brand-text">
+        <span class="kb-brand-name">PlugBits</span>
+        <span class="kb-brand-tagline">kintone向けプラグイン＆ブラウザ拡張機能</span>
+      </div>
+    </a>
+    <nav class="kb-topbar-nav">
+      <a href="/#plugins">プラグイン</a>
+      <a href="/launcher/">Launcher</a>
+      <a href="/privacy.html">プライバシー</a>
+    </nav>
+  </div>
+
+  <!-- Breadcrumb -->
+  <div class="kb-container kb-breadcrumb">
+    <a class="kb-back" href="/">← プラグイン一覧に戻る</a>
   </div>
 
   <!-- Hero -->
-  <header class="kb-product-hero kb-product-hero--split">
-    <div class="kb-hero-col">
-      <h1>%%TITLE_JA%%</h1>
-      <p class="kb-summary">%%SUMMARY_JA%%</p>
-      <div class="kb-tags">%%TAGS_JA_HTML%%</div>
-      <div class="kb-hero-side">
-        <img class="kb-hero-image" src="../%%HERO_IMAGE%%" alt="%%TITLE_JA%%">
+  <header class="kb-product-hero-new">
+    <div class="kb-container kb-product-hero-inner">
+      <div class="kb-hero-col">
+        <p class="kb-eyebrow">無料プラグイン</p>
+        <h1>%%TITLE_JA%%</h1>
+        <p class="kb-summary">%%SUMMARY_JA%%</p>
+        <div class="kb-tags">%%TAGS_JA_HTML%%</div>
+        <div class="kb-product-hero-cta">
+          <a class="kb-cta-primary" href="../install2.html">無料でインストール →</a>
+          <span class="kb-price-badge kb-price-free">無料</span>
+        </div>
       </div>
-      <div class="kb-price-box">
-        <div id="product-price" class="kb-price"
-             data-price-jpy="%%PRICE_JPY%%">¥%%PRICE_JPY%%</div>
-        <a class="kb-buy-btn" href="%%PURCHASE_URL_JPY%%" data-url-jpy="%%PURCHASE_URL_JPY%%" target="_blank" rel="noopener">購入</a>
-        <span class="kb-coming-label">準備中</span>
+      <div class="kb-hero-img-col">
+        <img class="kb-hero-image-lg" src="../%%HERO_IMAGE%%" alt="%%TITLE_JA%%">
       </div>
     </div>
   </header>
@@ -47,7 +65,7 @@
     <ul class="kb-feature-list">%%FEATURES_JA_HTML%%</ul>
   </section>
 
-  <!-- Screenshots (video/image 共通フレーム) -->
+  <!-- Screenshots -->
   <section class="kb-section kb-container">
     <h2 class="kb-section-title">スクリーンショット</h2>
     <div class="kb-screenshots">%%SCREENSHOTS_JA_HTML%%</div>
@@ -71,60 +89,36 @@
     <div class="kb-faq">%%FAQ_JA_HTML%%</div>
   </section>
 
-  <!-- Purchase CTA -->
-  <section class="kb-section kb-container kb-product-cta">
-    <div class="kb-price-box">
-      <div class="kb-price" data-price-jpy="%%PRICE_JPY%%">¥%%PRICE_JPY%%</div>
-      <a class="kb-buy-btn" href="%%PURCHASE_URL_JPY%%" data-url-jpy="%%PURCHASE_URL_JPY%%" target="_blank" rel="noopener">購入</a>
-      <span class="kb-coming-label">準備中</span>
-    </div>
-    <div class="kb-guarantee-note">PlugBitsはご購入から7日間の完全返金保証付きです。返金は不具合報告にて承ります。<br><a href="mailto:%%SUPPORT_MAIL%%">不具合を報告する</a>。</div>
-  </section>
-
-  <!-- Install Guide -->
+  <!-- Install Guide CTA -->
   <section class="kb-section kb-container kb-install-guide">
     <div class="kb-install-box">
       <h2 class="kb-install-title">🔧 プラグイン導入ガイド</h2>
       <p class="kb-install-desc">初めての方は、インストール手順をこちらからご覧ください。</p>
-      <a href="../install.html" class="kb-install-btn">導入手順を見る</a>
+      <a href="../install2.html" class="kb-install-btn">導入手順を見る</a>
     </div>
   </section>
 
   <!-- Related -->
   <section class="kb-section kb-container">
-    <h2 class="kb-section-title">関連商品</h2>
+    <h2 class="kb-section-title">関連プラグイン</h2>
     <div class="kb-related-products">%%RELATED_JA_HTML%%</div>
   </section>
 
+  <!-- Footer -->
   <footer class="kb-footer kb-container">
     <nav class="kb-footer-links">
-      <a id="support-contact" href="mailto:%%SUPPORT_MAIL%%">不具合報告</a>
-      <a href="../install.html">プラグイン導入ガイド</a>
+      <a href="mailto:support@plugbits.app">お問い合わせ</a>
+      <a href="../install2.html">導入ガイド</a>
+      <a href="/privacy.html">プライバシーポリシー</a>
       <a href="../terms.html">利用規約</a>
     </nav>
     <small>%%SITE_COPYRIGHT%%</small>
   </footer>
 
-  <!-- Lightbox (images) -->
+  <!-- Lightbox -->
   <div id="kb-lightbox"><div class="kb-lb-inner"><img alt=""><button class="kb-lb-close" aria-label="Close">×</button></div></div>
 
-  <!-- Scripts: video play / lightbox -->
   <script>
-  (function(){
-    document.querySelectorAll('.kb-price-box [data-price-jpy]').forEach(el=>{
-      const raw=(el.getAttribute('data-price-jpy')||'').replace(/[^0-9.]/g,'');
-      const num=Number(raw);
-      el.classList.add('kb-price-badge');
-      if(!Number.isFinite(num) || num<=0){
-        el.textContent='¥0（無料）';
-        el.classList.add('kb-price-free');
-      }else{
-        el.textContent='¥'+num.toLocaleString('ja-JP');
-        el.classList.remove('kb-price-free');
-      }
-    });
-  })();
-
   // click-to-play (video)
   document.addEventListener('click',e=>{
     const btn=e.target.closest('.kb-video-play'); if(!btn) return;
