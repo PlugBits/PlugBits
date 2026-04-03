@@ -1,272 +1,309 @@
-/* build.js — clean stable */
+/* build.js */
 console.log('BUILD.JS REV', new Date().toISOString(), process.env.GITHUB_SHA || 'local');
 
 const fs = require('fs');
 const path = require('path');
+const { marked } = require('marked');
 
 const ROOT = path.join(__dirname, '..');
 const DIST = path.join(ROOT, 'dist');
 const PRODUCTS_DIR = path.join(DIST, 'products');
 const PRODUCTS_EN_DIR = path.join(PRODUCTS_DIR, 'en');
+const MANUALS_SRC = path.join(ROOT, 'manuals');
 
-const ENABLE_EN = false;
-const ENABLE_USD = false;
+// サイト共通定数（products.json に持たせない）
+const SUPPORT_MAIL = 'support@plugbits.app';
+const SITE_COPYRIGHT = '© 2025 PlugBits. All rights reserved.';
 
-function esc(s){return String(s ?? '').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));}
-function ensureDirs(){
-  fs.rmSync(DIST,{recursive:true,force:true});
-  fs.mkdirSync(PRODUCTS_DIR,{recursive:true});
-  if(ENABLE_EN) fs.mkdirSync(PRODUCTS_EN_DIR,{recursive:true});
+function esc(s) {
+  return String(s ?? '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 }
-function readJSON(p){ return JSON.parse(fs.readFileSync(p,'utf-8')); }
-function readText(p){ return fs.readFileSync(p,'utf-8'); }
-function renderPriceJPY(v) {
-  const n = Number(v);
-  if (!isFinite(n) || n <= 0) {
-    return '<div class="kb-price-badge kb-price-free">¥0（無料）</div>';
-  }
-  // 数値はdata属性に素のまま、表示は桁区切り
-  return `<div class="kb-price-badge" data-price-jpy="${esc(n)}">¥${n.toLocaleString('ja-JP')}</div>`;
+
+function ensureDirs() {
+  fs.rmSync(DIST, {recursive: true, force: true});
+  fs.mkdirSync(PRODUCTS_DIR, {recursive: true});
+  fs.mkdirSync(PRODUCTS_EN_DIR, {recursive: true});
 }
-function renderTags(csv){ return (csv||'').split(',').map(s=>s.trim()).filter(Boolean).map(t=>`<span class="kb-tag">${esc(t)}</span>`).join(''); }
-function renderFeatures(semicolon){ return (semicolon||'').split(';').map(s=>s.trim()).filter(Boolean).map(x=>`<li>${esc(x)}</li>`).join(''); }
-function renderSteps(lines){ const arr=Array.isArray(lines)?lines:[]; return arr.map(line=>{const [n,h,b]=String(line).split('|');return `<div class="kb-step"><div class="kb-step-number">${esc(n||'')}</div><div><h3>${esc(h||'')}</h3><p>${esc(b||'')}</p></div></div>`;}).join(''); }
-function renderLimitations(semicolon){ return (semicolon||'').split(';').map(s=>s.trim()).filter(Boolean).map(x=>`<li>${esc(x)}</li>`).join(''); }
-function renderFAQ(lines){ const arr=Array.isArray(lines)?lines.slice(0,3):[]; return arr.map(line=>{const [q,a]=String(line).split('|');return `<div class="kb-faq-item"><h3>${esc(q||'')}</h3><p>${esc(a||'')}</p></div>`;}).join(''); }
-function renderRelated(lines){
-  const arr=Array.isArray(lines)?lines.slice(0,2):[];
-  return arr.map(line=>{
-    const [href,title,priceJPY]=String(line).split('|');
-    return `<a class="kb-related-card" href="${esc(href)}"><div class="kb-related-title">${esc(title||'')}</div><div class="kb-related-price" data-price-jpy="${esc(priceJPY||'')}">¥${esc(priceJPY||'')}</div></a>`;
+
+function readJSON(p) { return JSON.parse(fs.readFileSync(p, 'utf-8')); }
+function readText(p) { return fs.readFileSync(p, 'utf-8'); }
+function fileExists(p) { return fs.existsSync(p); }
+
+function renderTags(csv) {
+  return (csv || '').split(',').map(s => s.trim()).filter(Boolean)
+    .map(t => `<span class="kb-tag">${esc(t)}</span>`).join('');
+}
+
+function renderFeatures(semicolon) {
+  return (semicolon || '').split(';').map(s => s.trim()).filter(Boolean)
+    .map(x => `<li>${esc(x)}</li>`).join('');
+}
+
+function renderSteps(lines) {
+  const arr = Array.isArray(lines) ? lines : [];
+  return arr.map(line => {
+    const [n, h, b] = String(line).split('|');
+    return `<div class="kb-step"><div class="kb-step-number">${esc(n||'')}</div><div><h3>${esc(h||'')}</h3><p>${esc(b||'')}</p></div></div>`;
   }).join('');
 }
 
-function firstFilled(){
-  for(const arg of arguments){
-    if(arg) return arg;
-  }
-  return '';
+function renderLimitations(semicolon) {
+  return (semicolon || '').split(';').map(s => s.trim()).filter(Boolean)
+    .map(x => `<li>${esc(x)}</li>`).join('');
 }
+
+function renderFAQ(lines) {
+  const arr = Array.isArray(lines) ? lines : [];
+  return arr.map(line => {
+    const [q, a] = String(line).split('|');
+    return `<div class="kb-faq-item"><h3>${esc(q||'')}</h3><p>${esc(a||'')}</p></div>`;
+  }).join('');
+}
+
 function shortText(s, n = 64) {
   s = String(s || '').replace(/\s+/g, ' ').trim();
   return s.length > n ? s.slice(0, n - 1) + '…' : s;
 }
-// Array でも CSV でも受けられるように renderTags を拡張
-function renderTagsFlex(v){
-  const list = Array.isArray(v) ? v : String(v||'').split(',');
-  return list
-    .map(s => s.trim())
-    .filter(Boolean)
-    .map(t => `<span class="kb-tag">${esc(t)}</span>`)
-    .join('');
-}
-/* Screenshots: "path|caption" (img), "path|video|caption" (mp4) */
-function renderScreenshots(list, prefix=''){
-  const arr = Array.isArray(list) ? list : (list||'').split(';');
-  return arr.map(item=>{
-    const parts=String(item).split('|').map(s=>s.trim());
-    const srcRel=parts[0]||''; const kind=(parts[1]||'').toLowerCase();
-    const cap=(kind==='video')?(parts[2]||''):(parts[1]||'');
-    const src = prefix ? (prefix+srcRel) : srcRel;
-    if(kind==='video'){
-      const poster=src.replace(/\.mp4$/i,'.png');
-      return `<figure class="kb-shot"><div class="kb-shot-media"><button class="kb-video-play" aria-label="Play"><svg viewBox="0 0 64 64" width="56" height="56"><circle cx="32" cy="32" r="30" fill="rgba(0,0,0,.55)"></circle><polygon points="26,20 26,44 46,32" fill="#fff"></polygon></svg></button><video class="kb-video-el" preload="metadata" playsinline webkit-playsinline poster="${poster}"><source src="${src}" type="video/mp4"></video></div><figcaption>${esc(cap)}</figcaption></figure>`;
+
+/* screenshots: [{ src, caption_ja, caption_en }, ...] */
+function renderScreenshots(screenshots, captionKey, imgPrefix) {
+  const arr = Array.isArray(screenshots) ? screenshots : [];
+  return arr.map(item => {
+    const srcRel = item.src || '';
+    const cap = item[captionKey] || '';
+    const src = imgPrefix + srcRel;
+    const ext = srcRel.split('.').pop().toLowerCase();
+    if (ext === 'mp4') {
+      const poster = esc(src.replace(/\.mp4$/i, '.png'));
+      return `<figure class="kb-shot"><div class="kb-shot-media"><button class="kb-video-play" aria-label="Play"><svg viewBox="0 0 64 64" width="56" height="56"><circle cx="32" cy="32" r="30" fill="rgba(0,0,0,.55)"></circle><polygon points="26,20 26,44 46,32" fill="#fff"></polygon></svg></button><video class="kb-video-el" preload="metadata" playsinline webkit-playsinline poster="${poster}"><source src="${esc(src)}" type="video/mp4"></video></div><figcaption>${esc(cap)}</figcaption></figure>`;
     }
-    return `<figure class="kb-shot"><div class="kb-shot-media"><img src="${esc(src)}" alt="${esc(cap||'')}" loading="lazy"></div><figcaption>${esc(cap||'')}</figcaption></figure>`;
+    return `<figure class="kb-shot"><div class="kb-shot-media"><img src="${esc(src)}" alt="${esc(cap)}" loading="lazy"></div><figcaption>${esc(cap)}</figcaption></figure>`;
   }).join('');
 }
 
-try{
+try {
   ensureDirs();
 
-  const products=readJSON(path.join(ROOT,'data','products.json'));
-  const tpl={
-    ja:readText(path.join(ROOT,'templates','product-ja.html')),
-    indexJa:readText(path.join(ROOT,'templates','index-ja.html')),
+  const products = readJSON(path.join(ROOT, 'data', 'products.json'));
+  const tpl = {
+    ja:       readText(path.join(ROOT, 'templates', 'product-ja.html')),
+    en:       readText(path.join(ROOT, 'templates', 'product-en.html')),
+    manualJa: readText(path.join(ROOT, 'templates', 'manual-ja.html')),
+    manualEn: readText(path.join(ROOT, 'templates', 'manual-en.html')),
+    indexJa:  readText(path.join(ROOT, 'templates', 'index-ja.html')),
+    indexEn:  readText(path.join(ROOT, 'templates', 'index-en.html')),
   };
-  if(ENABLE_EN){
-    tpl.en=readText(path.join(ROOT,'templates','product-en.html'));
-    tpl.indexEn=readText(path.join(ROOT,'templates','index-en.html'));
+
+  const plugins = products.filter(p => p.type === 'plugin');
+
+  /**
+   * プラグイン詳細ページを生成する。
+   * JA: dist/products/{slug}.html      (imgPrefix: ../)
+   * EN: dist/products/en/{slug}.html   (imgPrefix: ../../)
+   */
+  function fillProduct(p, lang) {
+    const isJa = lang === 'ja';
+    const imgPrefix = isJa ? '../' : '../../';
+    const html = isJa ? tpl.ja : tpl.en;
+
+    const hasManualJa = fileExists(path.join(MANUALS_SRC, `${p.slug}.ja.md`));
+    const hasManualEn = fileExists(path.join(MANUALS_SRC, `${p.slug}.en.md`));
+    const hasManual = isJa ? hasManualJa : hasManualEn;
+    const manualUrl = isJa ? `${p.slug}-manual.html` : `${p.slug}-manual.html`;
+    const manualBtnHtml = hasManual
+      ? `<a class="kb-btn kb-btn-manual" href="${manualUrl}">${isJa ? 'マニュアルを見る' : 'View Manual'}</a>`
+      : '';
+
+    const altLangUrl = isJa ? `en/${p.slug}.html` : `../${p.slug}.html`;
+
+    const map = {
+      '%%SLUG%%':             p.slug,
+      '%%STATUS_CLASS%%':     p.status === 'coming-soon' ? 'is-coming-soon' : '',
+      '%%TITLE%%':            isJa ? p.title_ja    : p.title_en,
+      '%%SUMMARY%%':          isJa ? p.summary_ja  : p.summary_en,
+      '%%HERO_IMAGE%%':       imgPrefix + (p.hero_image || '').replace(/^\.?\/+/, ''),
+      '%%TAGS_HTML%%':        renderTags(isJa ? p.tags_ja : p.tags_en),
+      '%%FEATURES_HTML%%':    renderFeatures(isJa ? p.features_ja : p.features_en),
+      '%%SCREENSHOTS_HTML%%': renderScreenshots(p.screenshots, isJa ? 'caption_ja' : 'caption_en', imgPrefix),
+      '%%STEPS_HTML%%':       renderSteps(isJa ? p.steps_ja : p.steps_en),
+      '%%LIMITATIONS_HTML%%': renderLimitations(isJa ? p.limitations_ja : p.limitations_en),
+      '%%FAQ_HTML%%':         renderFAQ(isJa ? p.faq_ja : p.faq_en),
+      '%%SUPPORTED_SCREENS%%': isJa ? p.supported_screens_ja : p.supported_screens_en,
+      '%%CATEGORY%%':         isJa ? p.category_ja  : p.category_en,
+      '%%FILE_SIZE%%':        p.file_size  || '',
+      '%%UPDATED_AT%%':       p.updated_at || '',
+      '%%INSTALL_URL%%':      p.install_url || '',
+      '%%BREVO_FORM_HTML%%':  p.brevo_form_html || '',
+      '%%MANUAL_BTN%%':       manualBtnHtml,
+      '%%ALT_LANG_URL%%':     altLangUrl,
+      '%%SUPPORT_MAIL%%':     SUPPORT_MAIL,
+      '%%SITE_COPYRIGHT%%':   SITE_COPYRIGHT,
+    };
+
+    let out = html;
+    for (const [k, v] of Object.entries(map)) out = out.replaceAll(k, String(v ?? ''));
+    return out;
   }
 
-  function fillJA(p){
-    let html=tpl.ja;
-    const buyUrlJpy = firstFilled(p.purchase_url_ja_jpy, p.purchase_url_ja, p.purchase_url_jpy, p.purchase_url);
-    const buyUrlUsd = ENABLE_USD
-      ? firstFilled(p.purchase_url_ja_usd, p.purchase_url_ja, p.purchase_url_usd, p.purchase_url, buyUrlJpy)
-      : buyUrlJpy;
-    const map={
-      '%%SLUG%%':p.slug,'%%SITE_NAME_JA%%':p.site_name_ja||'PlugBits for kintone',
-      '%%TITLE_JA%%':p.title_ja,'%%SUMMARY_JA%%':p.summary_ja,
-      '%%PRICE_JPY%%':p.price_jpy,'%%PRICE_USD%%':ENABLE_USD ? p.price_usd : '',
-      '%%PURCHASE_URL%%':buyUrlJpy,
-      '%%PURCHASE_URL_JPY%%':buyUrlJpy,
-      '%%PURCHASE_URL_USD%%':buyUrlUsd,
-      '%%HERO_IMAGE%%':p.hero_image.replace(/^\.?\/*/,''),
-      '%%SUPPORTED_SCREENS_JA%%':p.supported_screens_ja,'%%CATEGORY_JA%%':p.category_ja,
-      '%%FILE_SIZE_JA%%':p.file_size_ja,'%%UPDATED_AT_JA%%':p.updated_at_ja,
-      '%%TAGS_JA_HTML%%':renderTags(p.tags_ja),'%%FEATURES_JA_HTML%%':renderFeatures(p.features_ja),
-      '%%SCREENSHOTS_JA_HTML%%':renderScreenshots(p.screenshots_ja,'../'),
-      '%%STEPS_JA_HTML%%':renderSteps(p.steps_ja),'%%LIMITATIONS_JA_HTML%%':renderLimitations(p.limitations_ja),
-      '%%FAQ_JA_HTML%%':renderFAQ(p.faq_ja),'%%RELATED_JA_HTML%%':renderRelated(p.related_ja),
-      '%%CTA_HEADLINE_JA%%':p.cta_headline_ja,'%%CTA_TEXT_JA%%':p.cta_text_ja,
-      '%%SUPPORT_MAIL%%':p.support_mail,'%%SITE_COPYRIGHT%%':p.site_copyright,
-      '%%STATUS_CLASS%%': (p.status === 'coming-soon' ? 'is-coming-soon' : '')
-    };
-    for(const [k,v] of Object.entries(map)) html=html.replaceAll(k,String(v??''));
-    return html;
-  }
-  let fillEN;
-  if(ENABLE_EN){
-    fillEN = function(p){
-      let html=tpl.en;
-      const buyUrlUsd = ENABLE_USD
-        ? firstFilled(p.purchase_url_en_usd, p.purchase_url_en, p.purchase_url_usd, p.purchase_url)
-        : firstFilled(p.purchase_url_en, p.purchase_url, p.purchase_url_jpy, p.purchase_url_ja);
-      const buyUrlJpy = firstFilled(p.purchase_url_en_jpy, p.purchase_url_en, p.purchase_url_jpy, p.purchase_url, buyUrlUsd);
-      const map={
-        '%%SLUG%%':p.slug,'%%SITE_NAME_EN%%':p.site_name_en||'PlugBits for kintone',
-        '%%TITLE_EN%%':p.title_en,'%%SUMMARY_EN%%':p.summary_en,
-        '%%PRICE_JPY%%':p.price_jpy,'%%PRICE_USD%%':ENABLE_USD ? p.price_usd : '',
-        '%%PURCHASE_URL%%':buyUrlUsd,
-        '%%PURCHASE_URL_JPY%%':buyUrlJpy,
-        '%%PURCHASE_URL_USD%%':buyUrlUsd,
-        '%%HERO_IMAGE%%':p.hero_image.replace(/^\.?\/*/,''),
-        '%%SUPPORTED_SCREENS_EN%%':p.supported_screens_en,'%%CATEGORY_EN%%':p.category_en,
-        '%%FILE_SIZE_EN%%':p.file_size_en,'%%UPDATED_AT_EN%%':p.updated_at_en,
-        '%%TAGS_EN_HTML%%':renderTags(p.tags_en),'%%FEATURES_EN_HTML%%':renderFeatures(p.features_en),
-        '%%SCREENSHOTS_EN_HTML%%':renderScreenshots(p.screenshots_en,'../../'),
-        '%%STEPS_EN_HTML%%':renderSteps(p.steps_en),'%%LIMITATIONS_EN_HTML%%':renderLimitations(p.limitations_en),
-        '%%FAQ_EN_HTML%%':renderFAQ(p.faq_en),'%%RELATED_EN_HTML%%':renderRelated(p.related_en),
-        '%%CTA_HEADLINE_EN%%':p.cta_headline_en,'%%CTA_TEXT_EN%%':p.cta_text_en,
-        '%%SUPPORT_MAIL%%':p.support_mail,'%%SITE_COPYRIGHT%%':p.site_copyright
-      };
-      for(const [k,v] of Object.entries(map)) html=html.replaceAll(k,String(v??''));
-      return html;
-    };
-  }
+  // プラグイン詳細ページ生成
+  for (const p of plugins) {
+    fs.writeFileSync(path.join(PRODUCTS_DIR, `${p.slug}.html`),    fillProduct(p, 'ja'));
+    fs.writeFileSync(path.join(PRODUCTS_EN_DIR, `${p.slug}.html`), fillProduct(p, 'en'));
 
-  // product pages
-  for(const p of products){
-    fs.writeFileSync(path.join(PRODUCTS_DIR,`${p.slug}.html`),fillJA(p));
-    if(ENABLE_EN && fillEN){
-      fs.writeFileSync(path.join(PRODUCTS_EN_DIR,`${p.slug}.html`),fillEN(p));
+    // マニュアルページ生成
+    const manualJaPath = path.join(MANUALS_SRC, `${p.slug}.ja.md`);
+    const manualEnPath = path.join(MANUALS_SRC, `${p.slug}.en.md`);
+
+    if (fileExists(manualJaPath)) {
+      const content = marked.parse(readText(manualJaPath));
+      let out = tpl.manualJa
+        .replaceAll('%%TITLE%%',          esc(p.title_ja))
+        .replaceAll('%%SLUG%%',           p.slug)
+        .replaceAll('%%MANUAL_CONTENT%%', content)
+        .replaceAll('%%SUPPORT_MAIL%%',   SUPPORT_MAIL)
+        .replaceAll('%%SITE_COPYRIGHT%%', SITE_COPYRIGHT);
+      fs.writeFileSync(path.join(PRODUCTS_DIR, `${p.slug}-manual.html`), out);
+    }
+
+    if (fileExists(manualEnPath)) {
+      const content = marked.parse(readText(manualEnPath));
+      let out = tpl.manualEn
+        .replaceAll('%%TITLE%%',          esc(p.title_en))
+        .replaceAll('%%SLUG%%',           p.slug)
+        .replaceAll('%%MANUAL_CONTENT%%', content)
+        .replaceAll('%%SUPPORT_MAIL%%',   SUPPORT_MAIL)
+        .replaceAll('%%SITE_COPYRIGHT%%', SITE_COPYRIGHT);
+      fs.writeFileSync(path.join(PRODUCTS_EN_DIR, `${p.slug}-manual.html`), out);
     }
   }
 
-  // index pages (カード簡易版)
-  const cardsJa=products.filter(p => (p.status || 'public') !== 'unlisted').map(p => {
-    const status = p.status || 'public';
-    const isComing = (status === 'coming-soon');
-    const desc = shortText(p.short_summary_ja || p.summary_ja, 64);
-    const tags = renderTagsFlex(p.tags_ja || p.category_ja); // どちらか入っている方を利用
-    const priceHtml = isComing
-    ? '<div class="kb-price-badge kb-price-coming">COMING SOON</div>'
-    : renderPriceJPY(p.price_jpy);
-    const cardClass = 'kb-card' + (isComing ? ' kb-card--coming' : '');
-    return [
-      '<a class="kb-card" href="products/', esc(p.slug), '.html">',
-      '  <div class="kb-card-img">',
-      '    <img class="kb-hero-image" src="', esc(p.hero_image),
-      '" alt="', esc(p.title_ja), '" loading="lazy">',
-      '  </div>',
-      '  <div class="kb-card-body">',
-      '    <h3 class="kb-card-title">', esc(p.title_ja), '</h3>',
-      '    <p class="kb-card-desc">', esc(desc), '</p>',
-      '    <div class="kb-card-tags">', tags, '</div>',
-      '    <div class="kb-card-foot">',
-           priceHtml,
-      '      <span class="kb-btn">', (isComing ? '準備中' : '詳細'), '</span>',
-      '    </div>',
-      '  </div>',
-      '</a>'
-    ].join('');
-  }).join('\n');
+  // インデックスページ用カード生成
+  function buildCards(lang) {
+    const isJa = lang === 'ja';
+    const visible = products.filter(p => (p.status || 'public') !== 'unlisted');
+    const extensions = visible.filter(p => p.type === 'extension');
+    const pluginList  = visible.filter(p => p.type === 'plugin');
 
-  let cardsEn='';
-  if (ENABLE_EN) {
-    cardsEn = products.filter(p => (p.status || 'public') !== 'unlisted').map(p => {
-      const usdAttr   = (ENABLE_USD && p.price_usd)
-        ? ` data-price-usd="${esc(p.price_usd)}"`
-        : '';
-      const priceText = (ENABLE_USD && p.price_usd)
-        ? `$${esc(p.price_usd)}`
-        : `¥${esc(p.price_jpy)}`;
-  
-      return `
-        <a class="kb-card" href="../products/en/${esc(p.slug)}.html">
-          <div class="kb-card-img">
-            <img class="kb-hero-image" src="../${esc(p.hero_image)}"
-                 alt="${esc(p.title_en)}" loading="lazy">
-          </div>
-          <div class="kb-card-body">
-            <h3 class="kb-card-title">${esc(p.title_en)}</h3>
-            <div class="kb-card-foot">
-              <div class="kb-price-badge"
-                   data-price-jpy="${esc(p.price_jpy)}"${usdAttr}>${priceText}</div>
-              <span class="kb-btn">Details</span>
-            </div>
-          </div>
-        </a>`;
+    const extHtml = extensions.map(p => {
+      const title   = isJa ? p.title_ja         : p.title_en;
+      const summary = isJa ? p.short_summary_ja  : p.short_summary_en;
+      const href    = p.page_url || (isJa ? `products/${p.slug}.html` : `products/en/${p.slug}.html`);
+      const label   = isJa ? '詳しく見る →' : 'Learn more →';
+      const badge   = isJa ? '無料 / ブラウザ拡張機能' : 'Free / Browser Extension';
+      return [
+        `<a class="kb-launcher-card" href="${esc(href)}">`,
+        '  <div class="kb-launcher-card-body">',
+        `    <span class="kb-launcher-tag">${badge}</span>`,
+        `    <h3>${esc(title)}</h3>`,
+        `    <p>${esc(summary)}</p>`,
+        `    <span class="kb-btn kb-btn-primary kb-launcher-cta">${label}</span>`,
+        '  </div>',
+        '  <div class="kb-launcher-card-visual">',
+        `    <img src="${esc(p.hero_image)}" alt="${esc(title)}" class="kb-launcher-logo">`,
+        '  </div>',
+        '</a>',
+      ].join('\n');
     }).join('\n');
-  }
-  if(ENABLE_EN) fs.mkdirSync(path.join(DIST,'en'),{recursive:true});
-  fs.writeFileSync(path.join(DIST,'index.html'),
-    tpl.indexJa
-      .replaceAll('%%PRODUCT_CARDS_JA%%',cardsJa)
-      .replaceAll('%%SUPPORT_MAIL%%',esc(products[0]?.support_mail||'c.otkyaaa@gmail.com'))
-      .replaceAll('%%SITE_COPYRIGHT%%',esc(products[0]?.site_copyright||''))
-      .replaceAll('%%SITE_NAME_JA%%',esc(products[0]?.site_name_ja||'PlugBits for kintone'))
-  );
-  if(ENABLE_EN){
-    fs.writeFileSync(path.join(DIST,'en','index.html'),
-      tpl.indexEn
-        .replaceAll('%%PRODUCT_CARDS_EN%%',cardsEn)
-        .replaceAll('%%SUPPORT_MAIL%%',esc(products[0]?.support_mail||'c.otkyaaa@gmail.com'))
-        .replaceAll('%%SITE_COPYRIGHT%%',esc(products[0]?.site_copyright||''))
-        .replaceAll('%%SITE_NAME_EN%%',esc(products[0]?.site_name_en||'PlugBits for kintone'))
-    );
+
+    const pluginHtml = pluginList.map(p => {
+      const isComing = p.status === 'coming-soon';
+      const title    = isJa ? p.title_ja : p.title_en;
+      const desc     = shortText(isJa ? (p.short_summary_ja || p.summary_ja) : (p.short_summary_en || p.summary_en), 64);
+      const tags     = renderTags(isJa ? p.tags_ja : p.tags_en);
+      const href     = isComing ? '#' : (isJa ? `products/${p.slug}.html` : `products/en/${p.slug}.html`);
+      const badge    = isComing
+        ? `<div class="kb-price-badge kb-price-coming">COMING SOON</div>`
+        : `<div class="kb-price-badge kb-price-free">${isJa ? '無料' : 'Free'}</div>`;
+      const btnLabel = isComing ? (isJa ? '準備中' : 'Coming Soon') : (isJa ? '詳細' : 'Details');
+      const cardClass = 'kb-card' + (isComing ? ' kb-card--coming' : '');
+      return [
+        `<a class="${cardClass}" href="${esc(href)}">`,
+        '  <div class="kb-card-img">',
+        `    <img class="kb-hero-image" src="${esc(p.hero_image)}" alt="${esc(title)}" loading="lazy">`,
+        '  </div>',
+        '  <div class="kb-card-body">',
+        `    <h3 class="kb-card-title">${esc(title)}</h3>`,
+        `    <p class="kb-card-desc">${esc(desc)}</p>`,
+        `    <div class="kb-card-tags">${tags}</div>`,
+        '    <div class="kb-card-foot">',
+        `      ${badge}`,
+        `      <span class="kb-btn">${btnLabel}</span>`,
+        '    </div>',
+        '  </div>',
+        '</a>',
+      ].join('\n');
+    }).join('\n');
+
+    return { extHtml, pluginHtml };
   }
 
-  // static files
-  const copy = rel=>{
-    const src=path.join(ROOT,rel); if(!fs.existsSync(src)) return;
-    const dst=path.join(DIST,rel); const st=fs.lstatSync(src);
-    if(st.isDirectory()){ fs.cpSync(src,dst,{recursive:true,force:true}); }
-    else { fs.mkdirSync(path.dirname(dst),{recursive:true}); fs.copyFileSync(src,dst); }
+  const { extHtml: extJa, pluginHtml: pluginsJa } = buildCards('ja');
+  const { extHtml: extEn, pluginHtml: pluginsEn } = buildCards('en');
+
+  fs.writeFileSync(path.join(DIST, 'index.html'),
+    tpl.indexJa
+      .replaceAll('%%EXTENSION_CARDS%%', extJa)
+      .replaceAll('%%PRODUCT_CARDS%%',   pluginsJa)
+      .replaceAll('%%SUPPORT_MAIL%%',    SUPPORT_MAIL)
+      .replaceAll('%%SITE_COPYRIGHT%%',  SITE_COPYRIGHT)
+  );
+
+  fs.mkdirSync(path.join(DIST, 'en'), {recursive: true});
+  fs.writeFileSync(path.join(DIST, 'en', 'index.html'),
+    tpl.indexEn
+      .replaceAll('%%EXTENSION_CARDS%%', extEn)
+      .replaceAll('%%PRODUCT_CARDS%%',   pluginsEn)
+      .replaceAll('%%SUPPORT_MAIL%%',    SUPPORT_MAIL)
+      .replaceAll('%%SITE_COPYRIGHT%%',  SITE_COPYRIGHT)
+  );
+
+  // 静的ファイルコピー
+  const copy = rel => {
+    const src = path.join(ROOT, rel);
+    if (!fs.existsSync(src)) return;
+    const dst = path.join(DIST, rel);
+    const st = fs.lstatSync(src);
+    if (st.isDirectory()) {
+      fs.cpSync(src, dst, {recursive: true, force: true});
+    } else {
+      fs.mkdirSync(path.dirname(dst), {recursive: true});
+      fs.copyFileSync(src, dst);
+    }
   };
-  // assets は丸ごと
   copy('assets');
-  // 単体ファイル
-  ['style.css','terms.html','install2.html','robots.txt','sitemap-base.xml','404.html'].forEach(copy);
-  // docs/ 配下を dist/ へマージ（launcher, privacy 等）
+  ['style.css', 'terms.html', 'install2.html', 'robots.txt', 'sitemap-base.xml', '404.html'].forEach(copy);
+
+  // docs/ → dist/ マージ（launcher 等）
   const docsDir = path.join(ROOT, 'docs');
   if (fs.existsSync(docsDir)) {
     for (const entry of fs.readdirSync(docsDir)) {
       if (entry === '.DS_Store') continue;
       const src = path.join(docsDir, entry);
       const dst = path.join(DIST, entry);
-      fs.cpSync(src, dst, { recursive: true, force: true });
+      fs.cpSync(src, dst, {recursive: true, force: true});
     }
   }
 
-  // sitemap
-  const basePath=path.join(DIST,'sitemap-base.xml');
-  const base=fs.existsSync(basePath)?fs.readFileSync(basePath,'utf-8'):'<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"></urlset>';
-  const urls=['/index.html'];
-  if(ENABLE_EN) urls.push('/en/index.html');
-  urls.push('/terms.html');
-  urls.push('/install2.html');
-  for(const p of products){
+  // sitemap 生成
+  const basePath = path.join(DIST, 'sitemap-base.xml');
+  const base = fileExists(basePath)
+    ? readText(basePath)
+    : '<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"></urlset>';
+  const urls = ['/index.html', '/en/index.html', '/terms.html', '/install2.html'];
+  for (const p of plugins) {
     urls.push(`/products/${p.slug}.html`);
-    if(ENABLE_EN) urls.push(`/products/en/${p.slug}.html`);
+    urls.push(`/products/en/${p.slug}.html`);
+    if (fileExists(path.join(MANUALS_SRC, `${p.slug}.ja.md`))) urls.push(`/products/${p.slug}-manual.html`);
+    if (fileExists(path.join(MANUALS_SRC, `${p.slug}.en.md`))) urls.push(`/products/en/${p.slug}-manual.html`);
   }
-  const xml=base.replace('</urlset>',urls.map(u=>`<url><loc>{{BASE_URL}}${u}</loc></url>`).join('')+'</urlset>');
-  fs.writeFileSync(path.join(DIST,'sitemap.xml'),xml);
+  const xml = base.replace('</urlset>',
+    urls.map(u => `<url><loc>{{BASE_URL}}${u}</loc></url>`).join('') + '</urlset>'
+  );
+  fs.writeFileSync(path.join(DIST, 'sitemap.xml'), xml);
 
-  fs.writeFileSync(path.join(DIST,'.nojekyll'),'');
-  console.log('Build completed.');
-}catch(e){
-  console.error('BUILD FAILED:',e);
+  fs.writeFileSync(path.join(DIST, '.nojekyll'), '');
+  console.log(`Build completed. ${plugins.length} plugin(s), ${products.filter(p=>p.type==='extension').length} extension(s).`);
+} catch (e) {
+  console.error('BUILD FAILED:', e);
   process.exit(1);
 }

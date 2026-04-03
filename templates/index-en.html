@@ -3,47 +3,90 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Products | %%SITE_NAME_EN%%</title>
-  <meta name="description" content="Mini extensions for Kintone. Tiny, fast, and affordable.">
+  <title>PlugBits — Plugins &amp; Extensions for kintone</title>
+  <meta name="description" content="Free plugins and browser extensions to make your kintone daily work easier.">
   <link rel="stylesheet" href="../style.css">
 </head>
 <body class="kb-root">
+
+  <!-- Header -->
   <div class="kb-container kb-topbar">
-    <div class="kb-brand">%%SITE_NAME_EN%%</div>
-    <div class="kb-language-switcher">
-      <a class="kb-lang" href="../index.html">JP</a>
-      <button class="kb-currency-btn active" data-currency="JPY">JPY</button>
-      <button class="kb-currency-btn" data-currency="USD">USD</button>
-    </div>
+    <a class="kb-brand-link" href="/en/">
+      <img src="../assets/logo.png" alt="PlugBits" class="kb-logo-img">
+      <div class="kb-brand-text">
+        <span class="kb-brand-name">PlugBits</span>
+        <span class="kb-brand-tagline">Plugins &amp; Extensions for kintone</span>
+      </div>
+    </a>
+    <nav class="kb-topbar-nav">
+      <a href="#plugins">Plugins</a>
+      <a href="/launcher/">Launcher</a>
+      <a href="/privacy.html">Privacy</a>
+      <a class="kb-lang" href="/">JP</a>
+    </nav>
   </div>
 
+  <!-- Hero -->
   <header class="kb-hero">
     <div class="kb-container">
-      <h1 class="kb-hero-title">Add “the last inch” to Kintone.</h1>
-      <p class="kb-hero-sub">Setup in 30s. From ¥100. Lightweight support for bug reports.</p>
-      <a class="kb-cta-primary" href="#list">Explore</a>
+      <p class="kb-eyebrow">Mini tools for kintone</p>
+      <h1 class="kb-hero-title">Make your kintone<br>daily work easier.</h1>
+      <p class="kb-hero-sub">Free plugins and browser extensions to<br>speed up finding, entering, and reviewing.<br><small style="font-size:13px;color:#888;">Chrome &amp; Edge supported</small></p>
+      <div class="kb-hero-actions">
+        <a class="kb-cta-primary" href="#plugins">Browse Plugins</a>
+        <a class="kb-cta-secondary" href="/launcher/">Try Launcher →</a>
+      </div>
     </div>
   </header>
 
-  <main class="kb-container">
-    <h2 id="list" class="kb-section-title">Products</h2>
-    <section class="kb-card-grid" id="kb-product-grid">
-      %%PRODUCT_CARDS_EN%%
-    </section>
+  <main>
+    <div class="kb-container">
 
-    <section class="kb-faq-block">
-      <h2 class="kb-section-title">FAQ</h2>
-      <div class="kb-faq">
-        <div class="kb-faq-item"><h3>Trials?</h3><p>Videos and screenshots available. Trial build on request.</p></div>
-        <div class="kb-faq-item"><h3>Support?</h3><p>Bug reports accepted. Feature requests considered when feasible.</p></div>
-        <div class="kb-faq-item"><h3>Currency?</h3><p>Display JPY / USD. Checkout follows the store site.</p></div>
-      </div>
-    </section>
+      <!-- Browser Extensions -->
+      <section class="kb-section" id="extensions">
+        <h2 class="kb-section-title">Browser Extensions</h2>
+        %%EXTENSION_CARDS%%
+      </section>
+
+      <!-- Plugin List -->
+      <section class="kb-section" id="plugins">
+        <h2 class="kb-section-title">Plugins</h2>
+        <section class="kb-card-grid" id="kb-product-grid">
+          %%PRODUCT_CARDS%%
+        </section>
+        <div class="kb-coming-notice" id="kb-coming-notice" style="display:none">
+          <p>Plugins are coming soon. Please check back later.</p>
+        </div>
+      </section>
+
+      <!-- FAQ -->
+      <section class="kb-faq-block">
+        <h2 class="kb-section-title">FAQ</h2>
+        <div class="kb-faq">
+          <div class="kb-faq-item"><h3>Do I need to be a kintone admin?</h3><p>Plugin installation requires a kintone admin. The browser extension (Launcher) can be added to your own browser without admin rights.</p></div>
+          <div class="kb-faq-item"><h3>Support?</h3><p>Bug reports accepted. Feature requests considered when feasible.</p></div>
+          <div class="kb-faq-item"><h3>How do I install a plugin?</h3><p>See the <a href="../install2.html">installation guide</a>.</p></div>
+        </div>
+      </section>
+
+      <!-- Install Guide -->
+      <section class="kb-section kb-install-guide">
+        <div class="kb-install-box">
+          <h2 class="kb-install-title">🔧 Plugin Installation Guide</h2>
+          <p class="kb-install-desc">First time installing a kintone plugin? Start here.</p>
+          <a href="../install2.html" class="kb-install-btn">View Guide</a>
+        </div>
+      </section>
+
+    </div>
   </main>
 
+  <!-- Footer -->
   <footer class="kb-footer kb-container">
     <nav class="kb-footer-links">
-      <a href="mailto:%%SUPPORT_MAIL%%">Report an issue</a>
+      <a href="mailto:%%SUPPORT_MAIL%%">Contact</a>
+      <a href="../install2.html">Install Guide</a>
+      <a href="/privacy.html">Privacy Policy</a>
       <a href="../terms.html">Terms</a>
     </nav>
     <small>%%SITE_COPYRIGHT%%</small>
@@ -51,23 +94,13 @@
 
   <script>
   (function(){
-    const JPY='JPY', USD='USD';
-    const $btns=document.querySelectorAll('.kb-currency-btn');
-    const preferred=localStorage.getItem('preferred-currency')||USD;
-    function render(cur){
-      document.querySelectorAll('.kb-price,[data-price-jpy][data-price-usd],.kb-price-badge')
-        .forEach(el=>{
-          const j=el.getAttribute('data-price-jpy');
-          const u=el.getAttribute('data-price-usd');
-          if(cur===USD && u){ el.textContent='$'+u; }
-          else{ el.textContent='¥'+j; }
-        });
-      $btns.forEach(b=>b.classList.toggle('active',b.dataset.currency===cur));
-      localStorage.setItem('preferred-currency',cur);
+    const grid = document.getElementById('kb-product-grid');
+    const notice = document.getElementById('kb-coming-notice');
+    if (grid && notice && !grid.querySelector('.kb-card')) {
+      notice.style.display = '';
     }
-    $btns.forEach(b=>b.addEventListener('click',()=>render(b.dataset.currency)));
-    render(preferred);
   })();
   </script>
+
 </body>
 </html>

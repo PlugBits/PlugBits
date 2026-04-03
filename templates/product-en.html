@@ -2,35 +2,51 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
+  <title>%%TITLE%% | PlugBits</title>
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>%%TITLE_EN%% | %%SITE_NAME_EN%%</title>
-  <meta name="description" content="%%SUMMARY_EN%%">
+  <meta name="description" content="%%SUMMARY%%">
   <link rel="stylesheet" href="../../style.css">
 </head>
-<body class="kb-root">
-  <!-- Topbar -->
+<body class="kb-root %%STATUS_CLASS%%">
+
+  <!-- Header -->
   <div class="kb-container kb-topbar">
-    <a class="kb-back" href="../../en/index.html">← Back to list</a>
-    <div class="kb-language-switcher">
-      <a class="kb-lang" href="../%%SLUG%%.html">JP</a>
-      <button class="kb-currency-btn active" data-currency="USD">USD</button>
-      <button class="kb-currency-btn" data-currency="JPY">JPY</button>
-    </div>
+    <a class="kb-brand-link" href="/en/">
+      <img src="../../assets/logo.png" alt="PlugBits" class="kb-logo-img">
+      <div class="kb-brand-text">
+        <span class="kb-brand-name">PlugBits</span>
+        <span class="kb-brand-tagline">Plugins &amp; Extensions for kintone</span>
+      </div>
+    </a>
+    <nav class="kb-topbar-nav">
+      <a href="/en/#plugins">Plugins</a>
+      <a href="/launcher/">Launcher</a>
+      <a href="/privacy.html">Privacy</a>
+      <a class="kb-lang" href="%%ALT_LANG_URL%%">JP</a>
+    </nav>
+  </div>
+
+  <!-- Breadcrumb -->
+  <div class="kb-container kb-breadcrumb">
+    <a class="kb-back" href="/en/">← Back to list</a>
   </div>
 
   <!-- Hero -->
-  <header class="kb-product-hero kb-product-hero--split">
-    <div class="kb-hero-col">
-      <h1>%%TITLE_EN%%</h1>
-      <p class="kb-summary">%%SUMMARY_EN%%</p>
-      <div class="kb-tags">%%TAGS_EN_HTML%%</div>
-      <div class="kb-hero-side">
-        <img class="kb-hero-image" src="../../%%HERO_IMAGE%%" alt="%%TITLE_EN%%">
+  <header class="kb-product-hero-new">
+    <div class="kb-container kb-product-hero-inner">
+      <div class="kb-hero-col">
+        <p class="kb-eyebrow">Free Plugin</p>
+        <h1>%%TITLE%%</h1>
+        <p class="kb-summary">%%SUMMARY%%</p>
+        <div class="kb-tags">%%TAGS_HTML%%</div>
+        <div class="kb-product-hero-cta">
+          <button class="kb-cta-primary kb-dl-trigger">Download for free →</button>
+          %%MANUAL_BTN%%
+          <span class="kb-price-badge kb-price-free">Free</span>
+        </div>
       </div>
-      <div class="kb-price-box">
-        <div id="product-price" class="kb-price"
-             data-price-jpy="%%PRICE_JPY%%" data-price-usd="%%PRICE_USD%%">$%%PRICE_USD%%</div>
-        <a class="kb-buy-btn" href="%%PURCHASE_URL_USD%%" data-url-jpy="%%PURCHASE_URL_JPY%%" data-url-usd="%%PURCHASE_URL_USD%%" target="_blank" rel="noopener">Buy</a>
+      <div class="kb-hero-img-col">
+        <img class="kb-hero-image-lg" src="%%HERO_IMAGE%%" alt="%%TITLE%%">
       </div>
     </div>
   </header>
@@ -38,103 +54,112 @@
   <!-- Info -->
   <section class="kb-section kb-container">
     <div class="kb-info-grid">
-      <div><strong>Screens</strong><p>%%SUPPORTED_SCREENS_EN%%</p></div>
-      <div><strong>Category</strong><p>%%CATEGORY_EN%%</p></div>
-      <div><strong>File Size</strong><p>%%FILE_SIZE_EN%%</p></div>
-      <div><strong>Updated</strong><p>%%UPDATED_AT_EN%%</p></div>
+      <div><strong>Screens</strong><p>%%SUPPORTED_SCREENS%%</p></div>
+      <div><strong>Category</strong><p>%%CATEGORY%%</p></div>
+      <div><strong>File Size</strong><p>%%FILE_SIZE%%</p></div>
+      <div><strong>Updated</strong><p>%%UPDATED_AT%%</p></div>
     </div>
   </section>
 
   <!-- Features -->
   <section class="kb-section kb-container">
     <h2 class="kb-section-title">Features</h2>
-    <ul class="kb-feature-list">%%FEATURES_EN_HTML%%</ul>
+    <ul class="kb-feature-list">%%FEATURES_HTML%%</ul>
   </section>
 
   <!-- Screenshots -->
   <section class="kb-section kb-container">
     <h2 class="kb-section-title">Screenshots</h2>
-    <div class="kb-screenshots">%%SCREENSHOTS_EN_HTML%%</div>
+    <div class="kb-screenshots">%%SCREENSHOTS_HTML%%</div>
   </section>
 
   <!-- Steps -->
   <section class="kb-section kb-container">
     <h2 class="kb-section-title">How to use</h2>
-    <div class="kb-steps">%%STEPS_EN_HTML%%</div>
+    <div class="kb-steps">%%STEPS_HTML%%</div>
   </section>
 
   <!-- Limitations -->
   <section class="kb-section kb-container">
     <h2 class="kb-section-title">Limitations</h2>
-    <ul class="kb-limitation-list">%%LIMITATIONS_EN_HTML%%</ul>
+    <ul class="kb-limitation-list">%%LIMITATIONS_HTML%%</ul>
   </section>
 
   <!-- FAQ -->
   <section class="kb-section kb-container kb-faq-block">
     <h2 class="kb-section-title">FAQ</h2>
-    <div class="kb-faq">%%FAQ_EN_HTML%%</div>
+    <div class="kb-faq">%%FAQ_HTML%%</div>
   </section>
 
-  <!-- Related -->
-  <section class="kb-section kb-container">
-    <h2 class="kb-section-title">Related</h2>
-    <div class="kb-related-products">%%RELATED_EN_HTML%%</div>
+  <!-- Download Modal -->
+  <div id="kb-dl-modal" class="kb-dl-modal" role="dialog" aria-modal="true" aria-labelledby="kb-dl-modal-title" hidden>
+    <div class="kb-dl-modal-backdrop"></div>
+    <div class="kb-dl-modal-inner">
+      <button class="kb-dl-modal-close" aria-label="Close">×</button>
+      <p class="kb-dl-modal-eyebrow">Free Plugin</p>
+      <h2 id="kb-dl-modal-title" class="kb-dl-modal-title">%%TITLE%%</h2>
+      <p class="kb-dl-modal-desc">Enter your email and we'll send you the download link.<br>You can unsubscribe at any time via the link in the email.</p>
+      <div class="kb-dl-modal-form">
+        %%BREVO_FORM_HTML%%
+      </div>
+    </div>
+  </div>
+
+  <!-- Install Guide CTA -->
+  <section class="kb-section kb-container kb-install-guide">
+    <div class="kb-install-box">
+      <h2 class="kb-install-title">🔧 Plugin Installation Guide</h2>
+      <p class="kb-install-desc">First time? Check the installation guide.</p>
+      <a href="../../install2.html" class="kb-install-btn">View Guide</a>
+    </div>
   </section>
 
+  <!-- Footer -->
   <footer class="kb-footer kb-container">
     <nav class="kb-footer-links">
-      <a href="mailto:%%SUPPORT_MAIL%%">Report an issue</a>
+      <a href="mailto:%%SUPPORT_MAIL%%">Contact</a>
+      <a href="../../install2.html">Install Guide</a>
+      <a href="/privacy.html">Privacy Policy</a>
       <a href="../../terms.html">Terms</a>
     </nav>
     <small>%%SITE_COPYRIGHT%%</small>
   </footer>
 
-  <!-- Lightbox (images) -->
+  <!-- Lightbox -->
   <div id="kb-lightbox"><div class="kb-lb-inner"><img alt=""><button class="kb-lb-close" aria-label="Close">×</button></div></div>
 
-  <!-- Scripts: currency / video play / lightbox -->
   <script>
-  (function(){
-    const JPY='JPY', USD='USD';
-    const $btns=document.querySelectorAll('.kb-currency-btn');
-    // ENは既定USD
-    const preferred=localStorage.getItem('preferred-currency')||USD;
-    function render(cur){
-      document.querySelectorAll('#product-price,.kb-related-price,.kb-price-badge,[data-price-jpy][data-price-usd]')
-        .forEach(el=>{
-          const j=el.getAttribute('data-price-jpy'), u=el.getAttribute('data-price-usd');
-          el.textContent=(cur===USD && u)?'$'+u:'¥'+j;
-        });
-      // update buy links by currency
-      document.querySelectorAll('.kb-buy-btn').forEach(btn=>{
-        const j=btn.getAttribute('data-url-jpy')||btn.getAttribute('href')||'';
-        const u=btn.getAttribute('data-url-usd')||j;
-        btn.setAttribute('href', cur===USD ? u : j);
-      });
-      $btns.forEach(b=>b.classList.toggle('active',b.dataset.currency===cur));
-      localStorage.setItem('preferred-currency',cur);
-    }
-    $btns.forEach(b=>b.addEventListener('click',()=>render(b.dataset.currency)));
-    render(preferred);
+  // Download modal
+  (()=>{
+    const modal = document.getElementById('kb-dl-modal');
+    if (!modal) return;
+    const open  = () => { modal.hidden = false; document.body.style.overflow = 'hidden'; };
+    const close = () => { modal.hidden = true;  document.body.style.overflow = ''; };
+    document.querySelectorAll('.kb-dl-trigger').forEach(btn => btn.addEventListener('click', open));
+    modal.querySelector('.kb-dl-modal-close').addEventListener('click', close);
+    modal.querySelector('.kb-dl-modal-backdrop').addEventListener('click', close);
+    document.addEventListener('keydown', e => { if (e.key === 'Escape' && !modal.hidden) close(); });
   })();
 
-  document.addEventListener('click',e=>{
-    const btn=e.target.closest('.kb-video-play'); if(!btn) return;
-    const v=btn.closest('.kb-shot,.kb-video')?.querySelector('video.kb-video-el'); if(!v) return;
-    btn.style.display='none';
-    v.setAttribute('controls',''); v.setAttribute('playsinline',''); v.setAttribute('webkit-playsinline','');
-    try{ v.play(); }catch{}
+  document.addEventListener('click', e => {
+    const btn = e.target.closest('.kb-video-play'); if (!btn) return;
+    const v = btn.closest('.kb-shot')?.querySelector('video.kb-video-el'); if (!v) return;
+    btn.style.display = 'none';
+    v.setAttribute('controls', ''); v.setAttribute('playsinline', '');
+    try { v.play(); } catch {}
   });
 
-  (()=>{const ov=document.getElementById('kb-lightbox');const imgEl=ov.querySelector('img');
-    const close=()=>{ov.classList.remove('open');document.body.style.overflow='';imgEl.src='';};
-    ov.addEventListener('click',e=>{if(e.target===ov)close();});
-    ov.querySelector('.kb-lb-close').addEventListener('click',close);
-    document.addEventListener('keydown',e=>{if(e.key==='Escape')close();});
-    document.addEventListener('click',e=>{
-      const img=e.target.closest('.kb-shot-media img'); if(!img) return;
-      imgEl.src=img.getAttribute('data-full')||img.currentSrc||img.src;
-      ov.classList.add('open'); document.body.style.overflow='hidden';
+  (()=>{
+    const ov = document.getElementById('kb-lightbox');
+    const imgEl = ov.querySelector('img');
+    const close = () => { ov.classList.remove('open'); document.body.style.overflow = ''; imgEl.src = ''; };
+    ov.addEventListener('click', e => { if (e.target === ov) close(); });
+    ov.querySelector('.kb-lb-close').addEventListener('click', close);
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') close(); });
+    document.addEventListener('click', e => {
+      const img = e.target.closest('.kb-shot-media img'); if (!img) return;
+      imgEl.src = img.getAttribute('data-full') || img.currentSrc || img.src;
+      ov.classList.add('open'); document.body.style.overflow = 'hidden';
     });
   })();
   </script>

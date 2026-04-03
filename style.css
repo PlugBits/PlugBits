@@ -666,3 +666,50 @@
   .kb-product-hero-cta { flex-direction: column; align-items: flex-start; }
 }
 
+/* ===== Download Modal ===== */
+.kb-dl-modal {
+  position: fixed; inset: 0; z-index: 9000;
+  display: flex; align-items: center; justify-content: center;
+}
+.kb-dl-modal[hidden] { display: none; }
+.kb-dl-modal-backdrop {
+  position: absolute; inset: 0;
+  background: rgba(11,31,51,.55);
+  backdrop-filter: blur(4px);
+}
+.kb-dl-modal-inner {
+  position: relative; z-index: 1;
+  background: #fff;
+  border-radius: 20px;
+  padding: 40px 36px 36px;
+  max-width: 480px; width: calc(100% - 32px);
+  box-shadow: 0 24px 64px rgba(11,31,51,.22);
+}
+.kb-dl-modal-close {
+  position: absolute; top: 14px; right: 16px;
+  background: none; border: none; cursor: pointer;
+  font-size: 22px; color: var(--kb-sub);
+  line-height: 1; padding: 4px 8px;
+  border-radius: 8px;
+  transition: background .15s;
+}
+.kb-dl-modal-close:hover { background: var(--kb-primary-050); color: var(--kb-text); }
+.kb-dl-modal-eyebrow {
+  font-size: 12px; font-weight: 700; letter-spacing: .08em;
+  text-transform: uppercase; color: var(--kb-primary);
+  margin: 0 0 6px;
+}
+.kb-dl-modal-title {
+  font-size: 22px; font-weight: 800; color: var(--kb-text);
+  margin: 0 0 12px;
+}
+.kb-dl-modal-desc {
+  font-size: 14px; color: var(--kb-sub); line-height: 1.7;
+  margin: 0 0 24px;
+}
+.kb-dl-modal-form { /* Brevo埋め込みのコンテナ */ }
+@media (max-width: 480px) {
+  .kb-dl-modal-inner { padding: 32px 20px 24px; }
+  .kb-dl-modal-title { font-size: 19px; }
+}
+

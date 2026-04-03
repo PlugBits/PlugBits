@@ -2,9 +2,9 @@
 <html lang="ja">
 <head>
   <meta charset="utf-8">
-  <title>%%TITLE_JA%% | PlugBits</title>
+  <title>%%TITLE%% | PlugBits</title>
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <meta name="description" content="%%SUMMARY_JA%%">
+  <meta name="description" content="%%SUMMARY%%">
   <link rel="stylesheet" href="../style.css">
 </head>
 <body class="kb-root %%STATUS_CLASS%%">
@@ -22,6 +22,7 @@
       <a href="/#plugins">プラグイン</a>
       <a href="/launcher/">Launcher</a>
       <a href="/privacy.html">プライバシー</a>
+      <a class="kb-lang" href="en/%%SLUG%%.html">EN</a>
     </nav>
   </div>
 
@@ -35,16 +36,17 @@
     <div class="kb-container kb-product-hero-inner">
       <div class="kb-hero-col">
         <p class="kb-eyebrow">無料プラグイン</p>
-        <h1>%%TITLE_JA%%</h1>
-        <p class="kb-summary">%%SUMMARY_JA%%</p>
-        <div class="kb-tags">%%TAGS_JA_HTML%%</div>
+        <h1>%%TITLE%%</h1>
+        <p class="kb-summary">%%SUMMARY%%</p>
+        <div class="kb-tags">%%TAGS_HTML%%</div>
         <div class="kb-product-hero-cta">
-          <a class="kb-cta-primary" href="../install2.html">無料でインストール →</a>
+          <button class="kb-cta-primary kb-dl-trigger">無料でダウンロード →</button>
+          %%MANUAL_BTN%%
           <span class="kb-price-badge kb-price-free">無料</span>
         </div>
       </div>
       <div class="kb-hero-img-col">
-        <img class="kb-hero-image-lg" src="../%%HERO_IMAGE%%" alt="%%TITLE_JA%%">
+        <img class="kb-hero-image-lg" src="%%HERO_IMAGE%%" alt="%%TITLE%%">
       </div>
     </div>
   </header>
@@ -52,42 +54,56 @@
   <!-- Info -->
   <section class="kb-section kb-container">
     <div class="kb-info-grid">
-      <div><strong>対応画面</strong><p>%%SUPPORTED_SCREENS_JA%%</p></div>
-      <div><strong>カテゴリ</strong><p>%%CATEGORY_JA%%</p></div>
-      <div><strong>ファイルサイズ</strong><p>%%FILE_SIZE_JA%%</p></div>
-      <div><strong>更新日</strong><p>%%UPDATED_AT_JA%%</p></div>
+      <div><strong>対応画面</strong><p>%%SUPPORTED_SCREENS%%</p></div>
+      <div><strong>カテゴリ</strong><p>%%CATEGORY%%</p></div>
+      <div><strong>ファイルサイズ</strong><p>%%FILE_SIZE%%</p></div>
+      <div><strong>更新日</strong><p>%%UPDATED_AT%%</p></div>
     </div>
   </section>
 
   <!-- Features -->
   <section class="kb-section kb-container">
     <h2 class="kb-section-title">機能</h2>
-    <ul class="kb-feature-list">%%FEATURES_JA_HTML%%</ul>
+    <ul class="kb-feature-list">%%FEATURES_HTML%%</ul>
   </section>
 
   <!-- Screenshots -->
   <section class="kb-section kb-container">
     <h2 class="kb-section-title">スクリーンショット</h2>
-    <div class="kb-screenshots">%%SCREENSHOTS_JA_HTML%%</div>
+    <div class="kb-screenshots">%%SCREENSHOTS_HTML%%</div>
   </section>
 
   <!-- Steps -->
   <section class="kb-section kb-container">
     <h2 class="kb-section-title">使い方</h2>
-    <div class="kb-steps">%%STEPS_JA_HTML%%</div>
+    <div class="kb-steps">%%STEPS_HTML%%</div>
   </section>
 
   <!-- Limitations -->
   <section class="kb-section kb-container">
     <h2 class="kb-section-title">制限事項</h2>
-    <ul class="kb-limitation-list">%%LIMITATIONS_JA_HTML%%</ul>
+    <ul class="kb-limitation-list">%%LIMITATIONS_HTML%%</ul>
   </section>
 
   <!-- FAQ -->
   <section class="kb-section kb-container kb-faq-block">
     <h2 class="kb-section-title">よくある質問</h2>
-    <div class="kb-faq">%%FAQ_JA_HTML%%</div>
+    <div class="kb-faq">%%FAQ_HTML%%</div>
   </section>
+
+  <!-- Download Modal -->
+  <div id="kb-dl-modal" class="kb-dl-modal" role="dialog" aria-modal="true" aria-labelledby="kb-dl-modal-title" hidden>
+    <div class="kb-dl-modal-backdrop"></div>
+    <div class="kb-dl-modal-inner">
+      <button class="kb-dl-modal-close" aria-label="閉じる">×</button>
+      <p class="kb-dl-modal-eyebrow">無料プラグイン</p>
+      <h2 id="kb-dl-modal-title" class="kb-dl-modal-title">%%TITLE%%</h2>
+      <p class="kb-dl-modal-desc">メールアドレスを登録するとダウンロードリンクをお送りします。<br>配信停止はいつでもメール内のリンクから行えます。</p>
+      <div class="kb-dl-modal-form">
+        %%BREVO_FORM_HTML%%
+      </div>
+    </div>
+  </div>
 
   <!-- Install Guide CTA -->
   <section class="kb-section kb-container kb-install-guide">
@@ -98,16 +114,10 @@
     </div>
   </section>
 
-  <!-- Related -->
-  <section class="kb-section kb-container">
-    <h2 class="kb-section-title">関連プラグイン</h2>
-    <div class="kb-related-products">%%RELATED_JA_HTML%%</div>
-  </section>
-
   <!-- Footer -->
   <footer class="kb-footer kb-container">
     <nav class="kb-footer-links">
-      <a href="mailto:support@plugbits.app">お問い合わせ</a>
+      <a href="mailto:%%SUPPORT_MAIL%%">お問い合わせ</a>
       <a href="../install2.html">導入ガイド</a>
       <a href="/privacy.html">プライバシーポリシー</a>
       <a href="../terms.html">利用規約</a>
@@ -119,25 +129,37 @@
   <div id="kb-lightbox"><div class="kb-lb-inner"><img alt=""><button class="kb-lb-close" aria-label="Close">×</button></div></div>
 
   <script>
-  // click-to-play (video)
-  document.addEventListener('click',e=>{
-    const btn=e.target.closest('.kb-video-play'); if(!btn) return;
-    const v=btn.closest('.kb-shot,.kb-video')?.querySelector('video.kb-video-el'); if(!v) return;
-    btn.style.display='none';
-    v.setAttribute('controls',''); v.setAttribute('playsinline',''); v.setAttribute('webkit-playsinline','');
-    try{ v.play(); }catch{}
+  // ダウンロードモーダル
+  (()=>{
+    const modal = document.getElementById('kb-dl-modal');
+    if (!modal) return;
+    const open  = () => { modal.hidden = false; document.body.style.overflow = 'hidden'; };
+    const close = () => { modal.hidden = true;  document.body.style.overflow = ''; };
+    document.querySelectorAll('.kb-dl-trigger').forEach(btn => btn.addEventListener('click', open));
+    modal.querySelector('.kb-dl-modal-close').addEventListener('click', close);
+    modal.querySelector('.kb-dl-modal-backdrop').addEventListener('click', close);
+    document.addEventListener('keydown', e => { if (e.key === 'Escape' && !modal.hidden) close(); });
+  })();
+
+  document.addEventListener('click', e => {
+    const btn = e.target.closest('.kb-video-play'); if (!btn) return;
+    const v = btn.closest('.kb-shot')?.querySelector('video.kb-video-el'); if (!v) return;
+    btn.style.display = 'none';
+    v.setAttribute('controls', ''); v.setAttribute('playsinline', '');
+    try { v.play(); } catch {}
   });
 
-  // lightbox (images)
-  (()=>{const ov=document.getElementById('kb-lightbox');const imgEl=ov.querySelector('img');
-    const close=()=>{ov.classList.remove('open');document.body.style.overflow='';imgEl.src='';};
-    ov.addEventListener('click',e=>{if(e.target===ov)close();});
-    ov.querySelector('.kb-lb-close').addEventListener('click',close);
-    document.addEventListener('keydown',e=>{if(e.key==='Escape')close();});
-    document.addEventListener('click',e=>{
-      const img=e.target.closest('.kb-shot-media img'); if(!img) return;
-      imgEl.src=img.getAttribute('data-full')||img.currentSrc||img.src;
-      ov.classList.add('open'); document.body.style.overflow='hidden';
+  (()=>{
+    const ov = document.getElementById('kb-lightbox');
+    const imgEl = ov.querySelector('img');
+    const close = () => { ov.classList.remove('open'); document.body.style.overflow = ''; imgEl.src = ''; };
+    ov.addEventListener('click', e => { if (e.target === ov) close(); });
+    ov.querySelector('.kb-lb-close').addEventListener('click', close);
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') close(); });
+    document.addEventListener('click', e => {
+      const img = e.target.closest('.kb-shot-media img'); if (!img) return;
+      imgEl.src = img.getAttribute('data-full') || img.currentSrc || img.src;
+      ov.classList.add('open'); document.body.style.overflow = 'hidden';
     });
   })();
   </script>

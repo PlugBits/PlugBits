@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>PlugBits — kintone向けプラグイン＆ブラウザ拡張機能</title>
-  <meta name="description" content="kintoneの日常をちょっと楽にする、無料・低価格のプラグインとブラウザ拡張機能。探す・入力する・確認するを短縮します。">
+  <meta name="description" content="kintoneの日常をちょっと楽にする、無料のプラグインとブラウザ拡張機能。探す・入力する・確認するを短縮します。">
   <link rel="stylesheet" href="style.css">
 </head>
 <body class="kb-root">
@@ -21,7 +21,8 @@
     <nav class="kb-topbar-nav">
       <a href="#plugins">プラグイン</a>
       <a href="/launcher/">Launcher</a>
-      <a href="https://plugbits.app/privacy.html">プライバシー</a>
+      <a href="/privacy.html">プライバシー</a>
+      <a class="kb-lang" href="/en/">EN</a>
     </nav>
   </div>
 
@@ -39,28 +40,19 @@
   </header>
 
   <main>
-    <!-- Launcher Card -->
     <div class="kb-container">
-      <section class="kb-section" id="launcher">
-        <h2 class="kb-section-title">ブラウザ拡張機能 — PlugBits Launcher</h2>
-        <a class="kb-launcher-card" href="/launcher/">
-          <div class="kb-launcher-card-body">
-            <span class="kb-launcher-tag">無料 / ブラウザ拡張機能</span>
-            <h3>kintoneの「探しもの」を最短ルートに。</h3>
-            <p>ショートカット・ウォッチリスト・最近のレコード・Spreadsheet Viewを1つのサイドパネルに集約。インストール無料、今すぐ試せます。</p>
-            <span class="kb-btn kb-btn-primary kb-launcher-cta">詳しく見る →</span>
-          </div>
-          <div class="kb-launcher-card-visual">
-            <img src="launcher/assets/icon128.png" alt="PlugBits Launcher" class="kb-launcher-logo">
-          </div>
-        </a>
+
+      <!-- ブラウザ拡張機能 -->
+      <section class="kb-section" id="extensions">
+        <h2 class="kb-section-title">ブラウザ拡張機能</h2>
+        %%EXTENSION_CARDS%%
       </section>
 
-      <!-- Plugins -->
+      <!-- プラグイン一覧 -->
       <section class="kb-section" id="plugins">
         <h2 class="kb-section-title">プラグイン一覧</h2>
         <section class="kb-card-grid" id="kb-product-grid">
-          %%PRODUCT_CARDS_JA%%
+          %%PRODUCT_CARDS%%
         </section>
         <div class="kb-coming-notice" id="kb-coming-notice" style="display:none">
           <p>プラグインは現在準備中です。もうしばらくお待ちください。</p>
@@ -81,30 +73,30 @@
       <section class="kb-section kb-install-guide">
         <div class="kb-install-box">
           <h2 class="kb-install-title">🔧 プラグイン導入ガイド</h2>
-          <p class="kb-install-desc">Kintoneへの導入が初めての方はこちら。</p>
+          <p class="kb-install-desc">kintoneへの導入が初めての方はこちら。</p>
           <a href="install2.html" class="kb-install-btn">導入手順を見る</a>
         </div>
       </section>
+
     </div>
   </main>
 
   <!-- Footer -->
   <footer class="kb-footer kb-container">
     <nav class="kb-footer-links">
-      <a href="mailto:support@plugbits.app">お問い合わせ</a>
+      <a href="mailto:%%SUPPORT_MAIL%%">お問い合わせ</a>
       <a href="install2.html">導入ガイド</a>
-      <a href="https://plugbits.app/privacy.html">プライバシーポリシー</a>
+      <a href="/privacy.html">プライバシーポリシー</a>
       <a href="terms.html">利用規約</a>
     </nav>
     <small>%%SITE_COPYRIGHT%%</small>
   </footer>
 
   <script>
-  // プロダクトグリッドが空のとき案内を表示
   (function(){
     const grid = document.getElementById('kb-product-grid');
     const notice = document.getElementById('kb-coming-notice');
-    if(grid && notice && !grid.querySelector('.kb-card')){
+    if (grid && notice && !grid.querySelector('.kb-card')) {
       notice.style.display = '';
     }
   })();
