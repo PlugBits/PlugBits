@@ -34,19 +34,13 @@
       <p class="kb-hero-sub">無料プラグインと無料ブラウザ拡張機能で、<br>探す・入力する・確認するを短縮します。<br><small style="font-size:13px;color:#888;">Chrome・Edge対応</small></p>
       <div class="kb-hero-actions">
         <a class="kb-cta-primary" href="#plugins">プラグインを見る</a>
-        <a class="kb-cta-secondary" href="/launcher/">Launcher拡張を試す →</a>
+        <a class="kb-cta-secondary" href="#extensions">拡張機能を見る →</a>
       </div>
     </div>
   </header>
 
-  <main>
+  <main class="kb-index-main">
     <div class="kb-container">
-
-      <!-- ブラウザ拡張機能 -->
-      <section class="kb-section" id="extensions">
-        <h2 class="kb-section-title">ブラウザ拡張機能</h2>
-        %%EXTENSION_CARDS%%
-      </section>
 
       <!-- プラグイン一覧 -->
       <section class="kb-section" id="plugins">
@@ -59,18 +53,24 @@
         </div>
       </section>
 
+      <!-- ブラウザ拡張機能 -->
+      <section class="kb-section" id="extensions">
+        <h2 class="kb-section-title">ブラウザ拡張機能</h2>
+        %%EXTENSION_CARDS%%
+      </section>
+
       <!-- FAQ -->
-      <section class="kb-faq-block">
+      <section class="kb-section kb-faq-block">
         <h2 class="kb-section-title">よくある質問</h2>
         <div class="kb-faq">
-          <div class="kb-faq-item"><h3>kintone管理者でないと使えませんか？</h3><p>プラグインのインストールはkintone管理者が必要です。ブラウザ拡張機能（Launcher）はご自身のブラウザに追加するだけで使えます。</p></div>
+          <div class="kb-faq-item"><h3>kintone管理者でないと使えませんか？</h3><p>プラグインのインストールはkintone管理者が必要です。ブラウザ拡張機能はご自身のブラウザに追加するだけで使えます。</p></div>
           <div class="kb-faq-item"><h3>サポートは？</h3><p>不具合報告に対応します。機能要望は可能な範囲で検討します。</p></div>
           <div class="kb-faq-item"><h3>プラグインの導入方法は？</h3><p><a href="install2.html">導入ガイド</a>をご参照ください。</p></div>
         </div>
       </section>
 
       <!-- Install Guide -->
-      <section class="kb-section kb-install-guide">
+      <section class="kb-install-guide">
         <div class="kb-install-box">
           <h2 class="kb-install-title">🔧 プラグイン導入ガイド</h2>
           <p class="kb-install-desc">kintoneへの導入が初めての方はこちら。</p>

@@ -713,3 +713,61 @@
   .kb-dl-modal-title { font-size: 19px; }
 }
 
+/* ===== INDEX PAGE: 全体の締まり改善 ===== */
+
+/* ヒーロー下部を少し締める */
+.kb-hero .kb-container { padding-top: 64px; padding-bottom: 56px; }
+.kb-hero-title { font-size: 38px; }
+.kb-hero-sub { font-size: 15px; line-height: 1.8; color: #4b5a6a; }
+
+/* セクション間の余白をリズム感よく統一 */
+.kb-index-main .kb-section { padding: 40px 0 48px; }
+.kb-index-main .kb-section + .kb-section {
+  border-top: 1px solid var(--kb-line);
+}
+.kb-index-main .kb-section.kb-faq-block {
+  border-top: 1px solid var(--kb-line);
+  margin-top: 0;
+}
+
+/* セクションタイトル：左アクセントバーで締まりを出す */
+.kb-index-main .kb-section-title {
+  font-size: 18px;
+  font-weight: 800;
+  margin: 0 0 24px;
+  padding-left: 14px;
+  border-left: 3px solid var(--kb-primary);
+  line-height: 1.4;
+  color: var(--kb-ink);
+  letter-spacing: .01em;
+}
+
+/* FAQブロックの余白リセット（index内で管理） */
+.kb-index-main .kb-faq-block { margin-top: 0; }
+
+/* 導入ガイドブロックの位置調整 */
+.kb-index-main .kb-install-guide {
+  margin: 0;
+  padding: 40px 0 48px;
+  border-top: 1px solid var(--kb-line);
+}
+
+/* カードグリッドの下余白を締める */
+.kb-index-main .kb-card-grid { margin-bottom: 0; }
+
+/* 拡張機能なし・準備中状態の空欄をスッキリ見せる */
+.kb-index-main .kb-coming-notice {
+  border: 1px dashed var(--kb-line);
+  border-radius: 14px;
+  padding: 24px;
+  background: #fafbfc;
+  color: var(--kb-sub);
+  font-size: 14px;
+}
+
+@media (max-width: 768px) {
+  .kb-index-main .kb-section { padding: 28px 0 36px; }
+  .kb-index-main .kb-install-guide { padding: 28px 0 36px; }
+  .kb-hero-title { font-size: 30px; }
+}
+
