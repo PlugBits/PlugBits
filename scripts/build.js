@@ -81,6 +81,38 @@ function renderScreenshots(screenshots, captionKey, imgPrefix) {
   }).join('');
 }
 
+function renderBrevoFormHtml(formId, lang) {
+  if (!formId) return '';
+  const isJa = lang === 'ja';
+  const emailLabel  = isJa ? 'メールアドレス' : 'Email address';
+  const placeholder = isJa ? 'you@example.com' : 'you@example.com';
+  const btnLabel    = isJa ? 'ダウンロードリンクを受け取る' : 'Get the download link';
+  const locale      = isJa ? 'ja' : 'en';
+  const action      = `https://sibforms.com/serve/${esc(formId)}`;
+  return [
+    '<div id="sib-form-container" class="sib-form-container">',
+    '  <div id="sib-container" class="sib-container--large sib-container--vertical">',
+    `    <form id="sib-form" method="POST" action="${action}" data-type="subscription">`,
+    '      <div class="sib-input sib-form-block">',
+    '        <div class="form__entry entry_block">',
+    `          <label class="entry__label" for="EMAIL">${emailLabel}</label>`,
+    '          <div class="entry__field">',
+    `            <input class="input" type="email" id="EMAIL" name="EMAIL" autocomplete="off" placeholder="${placeholder}" data-required="true" required>`,
+    '          </div>',
+    '        </div>',
+    '        <label class="entry__error entry__error--primary"></label>',
+    '      </div>',
+    '      <div class="sib-form-block" style="text-align:center">',
+    `        <button class="sib-form-block__button sib-form-block__button-with-loader" form="sib-form" type="submit">${btnLabel}</button>`,
+    '      </div>',
+    '      <input type="hidden" name="email_address_check" value="">',
+    `      <input type="hidden" name="locale" value="${locale}">`,
+    '    </form>',
+    '  </div>',
+    '</div>',
+  ].join('\n');
+}
+
 try {
   ensureDirs();
 
@@ -133,7 +165,9 @@ try {
       '%%FILE_SIZE%%':        p.file_size  || '',
       '%%UPDATED_AT%%':       p.updated_at || '',
       '%%INSTALL_URL%%':      p.install_url || '',
-      '%%BREVO_FORM_HTML%%':  p.brevo_form_html || '',
+      '%%BREVO_HEAD%%':        p.brevo_form_id ? '<link rel="stylesheet" href="https://sibforms.com/forms/end-form/build/sib-styles.css">' : '',
+      '%%BREVO_FORM_HTML%%':  renderBrevoFormHtml(p.brevo_form_id, lang),
+      '%%BREVO_SCRIPT%%':     p.brevo_form_id ? '<script src="https://sibforms.com/forms/end-form/build/main.js"><\/script>' : '',
       '%%MANUAL_BTN%%':       manualBtnHtml,
       '%%ALT_LANG_URL%%':     altLangUrl,
       '%%SUPPORT_MAIL%%':     SUPPORT_MAIL,

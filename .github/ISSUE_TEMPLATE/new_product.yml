@@ -49,6 +49,13 @@ body:
       placeholder: https://chromewebstore.google.com/...
 
   - type: input
+    id: brevo_form_id
+    attributes:
+      label: Brevo Form ID
+      description: BrevoダウンロードフォームのID。未設定の場合はダウンロードモーダルにフォームが表示されません。
+      placeholder: MUIFAPk-0SA3-DlRb...
+
+  - type: input
     id: hero_image
     attributes:
       label: HERO_IMAGE（相対パス）
