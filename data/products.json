@@ -1,1 +1,52 @@
-[]
+[
+  {
+    "slug": "gallery-plugin",
+    "type": "plugin",
+    "status": "public",
+    "page_url": null,
+    "install_url": "",
+    "hero_image": "assets/gallery/hero.webp",
+    "file_size": "190KB",
+    "updated_at": "2024/04",
+    "title_ja": "サブテーブルギャラリー化プラグイン",
+    "title_en": "subtable-gallery-plugin",
+    "short_summary_ja": "詳細画面に写真・PDFをドロップするだけ。テーブルをギャラリー表示で管理できます",
+    "short_summary_en": "Drop photos and PDFs on the detail screen. Manage work progress as a gallery.",
+    "summary_ja": "kintoneのレコード詳細画面で、写真・PDFなどの進捗ファイルをギャラリー形式で管理するプラグインです。ドラッグ＆ドロップ・貼り付けで投稿でき、テーブルに自動保存します。",
+    "summary_en": "A kintone plugin that manages progress files (photos, PDFs, etc.) as a gallery on the record detail screen. Supports drag-and-drop and paste upload, with automatic subtable storage.",
+    "category_ja": "UI改善",
+    "category_en": "UI Enhancement",
+    "tags_ja": "ギャラリー, 添付ファイル, 進捗管理, 写真, テーブル",
+    "tags_en": "gallery, attachment, progress, photo, subtable",
+    "supported_screens_ja": "PC / 詳細",
+    "supported_screens_en": "PC / Detail",
+    "features_ja": "ドラッグ＆ドロップ・ファイル選択・コピー貼り付けで投稿;画像・PDFをその場でプレビュー;メモのインライン編集;投稿者・投稿日時の自動記録;画像圧縮（JPEG変換）対応;グリッド／横スクロール切替",
+    "features_en": "Drag-and-drop, file picker, and paste upload;In-screen preview for images and PDFs;Inline memo editing;Auto-fill of author and timestamp;Image compression (JPEG conversion);Grid or horizontal scroll layout",
+    "limitations_ja": "モバイル非対応;コピー貼り付けは画像のみ対応",
+    "limitations_en": "PC only;Paste upload supports images only",
+    "steps_ja": [
+      "1|テーブルを作成|アプリに「添付ファイル」「メモ」フィールドを含むテーブルを追加します",
+      "2|スペースフィールドを配置してフィールドコードを設定します",
+      "3|プラグインをインストール|管理画面からZIPをアップロードしてアプリに追加します",
+      "4|フィールドを設定|プラグイン設定でテーブル・各フィールド・表示スペースを選択します",
+      "5|完了|詳細画面にアップロード欄とギャラリーが表示されます"
+    ],
+    "steps_en": [
+      "1|Create subtable|Add a subtable with attachment, memo, and space fields to your app",
+      "2|Install plugin|Upload the ZIP and add the plugin via the admin panel",
+      "3|Configure fields|Select the subtable, fields, and display space in the plugin settings",
+      "4|Done|The upload area and gallery appear on the record detail screen"
+    ],
+    "faq_ja": [
+      "投稿したのに表示されません|設定のテーブル・添付ファイルフィールド・スペースフィールドが正しいか、アプリを更新済みかを確認してください",
+      "貼り付けができません|画像のコピーになっているか確認してください。PDF等は貼り付け非対応です",
+      "投稿者・日時が入りません|プラグイン設定で対象フィールドを設定してください"
+    ],
+    "faq_en": [
+      "Nothing appears after upload|Check that the subtable, attachment field, and space field are correctly configured, and that the app has been updated.",
+      "Paste does not work|Make sure you have copied an image. PDF and other file types are not supported via paste.",
+      "Author or timestamp is missing|Configure the corresponding fields in the plugin settings."
+    ],
+    "screenshots": []
+  }
+]
