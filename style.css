@@ -817,15 +817,21 @@
   color: var(--kb-sub);
   margin-bottom: 0;
 }
-.kb-hero-actions { margin-top: 40px; gap: 14px; }
+.kb-hero-actions {
+  margin-top: 40px;
+  gap: 14px;
+  justify-content: center; /* ラップ時もセンタリング */
+}
 .kb-eyebrow { color: var(--kb-accent); letter-spacing: .12em; }
 
-/* CTA buttons — pill shape */
+/* CTA buttons — pill shape, content-fit width */
 .kb-root .kb-cta-primary,
 .kb-root .kb-cta-primary:visited {
   border-radius: 999px;
   font-size: 15px;
-  padding: 13px 30px;
+  padding: 12px 28px;
+  min-width: auto;        /* 180px を解除してテキスト幅に合わせる */
+  min-height: auto;
   box-shadow: 0 4px 16px rgba(59, 123, 214, .22);
   background: var(--kb-primary);
 }
@@ -836,13 +842,26 @@
 .kb-cta-secondary {
   border-radius: 999px;
   font-size: 15px;
-  padding: 13px 28px;
+  padding: 12px 26px;
+  min-height: auto;
   border-color: var(--kb-primary-200);
   color: var(--kb-primary);
 }
 .kb-cta-secondary:hover {
   background: var(--kb-primary-050);
   border-color: var(--kb-primary-300);
+}
+/* モバイル: 縦並びでもセンタリング維持 */
+@media (max-width: 720px) {
+  .kb-hero-actions {
+    flex-direction: column;
+    align-items: center;
+  }
+  .kb-hero-actions .kb-cta-primary,
+  .kb-hero-actions .kb-cta-secondary {
+    width: auto;          /* 強制全幅を解除、コンテンツ幅に */
+    min-width: 200px;     /* ただし最低限の幅は確保 */
+  }
 }
 
 /* ---- Cards ---- */
