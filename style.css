@@ -5,20 +5,25 @@
 
 /* ===== TOKENS ===== */
 :root{
-  --kb-bg:#f7f9fa;
+  --kb-bg:#F7FBFF;
   --kb-surface:#fff;
-  --kb-text:#23272a;
-  --kb-sub:#6b7280;
-  --kb-line:#e6eef7;
-  --kb-primary:#2f64e2;
-  --kb-primary-050:#f3f6ff;
-  --kb-primary-100:#eaf0ff;
-  --kb-primary-200:#d8e4ff;
-  --kb-primary-300:#c4d4ff;
-  --kb-primary-600:#2b57c7;
-  --kb-primary-700:#224bb1;
-  --kb-ink:#0b1f33;
-  --kb-radius:14px;
+  --kb-text:#1F2937;
+  --kb-sub:#5F6B7A;
+  --kb-muted:#7B8794;
+  --kb-line:#E5EDF6;
+  --kb-line-strong:#D8E5F2;
+  --kb-primary:#3B7BD6;
+  --kb-primary-050:#F4F9FF;
+  --kb-primary-100:#EAF4FF;
+  --kb-primary-200:#D5E8FF;
+  --kb-primary-300:#BCDAFF;
+  --kb-primary-600:#2D6AC0;
+  --kb-primary-700:#2459A8;
+  --kb-accent:#78AFFF;
+  --kb-ink:#0B1F33;
+  --kb-radius:16px;
+  --kb-radius-sm:10px;
+  --kb-radius-lg:22px;
   --kb-gap:8px;
   --kb-gap-lg:16px;
 }
@@ -769,5 +774,218 @@
   .kb-index-main .kb-section { padding: 28px 0 36px; }
   .kb-index-main .kb-install-guide { padding: 28px 0 36px; }
   .kb-hero-title { font-size: 30px; }
+}
+
+/* ===================================================================
+   LIGHT REFRESH — 空気感・余白・色温度の調整
+   自動生成フロー非破壊：既存セレクタのオーバーライドのみ
+   =================================================================== */
+
+/* ---- Base ---- */
+.kb-root { line-height: 1.75; }
+
+/* ---- Site Header: sticky + glass ---- */
+.kb-site-header {
+  position: sticky;
+  top: 0;
+  z-index: 200;
+  background: rgba(247, 251, 255, 0.92);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-bottom: 1px solid var(--kb-line);
+}
+.kb-site-header .kb-topbar { padding: 10px 0; }
+
+/* ---- Hero ---- */
+.kb-hero {
+  background:
+    radial-gradient(900px 400px at 65% -10%, rgba(120, 175, 255, .13), transparent),
+    linear-gradient(180deg, #EEF6FF 0%, #F7FBFF 70%);
+}
+.kb-hero .kb-container {
+  padding-top: 96px;
+  padding-bottom: 88px;
+}
+.kb-hero-title {
+  font-size: 44px;
+  line-height: 1.22;
+  letter-spacing: -.015em;
+}
+.kb-hero-sub {
+  font-size: 16px;
+  line-height: 1.9;
+  color: var(--kb-sub);
+  margin-bottom: 0;
+}
+.kb-hero-actions { margin-top: 40px; gap: 14px; }
+.kb-eyebrow { color: var(--kb-accent); letter-spacing: .12em; }
+
+/* CTA buttons — pill shape */
+.kb-root .kb-cta-primary,
+.kb-root .kb-cta-primary:visited {
+  border-radius: 999px;
+  font-size: 15px;
+  padding: 13px 30px;
+  box-shadow: 0 4px 16px rgba(59, 123, 214, .22);
+  background: var(--kb-primary);
+}
+.kb-cta-primary:hover {
+  filter: brightness(1.06);
+  box-shadow: 0 8px 24px rgba(59, 123, 214, .32);
+}
+.kb-cta-secondary {
+  border-radius: 999px;
+  font-size: 15px;
+  padding: 13px 28px;
+  border-color: var(--kb-primary-200);
+  color: var(--kb-primary);
+}
+.kb-cta-secondary:hover {
+  background: var(--kb-primary-050);
+  border-color: var(--kb-primary-300);
+}
+
+/* ---- Cards ---- */
+.kb-card {
+  border-radius: 18px;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, .04);
+  border-color: var(--kb-line);
+  transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease;
+}
+.kb-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 32px rgba(59, 123, 214, .11);
+  border-color: var(--kb-line-strong);
+}
+.kb-card-img, .kb-card-media {
+  background: linear-gradient(170deg, #F0F7FF, #EBF2FA);
+}
+.kb-card-title { color: var(--kb-text); }
+.kb-card-desc { color: var(--kb-sub); }
+
+/* Tag pills */
+.kb-tag {
+  background: #EAF4FF;
+  color: var(--kb-primary);
+  border: 1px solid var(--kb-primary-200);
+  font-weight: 600;
+}
+
+/* ---- FAQ panels ---- */
+.kb-faq .kb-faq-item {
+  border-radius: 16px;
+  box-shadow: 0 2px 10px rgba(15, 23, 42, .04);
+  border-color: var(--kb-line);
+  padding: 20px 22px;
+  transition: box-shadow .18s ease;
+}
+.kb-faq .kb-faq-item:hover {
+  box-shadow: 0 6px 18px rgba(59, 123, 214, .09);
+}
+.kb-faq .kb-faq-item h3 {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--kb-text);
+  margin-bottom: 8px;
+}
+.kb-faq .kb-faq-item p {
+  color: var(--kb-sub);
+  line-height: 1.75;
+  font-size: 14px;
+}
+
+/* ---- Section title accent ---- */
+.kb-index-main .kb-section-title {
+  border-left-color: var(--kb-accent);
+  color: var(--kb-ink);
+  font-size: 17px;
+}
+.kb-section-title { color: var(--kb-ink); }
+
+/* ---- Install / Guide box ---- */
+.kb-install-box {
+  background: linear-gradient(140deg, #EAF4FF 0%, #F4F9FF 100%);
+  border-color: rgba(120, 175, 255, .28);
+  border-radius: var(--kb-radius-lg);
+  box-shadow: 0 8px 28px rgba(59, 123, 214, .08);
+}
+.kb-install-title { color: var(--kb-primary); }
+.kb-install-desc { color: var(--kb-sub); }
+.kb-install-btn {
+  border-radius: 999px;
+  background: var(--kb-primary);
+  box-shadow: 0 4px 14px rgba(59, 123, 214, .25);
+}
+.kb-install-btn:hover {
+  background: var(--kb-primary-600);
+  box-shadow: 0 6px 18px rgba(59, 123, 214, .3);
+}
+
+/* ---- Launcher card (extension) ---- */
+.kb-launcher-card {
+  border-radius: 20px;
+  box-shadow: 0 3px 14px rgba(15, 23, 42, .05);
+  border-color: var(--kb-line);
+}
+.kb-launcher-card:hover {
+  box-shadow: 0 10px 30px rgba(59, 123, 214, .12);
+  border-color: var(--kb-line-strong);
+}
+.kb-launcher-tag { color: var(--kb-primary); background: var(--kb-primary-100); border-color: var(--kb-primary-200); }
+
+/* ---- Feature / Limitation list ---- */
+.kb-feature-list li, .kb-limitation-list li {
+  border-radius: 12px;
+  border-color: var(--kb-line);
+  box-shadow: 0 1px 4px rgba(15, 23, 42, .03);
+}
+.kb-feature-list li::before { color: var(--kb-accent); }
+
+/* ---- Steps ---- */
+.kb-step-number {
+  background: var(--kb-primary);
+  box-shadow: 0 4px 14px rgba(59, 123, 214, .22);
+}
+
+/* ---- Info grid ---- */
+.kb-info-grid p { color: var(--kb-sub); }
+
+/* ---- Product detail hero ---- */
+.kb-product-hero-new {
+  background:
+    radial-gradient(900px 400px at 80% -15%, rgba(120, 175, 255, .10), transparent),
+    linear-gradient(180deg, #EEF6FF 0%, #F7FBFF 60%);
+}
+
+/* ---- Download modal ---- */
+.kb-dl-modal-inner { border-radius: 24px; }
+.kb-dl-modal-title { font-size: 21px; }
+.kb-dl-modal-desc { font-size: 14px; line-height: 1.8; color: var(--kb-sub); }
+
+/* ---- Footer ---- */
+.kb-footer { border-top-color: var(--kb-line); color: var(--kb-muted); }
+
+/* ---- Manual button ---- */
+.kb-btn-manual {
+  border-radius: 999px;
+  border-color: var(--kb-primary-200);
+  color: var(--kb-primary);
+}
+.kb-btn-manual:hover { background: var(--kb-primary-050); }
+
+/* ---- Section dividers ---- */
+.kb-index-main .kb-section + .kb-section { border-top-color: var(--kb-line); }
+.kb-index-main .kb-section.kb-faq-block { border-top-color: var(--kb-line); }
+.kb-index-main .kb-install-guide { border-top-color: var(--kb-line); }
+
+/* ---- Responsive ---- */
+@media (max-width: 840px) {
+  .kb-hero .kb-container { padding-top: 72px; padding-bottom: 64px; }
+  .kb-hero-title { font-size: 34px; }
+}
+@media (max-width: 560px) {
+  .kb-hero .kb-container { padding-top: 56px; padding-bottom: 48px; }
+  .kb-hero-title { font-size: 28px; letter-spacing: -.01em; }
+  .kb-hero-sub { font-size: 15px; }
 }
 
