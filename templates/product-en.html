@@ -6,7 +6,6 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="description" content="%%SUMMARY%%">
   <link rel="stylesheet" href="../../style.css">
-  %%BREVO_HEAD%%
 </head>
 <body class="kb-root %%STATUS_CLASS%%">
 
@@ -43,7 +42,7 @@
         <p class="kb-summary">%%SUMMARY%%</p>
         <div class="kb-tags">%%TAGS_HTML%%</div>
         <div class="kb-product-hero-cta">
-          <button class="kb-cta-primary kb-dl-trigger">Download for free →</button>
+          <a class="kb-cta-primary" href="%%INSTALL_URL%%" download>Download for free →</a>
           %%MANUAL_BTN%%
         </div>
       </div>
@@ -93,20 +92,6 @@
     <div class="kb-faq">%%FAQ_HTML%%</div>
   </section>
 
-  <!-- Download Modal -->
-  <div id="kb-dl-modal" class="kb-dl-modal" role="dialog" aria-modal="true" aria-labelledby="kb-dl-modal-title" hidden>
-    <div class="kb-dl-modal-backdrop"></div>
-    <div class="kb-dl-modal-inner">
-      <button class="kb-dl-modal-close" aria-label="Close">×</button>
-      <p class="kb-dl-modal-eyebrow">Free Plugin</p>
-      <h2 id="kb-dl-modal-title" class="kb-dl-modal-title">%%TITLE%%</h2>
-      <p class="kb-dl-modal-desc">Enter your email and we'll send you the download link.<br>You can unsubscribe at any time via the link in the email.</p>
-      <div class="kb-dl-modal-form">
-        %%BREVO_FORM_HTML%%
-      </div>
-    </div>
-  </div>
-
   <!-- Install Guide CTA -->
   <section class="kb-section kb-container kb-install-guide">
     <div class="kb-install-box">
@@ -131,18 +116,6 @@
   <div id="kb-lightbox"><div class="kb-lb-inner"><img alt=""><button class="kb-lb-close" aria-label="Close">×</button></div></div>
 
   <script>
-  // Download modal
-  (()=>{
-    const modal = document.getElementById('kb-dl-modal');
-    if (!modal) return;
-    const open  = () => { modal.hidden = false; document.body.style.overflow = 'hidden'; };
-    const close = () => { modal.hidden = true;  document.body.style.overflow = ''; };
-    document.querySelectorAll('.kb-dl-trigger').forEach(btn => btn.addEventListener('click', open));
-    modal.querySelector('.kb-dl-modal-close').addEventListener('click', close);
-    modal.querySelector('.kb-dl-modal-backdrop').addEventListener('click', close);
-    document.addEventListener('keydown', e => { if (e.key === 'Escape' && !modal.hidden) close(); });
-  })();
-
   document.addEventListener('click', e => {
     const btn = e.target.closest('.kb-video-play'); if (!btn) return;
     const v = btn.closest('.kb-shot')?.querySelector('video.kb-video-el'); if (!v) return;
@@ -165,6 +138,5 @@
     });
   })();
   </script>
-  %%BREVO_SCRIPT%%
 </body>
 </html>

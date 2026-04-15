@@ -4,7 +4,7 @@
     "type": "plugin",
     "status": "public",
     "page_url": null,
-    "install_url": "",
+    "install_url": "https://github.com/PlugBits/plugbits-plugins/releases/download/subtable-gallery-v1.0.0/subtable-gallery-plugin.zip",
     "hero_image": "assets/gallery/hero.webp",
     "file_size": "190KB",
     "updated_at": "2024/04",
