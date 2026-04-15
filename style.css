@@ -1037,12 +1037,14 @@
   margin: 0;
   line-height: 1.6;
 }
-.kb-manual-cta .kb-btn-primary {
+.kb-manual-cta .kb-btn-primary,
+.kb-manual-cta .kb-btn-primary:visited {
   flex-shrink: 0;
   border-radius: 999px;
   padding: 11px 24px;
   font-size: 14px;
   white-space: nowrap;
+  color: #fff !important;
 }
 @media (max-width: 600px) {
   .kb-manual-cta-inner {
