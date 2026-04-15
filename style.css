@@ -1094,7 +1094,7 @@
 /* ---- Images ---- */
 .kb-manual-body img {
   display: block;
-  max-width: 100%;
+  max-width: min(100%, 560px);
   height: auto;
   border-radius: 12px;
   border: 1px solid var(--kb-line);
