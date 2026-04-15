@@ -1009,6 +1009,51 @@
 }
 
 /* ===================================================================
+   MANUAL CTA (product page — Steps後)
+   =================================================================== */
+.kb-manual-cta {
+  padding: 8px 0 40px;
+}
+.kb-manual-cta-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  background: linear-gradient(135deg, var(--kb-primary-100) 0%, var(--kb-primary-050) 100%);
+  border: 1px solid var(--kb-primary-200);
+  border-radius: var(--kb-radius-lg);
+  padding: 24px 32px;
+}
+.kb-manual-cta-text { flex: 1; }
+.kb-manual-cta-label {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--kb-ink);
+  margin: 0 0 4px;
+}
+.kb-manual-cta-sub {
+  font-size: 13.5px;
+  color: var(--kb-sub);
+  margin: 0;
+  line-height: 1.6;
+}
+.kb-manual-cta .kb-btn-primary {
+  flex-shrink: 0;
+  border-radius: 999px;
+  padding: 11px 24px;
+  font-size: 14px;
+  white-space: nowrap;
+}
+@media (max-width: 600px) {
+  .kb-manual-cta-inner {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 20px 20px;
+  }
+  .kb-manual-cta .kb-btn-primary { width: 100%; justify-content: center; }
+}
+
+/* ===================================================================
    MANUAL PAGE
    =================================================================== */
 .kb-manual {
