@@ -1008,3 +1008,134 @@
   .kb-hero-sub { font-size: 15px; }
 }
 
+/* ===================================================================
+   MANUAL PAGE
+   =================================================================== */
+.kb-manual {
+  max-width: 760px;
+  padding-top: 40px;
+  padding-bottom: 80px;
+}
+.kb-manual-title {
+  font-size: 26px;
+  font-weight: 800;
+  color: var(--kb-ink);
+  margin: 0 0 40px;
+  padding-bottom: 16px;
+  border-bottom: 2px solid var(--kb-line);
+}
+
+/* ---- Body typography ---- */
+.kb-manual-body { color: var(--kb-text); line-height: 1.8; }
+
+.kb-manual-body h2 {
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--kb-ink);
+  margin: 48px 0 16px;
+  padding: 10px 16px;
+  background: var(--kb-primary-100);
+  border-left: 4px solid var(--kb-primary);
+  border-radius: 0 8px 8px 0;
+}
+.kb-manual-body h2:first-child { margin-top: 0; }
+
+.kb-manual-body h3 {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--kb-ink);
+  margin: 32px 0 10px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--kb-line);
+}
+
+.kb-manual-body p {
+  margin: 0 0 14px;
+  font-size: 14.5px;
+}
+
+.kb-manual-body strong { color: var(--kb-ink); font-weight: 700; }
+
+/* ---- Lists ---- */
+.kb-manual-body ul,
+.kb-manual-body ol {
+  margin: 0 0 16px;
+  padding-left: 1.4em;
+  display: grid;
+  gap: 6px;
+}
+.kb-manual-body ul { list-style: disc; }
+.kb-manual-body ol { list-style: decimal; }
+.kb-manual-body li { font-size: 14.5px; padding-left: 4px; }
+
+/* ---- Table ---- */
+.kb-manual-body table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0 0 24px;
+  font-size: 14px;
+}
+.kb-manual-body th {
+  background: var(--kb-primary-050);
+  color: var(--kb-ink);
+  font-weight: 700;
+  text-align: left;
+  padding: 10px 14px;
+  border: 1px solid var(--kb-line);
+}
+.kb-manual-body td {
+  padding: 10px 14px;
+  border: 1px solid var(--kb-line);
+  vertical-align: top;
+  color: var(--kb-text);
+}
+.kb-manual-body tr:nth-child(even) td { background: #fafcff; }
+
+/* ---- Images ---- */
+.kb-manual-body img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  border-radius: 12px;
+  border: 1px solid var(--kb-line);
+  box-shadow: 0 4px 16px rgba(15, 23, 42, .06);
+  margin: 16px 0 24px;
+}
+
+/* ---- HR ---- */
+.kb-manual-body hr {
+  border: none;
+  border-top: 1px solid var(--kb-line);
+  margin: 40px 0;
+}
+
+/* ---- Inline code ---- */
+.kb-manual-body code {
+  font-family: ui-monospace, "SFMono-Regular", Consolas, monospace;
+  font-size: 13px;
+  background: var(--kb-primary-050);
+  color: var(--kb-primary);
+  padding: 2px 6px;
+  border-radius: 5px;
+  border: 1px solid var(--kb-primary-200);
+}
+
+/* ---- Blockquote (callout) ---- */
+.kb-manual-body blockquote {
+  margin: 0 0 16px;
+  padding: 14px 18px;
+  background: #fffbea;
+  border-left: 4px solid #f5a623;
+  border-radius: 0 8px 8px 0;
+  font-size: 14px;
+  color: #7a5a10;
+}
+
+@media (max-width: 768px) {
+  .kb-manual { padding-top: 24px; padding-bottom: 56px; }
+  .kb-manual-title { font-size: 22px; }
+  .kb-manual-body h2 { font-size: 16px; }
+  .kb-manual-body table { font-size: 13px; }
+  .kb-manual-body th, .kb-manual-body td { padding: 8px 10px; }
+}
+
