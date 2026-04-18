@@ -102,7 +102,7 @@
     "type": "plugin",
     "status": "public",
     "page_url": null,
-    "install_url": "",
+    "install_url": "https://github.com/PlugBits/plugbits-plugins/releases/download/listkit-v1.0.0/view-tab-date-filter.zip",
     "hero_image": "assets/listkit/hero.webp",
     "file_size": "36KB",
     "updated_at": "2026/04",
