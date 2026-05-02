@@ -148,6 +148,32 @@
       "There are too many tabs to fit.|Tabs over the inline limit are grouped under \"Other\". Adjust the display order or inline count in the settings.",
       "Why do my setting changes not appear?|Make sure you saved the plugin settings and updated the app."
     ],
-    "screenshots": []
+    "screenshots": [
+      {
+        "src": "assets/listkit/tabs.png",
+        "caption_ja": "一覧上部にビュー切替タブ、集計、日付フィルターボタンを表示します",
+        "caption_en": ""
+      },
+      {
+        "src": "assets/listkit/range_filter.png",
+        "caption_ja": "日付フィルターはフィルター設定のショートカットです",
+        "caption_en": ""
+      },
+      {
+        "src": "assets/listkit/setting-tabs.png",
+        "caption_ja": "ビュータブの設定画面です。表示するビューを選択できます。",
+        "caption_en": ""
+      },
+      {
+        "src": "assets/listkit/setting-range.png",
+        "caption_ja": "日付フィルターの設定画面です。ショートカットプリセットを任意で選択できます。",
+        "caption_en": ""
+      },
+      {
+        "src": "assets/listkit/setting-aggregation.png",
+        "caption_ja": "集計表示の設定画面です。対象フィールド、集計方法を設定できます。",
+        "caption_en": ""
+      }
+    ]
   }
 ]
