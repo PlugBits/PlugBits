@@ -9,5 +9,8 @@
   "dependencies": {
     "git-filter-repo": "^0.0.30",
     "marked": "^17.0.5"
+  },
+  "devDependencies": {
+    "js-yaml": "^4.1.1"
   }
 }

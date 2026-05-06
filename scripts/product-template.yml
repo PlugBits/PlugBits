@@ -1,0 +1,46 @@
+slug: my-plugin               # URL に使われます。公開後は変更しないでください
+type: plugin                  # plugin | extension
+status: public                # public | coming-soon | unlisted
+page_url:                     # extension のみ。例: /launcher/
+install_url: https://
+hero_image: assets/my-plugin/hero.webp
+file_size: ~15KB
+updated_at: "2025-05"
+
+# ---- 日本語 ----
+title_ja: プラグイン名
+short_summary_ja: カード表示用の短い説明（64文字以内）
+summary_ja: 詳細ページ用の説明（160文字程度）
+category_ja: UI改善
+tags_ja: タグ1, タグ2, タグ3
+supported_screens_ja: PC / 詳細
+features_ja: 機能1;機能2;機能3
+limitations_ja: 制限事項1;制限事項2
+
+steps_ja:
+  - "1|ステップ1の見出し|ステップ1の説明文"
+  - "2|ステップ2の見出し|ステップ2の説明文"
+  - "3|完了|完了メッセージ"
+
+faq_ja:
+  - "質問1|回答1"
+  - "質問2|回答2"
+
+# ---- English ----
+title_en: Plugin Name
+short_summary_en: Short description for card (under 64 chars)
+summary_en: Description for detail page.
+category_en: UI Enhancement
+tags_en: tag1, tag2, tag3
+supported_screens_en: PC / Detail
+features_en: Feature 1;Feature 2;Feature 3
+limitations_en: Limitation 1;Limitation 2
+
+steps_en:
+  - "1|Step 1 heading|Step 1 description"
+  - "2|Step 2 heading|Step 2 description"
+  - "3|Done|Done message"
+
+faq_en:
+  - "Question 1|Answer 1"
+  - "Question 2|Answer 2"
