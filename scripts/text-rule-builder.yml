@@ -1,0 +1,54 @@
+slug: text-rule-builder
+type: plugin
+status: public
+page_url:
+install_url: https://example.com/dummy-install-url
+hero_image: assets/text-rule-builder/hero.webp
+file_size: ~30KB
+updated_at: "2025-05"
+
+# ---- 日本語 ----
+title_ja: 文字列条件分岐ビルダープラグイン
+short_summary_ja: 条件ルールをGUIで組み立て、文字列フィールドへ自動入力します
+summary_ja: kintoneのレコード画面で、複数の条件ルールをGUIで設定し、一致した結果を文字列フィールドへ自動で出力するプラグインです。AND/OR条件・フィールド参照・数式比較に対応し、判定テスト機能も備えています。
+category_ja: 自動化
+tags_ja: 条件分岐, 自動入力, テキスト, ルール, 計算
+supported_screens_ja: PC / 作成・編集
+features_ja: 条件ルールをGUI画面で直感的に組み立て;AND/OR条件のまとまり方を選択可能;数値・テキスト・選択肢・日付など複数フィールド種別に対応;他フィールドの値や数式との比較が可能;複数の出力フィールドに別々のルールセットを割り当て;判定テストパネルで保存前に動作確認できる;出力フィールドを入力画面でロックするオプション付き
+limitations_ja: モバイル非対応;出力先は文字列（1行）フィールドのみ
+
+steps_ja:
+  - "1|プラグインをインストール|管理画面からZIPをアップロードしてアプリにプラグインを追加します"
+  - "2|出力先フィールドを準備|自動入力したい「文字列（1行）」フィールドをアプリに追加します"
+  - "3|プラグインを設定|「文字を入れる場所」で出力フィールドを選び、判定ルールを組み立てます"
+  - "4|保存して完了|保存後、レコードの作成・編集画面で条件に応じた文字が自動で入力されます"
+
+faq_ja:
+  - "条件に使えるフィールド種別は？|数値・計算・文字列（1行）・ラジオボタン・ドロップダウン・日付・日時フィールドが使えます"
+  - "出力先はどのフィールドですか？|文字列（1行）フィールドのみ対応しています"
+  - "モバイルでも動きますか？|現在はPC専用です"
+  - "1つのルールセットを複数フィールドに使えますか？|はい、同じ判定ルールセットを複数の出力フィールドに割り当てることができます"
+  - "手動入力できないようにしたい|設定画面の「入力画面で直接変更できないようにする」オプションをオンにしてください"
+
+# ---- English ----
+title_en: Text Rule Builder Plugin
+short_summary_en: Build conditional rules in a GUI and auto-fill text fields
+summary_en: A kintone plugin that lets you define conditional output rules in a visual GUI and automatically writes the result into a single-line text field. Supports AND/OR logic, field references, numeric expressions, and a built-in test panel.
+category_en: Automation
+tags_en: conditional, auto-fill, text, rule, logic
+supported_screens_en: PC / Create & Edit
+features_en: Build condition rules visually in the config UI;Choose AND or OR logic per rule;Supports number, text, dropdown, radio, date, and datetime fields;Compare against other field values or numeric expressions;Assign different rule sets to multiple output fields;Test panel lets you verify results before saving;Option to lock the output field from manual edits
+limitations_en: PC only;Output field must be a single-line text field
+
+steps_en:
+  - "1|Install the plugin|Upload the ZIP and add the plugin via the kintone admin panel"
+  - "2|Prepare output field|Add a single-line text field to your app as the output target"
+  - "3|Configure rules|Select the output field and build your conditional rules in the plugin settings"
+  - "4|Done|After saving, the matched text is automatically filled in on create and edit screens"
+
+faq_en:
+  - "Which field types can I use in conditions?|Number, calculated, single-line text, radio button, dropdown, date, and datetime fields are supported"
+  - "What can be used as the output field?|Only single-line text fields are supported as output targets"
+  - "Does it work on mobile?|PC only at this time"
+  - "Can one rule set apply to multiple fields?|Yes, the same rule set can be assigned to multiple output fields"
+  - "How do I prevent manual edits to the output field?|Enable the 'prevent direct changes on input screen' option in the plugin settings"
