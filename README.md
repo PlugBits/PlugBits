@@ -24,12 +24,15 @@ PlugBits/
 ├── assets/
 │   └── {slug}/                # 各製品の画像・動画
 │       ├── hero.webp          # カード・詳細ページのメイン画像
+│       ├── hero.png           # OGP用画像（SNS・note埋め込みで使用）
 │       └── *.png / *.mp4      # スクリーンショット・デモ動画
 ├── docs/
 │   └── launcher/              # Launcher拡張機能のLP（独立したHTML、変更不要）
 ├── scripts/
 │   ├── build.js               # 静的サイト生成スクリプト
-│   └── add-product-from-issue.js  # GitHub Issue → products.json 追記
+│   ├── add-product-from-yml.js    # YML → products.json 追記（メイン登録方法）
+│   ├── add-product-from-issue.js  # GitHub Issue → products.json 追記
+│   └── product-template.yml       # 製品登録用YMLテンプレート
 ├── dist/                      # ビルド成果物（自動生成、編集不要）
 ├── style.css                  # サイト共通スタイル
 └── .github/
@@ -54,7 +57,30 @@ npm run serve   # http://localhost:8080 でプレビュー
 
 ## 製品を追加する
 
-### 方法 A：GitHub Issue（推奨）
+### 方法 A：YMLファイルで追加（推奨）
+
+1. テンプレートをコピーしてスラッグ名で保存する
+
+   ```bash
+   cp scripts/product-template.yml scripts/my-plugin.yml
+   ```
+
+2. YMLファイルを編集して製品情報を入力する
+
+3. スクリプトを実行して `products.json` に追記する
+
+   ```bash
+   node scripts/add-product-from-yml.js scripts/my-plugin.yml
+   ```
+
+4. `assets/{slug}/` に画像ファイルを配置して push する
+
+push すると GitHub Actions が自動ビルド＆デプロイします。
+
+> **入力ファイルの保管**  
+> 使用済みの YML ファイルは `scripts/` に残しておくと、内容の確認や再利用に便利です。
+
+### 方法 B：GitHub Issue から追加
 
 1. GitHub の **Issues → New issue → New product** を開く
 2. フォームに必要事項を入力して Submit
@@ -64,7 +90,7 @@ npm run serve   # http://localhost:8080 でプレビュー
 > スクリーンショット（`screenshots` フィールド）は Issue 経由では設定できないため、  
 > PR マージ後に `data/products.json` を直接編集して追加してください。
 
-### 方法 B：products.json を直接編集
+### 方法 C：products.json を直接編集
 
 `data/products.json` に以下の形式でオブジェクトを追加し、`npm run build` を実行。
 
@@ -76,6 +102,7 @@ npm run serve   # http://localhost:8080 でプレビュー
   "page_url": null,
   "install_url": "https://example.com/install",
   "hero_image": "assets/link-button/hero.webp",
+  "og_image": "assets/link-button/hero.png",
   "file_size": "~15KB",
   "updated_at": "2025-03",
 
@@ -136,6 +163,7 @@ npm run serve   # http://localhost:8080 でプレビュー
 | `install_url` | — | GitHub Releases の `.zip` URL（Brevo 自動メール内で使用） |
 | `brevo_form_html` | — | Brevo 埋め込みフォームの HTML スニペット（後述） |
 | `hero_image` | ✅ | カード・詳細ページのメイン画像パス（`assets/{slug}/hero.webp` 推奨） |
+| `og_image` | — | SNS・note 埋め込み用OGP画像パス（`assets/{slug}/hero.png` 推奨）。未設定時は `hero_image` が使われるが、webp非対応クローラーでは画像が出ない場合がある |
 | `file_size` | — | ファイルサイズ（例: `~15KB`） |
 | `updated_at` | — | 更新日（例: `2025-03`） |
 
@@ -167,6 +195,23 @@ npm run serve   # http://localhost:8080 でプレビュー
 
 - 画像: `.png` / `.webp`
 - 動画: `.mp4`（同名の `.png` がサムネイルとして自動使用される）
+
+---
+
+## OGP / SNS 埋め込み
+
+各製品詳細ページには OGP メタタグが自動で設定されます。  
+note や Slack などへのURLペーストでサムネイル付きカードが表示されます。
+
+### OGP画像の準備
+
+| ファイル | 用途 |
+|---------|------|
+| `assets/{slug}/hero.webp` | サイト表示用（軽量） |
+| `assets/{slug}/hero.png` | OGP用（SNS・note クローラー向け） |
+
+`hero.webp` と同じ内容の画像を PNG で書き出して `hero.png` として同じディレクトリに置き、`products.json` の `og_image` に `assets/{slug}/hero.png` を設定してください。  
+push すると次のビルドで自動的に反映されます。
 
 ---
 
