@@ -42,6 +42,7 @@ const item = {
   page_url:     src.page_url     || null,
   install_url:  src.install_url  || '',
   hero_image:   src.hero_image   || '',
+  og_image:     src.og_image     || '',
   file_size:    src.file_size    || '',
   updated_at:   src.updated_at   || '',
 

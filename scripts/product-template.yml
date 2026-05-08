@@ -4,6 +4,7 @@ status: public                # public | coming-soon | unlisted
 page_url:                     # extension のみ。例: /launcher/
 install_url: https://
 hero_image: assets/my-plugin/hero.webp
+og_image: assets/my-plugin/hero.png   # OGP用PNG。hero.webpと同じ画像をPNGで保存
 file_size: ~15KB
 updated_at: "2025-05"
 

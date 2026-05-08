@@ -84,7 +84,8 @@
         "caption_en": ""
       }
     ],
-    "brevo_form_id": "https://dca617a2.sibforms.com/serve/MUIFAPk-0SA3-DlRbY_F5fvZ1x1S0ZC7Os4Sl09qB61UXSsqelYH19wbmrdYPi4jywTdGnqIv3t3437aJTESE6r4exxamWEIlQKIIxw69gO2llP9HibDERUeodVNNbxdTtKeJq9tMXo6C4uMX5TuV93Y4PgfrmjdrjgaZc8rlvPFcZ0zgcqm5Oc1xKXFJunN5LpWbRDltINy8Uez9A=="
+    "brevo_form_id": "https://dca617a2.sibforms.com/serve/MUIFAPk-0SA3-DlRbY_F5fvZ1x1S0ZC7Os4Sl09qB61UXSsqelYH19wbmrdYPi4jywTdGnqIv3t3437aJTESE6r4exxamWEIlQKIIxw69gO2llP9HibDERUeodVNNbxdTtKeJq9tMXo6C4uMX5TuV93Y4PgfrmjdrjgaZc8rlvPFcZ0zgcqm5Oc1xKXFJunN5LpWbRDltINy8Uez9A==",
+    "og_image": "assets/gallery/hero.png"
   },
   {
     "slug": "launcher",
@@ -95,7 +96,8 @@
     "title_ja": "PlugBits Launcher",
     "title_en": "PlugBits Launcher",
     "short_summary_ja": "ショートカット・履歴・ウォッチリストを1つのサイドパネルに。kintoneの「探しもの」を最短ルートにする無料Chrome拡張。",
-    "short_summary_en": "Shortcuts, history, and watchlist in one side panel. The free Chrome extension that puts kintone navigation on the fast track."
+    "short_summary_en": "Shortcuts, history, and watchlist in one side panel. The free Chrome extension that puts kintone navigation on the fast track.",
+    "og_image": ""
   },
   {
     "slug": "listkit",
@@ -174,7 +176,8 @@
         "caption_ja": "集計表示の設定画面です。対象フィールド、集計方法を設定できます。",
         "caption_en": ""
       }
-    ]
+    ],
+    "og_image": "assets/listkit/hero.png"
   },
   {
     "slug": "text-rule-builder",
@@ -227,6 +230,7 @@
       "Can one rule set apply to multiple fields?|Yes, the same rule set can be assigned to multiple output fields",
       "How do I prevent manual edits to the output field?|Enable the 'prevent direct changes on input screen' option in the plugin settings"
     ],
-    "screenshots": []
+    "screenshots": [],
+    "og_image": "assets/text-rule-builder/hero.png"
   }
 ]

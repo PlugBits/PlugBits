@@ -147,7 +147,7 @@ try {
         '  </div>',
         '</div>',
       ].join('\n') : '',
-      '%%OG_IMAGE%%':         `https://plugbits.app/${(p.hero_image || '').replace(/^\.?\/+/, '')}`,
+      '%%OG_IMAGE%%':         `https://plugbits.app/${((p.og_image || p.hero_image) || '').replace(/^\.?\/+/, '')}`,
       '%%OG_URL%%':           isJa
                                 ? `https://plugbits.app/products/${p.slug}.html`
                                 : `https://plugbits.app/products/en/${p.slug}.html`,
