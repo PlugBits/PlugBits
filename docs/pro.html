@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PlugBits Launcher Pro — アップグレード</title>
+  <meta name="description" content="PlugBits Launcher Pro で Grid Edit・一括保存など上級者向け機能をアンロック。月額プランで今すぐ始める。" />
+  <meta property="og:title" content="PlugBits Launcher Pro — アップグレード" />
+  <meta property="og:description" content="Grid Edit・一括保存など上級者向け機能をアンロック。月額プランで今すぐ始める。" />
+  <meta property="og:type" content="website" />
+  <meta property="og:image" content="https://plugbits.app/images/ogp.png" />
+  <meta name="theme-color" content="#0f1115" />
+  <link rel="stylesheet" href="./launcher/styles.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    /* ── Pro page extras ─────────────────────────────────────── */
+    .pro-hero {
+      text-align: center;
+      padding: 80px 0 56px;
+    }
+    .pro-hero .eyebrow {
+      display: inline-block;
+    }
+    .pro-hero h1 {
+      font-size: clamp(36px, 5.5vw, 64px);
+      max-width: none;
+      letter-spacing: -0.04em;
+      margin: 0 0 20px;
+    }
+    .pro-hero .hero-lead {
+      margin: 0 auto;
+      max-width: 560px;
+      font-size: 17px;
+    }
+    .pro-hero .hero-actions {
+      margin-top: 36px;
+      justify-content: center;
+    }
+
+    /* ── Feature grid ────────────────────────────────────────── */
+    .pro-features {
+      padding: 0 0 72px;
+    }
+    .pro-features-heading {
+      text-align: center;
+      margin: 0 0 40px;
+      font-size: 28px;
+      font-weight: 700;
+      letter-spacing: -0.03em;
+    }
+    .feature-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 20px;
+    }
+    .feature-card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 28px 24px;
+    }
+    .feature-card .icon {
+      font-size: 28px;
+      margin-bottom: 12px;
+    }
+    .feature-card h3 {
+      margin: 0 0 8px;
+      font-size: 16px;
+      font-weight: 700;
+    }
+    .feature-card p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.7;
+    }
+    .feature-card .badge {
+      display: inline-block;
+      margin-top: 12px;
+      padding: 3px 10px;
+      border-radius: 999px;
+      background: rgba(95, 140, 255, 0.15);
+      border: 1px solid rgba(95, 140, 255, 0.3);
+      color: #9ab4ff;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+    }
+
+    /* ── Pricing card ────────────────────────────────────────── */
+    .pricing-section {
+      padding: 0 0 96px;
+    }
+    .pricing-section-heading {
+      text-align: center;
+      margin: 0 0 40px;
+      font-size: 28px;
+      font-weight: 700;
+      letter-spacing: -0.03em;
+    }
+    .pricing-wrap {
+      display: flex;
+      justify-content: center;
+    }
+    .pricing-card {
+      width: 100%;
+      max-width: 440px;
+      background: var(--panel-strong);
+      border: 1px solid rgba(95, 140, 255, 0.3);
+      border-radius: 24px;
+      padding: 40px 36px;
+      position: relative;
+      overflow: hidden;
+    }
+    .pricing-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, var(--accent), transparent);
+    }
+    .pricing-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 12px;
+      border-radius: 999px;
+      background: rgba(95, 140, 255, 0.15);
+      border: 1px solid rgba(95, 140, 255, 0.3);
+      color: #9ab4ff;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      margin-bottom: 20px;
+    }
+    .pricing-price {
+      margin: 0 0 4px;
+    }
+    .pricing-price .amount {
+      font-size: 52px;
+      font-weight: 800;
+      letter-spacing: -0.04em;
+      line-height: 1;
+    }
+    .pricing-price .currency {
+      font-size: 20px;
+      font-weight: 600;
+      vertical-align: super;
+      margin-right: 2px;
+    }
+    .pricing-price .period {
+      font-size: 16px;
+      color: var(--muted);
+      font-weight: 500;
+    }
+    .pricing-note {
+      margin: 4px 0 28px;
+      font-size: 13px;
+      color: var(--muted);
+    }
+    .pricing-divider {
+      border: none;
+      border-top: 1px solid var(--line);
+      margin: 0 0 24px;
+    }
+    .pricing-items {
+      list-style: none;
+      margin: 0 0 32px;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .pricing-items li {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      font-size: 14px;
+    }
+    .pricing-items li .check {
+      flex-shrink: 0;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: rgba(95, 140, 255, 0.2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-top: 2px;
+    }
+    .pricing-items li .check::after {
+      content: '✓';
+      font-size: 11px;
+      color: var(--accent);
+      font-weight: 700;
+    }
+    .pricing-cta {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      align-items: stretch;
+    }
+    .pricing-cta .button {
+      font-size: 16px;
+      min-height: 52px;
+      border-radius: 16px;
+    }
+    .pricing-cta .sub-note {
+      text-align: center;
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    /* ── FAQ ─────────────────────────────────────────────────── */
+    .faq-section {
+      padding: 0 0 96px;
+      max-width: 680px;
+      margin: 0 auto;
+    }
+    .faq-section-heading {
+      text-align: center;
+      margin: 0 0 36px;
+      font-size: 28px;
+      font-weight: 700;
+      letter-spacing: -0.03em;
+    }
+    .faq-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+    }
+    .faq-item {
+      border-top: 1px solid var(--line);
+      padding: 20px 0;
+    }
+    .faq-item:last-child {
+      border-bottom: 1px solid var(--line);
+    }
+    .faq-item dt {
+      font-weight: 600;
+      font-size: 15px;
+      margin-bottom: 8px;
+    }
+    .faq-item dd {
+      margin: 0;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.75;
+    }
+    .faq-item dd a {
+      color: var(--accent);
+      text-decoration: underline;
+      text-underline-offset: 3px;
+    }
+
+    /* ── Footer CTA ──────────────────────────────────────────── */
+    .footer-cta {
+      text-align: center;
+      padding: 0 0 96px;
+    }
+    .footer-cta h2 {
+      font-size: clamp(28px, 4vw, 48px);
+      font-weight: 800;
+      letter-spacing: -0.04em;
+      margin: 0 0 16px;
+    }
+    .footer-cta p {
+      color: var(--muted);
+      font-size: 16px;
+      margin: 0 0 32px;
+    }
+
+    @media (max-width: 600px) {
+      .pricing-card { padding: 28px 20px; }
+      .pricing-price .amount { font-size: 40px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="page-shell">
+    <header class="site-header">
+      <div class="brand">
+        <img class="brand-mark" src="./launcher/assets/icon128.png" alt="PlugBits" />
+        <span>PlugBits Launcher</span>
+      </div>
+      <nav class="site-nav">
+        <a href="./launcher/">トップ</a>
+        <a href="./launcher/manual.html">マニュアル</a>
+        <a href="#pricing" class="nav-cta">Pro にアップグレード</a>
+      </nav>
+    </header>
+
+    <main>
+      <!-- Hero -->
+      <section class="pro-hero">
+        <p class="eyebrow">PlugBits Launcher Pro</p>
+        <h1>kintone 操作を、<br />次のレベルへ。</h1>
+        <p class="hero-lead">
+          Grid Edit による行内一括編集、新規レコード高速入力など、<br />
+          日々の業務を加速する Pro 専用機能をアンロックします。
+        </p>
+        <div class="hero-actions">
+          <a class="button button-primary" href="#pricing">プランを見る</a>
+          <a class="button button-secondary" href="./launcher/">無料版の機能を確認する</a>
+        </div>
+      </section>
+
+      <!-- Features -->
+      <section class="pro-features">
+        <h2 class="pro-features-heading">Pro 専用機能</h2>
+        <div class="feature-grid">
+          <div class="feature-card">
+            <div class="icon">⚡</div>
+            <h3>Grid Edit（スプレッドシート編集）</h3>
+            <p>
+              一覧画面でセルを直接クリックして編集。複数レコードをまとめて変更し、
+              一括保存できます。テキスト・数値・日付・日時・ドロップダウンなど主要フィールドに対応。
+            </p>
+            <span class="badge">PRO</span>
+          </div>
+          <div class="feature-card">
+            <div class="icon">➕</div>
+            <h3>Quick New Record（高速新規入力）</h3>
+            <p>
+              Alt+Shift+N でどこからでも新規レコード入力モーダルを呼び出し。
+              ページ遷移なしに素早く登録できます。
+            </p>
+            <span class="badge">PRO</span>
+          </div>
+          <div class="feature-card">
+            <div class="icon">🔗</div>
+            <h3>ルックアップ対応</h3>
+            <p>
+              Grid Edit・新規入力モーダルともにルックアップフィールドのピッカーに対応。
+              関連レコードを検索して選択できます。
+            </p>
+            <span class="badge">PRO</span>
+          </div>
+          <div class="feature-card">
+            <div class="icon">🛠</div>
+            <h3>今後追加予定の Pro 機能</h3>
+            <p>
+              ファイルフィールド対応、CSV インポート連携など、
+              継続的に Pro 機能を追加予定です。サブスクリプション中は自動的に利用可能になります。
+            </p>
+            <span class="badge">COMING SOON</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Pricing -->
+      <section class="pricing-section" id="pricing">
+        <h2 class="pricing-section-heading">シンプルな料金プラン</h2>
+        <div class="pricing-wrap">
+          <div class="pricing-card">
+            <div class="pricing-label">⭐ Pro プラン</div>
+            <div class="pricing-price">
+              <span class="currency">¥</span><span class="amount">980</span>
+              <span class="period">&nbsp;/ 月</span>
+            </div>
+            <p class="pricing-note">税込・月払い・いつでも解約可能</p>
+            <hr class="pricing-divider" />
+            <ul class="pricing-items">
+              <li>
+                <span class="check"></span>
+                <span>Grid Edit — スプレッドシート形式の一括編集</span>
+              </li>
+              <li>
+                <span class="check"></span>
+                <span>Quick New Record — Alt+Shift+N 高速新規入力</span>
+              </li>
+              <li>
+                <span class="check"></span>
+                <span>ルックアップフィールド対応</span>
+              </li>
+              <li>
+                <span class="check"></span>
+                <span>今後追加される Pro 機能すべて</span>
+              </li>
+              <li>
+                <span class="check"></span>
+                <span>メールサポート</span>
+              </li>
+              <li>
+                <span class="check"></span>
+                <span>無料版のすべての機能を含む</span>
+              </li>
+            </ul>
+            <div class="pricing-cta">
+              <a class="button button-primary" id="checkout-btn" href="YOUR_STRIPE_PAYMENT_LINK" target="_blank" rel="noopener">
+                今すぐ始める — ¥980/月
+              </a>
+              <p class="sub-note">
+                Stripe による安全な決済 ·
+                <a href="https://billing.stripe.com/p/login/plugbits" target="_blank" rel="noopener" style="color:var(--muted);text-decoration:underline;text-underline-offset:3px;">解約はカスタマーポータルから</a>
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- FAQ -->
+      <section class="faq-section">
+        <h2 class="faq-section-heading">よくある質問</h2>
+        <dl class="faq-list">
+          <div class="faq-item">
+            <dt>ライセンスキーはどのように受け取りますか？</dt>
+            <dd>
+              購入完了後、ご登録のメールアドレスにライセンスキー（UUID形式）が送付されます。
+              Chrome 拡張のアイコン → 設定 → Pro ライセンスタブに入力してください。
+            </dd>
+          </div>
+          <div class="faq-item">
+            <dt>解約はどこからできますか？</dt>
+            <dd>
+              購入後に送られる確認メールのリンク、または拡張機能の設定画面の「カスタマーポータルを開く」から
+              いつでも解約できます。解約後は翌月分の請求が発生しません。
+            </dd>
+          </div>
+          <div class="faq-item">
+            <dt>無料版との違いは何ですか？</dt>
+            <dd>
+              無料版ではサイドパネル（ショートカット・履歴・ウォッチリスト・Spreadsheet View の閲覧）が使えます。
+              Pro では Grid Edit による編集・保存と Quick New Record が追加されます。
+            </dd>
+          </div>
+          <div class="faq-item">
+            <dt>法人での購入・請求書払いは対応していますか？</dt>
+            <dd>
+              現在は個人向けクレジットカード決済のみ対応しています。
+              法人でのご利用については <a href="mailto:support@plugbits.app">support@plugbits.app</a> までご相談ください。
+            </dd>
+          </div>
+          <div class="faq-item">
+            <dt>複数アカウント・複数端末で使えますか？</dt>
+            <dd>
+              1 ライセンスキーにつき 1 ブラウザプロファイルでのご利用を想定しています。
+              追加ライセンスが必要な場合はお問い合わせください。
+            </dd>
+          </div>
+        </dl>
+      </section>
+
+      <!-- Footer CTA -->
+      <section class="footer-cta">
+        <h2>今日から Pro を試す</h2>
+        <p>月額 ¥980。いつでもキャンセル可能です。</p>
+        <a class="button button-primary" href="YOUR_STRIPE_PAYMENT_LINK" target="_blank" rel="noopener"
+           style="font-size:16px;min-height:52px;padding:0 28px;">
+          今すぐ始める
+        </a>
+      </section>
+    </main>
+
+    <footer style="border-top:1px solid var(--line);padding:28px 0;color:var(--muted);font-size:13px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:16px;">
+      <span>© 2026 PlugBits</span>
+      <nav style="display:flex;gap:20px;">
+        <a href="./privacy.html" style="color:var(--muted);">プライバシーポリシー</a>
+        <a href="./terms.html" style="color:var(--muted);">利用規約</a>
+        <a href="mailto:support@plugbits.app" style="color:var(--muted);">お問い合わせ</a>
+      </nav>
+    </footer>
+  </div>
+</body>
+</html>
