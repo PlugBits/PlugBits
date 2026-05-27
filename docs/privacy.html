@@ -28,6 +28,8 @@
         <li>Recently accessed records</li>
         <li>User interface preferences</li>
         <li>Extension settings</li>
+        <li>Pro license key (if entered by the user)</li>
+        <li>License account information returned from verification (email address, expiry date) — stored locally only</li>
       </ul>
 
       <p>The data is stored using:</p>
@@ -44,27 +46,31 @@
     <section class="policy-section">
       <h2>Network Communication</h2>
       <p>
-        The extension communicates only with the user's kintone environment to retrieve data required for the extension features.
+        The extension communicates with the following services:
       </p>
-      <p>Supported domains include:</p>
       <ul>
-        <li>*.kintone.com</li>
-        <li>*.cybozu.com</li>
-        <li>*.kintone-dev.com</li>
+        <li><strong>kintone environment</strong> (*.kintone.com, *.cybozu.com, *.kintone-dev.com) — to retrieve app metadata and records required for extension features.</li>
+        <li><strong>api.plugbits.app</strong> — to verify the Pro license key entered by the user. Only the license key is transmitted; no kintone data or browsing history is sent.</li>
       </ul>
+      <p>
+        No kintone record data is sent to external servers.
+      </p>
     </section>
 
     <section class="policy-section">
       <h2>Personal Data Collection</h2>
       <p>
-        The extension does not collect or transmit personal data to third-party servers.
+        The extension does not collect browsing history, cookies, or tracking data.
+      </p>
+      <p>
+        When a Pro license key is entered, it is transmitted to <code>api.plugbits.app</code> solely to verify license validity. The server returns the associated email address and expiry date, which are stored locally in Chrome storage to display account information within the extension. This data is not shared with third parties.
       </p>
       <p>The extension does not collect:</p>
       <ul>
-        <li>Personally identifiable information</li>
         <li>Browsing history</li>
         <li>Cookies</li>
         <li>Tracking or analytics data</li>
+        <li>kintone record contents (these are processed locally and never transmitted externally)</li>
       </ul>
     </section>
 
@@ -121,6 +127,8 @@
         <li>最近アクセスしたレコード</li>
         <li>ユーザーインターフェース設定</li>
         <li>拡張機能の設定</li>
+        <li>Proライセンスキー（ユーザーが入力した場合）</li>
+        <li>ライセンス認証で返却されるアカウント情報（メールアドレス・有効期限）— ローカルにのみ保存</li>
       </ul>
 
       <p>保存には以下の Chrome 拡張ストレージが使用されます。</p>
@@ -137,27 +145,31 @@
     <section class="policy-section">
       <h2>通信について</h2>
       <p>
-        本拡張は機能提供のため、ユーザーが利用している kintone 環境に対して API 通信を行います。
+        本拡張は以下のサービスと通信を行います。
       </p>
-      <p>通信対象ドメイン:</p>
       <ul>
-        <li>*.kintone.com</li>
-        <li>*.cybozu.com</li>
-        <li>*.kintone-dev.com</li>
+        <li><strong>kintone 環境</strong>（*.kintone.com、*.cybozu.com、*.kintone-dev.com）— 機能提供に必要なアプリ情報・レコードの取得のため。</li>
+        <li><strong>api.plugbits.app</strong> — ユーザーが入力した Pro ライセンスキーの認証のため。送信されるのはライセンスキーのみで、kintone のデータや閲覧履歴は送信されません。</li>
       </ul>
+      <p>
+        kintone のレコードデータが外部サーバーに送信されることはありません。
+      </p>
     </section>
 
     <section class="policy-section">
       <h2>個人情報の収集</h2>
       <p>
-        本拡張は個人情報を第三者のサーバーへ収集・送信しません。
+        本拡張は閲覧履歴・Cookie・トラッキングデータを収集しません。
       </p>
-      <p>また、以下の情報を収集しません。</p>
+      <p>
+        Pro ライセンスキーが入力された場合、ライセンスの有効性確認のみを目的として <code>api.plugbits.app</code> へ送信されます。サーバーから返却されるメールアドレスと有効期限は、拡張機能内のアカウント表示のためにローカルの Chrome ストレージに保存されます。これらの情報は第三者へ提供されません。
+      </p>
+      <p>本拡張が収集しない情報:</p>
       <ul>
-        <li>個人を特定できる情報</li>
         <li>ブラウザの閲覧履歴</li>
         <li>Cookie</li>
         <li>トラッキングや解析データ</li>
+        <li>kintone のレコード内容（ローカルで処理され、外部に送信されることはありません）</li>
       </ul>
     </section>
 
