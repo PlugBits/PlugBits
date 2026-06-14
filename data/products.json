@@ -184,7 +184,7 @@
     "type": "plugin",
     "status": "public",
     "page_url": null,
-    "install_url": "https://example.com/dummy-install-url",
+    "install_url": "https://github.com/PlugBits/plugbits-plugins/releases/download/text-rule-builder-v1.0.0/text-rule-builder.zip",
     "hero_image": "assets/text-rule-builder/hero.webp",
     "file_size": "~30KB",
     "updated_at": "2025-05",
