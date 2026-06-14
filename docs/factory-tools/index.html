@@ -10,267 +10,634 @@
   <meta property="og:type" content="website" />
   <meta property="og:image" content="https://plugbits.app/assets/factory-tools/hero.png" />
   <meta name="theme-color" content="#0f1115" />
-  <link rel="stylesheet" href="../launcher/styles.css" />
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <style>
-    .tool-grid {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 18px;
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0f1115;
+      --sidebar-bg: #0c0e12;
+      --panel: rgba(255,255,255,0.04);
+      --panel-strong: rgba(255,255,255,0.07);
+      --line: rgba(255,255,255,0.09);
+      --text: #ffffff;
+      --muted: #9aa0a6;
+      --accent: #5f8cff;
+      --accent-soft: rgba(95,140,255,0.14);
+      --sidebar-w: 220px;
+      --radius: 18px;
     }
 
-    .tool-card {
-      background: var(--panel);
-      border: 1px solid var(--line);
-      border-radius: 24px;
-      padding: 28px;
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: "Inter", system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      height: 100dvh;
       display: flex;
       flex-direction: column;
-      gap: 16px;
-      box-shadow: inset 0 1px 0 rgba(255,255,255,0.03);
-      transition: border-color 0.2s ease, transform 0.2s ease;
+      overflow: hidden;
     }
 
-    .tool-card:hover {
-      border-color: rgba(95, 140, 255, 0.3);
-      transform: translateY(-2px);
+    a { color: inherit; text-decoration: none; }
+
+    /* ── Layout ── */
+    .shell {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
     }
 
-    .tool-icon {
-      font-size: 32px;
+    /* ── Sidebar ── */
+    .sidebar {
+      width: var(--sidebar-w);
+      background: var(--sidebar-bg);
+      border-right: 1px solid var(--line);
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+      overflow-y: auto;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 20px 16px 14px;
+      border-bottom: 1px solid var(--line);
+      font-weight: 700;
+      font-size: 15px;
+    }
+
+    .brand-icon {
+      font-size: 22px;
       line-height: 1;
     }
 
-    .tool-card h3 {
-      margin: 0;
-      font-size: 22px;
-      line-height: 1.2;
+    .brand-sub {
+      display: block;
+      font-size: 11px;
+      font-weight: 400;
+      color: var(--muted);
+      letter-spacing: 0.04em;
     }
 
-    .tool-card p {
-      margin: 0;
-      color: var(--muted);
-      font-size: 15px;
+    .nav {
+      padding: 12px 8px;
       flex: 1;
     }
 
-    .tool-tags {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 6px;
-    }
-
-    .tool-tag {
-      padding: 4px 10px;
-      border-radius: 999px;
-      background: rgba(255,255,255,0.05);
-      border: 1px solid rgba(255,255,255,0.08);
+    .nav-section-label {
+      padding: 6px 10px;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
       color: var(--muted);
-      font-size: 12px;
+      margin-bottom: 4px;
     }
 
-    .tool-launch {
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 12px;
+      border-radius: 12px;
+      font-size: 14px;
+      color: var(--muted);
+      cursor: pointer;
+      transition: background 0.15s, color 0.15s;
+      border: none;
+      background: none;
+      width: 100%;
+      text-align: left;
+    }
+
+    .nav-item:hover {
+      background: var(--panel);
+      color: var(--text);
+    }
+
+    .nav-item.active {
+      background: var(--accent-soft);
+      color: var(--text);
+      font-weight: 600;
+    }
+
+    .nav-icon { font-size: 16px; line-height: 1; flex-shrink: 0; }
+
+    .sidebar-footer {
+      padding: 14px 16px;
+      border-top: 1px solid var(--line);
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    /* ── Main ── */
+    .workspace {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 24px;
+      height: 56px;
+      border-bottom: 1px solid var(--line);
+      background: rgba(15,17,21,0.8);
+      backdrop-filter: blur(12px);
+      flex-shrink: 0;
+    }
+
+    .topbar-title {
+      font-weight: 700;
+      font-size: 15px;
+    }
+
+    .topbar-link {
       display: inline-flex;
       align-items: center;
-      gap: 8px;
-      padding: 12px 18px;
-      border-radius: 14px;
-      background: var(--accent-soft);
-      border: 1px solid rgba(95, 140, 255, 0.22);
-      color: #c8d6ff;
+      gap: 6px;
+      padding: 8px 14px;
+      border-radius: 999px;
+      background: var(--accent);
+      color: #fff;
+      font-size: 13px;
       font-weight: 600;
-      font-size: 14px;
-      transition: background 0.18s ease, border-color 0.18s ease;
-      align-self: flex-start;
+      transition: background 0.15s, transform 0.15s;
     }
 
-    .tool-launch:hover {
-      background: rgba(95, 140, 255, 0.22);
-      border-color: rgba(95, 140, 255, 0.4);
+    .topbar-link:hover {
+      background: #7098ff;
+      transform: translateY(-1px);
     }
 
-    .tool-launch .arrow {
-      font-size: 16px;
+    .content {
+      flex: 1;
+      overflow-y: auto;
+      padding: 28px 32px 48px;
     }
 
-    .hero-badge-row {
-      display: flex;
-      gap: 10px;
-      flex-wrap: wrap;
-      margin-bottom: 16px;
+    /* ── Tool Section ── */
+    .tool-section { display: none; }
+    .tool-section.active { display: block; }
+
+    .hero-card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 28px 28px 24px;
+      margin-bottom: 22px;
     }
 
     .hero-badge {
       display: inline-flex;
       align-items: center;
       gap: 6px;
-      padding: 6px 12px;
+      padding: 5px 12px;
       border-radius: 999px;
-      background: rgba(95, 140, 255, 0.10);
-      border: 1px solid rgba(95, 140, 255, 0.22);
-      color: #c8d6ff;
-      font-size: 13px;
+      font-size: 12px;
       font-weight: 700;
-      letter-spacing: 0.04em;
+      letter-spacing: 0.05em;
+      margin-bottom: 14px;
+    }
+
+    .hero-card h1 {
+      font-size: 26px;
+      line-height: 1.2;
+      letter-spacing: -0.02em;
+      margin-bottom: 10px;
+    }
+
+    .hero-card p {
+      color: var(--muted);
+      font-size: 14px;
+      margin-bottom: 18px;
+      max-width: 600px;
+    }
+
+    .launch-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 20px;
+      border-radius: 12px;
+      font-weight: 700;
+      font-size: 14px;
+      transition: transform 0.15s, opacity 0.15s;
+      color: #fff;
+    }
+
+    .launch-btn:hover { transform: translateY(-1px); opacity: 0.9; }
+    .launch-blue { background: #1d4ed8; }
+    .launch-green { background: #16a34a; }
+    .launch-orange { background: #d97706; }
+    .launch-purple { background: #7c3aed; }
+
+    /* ── Screenshots ── */
+    .screenshot-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 14px;
+      margin-bottom: 22px;
+    }
+
+    .screenshot-single {
+      margin-bottom: 22px;
+    }
+
+    .screenshot-wrap {
+      border-radius: 14px;
+      overflow: hidden;
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,0.02);
+      transition: border-color 0.2s, transform 0.2s;
+    }
+
+    .screenshot-wrap:hover {
+      border-color: rgba(95,140,255,0.3);
+      transform: translateY(-2px);
+    }
+
+    .screenshot-wrap img {
+      display: block;
+      width: 100%;
+      height: auto;
+    }
+
+    /* ── Feature grid ── */
+    .feature-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 12px;
+    }
+
+    .feature-card {
+      display: flex;
+      gap: 14px;
+      align-items: flex-start;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 16px;
+    }
+
+    .feature-icon {
+      width: 38px;
+      height: 38px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 15px;
+      font-weight: 800;
+      flex-shrink: 0;
+    }
+
+    .feature-body strong {
+      display: block;
+      font-size: 13px;
+      margin-bottom: 4px;
+    }
+
+    .feature-body p {
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.5;
+      margin: 0;
+    }
+
+    /* ── Mobile ── */
+    .mobile-nav-toggle {
+      display: none;
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      z-index: 100;
+      width: 48px;
+      height: 48px;
+      border-radius: 999px;
+      background: var(--accent);
+      border: none;
+      cursor: pointer;
+      font-size: 20px;
+      color: #fff;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.4);
     }
 
     @media (max-width: 720px) {
-      .tool-grid {
-        grid-template-columns: 1fr;
+      body { overflow: auto; }
+
+      .shell { flex-direction: column; overflow: visible; }
+
+      .sidebar {
+        width: 100%;
+        border-right: none;
+        border-bottom: 1px solid var(--line);
       }
+
+      .nav { display: flex; padding: 8px; gap: 4px; overflow-x: auto; }
+      .nav-section-label { display: none; }
+      .nav-item { flex-direction: column; gap: 4px; min-width: 72px; text-align: center; font-size: 11px; padding: 8px 6px; }
+      .nav-icon { font-size: 20px; }
+
+      .workspace { overflow: visible; }
+      .content { overflow: visible; padding: 20px 16px 40px; }
+
+      .screenshot-row { grid-template-columns: 1fr; }
     }
   </style>
 </head>
 <body>
-  <div class="page-shell">
-    <header class="site-header">
+  <div class="shell">
+
+    <!-- Sidebar -->
+    <aside class="sidebar">
       <div class="brand">
-        <span style="font-size: 24px;">⚙️</span>
-        <span>Factory Tools</span>
+        <span class="brand-icon">⚙️</span>
+        <div>
+          <span>Factory Tools</span>
+          <span class="brand-sub">by PlugBits</span>
+        </div>
       </div>
-      <nav class="site-nav">
-        <a href="#tools">ツール一覧</a>
-        <a href="https://plugbits.app">PlugBits</a>
+
+      <nav class="nav">
+        <div class="nav-section-label">ツール</div>
+
+        <button class="nav-item active" data-section="layout" onclick="showSection('layout', this)">
+          <span class="nav-icon">🏭</span>工場レイアウト
+        </button>
+        <button class="nav-item" data-section="inspection" onclick="showSection('inspection', this)">
+          <span class="nav-icon">📐</span>検査図面
+        </button>
+        <button class="nav-item" data-section="calc" onclick="showSection('calc', this)">
+          <span class="nav-icon">🔢</span>計算ツール
+        </button>
+        <button class="nav-item" data-section="st" onclick="showSection('st', this)">
+          <span class="nav-icon">⏱</span>標準時間設計
+        </button>
       </nav>
-    </header>
 
-    <main>
-      <section class="hero" style="grid-template-columns: 1fr; padding-bottom: 56px;">
-        <div class="hero-copy" style="max-width: 700px;">
-          <div class="hero-badge-row">
-            <span class="hero-badge">🏭 製造現場向け</span>
-            <span class="hero-badge">✅ 無料</span>
-            <span class="hero-badge">🌐 ブラウザ完結</span>
-          </div>
-          <p class="eyebrow">Factory Tools — Manufacturing Tool Suite</p>
-          <h1 style="font-size: clamp(36px, 5vw, 60px); max-width: none;">製造現場の「すぐ使いたい」を<br />ブラウザで。</h1>
-          <p class="hero-lead">
-            レイアウト設計・検査図面・加工計算・標準時間設計など、<br />
-            製造現場でよく使う作業をブラウザ完結で実行できる<strong>無料ツール集</strong>です。<br />
-            インストール不要、登録不要、今すぐ使えます。
-          </p>
-          <div class="hero-actions">
-            <a class="button button-primary" href="#tools">ツールを見る</a>
-          </div>
-          <div class="hero-note">
-            全ツール無料 / インストール不要 / データはブラウザに保存
-          </div>
-        </div>
-      </section>
-
-      <section class="section" id="tools" style="padding-top: 0;">
-        <div class="section-heading">
-          <p class="eyebrow">Tools</p>
-          <h2>4つのツール</h2>
-          <p>製造現場の課題に特化した、すぐ使えるブラウザツールです。</p>
-        </div>
-
-        <div class="tool-grid">
-
-          <div class="tool-card">
-            <div class="tool-icon">🏭</div>
-            <h3>工場レイアウト作成ツール</h3>
-            <p>設備・通路・安全エリアをドラッグ＆ドロップで2D配置し、Three.jsによるリアルタイム3Dプレビューで確認。35種類以上のテンプレートでスピーディーにレイアウトを構築できます。</p>
-            <div class="tool-tags">
-              <span class="tool-tag">2D/3D</span>
-              <span class="tool-tag">ドラッグ＆ドロップ</span>
-              <span class="tool-tag">PNG出力</span>
-            </div>
-            <a href="https://plugbits.github.io/factory-layout/" class="tool-launch" target="_blank" rel="noopener">
-              ツールを開く <span class="arrow">→</span>
-            </a>
-          </div>
-
-          <div class="tool-card">
-            <div class="tool-icon">📐</div>
-            <h3>PDF検査マーカー</h3>
-            <p>PDFをブラウザに読み込み、測定箇所・検査コメントをその場でマーキング。OK/NG/要確認の色分けマーカーで検査結果を視覚化し、検査指示書や現場確認シートをすばやく作成できます。</p>
-            <div class="tool-tags">
-              <span class="tool-tag">PDFインポート</span>
-              <span class="tool-tag">マーキング</span>
-              <span class="tool-tag">OK/NG判定</span>
-            </div>
-            <a href="https://plugbits.github.io/inspection-marker/" class="tool-launch" target="_blank" rel="noopener">
-              ツールを開く <span class="arrow">→</span>
-            </a>
-          </div>
-
-          <div class="tool-card">
-            <div class="tool-icon">🔢</div>
-            <h3>ForgeKit — 工場計算ツール集</h3>
-            <p>単位変換・材料重量・溶接時間・加工時間など、製造現場で使う計算をタブ切り替えでまとめて実行。多言語対応で海外工場でも活用できます。</p>
-            <div class="tool-tags">
-              <span class="tool-tag">単位変換</span>
-              <span class="tool-tag">材料重量</span>
-              <span class="tool-tag">溶接・加工時間</span>
-              <span class="tool-tag">多言語対応</span>
-            </div>
-            <a href="https://plugbits.github.io/ForgeKit/" class="tool-launch" target="_blank" rel="noopener">
-              ツールを開く <span class="arrow">→</span>
-            </a>
-          </div>
-
-          <div class="tool-card">
-            <div class="tool-icon">⏱</div>
-            <h3>標準時間設計ツール</h3>
-            <p>作業要素の分解・時間測定・レーティング・余裕率の設定をブラウザ上でスムーズに実施。標準時間（ST）の算出と工程バランスの可視化を手軽に行えます。</p>
-            <div class="tool-tags">
-              <span class="tool-tag">標準時間</span>
-              <span class="tool-tag">作業分解</span>
-              <span class="tool-tag">レーティング</span>
-            </div>
-            <a href="https://plugbits.github.io/st-tool/" class="tool-launch" target="_blank" rel="noopener">
-              ツールを開く <span class="arrow">→</span>
-            </a>
-          </div>
-
-        </div>
-      </section>
-
-      <section class="section solution">
-        <div class="section-heading">
-          <p class="eyebrow">Why Factory Tools</p>
-          <h2>「とりあえず使える」を<br />製造現場に。</h2>
-          <p>
-            専用ソフトの導入コスト・学習コストをかけずに、<br />
-            現場で今すぐ必要な作業をブラウザだけで完結できます。
-          </p>
-        </div>
-
-        <div class="solution-band">
-          <div class="solution-pill">インストール不要</div>
-          <div class="solution-pill">登録不要</div>
-          <div class="solution-pill">全ツール無料</div>
-          <div class="solution-pill">データはブラウザに保存</div>
-          <div class="solution-pill">スマホ・タブレット対応</div>
-        </div>
-      </section>
-
-      <section class="section install" style="padding-top: 0;">
-        <div class="install-card">
-          <p class="eyebrow">Get Started</p>
-          <h2>今すぐ使えます。</h2>
-          <p>
-            インストール不要。ブラウザを開いてツールにアクセスするだけ。<br />
-            製造現場の「すぐ使いたい」に応えます。
-          </p>
-          <div class="hero-actions centered" style="margin-top: 24px;">
-            <a class="button button-primary" href="#tools">ツール一覧を見る</a>
-          </div>
-        </div>
-      </section>
-    </main>
-
-    <footer class="site-footer">
-      <div>© PlugBits</div>
-      <div class="footer-links">
-        <a href="https://plugbits.app">PlugBits</a>
-        <a href="https://plugbits.app/privacy.html">Privacy Policy</a>
-        <a href="mailto:support@plugbits.app">Contact</a>
+      <div class="sidebar-footer">
+        <a href="https://plugbits.app" style="color: var(--muted);">← plugbits.app</a>
       </div>
-    </footer>
+    </aside>
+
+    <!-- Main workspace -->
+    <main class="workspace">
+
+      <header class="topbar">
+        <div class="topbar-title" id="topbar-title">工場レイアウト作成ツール</div>
+        <a href="https://plugbits.github.io/factory-layout/" id="topbar-link" class="topbar-link" target="_blank" rel="noopener">
+          ツールを開く <span>→</span>
+        </a>
+      </header>
+
+      <div class="content">
+
+        <!-- SECTION: layout -->
+        <section class="tool-section active" id="section-layout">
+          <div class="hero-card">
+            <div class="hero-badge" style="background:#dbeafe; color:#1d4ed8;">🏭 工場レイアウト</div>
+            <h1>工場レイアウト作成ツール</h1>
+            <p>設備・通路・安全エリアをドラッグ＆ドロップで2D配置し、Three.jsによるリアルタイム3Dプレビューで確認。35種類以上のテンプレートでスピーディーにレイアウトを構築できます。</p>
+            <a href="https://plugbits.github.io/factory-layout/" class="launch-btn launch-blue" target="_blank" rel="noopener">
+              ツールを開く <span>→</span>
+            </a>
+          </div>
+
+          <div class="screenshot-row">
+            <div class="screenshot-wrap">
+              <img src="assets/factory-layout1.webp" alt="工場レイアウト 2Dビュー" loading="lazy" />
+            </div>
+            <div class="screenshot-wrap">
+              <img src="assets/factory-layout2.webp" alt="工場レイアウト 3Dビュー" loading="lazy" />
+            </div>
+          </div>
+
+          <div class="feature-grid">
+            <div class="feature-card">
+              <div class="feature-icon" style="background:#dbeafe; color:#2563eb;">2D</div>
+              <div class="feature-body">
+                <strong>2Dレイアウト編集</strong>
+                <p>グリッドスナップ付きのドラッグ＆ドロップで設備を配置。ズーム・パンで広い工場も快適に編集できます。</p>
+              </div>
+            </div>
+            <div class="feature-card">
+              <div class="feature-icon" style="background:#dcfce7; color:#16a34a;">3D</div>
+              <div class="feature-body">
+                <strong>3Dプレビュー</strong>
+                <p>Three.jsによるリアルタイム3Dビュー。歩行視点・プレゼンモードでステークホルダーへの説明に活用できます。</p>
+              </div>
+            </div>
+            <div class="feature-card">
+              <div class="feature-icon" style="background:#fef9c3; color:#ca8a04;">📦</div>
+              <div class="feature-body">
+                <strong>35種類以上のテンプレート</strong>
+                <p>マシニングセンタ・コンベア・安全柵など、工場でよく使う設備テンプレートを即座に配置できます。</p>
+              </div>
+            </div>
+            <div class="feature-card">
+              <div class="feature-icon" style="background:#ede9fe; color:#7c3aed;">💾</div>
+              <div class="feature-body">
+                <strong>JSON / PNG 出力</strong>
+                <p>レイアウトをJSONで保存・読み込み。PNG形式でエクスポートして図面資料として活用できます。</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- SECTION: inspection -->
+        <section class="tool-section" id="section-inspection">
+          <div class="hero-card">
+            <div class="hero-badge" style="background:#dcfce7; color:#16a34a;">📐 検査図面</div>
+            <h1>PDF検査マーカー</h1>
+            <p>PDFをブラウザに読み込み、測定箇所・検査コメントをその場でマーキング。OK/NG/要確認の色分けマーカーで検査結果を視覚化し、検査指示書や現場確認シートをすばやく作成できます。</p>
+            <a href="https://plugbits.github.io/inspection-marker/" class="launch-btn launch-green" target="_blank" rel="noopener">
+              ツールを開く <span>→</span>
+            </a>
+          </div>
+
+          <div class="screenshot-single">
+            <div class="screenshot-wrap">
+              <img src="assets/inspection-marker.webp" alt="PDF検査マーカー スクリーンショット" loading="lazy" />
+            </div>
+          </div>
+
+          <div class="feature-grid">
+            <div class="feature-card">
+              <div class="feature-icon" style="background:#dcfce7; color:#16a34a;">📄</div>
+              <div class="feature-body">
+                <strong>PDFインポート・表示</strong>
+                <p>手持ちのPDF図面をそのままブラウザに読み込み。原寸比率を保ったまま表示できます。</p>
+              </div>
+            </div>
+            <div class="feature-card">
+              <div class="feature-icon" style="background:#dbeafe; color:#2563eb;">✏️</div>
+              <div class="feature-body">
+                <strong>測定箇所へのマーキング</strong>
+                <p>矢印・丸・四角などのマーカーを図面上に配置。番号付きで測定ポイントを明示できます。</p>
+              </div>
+            </div>
+            <div class="feature-card">
+              <div class="feature-icon" style="background:#fef9c3; color:#ca8a04;">💬</div>
+              <div class="feature-body">
+                <strong>コメント・寸法記入</strong>
+                <p>各マーカーに検査コメントや寸法値を紐付け。テキストは図面上に直接表示されます。</p>
+              </div>
+            </div>
+            <div class="feature-card">
+              <div class="feature-icon" style="background:#fce7f3; color:#be185d;">✅</div>
+              <div class="feature-body">
+                <strong>合否判定マーカー</strong>
+                <p>OK / NG / 要確認の色分けマーカーで検査結果をひと目で把握できます。</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- SECTION: calc -->
+        <section class="tool-section" id="section-calc">
+          <div class="hero-card">
+            <div class="hero-badge" style="background:#fef3c7; color:#d97706;">🔢 計算ツール</div>
+            <h1>ForgeKit — 工場計算ツール集</h1>
+            <p>単位変換・材料重量・溶接時間・加工時間など、製造現場で使う計算をタブ切り替えでまとめて実行。多言語対応で海外工場でも活用できます。</p>
+            <a href="https://plugbits.github.io/ForgeKit/" class="launch-btn launch-orange" target="_blank" rel="noopener">
+              ツールを開く <span>→</span>
+            </a>
+          </div>
+
+          <div class="screenshot-single">
+            <div class="screenshot-wrap">
+              <img src="assets/forgekit.webp" alt="ForgeKit スクリーンショット" loading="lazy" />
+            </div>
+          </div>
+
+          <div class="feature-grid">
+            <div class="feature-card">
+              <div class="feature-icon" style="background:#fef3c7; color:#d97706;">📐</div>
+              <div class="feature-body">
+                <strong>単位変換計算機</strong>
+                <p>長さ・重さ・圧力・温度・面積・体積など多種の単位を即座に変換できます。</p>
+              </div>
+            </div>
+            <div class="feature-card">
+              <div class="feature-icon" style="background:#dbeafe; color:#2563eb;">⚖️</div>
+              <div class="feature-body">
+                <strong>材料重量計算機</strong>
+                <p>板材・丸棒・パイプなど各種形状の金属重量を材質・寸法から算出できます。</p>
+              </div>
+            </div>
+            <div class="feature-card">
+              <div class="feature-icon" style="background:#fce7f3; color:#be185d;">🔥</div>
+              <div class="feature-body">
+                <strong>溶接時間計算機</strong>
+                <p>溶接パラメータから作業時間とガス使用量を概算。工程計画の精度向上に貢献します。</p>
+              </div>
+            </div>
+            <div class="feature-card">
+              <div class="feature-icon" style="background:#dcfce7; color:#16a34a;">⚙️</div>
+              <div class="feature-body">
+                <strong>加工時間計算機</strong>
+                <p>切削条件・回転数・送り速度から加工時間を算出。見積もりや工程計画に活用できます。</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- SECTION: st -->
+        <section class="tool-section" id="section-st">
+          <div class="hero-card">
+            <div class="hero-badge" style="background:#ede9fe; color:#7c3aed;">⏱ 標準時間設計</div>
+            <h1>標準時間設計ツール</h1>
+            <p>作業要素の分解・時間測定・レーティング・余裕率の設定をブラウザ上でスムーズに実施。標準時間（ST）の算出と工程バランスの可視化を手軽に行えます。</p>
+            <a href="https://plugbits.github.io/st-tool/" class="launch-btn launch-purple" target="_blank" rel="noopener">
+              ツールを開く <span>→</span>
+            </a>
+          </div>
+
+          <div class="screenshot-row">
+            <div class="screenshot-wrap">
+              <img src="assets/st-tool1.webp" alt="標準時間設計ツール — 作業分解" loading="lazy" />
+            </div>
+            <div class="screenshot-wrap">
+              <img src="assets/st-tool2.webp" alt="標準時間設計ツール — 時間測定" loading="lazy" />
+            </div>
+          </div>
+
+          <div class="screenshot-single">
+            <div class="screenshot-wrap">
+              <img src="assets/st-tool3.webp" alt="標準時間設計ツール — 工程バランス" loading="lazy" />
+            </div>
+          </div>
+
+          <div class="feature-grid">
+            <div class="feature-card">
+              <div class="feature-icon" style="background:#ede9fe; color:#7c3aed;">📋</div>
+              <div class="feature-body">
+                <strong>作業要素の分解</strong>
+                <p>作業をステップ単位に分解して登録。工程の構造を視覚的に整理できます。</p>
+              </div>
+            </div>
+            <div class="feature-card">
+              <div class="feature-icon" style="background:#dbeafe; color:#2563eb;">⏱</div>
+              <div class="feature-body">
+                <strong>時間測定・レーティング</strong>
+                <p>実測時間にレーティングを掛けて正味時間を算出。複数回測定の平均も自動計算します。</p>
+              </div>
+            </div>
+            <div class="feature-card">
+              <div class="feature-icon" style="background:#dcfce7; color:#16a34a;">📊</div>
+              <div class="feature-body">
+                <strong>工程バランス可視化</strong>
+                <p>各工程の標準時間をバーチャートで比較。ボトルネックの特定に役立ちます。</p>
+              </div>
+            </div>
+            <div class="feature-card">
+              <div class="feature-icon" style="background:#fef9c3; color:#ca8a04;">💾</div>
+              <div class="feature-body">
+                <strong>データ保存・エクスポート</strong>
+                <p>作業データをブラウザに保存。CSV等でエクスポートして資料作成にも活用できます。</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+      </div>
+    </main>
   </div>
+
+  <script>
+    const SECTIONS = {
+      layout:     { title: '工場レイアウト作成ツール', url: 'https://plugbits.github.io/factory-layout/' },
+      inspection: { title: 'PDF検査マーカー',          url: 'https://plugbits.github.io/inspection-marker/' },
+      calc:       { title: 'ForgeKit — 工場計算ツール集', url: 'https://plugbits.github.io/ForgeKit/' },
+      st:         { title: '標準時間設計ツール',         url: 'https://plugbits.github.io/st-tool/' },
+    };
+
+    function showSection(key, btn) {
+      document.querySelectorAll('.tool-section').forEach(s => s.classList.remove('active'));
+      document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
+      document.getElementById('section-' + key).classList.add('active');
+      btn.classList.add('active');
+
+      const info = SECTIONS[key];
+      document.getElementById('topbar-title').textContent = info.title;
+      const link = document.getElementById('topbar-link');
+      link.href = info.url;
+
+      // scroll to top on mobile
+      const content = document.querySelector('.content');
+      if (content) content.scrollTop = 0;
+    }
+  </script>
 </body>
 </html>
