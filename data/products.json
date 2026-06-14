@@ -235,7 +235,7 @@
   },
   {
     "slug": "factory-tools",
-    "type": "extension",
+    "type": "website",
     "status": "public",
     "page_url": "/factory-tools/",
     "hero_image": "assets/factory-tools/hero.webp",

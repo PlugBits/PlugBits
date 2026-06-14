@@ -199,6 +199,28 @@ try {
     const visible = products.filter(p => (p.status || 'public') !== 'unlisted');
     const extensions = visible.filter(p => p.type === 'extension');
     const pluginList  = visible.filter(p => p.type === 'plugin');
+    const websites    = visible.filter(p => p.type === 'website');
+
+    const websiteHtml = websites.map(p => {
+      const title   = isJa ? p.title_ja        : p.title_en;
+      const summary = isJa ? p.short_summary_ja : p.short_summary_en;
+      const href    = p.page_url || '#';
+      const label   = isJa ? '詳しく見る →' : 'Learn more →';
+      const badge   = isJa ? '無料 / Webツール' : 'Free / Web Tool';
+      return [
+        `<a class="kb-launcher-card kb-website-card" href="${esc(href)}">`,
+        '  <div class="kb-launcher-card-body">',
+        `    <span class="kb-launcher-tag kb-website-tag">${badge}</span>`,
+        `    <h3>${esc(title)}</h3>`,
+        `    <p>${esc(summary)}</p>`,
+        `    <span class="kb-btn kb-btn-primary kb-launcher-cta">${label}</span>`,
+        '  </div>',
+        '  <div class="kb-launcher-card-visual">',
+        `    <img src="${esc(p.hero_image)}" alt="${esc(title)}" class="kb-launcher-logo">`,
+        '  </div>',
+        '</a>',
+      ].join('\n');
+    }).join('\n');
 
     const extHtml = extensions.map(p => {
       const title   = isJa ? p.title_ja         : p.title_en;
@@ -250,16 +272,17 @@ try {
       ].join('\n');
     }).join('\n');
 
-    return { extHtml, pluginHtml };
+    return { extHtml, pluginHtml, websiteHtml };
   }
 
-  const { extHtml: extJa, pluginHtml: pluginsJa } = buildCards('ja');
-  const { extHtml: extEn, pluginHtml: pluginsEn } = buildCards('en');
+  const { extHtml: extJa, pluginHtml: pluginsJa, websiteHtml: websitesJa } = buildCards('ja');
+  const { extHtml: extEn, pluginHtml: pluginsEn, websiteHtml: websitesEn } = buildCards('en');
 
   fs.writeFileSync(path.join(DIST, 'index.html'),
     tpl.indexJa
       .replaceAll('%%EXTENSION_CARDS%%', extJa)
       .replaceAll('%%PRODUCT_CARDS%%',   pluginsJa)
+      .replaceAll('%%WEBSITE_CARDS%%',   websitesJa)
       .replaceAll('%%SUPPORT_MAIL%%',    SUPPORT_MAIL)
       .replaceAll('%%SITE_COPYRIGHT%%',  SITE_COPYRIGHT)
   );
@@ -269,6 +292,7 @@ try {
     tpl.indexEn
       .replaceAll('%%EXTENSION_CARDS%%', extEn)
       .replaceAll('%%PRODUCT_CARDS%%',   pluginsEn)
+      .replaceAll('%%WEBSITE_CARDS%%',   websitesEn)
       .replaceAll('%%SUPPORT_MAIL%%',    SUPPORT_MAIL)
       .replaceAll('%%SITE_COPYRIGHT%%',  SITE_COPYRIGHT)
   );

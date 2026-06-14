@@ -613,6 +613,8 @@
 .kb-launcher-cta { align-self:flex-start; margin-top:4px; }
 .kb-launcher-card-visual { flex-shrink:0; }
 .kb-launcher-logo { width:96px; height:96px; object-fit:contain; border-radius:20px; }
+.kb-website-tag { color:#16a34a !important; background:#dcfce7 !important; border-color:#bbf7d0 !important; }
+.kb-website-card .kb-launcher-logo { width:120px; height:80px; object-fit:cover; border-radius:12px; }
 
 /* 空状態 */
 .kb-coming-notice { margin-top:20px; padding:28px; text-align:center; border:1px dashed var(--kb-line); border-radius:16px; color:var(--kb-sub); }
