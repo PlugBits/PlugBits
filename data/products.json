@@ -249,5 +249,22 @@
     "category_en": "Manufacturing Tools",
     "tags_ja": "工場, レイアウト, 3D, 無料",
     "tags_en": "factory, layout, 3D, free"
+  },
+  {
+    "slug": "factory-tools",
+    "type": "extension",
+    "status": "public",
+    "page_url": "https://yhtko.github.io/tools/",
+    "hero_image": "assets/factory-tools/hero.webp",
+    "og_image": "assets/factory-tools/hero.png",
+    "updated_at": "2026-06",
+    "title_ja": "Factory Tools — 工場管理ツール集",
+    "title_en": "Factory Tools — Manufacturing Tool Suite",
+    "short_summary_ja": "レイアウト設計・検査図面・標準時間・計算ツールを無料で。製造現場向けブラウザツール集。",
+    "short_summary_en": "Free browser tools for factory layout, inspection, standard time, and calculations.",
+    "category_ja": "製造業向けツール",
+    "category_en": "Manufacturing Tools",
+    "tags_ja": "工場, レイアウト, 標準時間, 無料",
+    "tags_en": "factory, layout, standard time, free"
   }
 ]
