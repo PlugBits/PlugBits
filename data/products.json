@@ -234,27 +234,10 @@
     "og_image": "assets/text-rule-builder/hero.png"
   },
   {
-    "slug": "factory-layout",
-    "type": "extension",
-    "status": "public",
-    "page_url": "https://plugbits.github.io/factory-layout/",
-    "hero_image": "assets/factory-layout/hero.webp",
-    "og_image": "assets/factory-layout/hero.png",
-    "updated_at": "2026-06",
-    "title_ja": "工場レイアウト作成ツール",
-    "title_en": "Factory Layout Planner",
-    "short_summary_ja": "設備・通路・安全エリアを2D/3Dで配置。ブラウザ完結・無料で使える工場レイアウトツール。",
-    "short_summary_en": "Place equipment, aisles, and safety areas in 2D/3D. A free, browser-based factory layout tool.",
-    "category_ja": "製造業向けツール",
-    "category_en": "Manufacturing Tools",
-    "tags_ja": "工場, レイアウト, 3D, 無料",
-    "tags_en": "factory, layout, 3D, free"
-  },
-  {
     "slug": "factory-tools",
     "type": "extension",
     "status": "public",
-    "page_url": "https://yhtko.github.io/tools/",
+    "page_url": "/factory-tools/",
     "hero_image": "assets/factory-tools/hero.webp",
     "og_image": "assets/factory-tools/hero.png",
     "updated_at": "2026-06",
