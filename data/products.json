@@ -230,7 +230,28 @@
       "Can one rule set apply to multiple fields?|Yes, the same rule set can be assigned to multiple output fields",
       "How do I prevent manual edits to the output field?|Enable the 'prevent direct changes on input screen' option in the plugin settings"
     ],
-    "screenshots": [],
+    "screenshots": [
+      {
+        "src": "assets/text-rule-builder/screenshot-config1.webp",
+        "caption_ja": "判定ルールをGUIで組み立てます。条件の追加・削除が直感的に行えます",
+        "caption_en": "Build decision rules in a visual GUI. Add and remove conditions intuitively"
+      },
+      {
+        "src": "assets/text-rule-builder/screenshot-config2.webp",
+        "caption_ja": "ルールが完成した状態。条件一致時の出力文字とデフォルト値を設定できます",
+        "caption_en": "Completed rule setup. Configure the output text for matched conditions and the default fallback value"
+      },
+      {
+        "src": "assets/text-rule-builder/screenshot-test.webp",
+        "caption_ja": "判定テストパネル。実際の値を入力して、保存前に動作を確認できます",
+        "caption_en": "Test panel lets you enter real values and verify behavior before saving"
+      },
+      {
+        "src": "assets/text-rule-builder/screenshot-record.webp",
+        "caption_ja": "レコード画面での動作例。条件に一致した文字列が自動で入力されます",
+        "caption_en": "Example in a kintone record. The matched string is automatically filled in"
+      }
+    ],
     "og_image": "assets/text-rule-builder/hero.png"
   },
   {
