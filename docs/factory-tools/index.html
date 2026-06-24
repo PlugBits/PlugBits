@@ -261,6 +261,7 @@
     .launch-green { background: #16a34a; }
     .launch-orange { background: #d97706; }
     .launch-purple { background: #7c3aed; }
+    .launch-teal { background: #0d9488; }
 
     /* ── Screenshots ── */
     .screenshot-row {
@@ -404,6 +405,9 @@
         </button>
         <button class="nav-item" data-section="st" onclick="showSection('st', this)">
           <span class="nav-icon">⏱</span><span data-i18n="navSt"></span>
+        </button>
+        <button class="nav-item" data-section="bgremover" onclick="showSection('bgremover', this)">
+          <span class="nav-icon">✂️</span><span data-i18n="navBgRemover"></span>
         </button>
       </nav>
 
@@ -641,6 +645,49 @@
           </div>
         </section>
 
+        <!-- SECTION: bgremover -->
+        <section class="tool-section" id="section-bgremover">
+          <div class="hero-card">
+            <div class="hero-badge" style="background:#ccfbf1; color:#0d9488;" data-i18n="badgeBgRemover"></div>
+            <h1 data-i18n="titleBgRemover"></h1>
+            <p data-i18n="descBgRemover"></p>
+            <a href="https://plugbits.github.io/background-remover/" class="launch-btn launch-teal tool-link" data-tool="bgremover" target="_blank" rel="noopener">
+              <span data-i18n="openTool"></span> <span>→</span>
+            </a>
+          </div>
+
+          <div class="feature-grid">
+            <div class="feature-card">
+              <div class="feature-icon" style="background:#ccfbf1; color:#0d9488;">🖼️</div>
+              <div class="feature-body">
+                <strong data-i18n="f_bg_upload"></strong>
+                <p data-i18n="f_bg_upload_d"></p>
+              </div>
+            </div>
+            <div class="feature-card">
+              <div class="feature-icon" style="background:#dbeafe; color:#2563eb;">🤖</div>
+              <div class="feature-body">
+                <strong data-i18n="f_bg_ai"></strong>
+                <p data-i18n="f_bg_ai_d"></p>
+              </div>
+            </div>
+            <div class="feature-card">
+              <div class="feature-icon" style="background:#fef9c3; color:#ca8a04;">👁️</div>
+              <div class="feature-body">
+                <strong data-i18n="f_bg_preview"></strong>
+                <p data-i18n="f_bg_preview_d"></p>
+              </div>
+            </div>
+            <div class="feature-card">
+              <div class="feature-icon" style="background:#ede9fe; color:#7c3aed;">💾</div>
+              <div class="feature-body">
+                <strong data-i18n="f_bg_download"></strong>
+                <p data-i18n="f_bg_download_d"></p>
+              </div>
+            </div>
+          </div>
+        </section>
+
       </div>
     </main>
   </div>
@@ -680,7 +727,15 @@
         f_st_time: '時間測定・レーティング', f_st_time_d: '実測時間にレーティングを掛けて正味時間を算出。複数回測定の平均も自動計算します。',
         f_st_balance: '工程バランス可視化', f_st_balance_d: '各工程の標準時間をバーチャートで比較。ボトルネックの特定に役立ちます。',
         f_st_export: 'データ保存・エクスポート', f_st_export_d: '作業データをブラウザに保存。CSV等でエクスポートして資料作成にも活用できます。',
-        topbarLayout: '工場レイアウト作成ツール', topbarInspection: 'PDF検査マーカー', topbarCalc: 'ForgeKit — 工場計算ツール集', topbarSt: '標準時間設計ツール',
+        topbarLayout: '工場レイアウト作成ツール', topbarInspection: 'PDF検査マーカー', topbarCalc: 'ForgeKit — 工場計算ツール集', topbarSt: '標準時間設計ツール', topbarBgRemover: '背景削除ツール',
+        navBgRemover: '背景削除',
+        badgeBgRemover: '✂️ 背景削除',
+        titleBgRemover: '背景削除ツール',
+        descBgRemover: '製品・部品の画像から背景を自動で削除。ブラウザ上でAI処理するため、ファイルのアップロード不要。透過PNG形式でダウンロードして、カタログ・資料・ECサイトに活用できます。',
+        f_bg_upload: '画像のアップロード', f_bg_upload_d: 'JPEG・PNG・WebPなど主要な画像形式に対応。ドラッグ＆ドロップで手軽に読み込めます。',
+        f_bg_ai: 'AI自動背景削除', f_bg_ai_d: 'AIが被写体を自動認識して背景をカット。製品・部品・人物など幅広い対象に対応します。',
+        f_bg_preview: 'ビフォーアフター確認', f_bg_preview_d: '処理前後の画像を並べて確認。仕上がりを即座にチェックできます。',
+        f_bg_download: '透過PNG出力', f_bg_download_d: '背景透過のPNG形式でダウンロード。カタログ・資料・ECサイトの素材として活用できます。',
       },
       en: {
         navLabel: 'Tools',
@@ -714,7 +769,15 @@
         f_st_time: 'Time Measurement & Rating', f_st_time_d: 'Multiply observed time by rating to get net time. Automatically averages multiple measurements.',
         f_st_balance: 'Process Balance Visualization', f_st_balance_d: 'Compare standard times across processes in a bar chart. Quickly identify bottlenecks.',
         f_st_export: 'Data Save & Export', f_st_export_d: 'Save work data in the browser. Export to CSV and other formats for documentation.',
-        topbarLayout: 'Factory Layout Planner', topbarInspection: 'PDF Inspection Marker', topbarCalc: 'ForgeKit — Factory Calc Tools', topbarSt: 'Standard Time Design Tool',
+        topbarLayout: 'Factory Layout Planner', topbarInspection: 'PDF Inspection Marker', topbarCalc: 'ForgeKit — Factory Calc Tools', topbarSt: 'Standard Time Design Tool', topbarBgRemover: 'Background Remover',
+        navBgRemover: 'BG Remover',
+        badgeBgRemover: '✂️ BG Remover',
+        titleBgRemover: 'Background Remover',
+        descBgRemover: 'Automatically remove backgrounds from product and parts images. AI processing runs in the browser — no file uploads needed. Download as transparent PNG for use in catalogs, documents, and e-commerce sites.',
+        f_bg_upload: 'Image Upload', f_bg_upload_d: 'Supports JPEG, PNG, WebP, and other major formats. Drag and drop for easy loading.',
+        f_bg_ai: 'AI Background Removal', f_bg_ai_d: 'AI automatically detects subjects and removes backgrounds. Works with products, parts, people, and more.',
+        f_bg_preview: 'Before/After Preview', f_bg_preview_d: 'Compare before and after side by side. Instantly check the results.',
+        f_bg_download: 'Transparent PNG Export', f_bg_download_d: 'Download as transparent PNG. Perfect for catalogs, documents, and e-commerce product images.',
       },
       zh: {
         navLabel: '工具',
@@ -748,7 +811,15 @@
         f_st_time: '时间测量与评级', f_st_time_d: '将实测时间乘以评级得出净时间，自动计算多次测量的平均值。',
         f_st_balance: '工序平衡可视化', f_st_balance_d: '通过条形图比较各工序的标准时间，快速识别瓶颈。',
         f_st_export: '数据保存与导出', f_st_export_d: '在浏览器中保存作业数据，可导出为CSV等格式用于文档制作。',
-        topbarLayout: '工厂布局设计工具', topbarInspection: 'PDF检查标记工具', topbarCalc: 'ForgeKit — 工厂计算工具集', topbarSt: '标准时间设计工具',
+        topbarLayout: '工厂布局设计工具', topbarInspection: 'PDF检查标记工具', topbarCalc: 'ForgeKit — 工厂计算工具集', topbarSt: '标准时间设计工具', topbarBgRemover: '背景删除工具',
+        navBgRemover: '背景删除',
+        badgeBgRemover: '✂️ 背景删除',
+        titleBgRemover: '背景删除工具',
+        descBgRemover: '自动从产品和零件图像中删除背景。AI处理在浏览器中进行，无需上传文件。以透明PNG格式下载，用于目录、文件和电商网站。',
+        f_bg_upload: '图像上传', f_bg_upload_d: '支持JPEG、PNG、WebP等主要图像格式。拖放即可轻松加载。',
+        f_bg_ai: 'AI自动背景删除', f_bg_ai_d: 'AI自动识别主体并去除背景，适用于产品、零件、人物等各类对象。',
+        f_bg_preview: '前后对比预览', f_bg_preview_d: '并排对比处理前后的图像，即时检查效果。',
+        f_bg_download: '透明PNG导出', f_bg_download_d: '以透明背景PNG格式下载，适用于目录、文档和电商产品图片。',
       },
       th: {
         navLabel: 'เครื่องมือ',
@@ -782,7 +853,15 @@
         f_st_time: 'วัดเวลาและให้คะแนน', f_st_time_d: 'คูณเวลาที่วัดได้กับคะแนนเพื่อได้เวลาสุทธิ คำนวณค่าเฉลี่ยหลายครั้งโดยอัตโนมัติ',
         f_st_balance: 'แสดงสมดุลกระบวนการ', f_st_balance_d: 'เปรียบเทียบเวลามาตรฐานในแต่ละกระบวนการด้วยแผนภูมิแท่ง ระบุคอขวดได้รวดเร็ว',
         f_st_export: 'บันทึกและส่งออกข้อมูล', f_st_export_d: 'บันทึกข้อมูลงานในเบราว์เซอร์ ส่งออกเป็น CSV และรูปแบบอื่นสำหรับเอกสาร',
-        topbarLayout: 'เครื่องมือออกแบบผังโรงงาน', topbarInspection: 'เครื่องมือทำเครื่องหมายตรวจสอบ PDF', topbarCalc: 'ForgeKit — ชุดเครื่องคำนวณโรงงาน', topbarSt: 'เครื่องมือออกแบบเวลามาตรฐาน',
+        topbarLayout: 'เครื่องมือออกแบบผังโรงงาน', topbarInspection: 'เครื่องมือทำเครื่องหมายตรวจสอบ PDF', topbarCalc: 'ForgeKit — ชุดเครื่องคำนวณโรงงาน', topbarSt: 'เครื่องมือออกแบบเวลามาตรฐาน', topbarBgRemover: 'เครื่องมือลบพื้นหลัง',
+        navBgRemover: 'ลบพื้นหลัง',
+        badgeBgRemover: '✂️ ลบพื้นหลัง',
+        titleBgRemover: 'เครื่องมือลบพื้นหลัง',
+        descBgRemover: 'ลบพื้นหลังจากภาพผลิตภัณฑ์และชิ้นส่วนโดยอัตโนมัติ การประมวลผล AI ทำงานในเบราว์เซอร์ ไม่ต้องอัปโหลดไฟล์ ดาวน์โหลดเป็น PNG แบบโปร่งใสสำหรับแคตตาล็อก เอกสาร และอีคอมเมิร์ซ',
+        f_bg_upload: 'อัปโหลดรูปภาพ', f_bg_upload_d: 'รองรับ JPEG, PNG, WebP และรูปแบบหลักอื่นๆ ลากวางเพื่อโหลดได้ง่าย',
+        f_bg_ai: 'ลบพื้นหลังด้วย AI', f_bg_ai_d: 'AI ตรวจจับวัตถุและลบพื้นหลังโดยอัตโนมัติ ใช้ได้กับผลิตภัณฑ์ ชิ้นส่วน บุคคล และอื่นๆ',
+        f_bg_preview: 'ดูตัวอย่างก่อน/หลัง', f_bg_preview_d: 'เปรียบเทียบภาพก่อนและหลังแบบเคียงข้าง ตรวจสอบผลลัพธ์ได้ทันที',
+        f_bg_download: 'ส่งออก PNG โปร่งใส', f_bg_download_d: 'ดาวน์โหลดเป็น PNG พื้นหลังโปร่งใส เหมาะสำหรับแคตตาล็อก เอกสาร และภาพสินค้าอีคอมเมิร์ซ',
       },
       id: {
         navLabel: 'Alat',
@@ -816,7 +895,15 @@
         f_st_time: 'Pengukuran Waktu & Penilaian', f_st_time_d: 'Kalikan waktu yang diamati dengan penilaian untuk mendapatkan waktu bersih. Rata-rata beberapa pengukuran secara otomatis.',
         f_st_balance: 'Visualisasi Keseimbangan Proses', f_st_balance_d: 'Bandingkan waktu standar antar proses dalam diagram batang. Identifikasi bottleneck dengan cepat.',
         f_st_export: 'Simpan & Ekspor Data', f_st_export_d: 'Simpan data kerja di browser. Ekspor ke CSV dan format lainnya untuk dokumentasi.',
-        topbarLayout: 'Alat Perancang Tata Letak Pabrik', topbarInspection: 'Alat Penanda Inspeksi PDF', topbarCalc: 'ForgeKit — Paket Alat Kalkulator Pabrik', topbarSt: 'Alat Desain Waktu Standar',
+        topbarLayout: 'Alat Perancang Tata Letak Pabrik', topbarInspection: 'Alat Penanda Inspeksi PDF', topbarCalc: 'ForgeKit — Paket Alat Kalkulator Pabrik', topbarSt: 'Alat Desain Waktu Standar', topbarBgRemover: 'Alat Penghapus Latar Belakang',
+        navBgRemover: 'Hapus BG',
+        badgeBgRemover: '✂️ Hapus BG',
+        titleBgRemover: 'Alat Penghapus Latar Belakang',
+        descBgRemover: 'Hapus latar belakang dari gambar produk dan suku cadang secara otomatis. Pemrosesan AI berjalan di browser — tidak perlu mengunggah file. Unduh sebagai PNG transparan untuk katalog, dokumen, dan situs e-commerce.',
+        f_bg_upload: 'Unggah Gambar', f_bg_upload_d: 'Mendukung JPEG, PNG, WebP, dan format utama lainnya. Seret dan lepas untuk memuat dengan mudah.',
+        f_bg_ai: 'Penghapusan Latar Belakang AI', f_bg_ai_d: 'AI secara otomatis mendeteksi subjek dan menghapus latar belakang. Bekerja dengan produk, suku cadang, orang, dan lainnya.',
+        f_bg_preview: 'Pratinjau Sebelum/Sesudah', f_bg_preview_d: 'Bandingkan sebelum dan sesudah secara berdampingan. Periksa hasil secara instan.',
+        f_bg_download: 'Ekspor PNG Transparan', f_bg_download_d: 'Unduh sebagai PNG transparan. Sempurna untuk katalog, dokumen, dan gambar produk e-commerce.',
       },
     };
 
@@ -826,10 +913,11 @@
       inspection: 'https://plugbits.github.io/inspection-marker/',
       calc:       'https://plugbits.github.io/ForgeKit/',
       st:         'https://plugbits.github.io/st-tool/',
+      bgremover:  'https://plugbits.github.io/background-remover/',
     };
 
     const TOPBAR_KEYS = {
-      layout: 'topbarLayout', inspection: 'topbarInspection', calc: 'topbarCalc', st: 'topbarSt',
+      layout: 'topbarLayout', inspection: 'topbarInspection', calc: 'topbarCalc', st: 'topbarSt', bgremover: 'topbarBgRemover',
     };
 
     /* ── State ── */
