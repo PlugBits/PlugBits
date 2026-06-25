@@ -262,6 +262,7 @@
     .launch-orange { background: #d97706; }
     .launch-purple { background: #7c3aed; }
     .launch-teal { background: #0d9488; }
+    .launch-cyan { background: #0891b2; }
 
     /* ── Screenshots ── */
     .screenshot-row {
@@ -408,6 +409,9 @@
         </button>
         <button class="nav-item" data-section="bgremover" onclick="showSection('bgremover', this)">
           <span class="nav-icon">✂️</span><span data-i18n="navBgRemover"></span>
+        </button>
+        <button class="nav-item" data-section="stp" onclick="showSection('stp', this)">
+          <span class="nav-icon">📦</span><span data-i18n="navStp"></span>
         </button>
       </nav>
 
@@ -688,6 +692,49 @@
           </div>
         </section>
 
+        <!-- SECTION: stp -->
+        <section class="tool-section" id="section-stp">
+          <div class="hero-card">
+            <div class="hero-badge" style="background:#cffafe; color:#0891b2;" data-i18n="badgeStp"></div>
+            <h1 data-i18n="titleStp"></h1>
+            <p data-i18n="descStp"></p>
+            <a href="https://plugbits.github.io/stp-viewer/" class="launch-btn launch-cyan tool-link" data-tool="stp" target="_blank" rel="noopener">
+              <span data-i18n="openTool"></span> <span>→</span>
+            </a>
+          </div>
+
+          <div class="feature-grid">
+            <div class="feature-card">
+              <div class="feature-icon" style="background:#cffafe; color:#0891b2;">📂</div>
+              <div class="feature-body">
+                <strong data-i18n="f_stp_load"></strong>
+                <p data-i18n="f_stp_load_d"></p>
+              </div>
+            </div>
+            <div class="feature-card">
+              <div class="feature-icon" style="background:#ede9fe; color:#7c3aed;">🔄</div>
+              <div class="feature-body">
+                <strong data-i18n="f_stp_view"></strong>
+                <p data-i18n="f_stp_view_d"></p>
+              </div>
+            </div>
+            <div class="feature-card">
+              <div class="feature-icon" style="background:#dcfce7; color:#16a34a;">📋</div>
+              <div class="feature-body">
+                <strong data-i18n="f_stp_parts"></strong>
+                <p data-i18n="f_stp_parts_d"></p>
+              </div>
+            </div>
+            <div class="feature-card">
+              <div class="feature-icon" style="background:#fef9c3; color:#ca8a04;">🌗</div>
+              <div class="feature-body">
+                <strong data-i18n="f_stp_theme"></strong>
+                <p data-i18n="f_stp_theme_d"></p>
+              </div>
+            </div>
+          </div>
+        </section>
+
       </div>
     </main>
   </div>
@@ -728,6 +775,15 @@
         f_st_balance: '工程バランス可視化', f_st_balance_d: '各工程の標準時間をバーチャートで比較。ボトルネックの特定に役立ちます。',
         f_st_export: 'データ保存・エクスポート', f_st_export_d: '作業データをブラウザに保存。CSV等でエクスポートして資料作成にも活用できます。',
         topbarLayout: '工場レイアウト作成ツール', topbarInspection: 'PDF検査マーカー', topbarCalc: 'ForgeKit — 工場計算ツール集', topbarSt: '標準時間設計ツール', topbarBgRemover: '背景削除ツール',
+        navStp: 'STPビューア',
+        badgeStp: '📦 STPビューア',
+        titleStp: 'STP / STEP ファイルビューア',
+        descStp: '.stp / .step 形式の3D CADファイルをブラウザで直接表示。インストール不要でドラッグ＆ドロップするだけで3Dモデルを確認できます。',
+        f_stp_load: 'STP/STEPを即開く', f_stp_load_d: 'ドラッグ＆ドロップまたはファイル選択でSTP/STEPファイルをブラウザに読み込めます。',
+        f_stp_view: '3D回転・ズーム', f_stp_view_d: 'マウスで自由に回転・ズーム・パン。モデルの全方向から形状を確認できます。',
+        f_stp_parts: 'パーツリスト', f_stp_parts_d: 'アセンブリのパーツ構成をリスト表示。部品を選択してハイライト表示できます。',
+        f_stp_theme: 'ダーク／ライト切替', f_stp_theme_d: 'ダークモードとライトモードを切り替えてモデルを見やすい背景で確認できます。',
+        topbarStp: 'STP / STEP ファイルビューア',
         navBgRemover: '背景削除',
         badgeBgRemover: '✂️ 背景削除',
         titleBgRemover: '背景削除ツール',
@@ -770,6 +826,15 @@
         f_st_balance: 'Process Balance Visualization', f_st_balance_d: 'Compare standard times across processes in a bar chart. Quickly identify bottlenecks.',
         f_st_export: 'Data Save & Export', f_st_export_d: 'Save work data in the browser. Export to CSV and other formats for documentation.',
         topbarLayout: 'Factory Layout Planner', topbarInspection: 'PDF Inspection Marker', topbarCalc: 'ForgeKit — Factory Calc Tools', topbarSt: 'Standard Time Design Tool', topbarBgRemover: 'Background Remover',
+        navStp: 'STP Viewer',
+        badgeStp: '📦 STP Viewer',
+        titleStp: 'STP / STEP File Viewer',
+        descStp: 'Open .stp / .step 3D CAD files directly in the browser. No installation needed — just drag and drop to inspect 3D models instantly.',
+        f_stp_load: 'Open STP/STEP Instantly', f_stp_load_d: 'Drag and drop or select a STP/STEP file to load it in the browser immediately.',
+        f_stp_view: '3D Rotate, Zoom & Pan', f_stp_view_d: 'Freely rotate, zoom, and pan with the mouse to inspect the model from any angle.',
+        f_stp_parts: 'Parts List', f_stp_parts_d: 'View the assembly part hierarchy in a list. Select parts to highlight them in the 3D view.',
+        f_stp_theme: 'Dark / Light Theme', f_stp_theme_d: 'Toggle between dark and light mode to view models against the most readable background.',
+        topbarStp: 'STP / STEP File Viewer',
         navBgRemover: 'BG Remover',
         badgeBgRemover: '✂️ BG Remover',
         titleBgRemover: 'Background Remover',
@@ -812,6 +877,15 @@
         f_st_balance: '工序平衡可视化', f_st_balance_d: '通过条形图比较各工序的标准时间，快速识别瓶颈。',
         f_st_export: '数据保存与导出', f_st_export_d: '在浏览器中保存作业数据，可导出为CSV等格式用于文档制作。',
         topbarLayout: '工厂布局设计工具', topbarInspection: 'PDF检查标记工具', topbarCalc: 'ForgeKit — 工厂计算工具集', topbarSt: '标准时间设计工具', topbarBgRemover: '背景删除工具',
+        navStp: 'STP查看器',
+        badgeStp: '📦 STP查看器',
+        titleStp: 'STP / STEP 文件查看器',
+        descStp: '直接在浏览器中打开 .stp / .step 3D CAD文件。无需安装，拖放即可即时查看3D模型。',
+        f_stp_load: '即时打开STP/STEP', f_stp_load_d: '拖放或选择STP/STEP文件，立即在浏览器中加载。',
+        f_stp_view: '3D旋转、缩放和平移', f_stp_view_d: '用鼠标自由旋转、缩放和平移，从任意角度检查模型。',
+        f_stp_parts: '零件列表', f_stp_parts_d: '在列表中查看装配体零件层级。选择零件在3D视图中高亮显示。',
+        f_stp_theme: '深色/浅色主题', f_stp_theme_d: '在深色和浅色模式之间切换，以最易读的背景查看模型。',
+        topbarStp: 'STP / STEP 文件查看器',
         navBgRemover: '背景删除',
         badgeBgRemover: '✂️ 背景删除',
         titleBgRemover: '背景删除工具',
@@ -854,6 +928,15 @@
         f_st_balance: 'แสดงสมดุลกระบวนการ', f_st_balance_d: 'เปรียบเทียบเวลามาตรฐานในแต่ละกระบวนการด้วยแผนภูมิแท่ง ระบุคอขวดได้รวดเร็ว',
         f_st_export: 'บันทึกและส่งออกข้อมูล', f_st_export_d: 'บันทึกข้อมูลงานในเบราว์เซอร์ ส่งออกเป็น CSV และรูปแบบอื่นสำหรับเอกสาร',
         topbarLayout: 'เครื่องมือออกแบบผังโรงงาน', topbarInspection: 'เครื่องมือทำเครื่องหมายตรวจสอบ PDF', topbarCalc: 'ForgeKit — ชุดเครื่องคำนวณโรงงาน', topbarSt: 'เครื่องมือออกแบบเวลามาตรฐาน', topbarBgRemover: 'เครื่องมือลบพื้นหลัง',
+        navStp: 'ดู STP',
+        badgeStp: '📦 ดู STP',
+        titleStp: 'โปรแกรมดูไฟล์ STP / STEP',
+        descStp: 'เปิดไฟล์ 3D CAD .stp / .step ในเบราว์เซอร์โดยตรง ไม่ต้องติดตั้ง เพียงลากวางเพื่อตรวจสอบโมเดล 3D ทันที',
+        f_stp_load: 'เปิด STP/STEP ได้เลย', f_stp_load_d: 'ลากวางหรือเลือกไฟล์ STP/STEP เพื่อโหลดในเบราว์เซอร์ทันที',
+        f_stp_view: 'หมุน ซูม และเลื่อน 3D', f_stp_view_d: 'หมุน ซูม และเลื่อนด้วยเมาส์อย่างอิสระเพื่อตรวจสอบโมเดลจากทุกมุม',
+        f_stp_parts: 'รายการชิ้นส่วน', f_stp_parts_d: 'ดูลำดับชั้นชิ้นส่วนของชุดประกอบในรายการ เลือกชิ้นส่วนเพื่อไฮไลต์ในมุมมอง 3D',
+        f_stp_theme: 'ธีมมืด/สว่าง', f_stp_theme_d: 'สลับระหว่างโหมดมืดและสว่างเพื่อดูโมเดลบนพื้นหลังที่อ่านง่ายที่สุด',
+        topbarStp: 'โปรแกรมดูไฟล์ STP / STEP',
         navBgRemover: 'ลบพื้นหลัง',
         badgeBgRemover: '✂️ ลบพื้นหลัง',
         titleBgRemover: 'เครื่องมือลบพื้นหลัง',
@@ -896,6 +979,15 @@
         f_st_balance: 'Visualisasi Keseimbangan Proses', f_st_balance_d: 'Bandingkan waktu standar antar proses dalam diagram batang. Identifikasi bottleneck dengan cepat.',
         f_st_export: 'Simpan & Ekspor Data', f_st_export_d: 'Simpan data kerja di browser. Ekspor ke CSV dan format lainnya untuk dokumentasi.',
         topbarLayout: 'Alat Perancang Tata Letak Pabrik', topbarInspection: 'Alat Penanda Inspeksi PDF', topbarCalc: 'ForgeKit — Paket Alat Kalkulator Pabrik', topbarSt: 'Alat Desain Waktu Standar', topbarBgRemover: 'Alat Penghapus Latar Belakang',
+        navStp: 'Lihat STP',
+        badgeStp: '📦 Lihat STP',
+        titleStp: 'Penampil File STP / STEP',
+        descStp: 'Buka file 3D CAD .stp / .step langsung di browser. Tidak perlu instalasi — cukup seret dan lepas untuk memeriksa model 3D secara instan.',
+        f_stp_load: 'Buka STP/STEP Seketika', f_stp_load_d: 'Seret dan lepas atau pilih file STP/STEP untuk memuatnya di browser secara langsung.',
+        f_stp_view: 'Putar, Zoom & Geser 3D', f_stp_view_d: 'Putar, zoom, dan geser dengan mouse secara bebas untuk memeriksa model dari semua sudut.',
+        f_stp_parts: 'Daftar Suku Cadang', f_stp_parts_d: 'Lihat hierarki bagian rakitan dalam daftar. Pilih bagian untuk menyorotnya di tampilan 3D.',
+        f_stp_theme: 'Tema Gelap / Terang', f_stp_theme_d: 'Beralih antara mode gelap dan terang untuk melihat model dengan latar belakang yang paling mudah dibaca.',
+        topbarStp: 'Penampil File STP / STEP',
         navBgRemover: 'Hapus BG',
         badgeBgRemover: '✂️ Hapus BG',
         titleBgRemover: 'Alat Penghapus Latar Belakang',
@@ -914,10 +1006,11 @@
       calc:       'https://plugbits.github.io/ForgeKit/',
       st:         'https://plugbits.github.io/st-tool/',
       bgremover:  'https://plugbits.github.io/background-remover/',
+      stp:        'https://plugbits.github.io/stp-viewer/',
     };
 
     const TOPBAR_KEYS = {
-      layout: 'topbarLayout', inspection: 'topbarInspection', calc: 'topbarCalc', st: 'topbarSt', bgremover: 'topbarBgRemover',
+      layout: 'topbarLayout', inspection: 'topbarInspection', calc: 'topbarCalc', st: 'topbarSt', bgremover: 'topbarBgRemover', stp: 'topbarStp',
     };
 
     /* ── State ── */
