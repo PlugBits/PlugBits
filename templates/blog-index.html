@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>ブログ | PlugBits — kintone向けプラグイン＆ブラウザ拡張機能</title>
+  <meta name="description" content="kintoneの業務改善や3Dデータ活用など、現場で役立つ情報をお届けするPlugBitsのブログです。">
+  <link rel="canonical" href="https://plugbits.app/blog/">
+  <link rel="stylesheet" href="/style.css">
+  <style>
+    .kb-blog-card{display:flex;flex-direction:column;background:var(--kb-surface);border:1px solid var(--kb-line);border-radius:16px;padding:20px 22px;text-decoration:none;color:inherit;box-shadow:0 1px 2px rgba(16,24,40,.04);transition:transform .18s,box-shadow .18s,border-color .18s}
+    .kb-blog-card:hover{transform:translateY(-3px);box-shadow:0 10px 26px rgba(16,24,40,.10);border-color:var(--kb-line-strong)}
+    .kb-blog-card h3{font-size:17px;line-height:1.4;font-weight:700;margin:0 0 8px;color:var(--kb-text)}
+    .kb-blog-card p{color:var(--kb-sub);font-size:14px;line-height:1.6;margin:0 0 16px}
+    .kb-blog-card-foot{margin-top:auto;display:flex;align-items:center;justify-content:space-between;font-size:13px;color:var(--kb-muted)}
+  </style>
+</head>
+<body class="kb-root">
+
+  <!-- Header -->
+  <header class="kb-site-header">
+  <div class="kb-container kb-topbar">
+    <a class="kb-brand-link" href="/">
+      <img src="/assets/plugbits-logo.webp" alt="PlugBits" class="kb-logo-img">
+      <div class="kb-brand-text">
+        <span class="kb-brand-name">PlugBits</span>
+        <span class="kb-brand-tagline">kintone向けプラグイン＆ブラウザ拡張機能</span>
+      </div>
+    </a>
+    <nav class="kb-topbar-nav">
+      <a href="/#plugins">プラグイン</a>
+      <a href="/blog/">ブログ</a>
+      <a href="/privacy.html">プライバシー</a>
+    </nav>
+  </div>
+  </header>
+
+  <header class="kb-hero">
+    <div class="kb-container">
+      <p class="kb-eyebrow">PlugBits Blog</p>
+      <h1 class="kb-hero-title">現場で役立つ情報を、<br>ちょっとずつ。</h1>
+      <p class="kb-hero-sub">kintoneの業務改善や3Dデータ活用など、実務で困りがちなポイントをまとめています。</p>
+    </div>
+  </header>
+
+  <main class="kb-index-main">
+    <div class="kb-container">
+      <section class="kb-section">
+        <section class="kb-card-grid" id="kb-blog-grid">
+          %%POST_CARDS%%
+        </section>
+        <div class="kb-coming-notice" id="kb-blog-empty" style="display:none">
+          <p>記事は準備中です。もうしばらくお待ちください。</p>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <!-- Footer -->
+  <footer class="kb-footer kb-container">
+    <nav class="kb-footer-links">
+      <a href="mailto:%%SUPPORT_MAIL%%">お問い合わせ</a>
+      <a href="/install2.html">導入ガイド</a>
+      <a href="/privacy.html">プライバシーポリシー</a>
+      <a href="/terms.html">利用規約</a>
+    </nav>
+    <small>%%SITE_COPYRIGHT%%</small>
+  </footer>
+
+<!-- Cloudflare Web Analytics --><script defer src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon='{"token": "86511d1154774394986239de33d21882"}'></script><!-- End Cloudflare Web Analytics -->
+</body>
+</html>
