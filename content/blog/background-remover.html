@@ -1,0 +1,88 @@
+<nav class="kb-article-toc" aria-label="目次">
+  <h2>目次</h2>
+  <ol class="kb-article-ordered">
+    <li><a href="#motive">検査成績書の写真、背景除去が少し気になっていました</a></li>
+    <li><a href="#first-surprise">ブラウザだけでAIが動くことに驚きました</a></li>
+    <li><a href="#challenge">作ってはみたものの、仕上がりが甘いことがありました</a></li>
+    <li><a href="#decision">なぜ「ポリゴンで囲む」方式にしたか</a></li>
+    <li><a href="#result">手軽に、きれいに、安全に</a></li>
+    <li><a href="#faq">よくある質問</a></li>
+  </ol>
+</nav>
+
+<section id="motive" class="kb-article-section">
+  <h2>検査成績書の写真、背景除去が少し気になっていました</h2>
+  <div class="kb-section-card">
+    <p class="kb-article-paragraph">海外の拠点(タイ)から届く検査成績書に、実物の写真が載っていることがあります。背景を消して製品だけを見せる形になっていたのですが、その背景除去の仕上がりが、正直あまりきれいではありませんでした。輪郭がガタついていたり、製品の一部まで消えてしまっていたり。</p>
+    <p class="kb-article-paragraph">大きな問題というほどではないのですが、資料として見るたびに「ここ、もう少しきれいにならないかな」と気になっていました。</p>
+  </div>
+</section>
+
+<section id="first-surprise" class="kb-article-section">
+  <h2>ブラウザだけでAIが動くことに驚きました</h2>
+  <div class="kb-section-card">
+    <p class="kb-article-paragraph">それで、試しに「画像の背景をAIで自動的に消せないか」と調べてみました。そうしたら、ブラウザの中だけで、しかも無料でAIによる背景除去が動くということを知り、単純に驚きました。ソフトのインストールも、会員登録も必要ありません。</p>
+    <p class="kb-article-paragraph">自分はコードを書けないのですが、最近はAIに相談しながら形にできる場面が増えてきていたので、これも試しに作ってみることにしました。</p>
+  </div>
+</section>
+
+<section id="challenge" class="kb-article-section">
+  <h2>作ってはみたものの、仕上がりが甘いことがありました</h2>
+  <div class="kb-section-card">
+    <p class="kb-article-paragraph">AIと一緒に進めて、ブラウザ上で画像をアップロードすると自動で背景が消える、というところまでは形になりました。ただ、実際に色々な写真で試してみると、自動除去だけでは仕上がりが甘いことがありました。細かい部分が消えきらなかったり、逆に製品の一部まで一緒に消えてしまったり。</p>
+    <p class="kb-article-callout"><strong>正直なところ：</strong>自動処理の精度がなぜそこで落ちるのか、技術的な理由は自分ではよく分かっていません。それでも「このままだと惜しい」というのは、見た目で十分わかりました。</p>
+  </div>
+</section>
+
+<section id="decision" class="kb-article-section">
+  <h2>なぜ「ポリゴンで囲む」方式にしたか</h2>
+  <div class="kb-section-card kb-section-card--stack">
+    <p class="kb-article-paragraph">そこで、自動除去だけに頼らず、残す範囲・消す範囲を自分で手動で決められるようにしました。ここは今回、一番自分の判断が入ったところです。</p>
+    <p class="kb-article-paragraph">背景除去ツールでよく見かけるのは、ブラシで塗って範囲を選ぶ方式です。ただ、これが自分にとってはあまり得意ではありませんでした。マウスやトラックパッドで細かい輪郭に沿ってブラシを動かすのが苦手で、はみ出したり、逆に塗り残したりしてしまうことが多かったのです。</p>
+    <p class="kb-article-paragraph">なので、ブラシではなく、ポリゴン(多角形)で範囲を囲む方式にしました。輪郭に沿って点を置いていき、最後につなげて範囲を決める、というやり方です。これなら、手先の器用さよりも「どこに点を置くか」という判断だけで済むので、自分でも狙った範囲をきれいに指定できました。</p>
+    <p class="kb-article-hint">これは技術的にこちらの方が優れている、という話ではなく、あくまで自分がブラシ操作を苦手としていたので選んだ、という個人的な好みの話です。ブラシが得意な方には、ブラシ方式の方が合うかもしれません。</p>
+  </div>
+</section>
+
+<section id="result" class="kb-article-section">
+  <h2>手軽に、きれいに、安全に</h2>
+  <div class="kb-section-card kb-section-card--stack">
+    <p class="kb-article-paragraph">自動除去で大まかに背景を消したあと、気になる部分だけポリゴンで範囲を指定して調整する、という流れにしたことで、以前より手軽に、きれいな仕上がりにできるようになりました。</p>
+    <p class="kb-article-paragraph">画像はどこかのサーバーに送るのではなく、ブラウザの中だけで処理が完結しています。社外に出しにくい製品写真や検査資料でも、安心して使えるのはありがたいポイントです。</p>
+  </div>
+</section>
+
+<section id="faq" class="kb-article-section">
+  <h2>よくある質問</h2>
+  <div class="kb-faq">
+    <div class="kb-faq-item">
+      <h3>無料で使えますか？</h3>
+      <p>はい、無料でご利用いただけます。</p>
+    </div>
+    <div class="kb-faq-item">
+      <h3>会員登録は必要ですか？</h3>
+      <p>不要です。ブラウザでアクセスするだけでお使いいただけます。</p>
+    </div>
+    <div class="kb-faq-item">
+      <h3>画像はサーバーに送信されますか？</h3>
+      <p>送信されません。処理はブラウザの中だけで完結します。</p>
+    </div>
+    <div class="kb-faq-item">
+      <h3>どんな画像形式に対応していますか？</h3>
+      <p>JPEG・PNG・WebPなど主要な形式に対応しています。</p>
+    </div>
+  </div>
+</section>
+
+<div class="kb-divider" role="presentation"></div>
+
+<section class="kb-article-section">
+  <p class="kb-article-paragraph">コードは書けませんが、AIと一緒に進めれば、こうした「自分好みのUI」まで作り込めるんだ、というのが今回の一番の収穫でした。ブラシではなくポリゴンにしたのも、突き詰めれば「自分が使いやすいから」という理由だけです。それでも、狙った通りに動くところまで作れたのは、素直に驚きでした。</p>
+  <div class="kb-support-cards">
+    <div class="kb-support-card">
+      <strong>このツールで試せます</strong>
+      <p class="kb-article-paragraph">会員登録・インストール不要、ブラウザだけで背景除去から手動調整まで完結します。</p>
+      <p><a href="https://plugbits.github.io/background-remover/" target="_blank" rel="noopener">背景削除ツールを開く →</a></p>
+    </div>
+  </div>
+</section>

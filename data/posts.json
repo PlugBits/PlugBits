@@ -14,6 +14,25 @@
     "og_image": "",
     "tool_url": "https://stp-viewer.plugbits.app/",
     "tool_name": "STPビューア",
+    "cta_intro": "STEPファイルを今すぐ開きたい方へ。会員登録・インストール不要、ブラウザだけで使えます。",
     "card_summary": "取引先からSTP/STEPを受け取ったけれど、CADがない。そんな時にブラウザだけで形状を確認する方法をまとめました。"
+  },
+  {
+    "slug": "background-remover",
+    "status": "public",
+    "title": "画像の背景を無料で透過する方法｜ブラウザ完結・手動できれいに仕上げるコツ",
+    "h1": "画像の背景を、ブラウザで無料できれいに透過する方法",
+    "description": "写真の背景除去、AI任せだと仕上がりが雑になることがあります。会員登録・インストール不要、ブラウザだけで完結する無料ツールと、手動できれいに仕上げるコツを紹介します。",
+    "keywords": "背景 透過 無料, 背景除去 ブラウザ, 背景 切り抜き 手動, 背景透過 きれい",
+    "hero_label": "画像編集ガイド",
+    "read_time": "5分で読めます",
+    "published_at": "2026-07-12",
+    "updated_at": "2026-07-12",
+    "content_file": "background-remover.html",
+    "og_image": "",
+    "tool_url": "https://plugbits.github.io/background-remover/",
+    "tool_name": "背景削除ツール",
+    "cta_intro": "背景を今すぐ消したい方へ。登録・インストール不要、ブラウザだけで使えます。",
+    "card_summary": "AI任せの背景除去がなんとなく雑に感じたので、手動できれいに仕上げられる方法を考えてみました。"
   }
 ]

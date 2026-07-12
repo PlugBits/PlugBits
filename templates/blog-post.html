@@ -15,6 +15,14 @@
   %%OG_IMAGE_TAG%%
   <meta name="twitter:card" content="summary_large_image">
   <link rel="stylesheet" href="/style.css">
+  <style>
+    .kb-article-intro-cta{margin:0 56px 8px;padding:20px 24px;background:linear-gradient(140deg,#eef4ff,#f7faff);border:1px solid rgba(47,100,226,.18);border-radius:18px;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:16px}
+    .kb-article-intro-cta p{margin:0;color:var(--kb-text);font-size:14.5px;line-height:1.6;flex:1;min-width:200px}
+    .kb-article-intro-cta .kb-cta-primary{flex-shrink:0;white-space:nowrap}
+    @media (max-width:720px){
+      .kb-article-intro-cta{margin:0 24px 8px;padding:16px 18px}
+    }
+  </style>
   <script type="application/ld+json">%%JSONLD%%</script>
 </head>
 <body class="kb-root">
@@ -62,6 +70,11 @@
           </div>
         </div>
       </header>
+
+      <div class="kb-article-intro-cta">
+        <p>%%CTA_INTRO%%</p>
+        <a class="kb-cta-primary" href="%%TOOL_URL%%" target="_blank" rel="noopener">%%TOOL_NAME%%を開く →</a>
+      </div>
 
       <div class="kb-article-body">
         %%CONTENT_HTML%%
