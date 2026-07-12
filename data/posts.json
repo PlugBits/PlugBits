@@ -1,0 +1,19 @@
+[
+  {
+    "slug": "step-file-open",
+    "status": "public",
+    "title": "STEPファイル(STP)をCADなしで開く方法｜無料・登録不要・タブレット対応",
+    "h1": "STEPファイル（STP）を、CADがなくてもブラウザで開く方法",
+    "description": "取引先から届いたSTEP/STPファイルは、3D CADがなくてもブラウザだけで開けます。会員登録・インストール不要、iPadなどタブレットにも対応した無料ツールの使い方を紹介します。",
+    "keywords": "STEPファイル 開く方法, stpファイル 開けない, STEP 開き方 無料, stpビューア タブレット, STEP iPad 開く",
+    "hero_label": "3Dデータ活用ガイド",
+    "read_time": "5分で読めます",
+    "published_at": "2026-07-12",
+    "updated_at": "2026-07-12",
+    "content_file": "step-file-open.html",
+    "og_image": "",
+    "tool_url": "https://stp-viewer.plugbits.app/",
+    "tool_name": "STPビューア",
+    "card_summary": "取引先からSTP/STEPを受け取ったけれど、CADがない。そんな時にブラウザだけで形状を確認する方法をまとめました。"
+  }
+]

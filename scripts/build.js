@@ -10,6 +10,8 @@ const DIST = path.join(ROOT, 'dist');
 const PRODUCTS_DIR = path.join(DIST, 'products');
 const PRODUCTS_EN_DIR = path.join(PRODUCTS_DIR, 'en');
 const MANUALS_SRC = path.join(ROOT, 'manuals');
+const BLOG_CONTENT_SRC = path.join(ROOT, 'content', 'blog');
+const BLOG_DIST = path.join(DIST, 'blog');
 
 // サイト共通定数（products.json に持たせない）
 const SUPPORT_MAIL = 'support@plugbits.app';
@@ -65,6 +67,12 @@ function shortText(s, n = 64) {
   return s.length > n ? s.slice(0, n - 1) + '…' : s;
 }
 
+function formatDateJa(iso) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(iso || ''));
+  if (!m) return iso || '';
+  return `${Number(m[1])}年${Number(m[2])}月${Number(m[3])}日`;
+}
+
 /* screenshots: [{ src, caption_ja, caption_en }, ...] */
 function renderScreenshots(screenshots, captionKey, imgPrefix) {
   const arr = Array.isArray(screenshots) ? screenshots : [];
@@ -97,6 +105,8 @@ try {
     manualEn: readText(path.join(ROOT, 'templates', 'manual-en.html')),
     indexJa:  readText(path.join(ROOT, 'templates', 'index-ja.html')),
     indexEn:  readText(path.join(ROOT, 'templates', 'index-en.html')),
+    blogPost:  readText(path.join(ROOT, 'templates', 'blog-post.html')),
+    blogIndex: readText(path.join(ROOT, 'templates', 'blog-index.html')),
   };
 
   const plugins = products.filter(p => p.type === 'plugin');
@@ -192,6 +202,79 @@ try {
       fs.writeFileSync(path.join(PRODUCTS_EN_DIR, `${p.slug}-manual.html`), out);
     }
   }
+
+  // ブログ記事生成（data/posts.json + content/blog/*.html）
+  const postsJsonPath = path.join(ROOT, 'data', 'posts.json');
+  const posts = fileExists(postsJsonPath) ? readJSON(postsJsonPath) : [];
+  const visiblePosts = posts.filter(post => (post.status || 'public') === 'public');
+
+  for (const post of visiblePosts) {
+    const contentPath = path.join(BLOG_CONTENT_SRC, post.content_file);
+    const contentHtml = fileExists(contentPath) ? readText(contentPath) : '';
+    const ogUrl = `https://plugbits.app/blog/${post.slug}/`;
+    const ogImageTag = post.og_image
+      ? `<meta property="og:image" content="https://plugbits.app/${post.og_image.replace(/^\.?\/+/, '')}">`
+      : '';
+    const jsonLd = JSON.stringify({
+      '@context': 'https://schema.org',
+      '@type': 'Article',
+      headline: post.title,
+      description: post.description,
+      datePublished: post.published_at,
+      dateModified: post.updated_at || post.published_at,
+      author: { '@type': 'Organization', name: 'PlugBits' },
+      publisher: { '@type': 'Organization', name: 'PlugBits' },
+      mainEntityOfPage: ogUrl,
+    });
+
+    const map = {
+      '%%TITLE%%':                 esc(post.title),
+      '%%H1%%':                    esc(post.h1 || post.title),
+      '%%DESCRIPTION%%':           esc(post.description),
+      '%%KEYWORDS%%':              esc(post.keywords),
+      '%%OG_URL%%':                ogUrl,
+      '%%OG_IMAGE_TAG%%':          ogImageTag,
+      '%%HERO_LABEL%%':            esc(post.hero_label),
+      '%%READ_TIME%%':             esc(post.read_time),
+      '%%PUBLISHED_AT_DISPLAY%%':  esc(formatDateJa(post.published_at)),
+      '%%UPDATED_AT_DISPLAY%%':    esc(formatDateJa(post.updated_at || post.published_at)),
+      '%%CONTENT_HTML%%':          contentHtml,
+      '%%SUPPORT_MAIL%%':          SUPPORT_MAIL,
+      '%%SITE_COPYRIGHT%%':        SITE_COPYRIGHT,
+      '%%JSONLD%%':                jsonLd,
+    };
+
+    let out = tpl.blogPost;
+    for (const [k, v] of Object.entries(map)) out = out.replaceAll(k, String(v ?? ''));
+
+    const postDir = path.join(BLOG_DIST, post.slug);
+    fs.mkdirSync(postDir, { recursive: true });
+    fs.writeFileSync(path.join(postDir, 'index.html'), out);
+  }
+
+  // ブログ一覧ページ生成
+  const postCardsHtml = visiblePosts
+    .slice()
+    .sort((a, b) => (a.published_at < b.published_at ? 1 : -1))
+    .map(post => [
+      `<a class="kb-blog-card" href="/blog/${post.slug}/">`,
+      `  <h3>${esc(post.title)}</h3>`,
+      `  <p>${esc(post.card_summary || post.description)}</p>`,
+      '  <div class="kb-blog-card-foot">',
+      `    <span>${esc(formatDateJa(post.published_at))}</span>`,
+      '    <span class="kb-btn">読む</span>',
+      '  </div>',
+      '</a>',
+    ].join('\n'))
+    .join('\n');
+
+  fs.mkdirSync(BLOG_DIST, { recursive: true });
+  fs.writeFileSync(path.join(BLOG_DIST, 'index.html'),
+    tpl.blogIndex
+      .replaceAll('%%POST_CARDS%%',     postCardsHtml)
+      .replaceAll('%%SUPPORT_MAIL%%',   SUPPORT_MAIL)
+      .replaceAll('%%SITE_COPYRIGHT%%', SITE_COPYRIGHT)
+  );
 
   // インデックスページ用カード生成
   function buildCards(lang) {
@@ -336,6 +419,8 @@ try {
     if (fileExists(path.join(MANUALS_SRC, `${p.slug}.ja.md`))) urls.push(`/products/${p.slug}-manual.html`);
     if (fileExists(path.join(MANUALS_SRC, `${p.slug}.en.md`))) urls.push(`/products/en/${p.slug}-manual.html`);
   }
+  urls.push('/blog/');
+  for (const post of visiblePosts) urls.push(`/blog/${post.slug}/`);
   const xml = base.replace('</urlset>',
     urls.map(u => `<url><loc>{{BASE_URL}}${u}</loc></url>`).join('') + '</urlset>'
   );

@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>%%TITLE%%</title>
+  <meta name="description" content="%%DESCRIPTION%%">
+  <meta name="keywords" content="%%KEYWORDS%%">
+  <link rel="canonical" href="%%OG_URL%%">
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="%%TITLE%%">
+  <meta property="og:description" content="%%DESCRIPTION%%">
+  <meta property="og:url" content="%%OG_URL%%">
+  <meta property="og:site_name" content="PlugBits">
+  %%OG_IMAGE_TAG%%
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="stylesheet" href="/style.css">
+  <script type="application/ld+json">%%JSONLD%%</script>
+</head>
+<body class="kb-root">
+
+  <!-- Header -->
+  <header class="kb-site-header">
+  <div class="kb-container kb-topbar">
+    <a class="kb-brand-link" href="/">
+      <img src="/assets/plugbits-logo.webp" alt="PlugBits" class="kb-logo-img">
+      <div class="kb-brand-text">
+        <span class="kb-brand-name">PlugBits</span>
+        <span class="kb-brand-tagline">kintone向けプラグイン＆ブラウザ拡張機能</span>
+      </div>
+    </a>
+    <nav class="kb-topbar-nav">
+      <a href="/#plugins">プラグイン</a>
+      <a href="/blog/">ブログ</a>
+      <a href="/privacy.html">プライバシー</a>
+    </nav>
+  </div>
+  </header>
+
+  <!-- Breadcrumb -->
+  <div class="kb-container kb-breadcrumb">
+    <a class="kb-back" href="/blog/">← ブログ一覧に戻る</a>
+  </div>
+
+  <main class="kb-container">
+    <article class="kb-article">
+      <header class="kb-article-header">
+        <p class="kb-article-label">%%HERO_LABEL%%</p>
+        <h1>%%H1%%</h1>
+        <div class="kb-article-meta">
+          <div class="kb-meta-chip">
+            <strong>公開日</strong>
+            <span>%%PUBLISHED_AT_DISPLAY%%</span>
+          </div>
+          <div class="kb-meta-chip">
+            <strong>更新日</strong>
+            <span>%%UPDATED_AT_DISPLAY%%</span>
+          </div>
+          <div class="kb-meta-chip">
+            <strong>読了目安</strong>
+            <span>%%READ_TIME%%</span>
+          </div>
+        </div>
+      </header>
+
+      <div class="kb-article-body">
+        %%CONTENT_HTML%%
+
+        <p class="kb-article-footer">%%SITE_COPYRIGHT%%</p>
+      </div>
+    </article>
+  </main>
+
+  <!-- Footer -->
+  <footer class="kb-footer kb-container">
+    <nav class="kb-footer-links">
+      <a href="mailto:%%SUPPORT_MAIL%%">お問い合わせ</a>
+      <a href="/blog/">ブログ</a>
+      <a href="/install2.html">導入ガイド</a>
+      <a href="/privacy.html">プライバシーポリシー</a>
+      <a href="/terms.html">利用規約</a>
+    </nav>
+    <small>%%SITE_COPYRIGHT%%</small>
+  </footer>
+
+<!-- Cloudflare Web Analytics --><script defer src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon='{"token": "86511d1154774394986239de33d21882"}'></script><!-- End Cloudflare Web Analytics -->
+</body>
+</html>
