@@ -393,25 +393,25 @@
       </div>
 
       <nav class="nav">
-        <div class="nav-section-label" data-i18n="navLabel"></div>
+        <div class="nav-section-label" data-i18n="navLabel">ツール</div>
 
         <button class="nav-item active" data-section="layout" onclick="showSection('layout', this)">
-          <span class="nav-icon">🏭</span><span data-i18n="navLayout"></span>
+          <span class="nav-icon">🏭</span><span data-i18n="navLayout">工場レイアウト</span>
         </button>
         <button class="nav-item" data-section="inspection" onclick="showSection('inspection', this)">
-          <span class="nav-icon">📐</span><span data-i18n="navInspection"></span>
+          <span class="nav-icon">📐</span><span data-i18n="navInspection">検査図面</span>
         </button>
         <button class="nav-item" data-section="calc" onclick="showSection('calc', this)">
-          <span class="nav-icon">🔢</span><span data-i18n="navCalc"></span>
+          <span class="nav-icon">🔢</span><span data-i18n="navCalc">計算ツール</span>
         </button>
         <button class="nav-item" data-section="st" onclick="showSection('st', this)">
-          <span class="nav-icon">⏱</span><span data-i18n="navSt"></span>
+          <span class="nav-icon">⏱</span><span data-i18n="navSt">標準時間設計</span>
         </button>
         <button class="nav-item" data-section="bgremover" onclick="showSection('bgremover', this)">
-          <span class="nav-icon">✂️</span><span data-i18n="navBgRemover"></span>
+          <span class="nav-icon">✂️</span><span data-i18n="navBgRemover">背景削除</span>
         </button>
         <button class="nav-item" data-section="stp" onclick="showSection('stp', this)">
-          <span class="nav-icon">📦</span><span data-i18n="navStp"></span>
+          <span class="nav-icon">📦</span><span data-i18n="navStp">STPビューア</span>
         </button>
       </nav>
 
@@ -424,7 +424,7 @@
     <main class="workspace">
 
       <header class="topbar">
-        <div class="topbar-title" id="topbar-title"></div>
+        <div class="topbar-title" id="topbar-title">工場レイアウト作成ツール</div>
         <div class="topbar-right">
           <select class="lang-select" id="lang-select" onchange="setLanguage(this.value)">
             <option value="ja">🇯🇵 日本語</option>
@@ -434,7 +434,7 @@
             <option value="id">🇮🇩 Indonesia</option>
           </select>
           <a href="#" id="topbar-link" class="topbar-link" target="_blank" rel="noopener">
-            <span id="topbar-link-label"></span> <span>→</span>
+            <span id="topbar-link-label">ツールを開く</span> <span>→</span>
           </a>
         </div>
       </header>
@@ -444,11 +444,11 @@
         <!-- SECTION: layout -->
         <section class="tool-section active" id="section-layout">
           <div class="hero-card">
-            <div class="hero-badge" style="background:#dbeafe; color:#1d4ed8;" data-i18n="badgeLayout"></div>
-            <h1 data-i18n="titleLayout"></h1>
-            <p data-i18n="descLayout"></p>
+            <div class="hero-badge" style="background:#dbeafe; color:#1d4ed8;" data-i18n="badgeLayout">🏭 工場レイアウト</div>
+            <h1 data-i18n="titleLayout">工場レイアウト作成ツール</h1>
+            <p data-i18n="descLayout">設備・通路・安全エリアをドラッグ＆ドロップで2D配置し、Three.jsによるリアルタイム3Dプレビューで確認。35種類以上のテンプレートでスピーディーにレイアウトを構築できます。</p>
             <a href="https://plugbits.github.io/factory-layout/" class="launch-btn launch-blue tool-link" data-tool="layout" target="_blank" rel="noopener">
-              <span data-i18n="openTool"></span> <span>→</span>
+              <span data-i18n="openTool">ツールを開く</span> <span>→</span>
             </a>
           </div>
 
@@ -465,29 +465,29 @@
             <div class="feature-card">
               <div class="feature-icon" style="background:#dbeafe; color:#2563eb;">2D</div>
               <div class="feature-body">
-                <strong data-i18n="f_layout_2d"></strong>
-                <p data-i18n="f_layout_2d_d"></p>
+                <strong data-i18n="f_layout_2d">2Dレイアウト編集</strong>
+                <p data-i18n="f_layout_2d_d">グリッドスナップ付きのドラッグ＆ドロップで設備を配置。ズーム・パンで広い工場も快適に編集できます。</p>
               </div>
             </div>
             <div class="feature-card">
               <div class="feature-icon" style="background:#dcfce7; color:#16a34a;">3D</div>
               <div class="feature-body">
-                <strong data-i18n="f_layout_3d"></strong>
-                <p data-i18n="f_layout_3d_d"></p>
+                <strong data-i18n="f_layout_3d">3Dプレビュー</strong>
+                <p data-i18n="f_layout_3d_d">Three.jsによるリアルタイム3Dビュー。歩行視点・プレゼンモードでステークホルダーへの説明に活用できます。</p>
               </div>
             </div>
             <div class="feature-card">
               <div class="feature-icon" style="background:#fef9c3; color:#ca8a04;">📦</div>
               <div class="feature-body">
-                <strong data-i18n="f_layout_tmpl"></strong>
-                <p data-i18n="f_layout_tmpl_d"></p>
+                <strong data-i18n="f_layout_tmpl">35種類以上のテンプレート</strong>
+                <p data-i18n="f_layout_tmpl_d">マシニングセンタ・コンベア・安全柵など、工場でよく使う設備テンプレートを即座に配置できます。</p>
               </div>
             </div>
             <div class="feature-card">
               <div class="feature-icon" style="background:#ede9fe; color:#7c3aed;">💾</div>
               <div class="feature-body">
-                <strong data-i18n="f_layout_export"></strong>
-                <p data-i18n="f_layout_export_d"></p>
+                <strong data-i18n="f_layout_export">JSON / PNG 出力</strong>
+                <p data-i18n="f_layout_export_d">レイアウトをJSONで保存・読み込み。PNG形式でエクスポートして図面資料として活用できます。</p>
               </div>
             </div>
           </div>
@@ -496,11 +496,11 @@
         <!-- SECTION: inspection -->
         <section class="tool-section" id="section-inspection">
           <div class="hero-card">
-            <div class="hero-badge" style="background:#dcfce7; color:#16a34a;" data-i18n="badgeInspection"></div>
-            <h1 data-i18n="titleInspection"></h1>
-            <p data-i18n="descInspection"></p>
+            <div class="hero-badge" style="background:#dcfce7; color:#16a34a;" data-i18n="badgeInspection">📐 検査図面</div>
+            <h1 data-i18n="titleInspection">PDF検査マーカー</h1>
+            <p data-i18n="descInspection">PDFをブラウザに読み込み、測定箇所・検査コメントをその場でマーキング。OK/NG/要確認の色分けマーカーで検査結果を視覚化し、検査指示書や現場確認シートをすばやく作成できます。</p>
             <a href="https://plugbits.github.io/inspection-marker/" class="launch-btn launch-green tool-link" data-tool="inspection" target="_blank" rel="noopener">
-              <span data-i18n="openTool"></span> <span>→</span>
+              <span data-i18n="openTool">ツールを開く</span> <span>→</span>
             </a>
           </div>
 
@@ -514,29 +514,29 @@
             <div class="feature-card">
               <div class="feature-icon" style="background:#dcfce7; color:#16a34a;">📄</div>
               <div class="feature-body">
-                <strong data-i18n="f_inspect_pdf"></strong>
-                <p data-i18n="f_inspect_pdf_d"></p>
+                <strong data-i18n="f_inspect_pdf">PDFインポート・表示</strong>
+                <p data-i18n="f_inspect_pdf_d">手持ちのPDF図面をそのままブラウザに読み込み。原寸比率を保ったまま表示できます。</p>
               </div>
             </div>
             <div class="feature-card">
               <div class="feature-icon" style="background:#dbeafe; color:#2563eb;">✏️</div>
               <div class="feature-body">
-                <strong data-i18n="f_inspect_mark"></strong>
-                <p data-i18n="f_inspect_mark_d"></p>
+                <strong data-i18n="f_inspect_mark">測定箇所へのマーキング</strong>
+                <p data-i18n="f_inspect_mark_d">矢印・丸・四角などのマーカーを図面上に配置。番号付きで測定ポイントを明示できます。</p>
               </div>
             </div>
             <div class="feature-card">
               <div class="feature-icon" style="background:#fef9c3; color:#ca8a04;">💬</div>
               <div class="feature-body">
-                <strong data-i18n="f_inspect_cmt"></strong>
-                <p data-i18n="f_inspect_cmt_d"></p>
+                <strong data-i18n="f_inspect_cmt">コメント・寸法記入</strong>
+                <p data-i18n="f_inspect_cmt_d">各マーカーに検査コメントや寸法値を紐付け。テキストは図面上に直接表示されます。</p>
               </div>
             </div>
             <div class="feature-card">
               <div class="feature-icon" style="background:#fce7f3; color:#be185d;">✅</div>
               <div class="feature-body">
-                <strong data-i18n="f_inspect_ok"></strong>
-                <p data-i18n="f_inspect_ok_d"></p>
+                <strong data-i18n="f_inspect_ok">合否判定マーカー</strong>
+                <p data-i18n="f_inspect_ok_d">OK / NG / 要確認の色分けマーカーで検査結果をひと目で把握できます。</p>
               </div>
             </div>
           </div>
@@ -545,11 +545,11 @@
         <!-- SECTION: calc -->
         <section class="tool-section" id="section-calc">
           <div class="hero-card">
-            <div class="hero-badge" style="background:#fef3c7; color:#d97706;" data-i18n="badgeCalc"></div>
-            <h1 data-i18n="titleCalc"></h1>
-            <p data-i18n="descCalc"></p>
+            <div class="hero-badge" style="background:#fef3c7; color:#d97706;" data-i18n="badgeCalc">🔢 計算ツール</div>
+            <h1 data-i18n="titleCalc">ForgeKit — 工場計算ツール集</h1>
+            <p data-i18n="descCalc">単位変換・材料重量・溶接時間・加工時間など、製造現場で使う計算をタブ切り替えでまとめて実行。多言語対応で海外工場でも活用できます。</p>
             <a href="https://plugbits.github.io/ForgeKit/" class="launch-btn launch-orange tool-link" data-tool="calc" target="_blank" rel="noopener">
-              <span data-i18n="openTool"></span> <span>→</span>
+              <span data-i18n="openTool">ツールを開く</span> <span>→</span>
             </a>
           </div>
 
@@ -563,29 +563,29 @@
             <div class="feature-card">
               <div class="feature-icon" style="background:#fef3c7; color:#d97706;">📐</div>
               <div class="feature-body">
-                <strong data-i18n="f_calc_unit"></strong>
-                <p data-i18n="f_calc_unit_d"></p>
+                <strong data-i18n="f_calc_unit">単位変換計算機</strong>
+                <p data-i18n="f_calc_unit_d">長さ・重さ・圧力・温度・面積・体積など多種の単位を即座に変換できます。</p>
               </div>
             </div>
             <div class="feature-card">
               <div class="feature-icon" style="background:#dbeafe; color:#2563eb;">⚖️</div>
               <div class="feature-body">
-                <strong data-i18n="f_calc_mat"></strong>
-                <p data-i18n="f_calc_mat_d"></p>
+                <strong data-i18n="f_calc_mat">材料重量計算機</strong>
+                <p data-i18n="f_calc_mat_d">板材・丸棒・パイプなど各種形状の金属重量を材質・寸法から算出できます。</p>
               </div>
             </div>
             <div class="feature-card">
               <div class="feature-icon" style="background:#fce7f3; color:#be185d;">🔥</div>
               <div class="feature-body">
-                <strong data-i18n="f_calc_weld"></strong>
-                <p data-i18n="f_calc_weld_d"></p>
+                <strong data-i18n="f_calc_weld">溶接時間計算機</strong>
+                <p data-i18n="f_calc_weld_d">溶接パラメータから作業時間とガス使用量を概算。工程計画の精度向上に貢献します。</p>
               </div>
             </div>
             <div class="feature-card">
               <div class="feature-icon" style="background:#dcfce7; color:#16a34a;">⚙️</div>
               <div class="feature-body">
-                <strong data-i18n="f_calc_mach"></strong>
-                <p data-i18n="f_calc_mach_d"></p>
+                <strong data-i18n="f_calc_mach">加工時間計算機</strong>
+                <p data-i18n="f_calc_mach_d">切削条件・回転数・送り速度から加工時間を算出。見積もりや工程計画に活用できます。</p>
               </div>
             </div>
           </div>
@@ -594,11 +594,11 @@
         <!-- SECTION: st -->
         <section class="tool-section" id="section-st">
           <div class="hero-card">
-            <div class="hero-badge" style="background:#ede9fe; color:#7c3aed;" data-i18n="badgeSt"></div>
-            <h1 data-i18n="titleSt"></h1>
-            <p data-i18n="descSt"></p>
+            <div class="hero-badge" style="background:#ede9fe; color:#7c3aed;" data-i18n="badgeSt">⏱ 標準時間設計</div>
+            <h1 data-i18n="titleSt">標準時間設計ツール</h1>
+            <p data-i18n="descSt">作業要素の分解・時間測定・レーティング・余裕率の設定をブラウザ上でスムーズに実施。標準時間（ST）の算出と工程バランスの可視化を手軽に行えます。</p>
             <a href="https://plugbits.github.io/st-tool/" class="launch-btn launch-purple tool-link" data-tool="st" target="_blank" rel="noopener">
-              <span data-i18n="openTool"></span> <span>→</span>
+              <span data-i18n="openTool">ツールを開く</span> <span>→</span>
             </a>
           </div>
 
@@ -621,29 +621,29 @@
             <div class="feature-card">
               <div class="feature-icon" style="background:#ede9fe; color:#7c3aed;">📋</div>
               <div class="feature-body">
-                <strong data-i18n="f_st_decomp"></strong>
-                <p data-i18n="f_st_decomp_d"></p>
+                <strong data-i18n="f_st_decomp">作業要素の分解</strong>
+                <p data-i18n="f_st_decomp_d">作業をステップ単位に分解して登録。工程の構造を視覚的に整理できます。</p>
               </div>
             </div>
             <div class="feature-card">
               <div class="feature-icon" style="background:#dbeafe; color:#2563eb;">⏱</div>
               <div class="feature-body">
-                <strong data-i18n="f_st_time"></strong>
-                <p data-i18n="f_st_time_d"></p>
+                <strong data-i18n="f_st_time">時間測定・レーティング</strong>
+                <p data-i18n="f_st_time_d">実測時間にレーティングを掛けて正味時間を算出。複数回測定の平均も自動計算します。</p>
               </div>
             </div>
             <div class="feature-card">
               <div class="feature-icon" style="background:#dcfce7; color:#16a34a;">📊</div>
               <div class="feature-body">
-                <strong data-i18n="f_st_balance"></strong>
-                <p data-i18n="f_st_balance_d"></p>
+                <strong data-i18n="f_st_balance">工程バランス可視化</strong>
+                <p data-i18n="f_st_balance_d">各工程の標準時間をバーチャートで比較。ボトルネックの特定に役立ちます。</p>
               </div>
             </div>
             <div class="feature-card">
               <div class="feature-icon" style="background:#fef9c3; color:#ca8a04;">💾</div>
               <div class="feature-body">
-                <strong data-i18n="f_st_export"></strong>
-                <p data-i18n="f_st_export_d"></p>
+                <strong data-i18n="f_st_export">データ保存・エクスポート</strong>
+                <p data-i18n="f_st_export_d">作業データをブラウザに保存。CSV等でエクスポートして資料作成にも活用できます。</p>
               </div>
             </div>
           </div>
@@ -652,11 +652,11 @@
         <!-- SECTION: bgremover -->
         <section class="tool-section" id="section-bgremover">
           <div class="hero-card">
-            <div class="hero-badge" style="background:#ccfbf1; color:#0d9488;" data-i18n="badgeBgRemover"></div>
-            <h1 data-i18n="titleBgRemover"></h1>
-            <p data-i18n="descBgRemover"></p>
+            <div class="hero-badge" style="background:#ccfbf1; color:#0d9488;" data-i18n="badgeBgRemover">✂️ 背景削除</div>
+            <h1 data-i18n="titleBgRemover">背景削除ツール</h1>
+            <p data-i18n="descBgRemover">製品・部品の画像から背景を自動で削除。ブラウザ上でAI処理するため、ファイルのアップロード不要。透過PNG形式でダウンロードして、カタログ・資料・ECサイトに活用できます。</p>
             <a href="https://plugbits.github.io/background-remover/" class="launch-btn launch-teal tool-link" data-tool="bgremover" target="_blank" rel="noopener">
-              <span data-i18n="openTool"></span> <span>→</span>
+              <span data-i18n="openTool">ツールを開く</span> <span>→</span>
             </a>
             <p style="margin-top:10px;font-size:13px;"><a href="/blog/background-remover/" style="color:#0d9488;">背景除去のコツをブログで解説しています →</a></p>
           </div>
@@ -665,29 +665,29 @@
             <div class="feature-card">
               <div class="feature-icon" style="background:#ccfbf1; color:#0d9488;">🖼️</div>
               <div class="feature-body">
-                <strong data-i18n="f_bg_upload"></strong>
-                <p data-i18n="f_bg_upload_d"></p>
+                <strong data-i18n="f_bg_upload">画像のアップロード</strong>
+                <p data-i18n="f_bg_upload_d">JPEG・PNG・WebPなど主要な画像形式に対応。ドラッグ＆ドロップで手軽に読み込めます。</p>
               </div>
             </div>
             <div class="feature-card">
               <div class="feature-icon" style="background:#dbeafe; color:#2563eb;">🤖</div>
               <div class="feature-body">
-                <strong data-i18n="f_bg_ai"></strong>
-                <p data-i18n="f_bg_ai_d"></p>
+                <strong data-i18n="f_bg_ai">AI自動背景削除</strong>
+                <p data-i18n="f_bg_ai_d">AIが被写体を自動認識して背景をカット。製品・部品・人物など幅広い対象に対応します。</p>
               </div>
             </div>
             <div class="feature-card">
               <div class="feature-icon" style="background:#fef9c3; color:#ca8a04;">👁️</div>
               <div class="feature-body">
-                <strong data-i18n="f_bg_preview"></strong>
-                <p data-i18n="f_bg_preview_d"></p>
+                <strong data-i18n="f_bg_preview">ビフォーアフター確認</strong>
+                <p data-i18n="f_bg_preview_d">処理前後の画像を並べて確認。仕上がりを即座にチェックできます。</p>
               </div>
             </div>
             <div class="feature-card">
               <div class="feature-icon" style="background:#ede9fe; color:#7c3aed;">💾</div>
               <div class="feature-body">
-                <strong data-i18n="f_bg_download"></strong>
-                <p data-i18n="f_bg_download_d"></p>
+                <strong data-i18n="f_bg_download">透過PNG出力</strong>
+                <p data-i18n="f_bg_download_d">背景透過のPNG形式でダウンロード。カタログ・資料・ECサイトの素材として活用できます。</p>
               </div>
             </div>
           </div>
@@ -696,11 +696,11 @@
         <!-- SECTION: stp -->
         <section class="tool-section" id="section-stp">
           <div class="hero-card">
-            <div class="hero-badge" style="background:#cffafe; color:#0891b2;" data-i18n="badgeStp"></div>
-            <h1 data-i18n="titleStp"></h1>
-            <p data-i18n="descStp"></p>
+            <div class="hero-badge" style="background:#cffafe; color:#0891b2;" data-i18n="badgeStp">📦 STPビューア</div>
+            <h1 data-i18n="titleStp">STP / STEP ファイルビューア</h1>
+            <p data-i18n="descStp">.stp / .step 形式の3D CADファイルをブラウザで直接表示。インストール不要でドラッグ＆ドロップするだけで3Dモデルを確認できます。</p>
             <a href="https://stp-viewer.plugbits.app/" class="launch-btn launch-cyan tool-link" data-tool="stp" target="_blank" rel="noopener">
-              <span data-i18n="openTool"></span> <span>→</span>
+              <span data-i18n="openTool">ツールを開く</span> <span>→</span>
             </a>
             <p style="margin-top:10px;font-size:13px;"><a href="/blog/step-file-open/" style="color:#0891b2;">STPファイルの開き方をブログで解説しています →</a></p>
           </div>
@@ -709,29 +709,29 @@
             <div class="feature-card">
               <div class="feature-icon" style="background:#cffafe; color:#0891b2;">📂</div>
               <div class="feature-body">
-                <strong data-i18n="f_stp_load"></strong>
-                <p data-i18n="f_stp_load_d"></p>
+                <strong data-i18n="f_stp_load">STP/STEPを即開く</strong>
+                <p data-i18n="f_stp_load_d">ドラッグ＆ドロップまたはファイル選択でSTP/STEPファイルをブラウザに読み込めます。</p>
               </div>
             </div>
             <div class="feature-card">
               <div class="feature-icon" style="background:#ede9fe; color:#7c3aed;">🔄</div>
               <div class="feature-body">
-                <strong data-i18n="f_stp_view"></strong>
-                <p data-i18n="f_stp_view_d"></p>
+                <strong data-i18n="f_stp_view">3D回転・ズーム</strong>
+                <p data-i18n="f_stp_view_d">マウスで自由に回転・ズーム・パン。モデルの全方向から形状を確認できます。</p>
               </div>
             </div>
             <div class="feature-card">
               <div class="feature-icon" style="background:#dcfce7; color:#16a34a;">📋</div>
               <div class="feature-body">
-                <strong data-i18n="f_stp_parts"></strong>
-                <p data-i18n="f_stp_parts_d"></p>
+                <strong data-i18n="f_stp_parts">パーツリスト</strong>
+                <p data-i18n="f_stp_parts_d">アセンブリのパーツ構成をリスト表示。部品を選択してハイライト表示できます。</p>
               </div>
             </div>
             <div class="feature-card">
               <div class="feature-icon" style="background:#fef9c3; color:#ca8a04;">🌗</div>
               <div class="feature-body">
-                <strong data-i18n="f_stp_theme"></strong>
-                <p data-i18n="f_stp_theme_d"></p>
+                <strong data-i18n="f_stp_theme">ダーク／ライト切替</strong>
+                <p data-i18n="f_stp_theme_d">ダークモードとライトモードを切り替えてモデルを見やすい背景で確認できます。</p>
               </div>
             </div>
           </div>
