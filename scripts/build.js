@@ -338,8 +338,12 @@ try {
       const summary = isJa ? p.short_summary_ja  : p.short_summary_en;
       const href    = rel(p.page_url || (isJa ? `products/${p.slug}.html` : `products/en/${p.slug}.html`));
       const label   = isJa ? '詳しく見る →' : 'Learn more →';
-      const badge   = isJa ? '無料 / ブラウザ拡張機能' : 'Free / Browser Extension';
+      const isFreemium = p.pricing === 'freemium';
+      const badge   = isFreemium
+        ? (isJa ? '無料 + Pro / ブラウザ拡張機能' : 'Free + Pro / Browser Extension')
+        : (isJa ? '無料 / ブラウザ拡張機能' : 'Free / Browser Extension');
       const highlights = renderFeatures(isJa ? p.highlights_ja : p.highlights_en);
+      const trialNote = isJa ? p.trial_note_ja : p.trial_note_en;
 
       // store_url か highlights があれば主力プロダクトとして大きく見せる
       if (p.store_url || highlights) {
@@ -357,6 +361,7 @@ try {
           `      ${storeBtn}`,
           `      <a class="kb-cta-secondary" href="${esc(href)}">${label}</a>`,
           '    </div>',
+          trialNote ? `    <p class="kb-ext-note">${esc(trialNote)}</p>` : '',
           '  </div>',
           '  <div class="kb-ext-featured-visual">',
           `    <img src="${esc(rel(p.hero_image))}" alt="${esc(title)}">`,

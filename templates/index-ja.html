@@ -35,7 +35,7 @@
       <div class="kb-hero-copy">
         <p class="kb-eyebrow">kintone向けブラウザ拡張機能</p>
         <h1 class="kb-hero-title">kintoneの「探す」を、<br>一撃にする。</h1>
-        <p class="kb-hero-sub">PlugBits Launcher — ショートカット・履歴・ウォッチリストを1つのサイドパネルに。よく使うアプリへ最短ルートで移動できる、無料のChrome拡張機能です。</p>
+        <p class="kb-hero-sub">PlugBits Launcher — ショートカット・履歴・ウォッチリストを1つのサイドパネルに。よく使うアプリへ最短ルートで移動できる、無料ではじめられるChrome拡張機能です。</p>
         <div class="kb-hero-actions">
           <a class="kb-cta-primary" href="%%LAUNCHER_STORE_URL%%" target="_blank" rel="noopener">Chromeに追加（無料）</a>
           <a class="kb-cta-secondary" href="/launcher/">詳しく見る →</a>
@@ -43,8 +43,8 @@
         <p class="kb-hero-note">Chrome・Edge対応 / kintoneの管理者権限は不要です</p>
       </div>
 
-      <!-- Launcher animated demo (decorative) -->
-      <div class="kb-hero-demo" aria-hidden="true">
+      <!-- Launcher animated demo (decorative, 3-scene rotation) -->
+      <div class="kb-hero-demo" aria-hidden="true" data-scene="panel">
         <div class="kb-demo-window">
           <div class="kb-demo-chrome">
             <span class="kb-demo-dots"><i></i><i></i><i></i></span>
@@ -70,10 +70,34 @@
                 <span class="kb-demo-item">⭐ 経費申請</span>
               </div>
             </aside>
+            <div class="kb-demo-scrim"></div>
+            <div class="kb-demo-palette">
+              <div class="kb-demo-palette-input">
+                <span class="kb-demo-kbd">Ctrl+/</span>
+                <span class="kb-demo-type">日報</span><span class="kb-demo-caret"></span>
+              </div>
+              <div class="kb-demo-palette-list">
+                <span class="kb-demo-pitem kb-demo-pitem--hit">📄 日報アプリ</span>
+                <span class="kb-demo-pitem">📄 日報 週次集計</span>
+                <span class="kb-demo-pitem">⚙️ 日報 アプリ設定</span>
+              </div>
+            </div>
+            <div class="kb-demo-excel">
+              <span class="kb-demo-xbadge">Excel Overlay・Pro</span>
+              <div class="kb-demo-xrow kb-demo-xrow--head"><span>案件名</span><span>金額</span><span>状況</span></div>
+              <div class="kb-demo-xrow"><span>A社 見積</span><span>1,200,000</span><span>商談中</span></div>
+              <div class="kb-demo-xrow"><span>B社 保守</span><span class="kb-demo-xcell"><span class="kb-demo-xtype">450,000</span></span><span>受注</span></div>
+              <div class="kb-demo-xrow"><span>C社 追加</span><span>80,000</span><span>納品済</span></div>
+            </div>
             <span class="kb-demo-cursor"></span>
           </div>
         </div>
-        <p class="kb-demo-caption">サイドパネルから、目的のアプリへ一撃。</p>
+        <div class="kb-demo-captions">
+          <p class="kb-demo-caption kb-demo-caption--panel">サイドパネルから、目的のアプリへ一撃。</p>
+          <p class="kb-demo-caption kb-demo-caption--palette">Ctrl+/ のコマンドパレットで、移動・作成・コピーを一発実行。</p>
+          <p class="kb-demo-caption kb-demo-caption--excel">一覧を、Excelのように編集（Pro）。無料版は閲覧モードです。</p>
+        </div>
+        <div class="kb-demo-dots-nav"><i class="kb-demo-dot--panel"></i><i class="kb-demo-dot--palette"></i><i class="kb-demo-dot--excel"></i></div>
       </div>
     </div>
   </header>
@@ -167,6 +191,19 @@
       });
     }, { threshold: 0.12 });
     els.forEach(el => io.observe(el));
+  })();
+
+  // Hero demo: rotate scenes (panel -> palette -> excel)
+  (function(){
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const demo = document.querySelector('.kb-hero-demo');
+    if (!demo) return;
+    const scenes = ['panel', 'palette', 'excel'];
+    let i = 0;
+    setInterval(() => {
+      i = (i + 1) % scenes.length;
+      demo.setAttribute('data-scene', scenes[i]);
+    }, 7500);
   })();
   </script>
 
