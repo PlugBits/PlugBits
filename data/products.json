@@ -101,8 +101,8 @@
     "og_image": "",
     "pricing": "free",
     "store_url": "https://chromewebstore.google.com/detail/plugbits-launcher-for-kin/bmnijafgcjnpbgbdijjfidiaodphjjpd",
-    "highlights_ja": "よく使うアプリ・ページへのショートカットを1か所に集約;直近に開いたレコードの履歴からすぐ戻れる;気になるレコードはウォッチリストで見失わない;必要なときだけサイドパネルをさっと開ける",
-    "highlights_en": "Shortcuts to your most-used apps and pages in one place;Jump back through your recently opened records;Keep important records on a watchlist;Open the side panel only when you need it"
+    "highlights_ja": "よく使うアプリ・ページへのショートカットを1か所に集約;コマンドパレットで、名前を打つだけで目的の画面へ;一覧の上にエクセル風オーバーレイを重ねてその場で確認・編集;直近に開いたレコードの履歴からすぐ戻れる;気になるレコードはウォッチリストで見失わない",
+    "highlights_en": "Shortcuts to your most-used apps and pages in one place;Command palette: type a name, jump straight there;Excel-style overlay to review and edit right on the list view;Jump back through your recently opened records;Keep important records on a watchlist"
   },
   {
     "slug": "listkit",

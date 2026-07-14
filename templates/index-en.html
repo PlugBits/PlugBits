@@ -42,8 +42,8 @@
         <p class="kb-hero-note">Works with Chrome &amp; Edge. No kintone admin rights required.</p>
       </div>
 
-      <!-- Launcher animated demo (decorative) -->
-      <div class="kb-hero-demo" aria-hidden="true">
+      <!-- Launcher animated demo (decorative, 3-scene rotation) -->
+      <div class="kb-hero-demo" aria-hidden="true" data-scene="panel">
         <div class="kb-demo-window">
           <div class="kb-demo-chrome">
             <span class="kb-demo-dots"><i></i><i></i><i></i></span>
@@ -69,10 +69,33 @@
                 <span class="kb-demo-item">⭐ Expenses</span>
               </div>
             </aside>
+            <div class="kb-demo-scrim"></div>
+            <div class="kb-demo-palette">
+              <div class="kb-demo-palette-input">
+                <span class="kb-demo-kbd">⌘K</span>
+                <span class="kb-demo-type" style="--kb-type-w:2.6em">daily</span><span class="kb-demo-caret"></span>
+              </div>
+              <div class="kb-demo-palette-list">
+                <span class="kb-demo-pitem kb-demo-pitem--hit">📄 Daily Reports</span>
+                <span class="kb-demo-pitem">📄 Daily Report Summary</span>
+                <span class="kb-demo-pitem">⚙️ Daily Reports Settings</span>
+              </div>
+            </div>
+            <div class="kb-demo-excel">
+              <div class="kb-demo-xrow kb-demo-xrow--head"><span>Deal</span><span>Amount</span><span>Status</span></div>
+              <div class="kb-demo-xrow"><span>Acme Quote</span><span>1,200,000</span><span>Open</span></div>
+              <div class="kb-demo-xrow"><span>Beta Support</span><span class="kb-demo-xcell"><span class="kb-demo-xtype">450,000</span></span><span>Won</span></div>
+              <div class="kb-demo-xrow"><span>Cyan Add-on</span><span>80,000</span><span>Shipped</span></div>
+            </div>
             <span class="kb-demo-cursor"></span>
           </div>
         </div>
-        <p class="kb-demo-caption">From the side panel straight to the app you need.</p>
+        <div class="kb-demo-captions">
+          <p class="kb-demo-caption kb-demo-caption--panel">From the side panel straight to the app you need.</p>
+          <p class="kb-demo-caption kb-demo-caption--palette">Command palette: type a name, jump right there.</p>
+          <p class="kb-demo-caption kb-demo-caption--excel">An Excel-style overlay on the list — review and edit in place.</p>
+        </div>
+        <div class="kb-demo-dots-nav"><i class="kb-demo-dot--panel"></i><i class="kb-demo-dot--palette"></i><i class="kb-demo-dot--excel"></i></div>
       </div>
     </div>
   </header>
@@ -165,6 +188,19 @@
       });
     }, { threshold: 0.12 });
     els.forEach(el => io.observe(el));
+  })();
+
+  // Hero demo: rotate scenes (panel -> palette -> excel)
+  (function(){
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const demo = document.querySelector('.kb-hero-demo');
+    if (!demo) return;
+    const scenes = ['panel', 'palette', 'excel'];
+    let i = 0;
+    setInterval(() => {
+      i = (i + 1) % scenes.length;
+      demo.setAttribute('data-scene', scenes[i]);
+    }, 7500);
   })();
   </script>
 

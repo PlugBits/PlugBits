@@ -1230,7 +1230,9 @@
   .kb-hero--split .kb-hero-title { font-size: 27px; }
 }
 
-/* ---- Launcher demo (decorative animation) ---- */
+/* ---- Launcher demo (decorative, 3-scene rotation) ----
+   data-scene="panel|palette|excel" を .kb-hero-demo に付与して切替。
+   各シーンは 7.5s の単発アニメーション（JSが切替時に再発火させる） */
 .kb-hero-demo { width: 100%; }
 .kb-demo-window {
   background: #fff;
@@ -1253,7 +1255,7 @@
   background: #fff; border: 1px solid var(--kb-line);
   border-radius: 999px; padding: 3px 12px;
 }
-.kb-demo-exticon img { width: 20px; height: 20px; border-radius: 5px; display: block; animation: kbDemoExt 10s ease-in-out infinite; }
+.kb-demo-exticon img { width: 20px; height: 20px; border-radius: 5px; display: block; }
 .kb-demo-stage { position: relative; height: 250px; overflow: hidden; background: #fff; }
 .kb-demo-page { position: absolute; inset: 0; padding: 14px 16px; }
 .kb-demo-appbar { position: relative; height: 22px; margin-bottom: 12px; }
@@ -1262,17 +1264,16 @@
   font-size: 13px; font-weight: 800; color: var(--kb-ink);
   padding-left: 10px; border-left: 3px solid var(--kb-primary);
   line-height: 1.5;
+  transition: opacity .4s ease;
 }
-.kb-demo-rows { position: absolute; left: 16px; right: 16px; top: 52px; display: grid; gap: 10px; }
+.kb-demo-rows { position: absolute; left: 16px; right: 16px; top: 52px; display: grid; gap: 10px; transition: opacity .4s ease; }
 .kb-demo-rows i { display: block; height: 22px; border-radius: 6px; background: linear-gradient(90deg, #EDF3FA, #F6FAFF); border: 1px solid #EAF1F9; }
 .kb-demo-rows i:nth-child(2n) { width: 88%; }
 .kb-demo-rows i:nth-child(3n) { width: 74%; }
-.kb-demo-appname--a { animation: kbDemoA 10s ease-in-out infinite; }
-.kb-demo-appname--b { animation: kbDemoB 10s ease-in-out infinite; }
-.kb-demo-rows--a { animation: kbDemoA 10s ease-in-out infinite; }
-.kb-demo-rows--b { animation: kbDemoB 10s ease-in-out infinite; }
+.kb-demo-appname--b, .kb-demo-rows--b { opacity: 0; }
 .kb-demo-rows--b i { background: linear-gradient(90deg, #EAF7F0, #F4FBF7); border-color: #E2F2E9; }
 
+/* Side panel */
 .kb-demo-panel {
   position: absolute; top: 0; right: 0; bottom: 0;
   width: 46%;
@@ -1281,7 +1282,9 @@
   box-shadow: -12px 0 28px rgba(15, 23, 42, .08);
   padding: 12px;
   display: flex; flex-direction: column; gap: 10px;
-  animation: kbDemoPanel 10s ease-in-out infinite;
+  transform: translateX(108%);
+  transition: transform .5s ease;
+  z-index: 2;
 }
 .kb-demo-panel-head {
   display: flex; align-items: center; gap: 7px;
@@ -1300,56 +1303,225 @@
   border-radius: 8px; padding: 7px 10px;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
-.kb-demo-item--target { animation: kbDemoTarget 10s ease-in-out infinite; }
+
+/* Command palette */
+.kb-demo-scrim {
+  position: absolute; inset: 0;
+  background: rgba(11, 31, 51, .22);
+  opacity: 0; transition: opacity .4s ease;
+  z-index: 4;
+}
+.kb-demo-palette {
+  position: absolute; top: 15%; left: 50%;
+  transform: translate(-50%, 0);
+  width: 72%;
+  background: #fff;
+  border: 1px solid var(--kb-line-strong);
+  border-radius: 12px;
+  box-shadow: 0 18px 44px rgba(15, 23, 42, .24);
+  padding: 10px;
+  display: flex; flex-direction: column; gap: 8px;
+  opacity: 0; transition: opacity .4s ease;
+  z-index: 5;
+}
+.kb-demo-palette-input {
+  display: flex; align-items: center; gap: 8px;
+  border: 1px solid var(--kb-primary-300);
+  border-radius: 8px; padding: 7px 10px; background: #fff;
+}
+.kb-demo-kbd {
+  font-size: 9.5px; font-weight: 700; color: var(--kb-sub);
+  background: #F0F5FB; border: 1px solid var(--kb-line-strong);
+  border-radius: 5px; padding: 2px 5px; line-height: 1.4;
+}
+.kb-demo-type {
+  display: inline-block; overflow: hidden; white-space: nowrap;
+  font-size: 12px; font-weight: 700; color: var(--kb-ink);
+  width: 0;
+}
+.kb-demo-caret {
+  width: 1.5px; height: 13px; background: var(--kb-primary);
+  animation: kbDemoCaret 1s steps(1) infinite;
+}
+.kb-demo-palette-list { display: grid; gap: 5px; }
+.kb-demo-pitem {
+  font-size: 11px; color: var(--kb-text);
+  background: #fff; border: 1px solid var(--kb-line);
+  border-radius: 7px; padding: 6px 9px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+
+/* Excel-style overlay */
+.kb-demo-excel {
+  position: absolute; left: 14px; right: 14px; top: 46px; bottom: 12px;
+  background: #fff;
+  border: 1px solid #BFDECB;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 12px 28px rgba(16, 90, 50, .14);
+  display: grid; grid-template-rows: 26px 1fr 1fr 1fr;
+  opacity: 0; transition: opacity .4s ease;
+  z-index: 3;
+}
+.kb-demo-xrow { display: grid; grid-template-columns: 1.2fr 1fr .8fr; border-top: 1px solid #DDEDE2; min-height: 0; }
+.kb-demo-xrow:first-child { border-top: 0; }
+.kb-demo-xrow > span {
+  padding: 4px 8px; font-size: 10px; color: var(--kb-text);
+  border-left: 1px solid #DDEDE2;
+  display: flex; align-items: center; min-width: 0;
+  white-space: nowrap; overflow: hidden;
+}
+.kb-demo-xrow > span:first-child { border-left: 0; }
+.kb-demo-xrow--head { background: #E9F6EE; }
+.kb-demo-xrow--head span { font-weight: 700; color: #1B7A46; font-size: 9.5px; }
+.kb-demo-xtype {
+  display: inline-block; overflow: hidden; white-space: nowrap;
+  width: 0; font-variant-numeric: tabular-nums;
+}
+
+/* Cursor */
 .kb-demo-cursor {
-  position: absolute; width: 14px; height: 14px; border-radius: 50%;
+  position: absolute; left: 46%; top: 86%;
+  width: 14px; height: 14px; border-radius: 50%;
   background: rgba(59, 123, 214, .85);
   box-shadow: 0 0 0 5px rgba(59, 123, 214, .22);
   pointer-events: none;
-  animation: kbDemoCursor 10s ease-in-out infinite;
+  opacity: 0;
+  z-index: 6;
 }
-.kb-demo-caption { margin: 12px 4px 0; font-size: 12.5px; color: var(--kb-sub); text-align: center; }
 
+/* Captions & scene dots */
+.kb-demo-captions { display: grid; margin-top: 12px; }
+.kb-demo-caption {
+  grid-area: 1 / 1;
+  margin: 0 4px; font-size: 12.5px; color: var(--kb-sub); text-align: center;
+  opacity: 0; transition: opacity .45s ease;
+}
+.kb-demo-dots-nav { display: flex; gap: 6px; justify-content: center; margin-top: 10px; }
+.kb-demo-dots-nav i {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: #C9D8EA;
+  transition: background .3s ease, transform .3s ease;
+}
+
+/* Scene bindings */
+[data-scene="panel"] .kb-demo-panel        { animation: kbDemoPanel 7.5s ease-in-out both; }
+[data-scene="panel"] .kb-demo-exticon img  { animation: kbDemoExt 7.5s ease-in-out both; }
+[data-scene="panel"] .kb-demo-cursor       { animation: kbDemoCursor 7.5s ease-in-out both; }
+[data-scene="panel"] .kb-demo-item--target { animation: kbDemoTarget 7.5s ease-in-out both; }
+[data-scene="panel"] .kb-demo-appname--a, [data-scene="panel"] .kb-demo-rows--a { animation: kbDemoA 7.5s ease-in-out both; }
+[data-scene="panel"] .kb-demo-appname--b, [data-scene="panel"] .kb-demo-rows--b { animation: kbDemoB 7.5s ease-in-out both; }
+[data-scene="panel"] .kb-demo-caption--panel { opacity: 1; }
+[data-scene="panel"] .kb-demo-dot--panel   { background: var(--kb-primary); transform: scale(1.2); }
+
+[data-scene="palette"] .kb-demo-scrim      { animation: kbDemoScrim 7.5s ease-in-out both; }
+[data-scene="palette"] .kb-demo-palette    { animation: kbDemoPalette 7.5s ease-in-out both; }
+[data-scene="palette"] .kb-demo-kbd        { animation: kbDemoKbd 7.5s ease-in-out both; }
+[data-scene="palette"] .kb-demo-type       { animation: kbDemoType 7.5s both; }
+[data-scene="palette"] .kb-demo-pitem--hit { animation: kbDemoHit 7.5s ease-in-out both; }
+[data-scene="palette"] .kb-demo-appname--a, [data-scene="palette"] .kb-demo-rows--a { animation: kbDemoA2 7.5s ease-in-out both; }
+[data-scene="palette"] .kb-demo-appname--b, [data-scene="palette"] .kb-demo-rows--b { animation: kbDemoB2 7.5s ease-in-out both; }
+[data-scene="palette"] .kb-demo-caption--palette { opacity: 1; }
+[data-scene="palette"] .kb-demo-dot--palette { background: var(--kb-primary); transform: scale(1.2); }
+
+[data-scene="excel"] .kb-demo-excel        { animation: kbDemoExcel 7.5s ease-in-out both; }
+[data-scene="excel"] .kb-demo-xcell        { animation: kbDemoXcell 7.5s ease-in-out both; }
+[data-scene="excel"] .kb-demo-xtype        { animation: kbDemoXtype 7.5s both; }
+[data-scene="excel"] .kb-demo-caption--excel { opacity: 1; }
+[data-scene="excel"] .kb-demo-dot--excel   { background: var(--kb-primary); transform: scale(1.2); }
+
+/* Scene 1: side panel */
 @keyframes kbDemoPanel {
-  0%, 8%   { transform: translateX(108%); }
-  16%, 84% { transform: translateX(0); }
-  93%, 100%{ transform: translateX(108%); }
+  0%, 6%    { transform: translateX(108%); }
+  16%, 100% { transform: translateX(0); }
 }
 @keyframes kbDemoExt {
-  0%, 6%   { transform: scale(1); }
-  9%       { transform: scale(1.25); }
-  12%, 100%{ transform: scale(1); }
+  0%, 3%    { transform: scale(1); }
+  6%        { transform: scale(1.22); }
+  9%, 100%  { transform: scale(1); }
 }
 @keyframes kbDemoCursor {
-  0%, 18%  { left: 46%; top: 86%; opacity: 0; transform: scale(1); }
-  24%      { opacity: 1; }
-  38%      { left: 62%; top: 44%; transform: scale(1); }
-  42%      { left: 62%; top: 44%; transform: scale(.65); }
-  46%, 55% { left: 62%; top: 44%; transform: scale(1); opacity: 1; }
-  62%, 100%{ left: 62%; top: 44%; opacity: 0; }
+  0%, 20%   { left: 46%; top: 86%; opacity: 0; transform: scale(1); }
+  26%       { left: 52%; top: 74%; opacity: 1; transform: scale(1); }
+  42%       { left: 64%; top: 52%; opacity: 1; transform: scale(1); }
+  46%       { left: 64%; top: 52%; opacity: 1; transform: scale(.65); }
+  50%       { left: 64%; top: 52%; opacity: 1; transform: scale(1); }
+  62%       { left: 64%; top: 52%; opacity: 1; transform: scale(1); }
+  70%, 100% { left: 64%; top: 52%; opacity: 0; transform: scale(1); }
 }
 @keyframes kbDemoTarget {
-  0%, 39%  { background: #fff; border-color: var(--kb-line); }
-  44%, 60% { background: var(--kb-primary-100); border-color: var(--kb-primary-300); }
-  66%, 100%{ background: #fff; border-color: var(--kb-line); }
+  0%, 44%   { background: #fff; border-color: var(--kb-line); }
+  50%, 72%  { background: var(--kb-primary-100); border-color: var(--kb-primary-300); }
+  80%, 100% { background: #fff; border-color: var(--kb-line); }
 }
 @keyframes kbDemoA {
-  0%, 46%  { opacity: 1; }
-  52%, 88% { opacity: 0; }
-  96%, 100%{ opacity: 1; }
+  0%, 54%   { opacity: 1; }
+  62%, 100% { opacity: 0; }
 }
 @keyframes kbDemoB {
-  0%, 46%  { opacity: 0; }
-  52%, 88% { opacity: 1; }
-  96%, 100%{ opacity: 0; }
+  0%, 54%   { opacity: 0; }
+  62%, 100% { opacity: 1; }
 }
+
+/* Scene 2: command palette */
+@keyframes kbDemoScrim {
+  0%, 5%    { opacity: 0; }
+  12%, 60%  { opacity: 1; }
+  70%, 100% { opacity: 0; }
+}
+@keyframes kbDemoPalette {
+  0%, 7%    { opacity: 0; transform: translate(-50%, -8px); }
+  14%, 62%  { opacity: 1; transform: translate(-50%, 0); }
+  70%, 100% { opacity: 0; transform: translate(-50%, -6px); }
+}
+@keyframes kbDemoKbd {
+  0%, 8%    { transform: scale(1); }
+  11%       { transform: scale(1.25); }
+  14%, 100% { transform: scale(1); }
+}
+@keyframes kbDemoType {
+  0%, 20%   { width: 0; animation-timing-function: steps(3, end); }
+  36%, 100% { width: var(--kb-type-w, 2.4em); }
+}
+@keyframes kbDemoCaret {
+  0%, 49%   { opacity: 1; }
+  50%, 100% { opacity: 0; }
+}
+@keyframes kbDemoHit {
+  0%, 40%   { background: #fff; border-color: var(--kb-line); }
+  46%, 58%  { background: var(--kb-primary-100); border-color: var(--kb-primary-300); }
+  66%, 100% { background: #fff; border-color: var(--kb-line); }
+}
+@keyframes kbDemoA2 {
+  0%, 60%   { opacity: 1; }
+  68%, 100% { opacity: 0; }
+}
+@keyframes kbDemoB2 {
+  0%, 60%   { opacity: 0; }
+  68%, 100% { opacity: 1; }
+}
+
+/* Scene 3: Excel-style overlay */
+@keyframes kbDemoExcel {
+  0%, 6%    { opacity: 0; transform: translateY(10px); }
+  14%, 100% { opacity: 1; transform: translateY(0); }
+}
+@keyframes kbDemoXcell {
+  0%, 26%   { box-shadow: inset 0 0 0 0 transparent; background: transparent; }
+  32%, 52%  { box-shadow: inset 0 0 0 2px #21A366; background: transparent; }
+  58%       { box-shadow: inset 0 0 0 2px #21A366; background: #D7F0E2; }
+  70%, 100% { box-shadow: inset 0 0 0 2px #21A366; background: #EDF9F2; }
+}
+@keyframes kbDemoXtype {
+  0%, 34%   { width: 0; animation-timing-function: steps(7, end); }
+  52%, 100% { width: 7.4ch; }
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .kb-demo-panel, .kb-demo-exticon img, .kb-demo-item--target,
-  .kb-demo-appname--a, .kb-demo-appname--b,
-  .kb-demo-rows--a, .kb-demo-rows--b { animation: none; }
-  .kb-demo-cursor { display: none; }
+  .kb-hero-demo *, .kb-hero-demo *::before, .kb-hero-demo *::after { animation: none !important; }
+  .kb-demo-cursor, .kb-demo-scrim, .kb-demo-palette, .kb-demo-excel { display: none; }
   .kb-demo-panel { transform: none; }
-  .kb-demo-appname--b, .kb-demo-rows--b { opacity: 0; }
+  .kb-demo-caption--panel { opacity: 1; }
 }
 
 /* ---- Scroll reveal ---- */
