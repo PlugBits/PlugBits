@@ -106,7 +106,8 @@
     "price_label_ja": "無料 + Pro ¥980/月",
     "price_label_en": "Free + Pro ¥980/mo",
     "trial_note_ja": "Pro（¥980/月）は14日間無料で試せます。クレジットカード不要。",
-    "trial_note_en": "Try Pro (¥980/mo) free for 14 days — no credit card required."
+    "trial_note_en": "Try Pro (¥980/mo) free for 14 days — no credit card required.",
+    "pro_url": "/pro.html"
   },
   {
     "slug": "listkit",
