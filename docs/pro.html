@@ -4,9 +4,9 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>PlugBits Launcher Pro — アップグレード</title>
-  <meta name="description" content="PlugBits Launcher Pro で Grid Edit・一括保存など上級者向け機能をアンロック。月額プランで今すぐ始める。" />
+  <meta name="description" content="PlugBits Launcher Pro で Grid Edit・Excelコピー＆ペーストなど上級者向け機能をアンロック。14日間の無料トライアル付き（クレジットカード不要）。" />
   <meta property="og:title" content="PlugBits Launcher Pro — アップグレード" />
-  <meta property="og:description" content="Grid Edit・一括保存など上級者向け機能をアンロック。月額プランで今すぐ始める。" />
+  <meta property="og:description" content="Grid Edit・Excelコピー＆ペーストなど上級者向け機能をアンロック。14日間の無料トライアル付き。" />
   <meta property="og:type" content="website" />
   <meta property="og:image" content="https://plugbits.app/images/ogp.png" />
   <meta name="theme-color" content="#0f1115" />
@@ -298,11 +298,11 @@
         <p class="eyebrow">PlugBits Launcher Pro</p>
         <h1>kintone 操作を、<br />次のレベルへ。</h1>
         <p class="hero-lead">
-          Grid Edit による行内一括編集、新規レコード高速入力など、<br />
+          Grid Edit による一括編集、Excel とのコピー＆ペーストなど、<br />
           日々の業務を加速する Pro 専用機能をアンロックします。
         </p>
         <div class="hero-actions">
-          <a class="button button-primary" href="#pricing">プランを見る</a>
+          <a class="button button-primary" href="#pricing">14日間無料で試す</a>
           <a class="button button-secondary" href="./launcher/">無料版の機能を確認する</a>
         </div>
       </section>
@@ -321,11 +321,11 @@
             <span class="badge">PRO</span>
           </div>
           <div class="feature-card">
-            <div class="icon">➕</div>
-            <h3>Quick New Record（高速新規入力）</h3>
+            <div class="icon">📋</div>
+            <h3>スプレッドシート コピー＆ペースト</h3>
             <p>
-              Alt+Shift+N でどこからでも新規レコード入力モーダルを呼び出し。
-              ページ遷移なしに素早く登録できます。
+              一覧のセルを Excel へコピー、または Excel から kintone へ貼り付けてインポート。
+              日々の Excel との行き来がシームレスになります。
             </p>
             <span class="badge">PRO</span>
           </div>
@@ -360,16 +360,16 @@
               <span class="currency">¥</span><span class="amount">980</span>
               <span class="period">&nbsp;/ 月</span>
             </div>
-            <p class="pricing-note">税込・月払い・いつでも解約可能</p>
+            <p class="pricing-note">税込・月払い・いつでも解約可能・<strong>14日間の無料トライアル付き</strong></p>
             <hr class="pricing-divider" />
             <ul class="pricing-items">
               <li>
                 <span class="check"></span>
-                <span>Grid Edit — スプレッドシート形式の一括編集</span>
+                <span>Grid Edit — スプレッドシート形式の一括編集・行追加</span>
               </li>
               <li>
                 <span class="check"></span>
-                <span>Quick New Record — Alt+Shift+N 高速新規入力</span>
+                <span>スプレッドシート コピー＆ペースト — Excelとの双方向連携</span>
               </li>
               <li>
                 <span class="check"></span>
@@ -389,11 +389,13 @@
               </li>
             </ul>
             <div class="pricing-cta">
-              <a class="button button-primary" id="checkout-btn" href="YOUR_STRIPE_PAYMENT_LINK" target="_blank" rel="noopener">
-                今すぐ始める — ¥980/月
+              <!-- TODO: Stripe決済リンクが用意でき次第、購入ボタン（今すぐ始める — ¥980/月）をここに追加 -->
+              <a class="button button-primary" id="trial-btn" href="https://chromewebstore.google.com/detail/plugbits-launcher-for-kin/bmnijafgcjnpbgbdijjfidiaodphjjpd" target="_blank" rel="noopener">
+                14日間無料でProを試す
               </a>
               <p class="sub-note">
-                Stripe による安全な決済 · いつでも解約可能
+                拡張機能をインストール後、設定画面でメールアドレスを入力するだけで開始。<br />
+                クレジットカード不要 · 継続時は Stripe による安全な決済 · いつでも解約可能
               </p>
             </div>
           </div>
@@ -404,6 +406,13 @@
       <section class="faq-section">
         <h2 class="faq-section-heading">よくある質問</h2>
         <dl class="faq-list">
+          <div class="faq-item">
+            <dt>無料トライアルはありますか？</dt>
+            <dd>
+              はい。拡張機能の設定画面「Pro ライセンス」タブでメールアドレスを入力すると、
+              その場で14日間の Pro トライアルが始まります。クレジットカードの登録は不要です。
+            </dd>
+          </div>
           <div class="faq-item">
             <dt>ライセンスキーはどのように受け取りますか？</dt>
             <dd>
@@ -421,8 +430,9 @@
           <div class="faq-item">
             <dt>無料版との違いは何ですか？</dt>
             <dd>
-              無料版ではサイドパネル（ショートカット・履歴・ウォッチリスト・Spreadsheet View の閲覧）が使えます。
-              Pro では Grid Edit による編集・保存と Quick New Record が追加されます。
+              無料版ではサイドパネル（ショートカット・履歴・ウォッチリスト・Spreadsheet View の閲覧）と
+              Quick New（レコード新規追加）が使えます。
+              Pro では Grid Edit による編集・保存・行追加と、Excel とのコピー＆ペーストが追加されます。
             </dd>
           </div>
           <div class="faq-item">
@@ -445,10 +455,10 @@
       <!-- Footer CTA -->
       <section class="footer-cta">
         <h2>今日から Pro を試す</h2>
-        <p>月額 ¥980。いつでもキャンセル可能です。</p>
-        <a class="button button-primary" href="YOUR_STRIPE_PAYMENT_LINK" target="_blank" rel="noopener"
+        <p>14日間無料・クレジットカード不要。継続する場合は月額 ¥980、いつでもキャンセル可能です。</p>
+        <a class="button button-primary" href="https://chromewebstore.google.com/detail/plugbits-launcher-for-kin/bmnijafgcjnpbgbdijjfidiaodphjjpd" target="_blank" rel="noopener"
            style="font-size:16px;min-height:52px;padding:0 28px;">
-          今すぐ始める
+          無料トライアルを始める
         </a>
       </section>
     </main>
@@ -456,6 +466,7 @@
     <footer style="border-top:1px solid var(--line);padding:28px 0;color:var(--muted);font-size:13px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:16px;">
       <span>© 2026 PlugBits</span>
       <nav style="display:flex;gap:20px;">
+        <a href="https://plugbits.app/" style="color:var(--muted);">PlugBits トップ</a>
         <a href="./privacy.html" style="color:var(--muted);">プライバシーポリシー</a>
         <a href="./terms.html" style="color:var(--muted);">利用規約</a>
         <a href="mailto:support@plugbits.app" style="color:var(--muted);">お問い合わせ</a>

@@ -360,6 +360,7 @@ try {
           '    <div class="kb-ext-cta-row">',
           `      ${storeBtn}`,
           `      <a class="kb-cta-secondary" href="${esc(href)}">${label}</a>`,
+          p.pro_url ? `      <a class="kb-ext-prolink" href="${esc(p.pro_url)}">${isJa ? 'Proの機能と料金 →' : 'Pro features & pricing →'}</a>` : '',
           '    </div>',
           trialNote ? `    <p class="kb-ext-note">${esc(trialNote)}</p>` : '',
           '  </div>',

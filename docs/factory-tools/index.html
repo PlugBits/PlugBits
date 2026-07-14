@@ -210,6 +210,23 @@
     .tool-section { display: none; }
     .tool-section.active { display: block; }
 
+    /* PlugBits Launcher cross-sell band */
+    .crosssell-band {
+      margin-top: 48px;
+      padding: 22px 26px;
+      border: 1px solid var(--line, #e2e8f0);
+      border-radius: 14px;
+      background: linear-gradient(135deg, #eff6ff, #f8fafc);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+      flex-wrap: wrap;
+    }
+    .crosssell-band strong { font-size: 15px; color: #0f172a; }
+    .crosssell-band p { margin: 6px 0 0; color: var(--muted, #64748b); font-size: 13.5px; line-height: 1.7; }
+    .crosssell-band .launch-btn { flex-shrink: 0; }
+
     .hero-card {
       background: var(--panel);
       border: 1px solid var(--line);
@@ -737,6 +754,18 @@
           </div>
         </section>
 
+
+        <!-- PlugBits Launcher cross-sell -->
+        <div class="crosssell-band">
+          <div>
+            <strong data-i18n="xsellTitle">kintoneもお使いですか？</strong>
+            <p data-i18n="xsellDesc">PlugBits Launcher — kintoneの「探す」を一撃にする、無料ではじめられるChrome拡張。ショートカット・履歴・Excel風の一覧編集（Pro）をサイドパネルに。</p>
+          </div>
+          <a class="launch-btn launch-blue" href="https://plugbits.app/launcher/" target="_blank" rel="noopener">
+            <span data-i18n="xsellCta">詳しく見る</span> <span>→</span>
+          </a>
+        </div>
+
       </div>
     </main>
   </div>
@@ -745,6 +774,7 @@
     /* ── i18n dictionary ── */
     const I18N = {
       ja: {
+        xsellTitle: 'kintoneもお使いですか？', xsellDesc: 'PlugBits Launcher — kintoneの「探す」を一撃にする、無料ではじめられるChrome拡張。ショートカット・履歴・Excel風の一覧編集（Pro）をサイドパネルに。', xsellCta: '詳しく見る',
         navLabel: 'ツール',
         navLayout: '工場レイアウト', navInspection: '検査図面', navCalc: '計算ツール', navSt: '標準時間設計',
         openTool: 'ツールを開く',
@@ -796,6 +826,7 @@
         f_bg_download: '透過PNG出力', f_bg_download_d: '背景透過のPNG形式でダウンロード。カタログ・資料・ECサイトの素材として活用できます。',
       },
       en: {
+        xsellTitle: 'Using kintone too?', xsellDesc: 'PlugBits Launcher — a free-to-start Chrome extension that makes finding anything in kintone one click. Shortcuts, history, and Excel-style list editing (Pro) in a side panel.', xsellCta: 'Learn more',
         navLabel: 'Tools',
         navLayout: 'Factory Layout', navInspection: 'Inspection', navCalc: 'Calculators', navSt: 'Standard Time',
         openTool: 'Open Tool',
@@ -847,6 +878,7 @@
         f_bg_download: 'Transparent PNG Export', f_bg_download_d: 'Download as transparent PNG. Perfect for catalogs, documents, and e-commerce product images.',
       },
       zh: {
+        xsellTitle: 'Using kintone too?', xsellDesc: 'PlugBits Launcher — a free-to-start Chrome extension that makes finding anything in kintone one click. Shortcuts, history, and Excel-style list editing (Pro) in a side panel.', xsellCta: 'Learn more',
         navLabel: '工具',
         navLayout: '工厂布局', navInspection: '检查图纸', navCalc: '计算工具', navSt: '标准时间设计',
         openTool: '打开工具',
@@ -898,6 +930,7 @@
         f_bg_download: '透明PNG导出', f_bg_download_d: '以透明背景PNG格式下载，适用于目录、文档和电商产品图片。',
       },
       th: {
+        xsellTitle: 'Using kintone too?', xsellDesc: 'PlugBits Launcher — a free-to-start Chrome extension that makes finding anything in kintone one click. Shortcuts, history, and Excel-style list editing (Pro) in a side panel.', xsellCta: 'Learn more',
         navLabel: 'เครื่องมือ',
         navLayout: 'ผังโรงงาน', navInspection: 'แบบตรวจสอบ', navCalc: 'เครื่องคำนวณ', navSt: 'เวลามาตรฐาน',
         openTool: 'เปิดเครื่องมือ',
@@ -949,6 +982,7 @@
         f_bg_download: 'ส่งออก PNG โปร่งใส', f_bg_download_d: 'ดาวน์โหลดเป็น PNG พื้นหลังโปร่งใส เหมาะสำหรับแคตตาล็อก เอกสาร และภาพสินค้าอีคอมเมิร์ซ',
       },
       id: {
+        xsellTitle: 'Using kintone too?', xsellDesc: 'PlugBits Launcher — a free-to-start Chrome extension that makes finding anything in kintone one click. Shortcuts, history, and Excel-style list editing (Pro) in a side panel.', xsellCta: 'Learn more',
         navLabel: 'Alat',
         navLayout: 'Tata Letak Pabrik', navInspection: 'Gambar Inspeksi', navCalc: 'Kalkulator', navSt: 'Waktu Standar',
         openTool: 'Buka Alat',
