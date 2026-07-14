@@ -85,7 +85,8 @@
       }
     ],
     "brevo_form_id": "https://dca617a2.sibforms.com/serve/MUIFAPk-0SA3-DlRbY_F5fvZ1x1S0ZC7Os4Sl09qB61UXSsqelYH19wbmrdYPi4jywTdGnqIv3t3437aJTESE6r4exxamWEIlQKIIxw69gO2llP9HibDERUeodVNNbxdTtKeJq9tMXo6C4uMX5TuV93Y4PgfrmjdrjgaZc8rlvPFcZ0zgcqm5Oc1xKXFJunN5LpWbRDltINy8Uez9A==",
-    "og_image": "assets/gallery/hero.png"
+    "og_image": "assets/gallery/hero.png",
+    "pricing": "free"
   },
   {
     "slug": "launcher",
@@ -97,7 +98,11 @@
     "title_en": "PlugBits Launcher",
     "short_summary_ja": "ショートカット・履歴・ウォッチリストを1つのサイドパネルに。kintoneの「探しもの」を最短ルートにする無料Chrome拡張。",
     "short_summary_en": "Shortcuts, history, and watchlist in one side panel. The free Chrome extension that puts kintone navigation on the fast track.",
-    "og_image": ""
+    "og_image": "",
+    "pricing": "free",
+    "store_url": "https://chromewebstore.google.com/detail/plugbits-launcher-for-kin/bmnijafgcjnpbgbdijjfidiaodphjjpd",
+    "highlights_ja": "よく使うアプリ・ページへのショートカットを1か所に集約;直近に開いたレコードの履歴からすぐ戻れる;気になるレコードはウォッチリストで見失わない;必要なときだけサイドパネルをさっと開ける",
+    "highlights_en": "Shortcuts to your most-used apps and pages in one place;Jump back through your recently opened records;Keep important records on a watchlist;Open the side panel only when you need it"
   },
   {
     "slug": "listkit",
@@ -177,7 +182,8 @@
         "caption_en": ""
       }
     ],
-    "og_image": "assets/listkit/hero.png"
+    "og_image": "assets/listkit/hero.png",
+    "pricing": "free"
   },
   {
     "slug": "text-rule-builder",
@@ -252,7 +258,8 @@
         "caption_en": "Example in a kintone record. The matched string is automatically filled in"
       }
     ],
-    "og_image": "assets/text-rule-builder/hero.png"
+    "og_image": "assets/text-rule-builder/hero.png",
+    "pricing": "free"
   },
   {
     "slug": "factory-tools",
@@ -269,6 +276,7 @@
     "category_ja": "製造業向けツール",
     "category_en": "Manufacturing Tools",
     "tags_ja": "工場, レイアウト, 標準時間, 無料",
-    "tags_en": "factory, layout, standard time, free"
+    "tags_en": "factory, layout, standard time, free",
+    "pricing": "free"
   }
 ]
