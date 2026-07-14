@@ -99,10 +99,14 @@
     "short_summary_ja": "ショートカット・履歴・ウォッチリストを1つのサイドパネルに。kintoneの「探しもの」を最短ルートにする無料Chrome拡張。",
     "short_summary_en": "Shortcuts, history, and watchlist in one side panel. The free Chrome extension that puts kintone navigation on the fast track.",
     "og_image": "",
-    "pricing": "free",
+    "pricing": "freemium",
     "store_url": "https://chromewebstore.google.com/detail/plugbits-launcher-for-kin/bmnijafgcjnpbgbdijjfidiaodphjjpd",
-    "highlights_ja": "よく使うアプリ・ページへのショートカットを1か所に集約;コマンドパレットで、名前を打つだけで目的の画面へ;一覧の上にエクセル風オーバーレイを重ねてその場で確認・編集;直近に開いたレコードの履歴からすぐ戻れる;気になるレコードはウォッチリストで見失わない",
-    "highlights_en": "Shortcuts to your most-used apps and pages in one place;Command palette: type a name, jump straight there;Excel-style overlay to review and edit right on the list view;Jump back through your recently opened records;Keep important records on a watchlist"
+    "highlights_ja": "よく使うアプリ・ビュー・レコードをサイドパネルに集約、ワンクリックで移動;Ctrl+/ のコマンドパレットで移動・作成・コピーを一発実行;Excel Overlayで一覧をExcelのように編集（Pro / 無料版は閲覧モード）;ウォッチリストのしきい値通知で件数の急増を見逃さない;最近開いたレコードの履歴とピン留めで画面遷移を最小限に",
+    "highlights_en": "Apps, views, and records in one side panel — one click to jump;Ctrl+/ command palette to navigate, create, and copy in one stroke;Excel Overlay: edit lists like a spreadsheet (Pro / view-only on Free);Watchlist threshold alerts catch sudden spikes in record counts;Recent-record history and pinning keep page hopping to a minimum",
+    "price_label_ja": "無料 + Pro ¥980/月",
+    "price_label_en": "Free + Pro ¥980/mo",
+    "trial_note_ja": "Pro（¥980/月）は14日間無料で試せます。クレジットカード不要。",
+    "trial_note_en": "Try Pro (¥980/mo) free for 14 days — no credit card required."
   },
   {
     "slug": "listkit",
