@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>PlugBits — kintone向けプラグイン＆ブラウザ拡張機能</title>
-  <meta name="description" content="kintoneの日常をちょっと楽にする、無料のプラグインとブラウザ拡張機能。探す・入力する・確認するを短縮します。">
+  <title>PlugBits — kintone向けブラウザ拡張機能＆無料プラグイン</title>
+  <meta name="description" content="kintoneの「探す」を一撃にする無料ブラウザ拡張機能 PlugBits Launcher と、アプリに足すだけの無料プラグイン。日常のkintone作業を短縮します。">
   <link rel="stylesheet" href="style.css">
 </head>
 <body class="kb-root">
@@ -16,12 +16,12 @@
       <img src="assets/plugbits-logo.webp" alt="PlugBits" class="kb-logo-img">
       <div class="kb-brand-text">
         <span class="kb-brand-name">PlugBits</span>
-        <span class="kb-brand-tagline">kintone向けプラグイン＆ブラウザ拡張機能</span>
+        <span class="kb-brand-tagline">kintone向けブラウザ拡張機能＆プラグイン</span>
       </div>
     </a>
     <nav class="kb-topbar-nav">
+      <a href="#extensions">拡張機能</a>
       <a href="#plugins">プラグイン</a>
-      <a href="/launcher/">Launcher</a>
       <a href="/blog/">ブログ</a>
       <a href="/privacy.html">プライバシー</a>
       <a class="kb-lang" href="/en/">EN</a>
@@ -30,14 +30,50 @@
   </header>
 
   <!-- Hero -->
-  <header class="kb-hero">
-    <div class="kb-container">
-      <p class="kb-eyebrow">kintone向けミニツール</p>
-      <h1 class="kb-hero-title">kintoneの日常を、<br>ちょっと楽にする。</h1>
-      <p class="kb-hero-sub">無料プラグインと無料ブラウザ拡張機能で、<br>探す・入力する・確認するを短縮します。<br><small style="font-size:13px;color:#888;">Chrome・Edge対応</small></p>
-      <div class="kb-hero-actions">
-        <a class="kb-cta-primary" href="#plugins">プラグインを見る</a>
-        <a class="kb-cta-secondary" href="#extensions">拡張機能を見る →</a>
+  <header class="kb-hero kb-hero--split">
+    <div class="kb-container kb-hero-split-inner">
+      <div class="kb-hero-copy">
+        <p class="kb-eyebrow">kintone向けブラウザ拡張機能</p>
+        <h1 class="kb-hero-title">kintoneの「探す」を、<br>一撃にする。</h1>
+        <p class="kb-hero-sub">PlugBits Launcher — ショートカット・履歴・ウォッチリストを1つのサイドパネルに。よく使うアプリへ最短ルートで移動できる、無料のChrome拡張機能です。</p>
+        <div class="kb-hero-actions">
+          <a class="kb-cta-primary" href="%%LAUNCHER_STORE_URL%%" target="_blank" rel="noopener">Chromeに追加（無料）</a>
+          <a class="kb-cta-secondary" href="/launcher/">詳しく見る →</a>
+        </div>
+        <p class="kb-hero-note">Chrome・Edge対応 / kintoneの管理者権限は不要です</p>
+      </div>
+
+      <!-- Launcher animated demo (decorative) -->
+      <div class="kb-hero-demo" aria-hidden="true">
+        <div class="kb-demo-window">
+          <div class="kb-demo-chrome">
+            <span class="kb-demo-dots"><i></i><i></i><i></i></span>
+            <span class="kb-demo-url">example.cybozu.com</span>
+            <span class="kb-demo-exticon"><img src="/launcher/assets/icon128.png" alt=""></span>
+          </div>
+          <div class="kb-demo-stage">
+            <div class="kb-demo-page">
+              <div class="kb-demo-appbar">
+                <span class="kb-demo-appname kb-demo-appname--a">営業案件一覧</span>
+                <span class="kb-demo-appname kb-demo-appname--b">日報アプリ</span>
+              </div>
+              <div class="kb-demo-rows kb-demo-rows--a"><i></i><i></i><i></i><i></i><i></i></div>
+              <div class="kb-demo-rows kb-demo-rows--b"><i></i><i></i><i></i><i></i><i></i></div>
+            </div>
+            <aside class="kb-demo-panel">
+              <div class="kb-demo-panel-head"><img src="/launcher/assets/icon128.png" alt="">Launcher</div>
+              <div class="kb-demo-search">アプリ・レコードを検索…</div>
+              <div class="kb-demo-list">
+                <span class="kb-demo-item">⭐ 営業案件一覧</span>
+                <span class="kb-demo-item kb-demo-item--target">🕒 日報アプリ</span>
+                <span class="kb-demo-item">👁 顧客マスタ</span>
+                <span class="kb-demo-item">⭐ 経費申請</span>
+              </div>
+            </aside>
+            <span class="kb-demo-cursor"></span>
+          </div>
+        </div>
+        <p class="kb-demo-caption">サイドパネルから、目的のアプリへ一撃。</p>
       </div>
     </div>
   </header>
@@ -45,9 +81,17 @@
   <main class="kb-index-main">
     <div class="kb-container">
 
-      <!-- プラグイン一覧 -->
-      <section class="kb-section" id="plugins">
-        <h2 class="kb-section-title">プラグイン一覧</h2>
+      <!-- ブラウザ拡張機能（メイン） -->
+      <section class="kb-section kb-reveal" id="extensions">
+        <h2 class="kb-section-title">ブラウザ拡張機能</h2>
+        <p class="kb-section-lead">PlugBitsのメインプロダクト。ブラウザに追加するだけで、kintoneの毎日が速くなります。</p>
+        %%EXTENSION_CARDS%%
+      </section>
+
+      <!-- 無料プラグイン（呼水） -->
+      <section class="kb-section kb-reveal" id="plugins">
+        <h2 class="kb-section-title">無料プラグイン</h2>
+        <p class="kb-section-lead">アプリに足すだけの小さな改善。すべて無料で使えます。</p>
         <section class="kb-card-grid" id="kb-product-grid">
           %%PRODUCT_CARDS%%
         </section>
@@ -56,35 +100,35 @@
         </div>
       </section>
 
-      <!-- ブラウザ拡張機能 -->
-      <section class="kb-section" id="extensions">
-        <h2 class="kb-section-title">ブラウザ拡張機能</h2>
-        %%EXTENSION_CARDS%%
-      </section>
-
-      <!-- 姉妹サイト -->
-      <section class="kb-section" id="websites">
-        <h2 class="kb-section-title">姉妹サイト</h2>
+      <!-- 製造業向けツール -->
+      <section class="kb-section kb-reveal" id="websites">
+        <h2 class="kb-section-title">製造業向け無料ツール</h2>
+        <p class="kb-section-lead">製造現場のためのブラウザツール集。インストール不要・登録不要で使えます。</p>
         %%WEBSITE_CARDS%%
       </section>
 
       <!-- FAQ -->
-      <section class="kb-section kb-faq-block">
+      <section class="kb-section kb-faq-block kb-reveal">
         <h2 class="kb-section-title">よくある質問</h2>
         <div class="kb-faq">
-          <div class="kb-faq-item"><h3>kintone管理者でないと使えませんか？</h3><p>プラグインのインストールはkintone管理者が必要です。ブラウザ拡張機能はご自身のブラウザに追加するだけで使えます。</p></div>
+          <div class="kb-faq-item"><h3>拡張機能はkintone管理者でなくても使えますか？</h3><p>はい。ブラウザ拡張機能はご自身のブラウザに追加するだけで使えます。管理者権限は不要です。</p></div>
+          <div class="kb-faq-item"><h3>プラグインの導入方法は？</h3><p>プラグインのインストールにはkintone管理者権限が必要です。<a href="install2.html">導入ガイド</a>をご参照ください。</p></div>
           <div class="kb-faq-item"><h3>サポートは？</h3><p>不具合報告に対応します。機能要望は可能な範囲で検討します。</p></div>
-          <div class="kb-faq-item"><h3>プラグインの導入方法は？</h3><p><a href="install2.html">導入ガイド</a>をご参照ください。</p></div>
         </div>
       </section>
 
       <!-- Install Guide -->
-      <section class="kb-install-guide">
+      <section class="kb-install-guide kb-reveal">
         <div class="kb-install-box">
           <h2 class="kb-install-title">🔧 プラグイン導入ガイド</h2>
           <p class="kb-install-desc">kintoneへの導入が初めての方はこちら。</p>
           <a href="install2.html" class="kb-install-btn">導入手順を見る</a>
         </div>
+      </section>
+
+      <!-- 開発者ノート -->
+      <section class="kb-dev-note kb-reveal">
+        <p><strong>PlugBitsは個人開発のプロジェクトです。</strong>すべてのツールを開発者自身がkintoneの現場で毎日使いながら改善しています。不具合報告や機能要望は<a href="mailto:%%SUPPORT_MAIL%%">メール</a>で直接開発者に届きます。</p>
       </section>
 
     </div>
@@ -109,6 +153,20 @@
     if (grid && notice && !grid.querySelector('.kb-card')) {
       notice.style.display = '';
     }
+  })();
+
+  // Scroll reveal (progressive enhancement)
+  (function(){
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    if (!('IntersectionObserver' in window)) return;
+    const els = document.querySelectorAll('.kb-reveal');
+    els.forEach(el => el.classList.add('kb-reveal-init'));
+    const io = new IntersectionObserver(entries => {
+      entries.forEach(e => {
+        if (e.isIntersecting) { e.target.classList.add('is-visible'); io.unobserve(e.target); }
+      });
+    }, { threshold: 0.12 });
+    els.forEach(el => io.observe(el));
   })();
   </script>
 

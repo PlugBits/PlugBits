@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>PlugBits — Plugins &amp; Extensions for kintone</title>
-  <meta name="description" content="Free plugins and browser extensions to make your kintone daily work easier.">
+  <title>PlugBits — Browser Extension &amp; Free Plugins for kintone</title>
+  <meta name="description" content="PlugBits Launcher, the free browser extension that makes finding anything in kintone one click away — plus free plugins for your apps.">
   <link rel="stylesheet" href="../style.css">
 </head>
 <body class="kb-root">
@@ -16,12 +16,12 @@
       <img src="../assets/plugbits-logo.webp" alt="PlugBits" class="kb-logo-img">
       <div class="kb-brand-text">
         <span class="kb-brand-name">PlugBits</span>
-        <span class="kb-brand-tagline">Plugins &amp; Extensions for kintone</span>
+        <span class="kb-brand-tagline">Browser Extension &amp; Plugins for kintone</span>
       </div>
     </a>
     <nav class="kb-topbar-nav">
+      <a href="#extensions">Extensions</a>
       <a href="#plugins">Plugins</a>
-      <a href="/launcher/">Launcher</a>
       <a href="/privacy.html">Privacy</a>
       <a class="kb-lang" href="/">JP</a>
     </nav>
@@ -29,36 +29,68 @@
   </header>
 
   <!-- Hero -->
-  <header class="kb-hero">
-    <div class="kb-container">
-      <p class="kb-eyebrow">Mini tools for kintone</p>
-      <h1 class="kb-hero-title">Make your kintone<br>daily work easier.</h1>
-      <p class="kb-hero-sub">Free plugins and browser extensions to<br>speed up finding, entering, and reviewing.<br><small style="font-size:13px;color:#888;">Chrome &amp; Edge supported</small></p>
-      <div class="kb-hero-actions">
-        <a class="kb-cta-primary" href="#plugins">Browse Plugins</a>
-        <a class="kb-cta-secondary" href="/launcher/">Try Launcher →</a>
+  <header class="kb-hero kb-hero--split">
+    <div class="kb-container kb-hero-split-inner">
+      <div class="kb-hero-copy">
+        <p class="kb-eyebrow">Browser extension for kintone</p>
+        <h1 class="kb-hero-title">Find anything in kintone,<br>in one click.</h1>
+        <p class="kb-hero-sub">PlugBits Launcher puts shortcuts, history, and your watchlist in one side panel — the fastest route to the apps you use every day. Free Chrome extension.</p>
+        <div class="kb-hero-actions">
+          <a class="kb-cta-primary" href="%%LAUNCHER_STORE_URL%%" target="_blank" rel="noopener">Add to Chrome — Free</a>
+          <a class="kb-cta-secondary" href="/launcher/">Learn more →</a>
+        </div>
+        <p class="kb-hero-note">Works with Chrome &amp; Edge. No kintone admin rights required.</p>
+      </div>
+
+      <!-- Launcher animated demo (decorative) -->
+      <div class="kb-hero-demo" aria-hidden="true">
+        <div class="kb-demo-window">
+          <div class="kb-demo-chrome">
+            <span class="kb-demo-dots"><i></i><i></i><i></i></span>
+            <span class="kb-demo-url">example.cybozu.com</span>
+            <span class="kb-demo-exticon"><img src="/launcher/assets/icon128.png" alt=""></span>
+          </div>
+          <div class="kb-demo-stage">
+            <div class="kb-demo-page">
+              <div class="kb-demo-appbar">
+                <span class="kb-demo-appname kb-demo-appname--a">Sales Deals</span>
+                <span class="kb-demo-appname kb-demo-appname--b">Daily Reports</span>
+              </div>
+              <div class="kb-demo-rows kb-demo-rows--a"><i></i><i></i><i></i><i></i><i></i></div>
+              <div class="kb-demo-rows kb-demo-rows--b"><i></i><i></i><i></i><i></i><i></i></div>
+            </div>
+            <aside class="kb-demo-panel">
+              <div class="kb-demo-panel-head"><img src="/launcher/assets/icon128.png" alt="">Launcher</div>
+              <div class="kb-demo-search">Search apps &amp; records…</div>
+              <div class="kb-demo-list">
+                <span class="kb-demo-item">⭐ Sales Deals</span>
+                <span class="kb-demo-item kb-demo-item--target">🕒 Daily Reports</span>
+                <span class="kb-demo-item">👁 Customers</span>
+                <span class="kb-demo-item">⭐ Expenses</span>
+              </div>
+            </aside>
+            <span class="kb-demo-cursor"></span>
+          </div>
+        </div>
+        <p class="kb-demo-caption">From the side panel straight to the app you need.</p>
       </div>
     </div>
   </header>
 
-  <main>
+  <main class="kb-index-main">
     <div class="kb-container">
 
-      <!-- Browser Extensions -->
-      <section class="kb-section" id="extensions">
+      <!-- Browser Extensions (main) -->
+      <section class="kb-section kb-reveal" id="extensions">
         <h2 class="kb-section-title">Browser Extensions</h2>
+        <p class="kb-section-lead">Our main product. Just add it to your browser and kintone gets faster every day.</p>
         %%EXTENSION_CARDS%%
       </section>
 
-      <!-- Sister Sites -->
-      <section class="kb-section" id="websites">
-        <h2 class="kb-section-title">Sister Sites</h2>
-        %%WEBSITE_CARDS%%
-      </section>
-
-      <!-- Plugin List -->
-      <section class="kb-section" id="plugins">
-        <h2 class="kb-section-title">Plugins</h2>
+      <!-- Free Plugins -->
+      <section class="kb-section kb-reveal" id="plugins">
+        <h2 class="kb-section-title">Free Plugins</h2>
+        <p class="kb-section-lead">Small improvements you simply add to your apps. All free.</p>
         <section class="kb-card-grid" id="kb-product-grid">
           %%PRODUCT_CARDS%%
         </section>
@@ -67,23 +99,35 @@
         </div>
       </section>
 
+      <!-- Tools for Manufacturing -->
+      <section class="kb-section kb-reveal" id="websites">
+        <h2 class="kb-section-title">Free Tools for Manufacturing</h2>
+        <p class="kb-section-lead">Browser tools for the factory floor. No install, no sign-up.</p>
+        %%WEBSITE_CARDS%%
+      </section>
+
       <!-- FAQ -->
-      <section class="kb-faq-block">
+      <section class="kb-section kb-faq-block kb-reveal">
         <h2 class="kb-section-title">FAQ</h2>
         <div class="kb-faq">
-          <div class="kb-faq-item"><h3>Do I need to be a kintone admin?</h3><p>Plugin installation requires a kintone admin. The browser extension (Launcher) can be added to your own browser without admin rights.</p></div>
+          <div class="kb-faq-item"><h3>Do I need to be a kintone admin to use the extension?</h3><p>No. The browser extension can be added to your own browser — no admin rights required.</p></div>
+          <div class="kb-faq-item"><h3>How do I install a plugin?</h3><p>Plugin installation requires a kintone admin. See the <a href="../install2.html">installation guide</a>.</p></div>
           <div class="kb-faq-item"><h3>Support?</h3><p>Bug reports accepted. Feature requests considered when feasible.</p></div>
-          <div class="kb-faq-item"><h3>How do I install a plugin?</h3><p>See the <a href="../install2.html">installation guide</a>.</p></div>
         </div>
       </section>
 
       <!-- Install Guide -->
-      <section class="kb-section kb-install-guide">
+      <section class="kb-install-guide kb-reveal">
         <div class="kb-install-box">
           <h2 class="kb-install-title">🔧 Plugin Installation Guide</h2>
           <p class="kb-install-desc">First time installing a kintone plugin? Start here.</p>
           <a href="../install2.html" class="kb-install-btn">View Guide</a>
         </div>
+      </section>
+
+      <!-- Developer note -->
+      <section class="kb-dev-note kb-reveal">
+        <p><strong>PlugBits is an indie project.</strong> Every tool is built and improved by a developer who uses them in kintone every day. Bug reports and requests go <a href="mailto:%%SUPPORT_MAIL%%">straight to the developer</a>.</p>
       </section>
 
     </div>
@@ -107,6 +151,20 @@
     if (grid && notice && !grid.querySelector('.kb-card')) {
       notice.style.display = '';
     }
+  })();
+
+  // Scroll reveal (progressive enhancement)
+  (function(){
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    if (!('IntersectionObserver' in window)) return;
+    const els = document.querySelectorAll('.kb-reveal');
+    els.forEach(el => el.classList.add('kb-reveal-init'));
+    const io = new IntersectionObserver(entries => {
+      entries.forEach(e => {
+        if (e.isIntersecting) { e.target.classList.add('is-visible'); io.unobserve(e.target); }
+      });
+    }, { threshold: 0.12 });
+    els.forEach(el => io.observe(el));
   })();
   </script>
 

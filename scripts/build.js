@@ -111,6 +111,24 @@ try {
 
   const plugins = products.filter(p => p.type === 'plugin');
 
+  // Launcher（主力拡張機能）のストアURLを全テンプレートで共有
+  const storeExt = products.find(p => p.type === 'extension' && p.store_url);
+  const LAUNCHER_STORE_URL = (storeExt && storeExt.store_url) || '/launcher/';
+
+  // 価格バッジ：pricing (free / freemium / paid) で出し分け。未設定は free 扱い
+  function priceBadge(p, isJa) {
+    if (p.status === 'coming-soon') {
+      return '<div class="kb-price-badge kb-price-coming">COMING SOON</div>';
+    }
+    const pricing = p.pricing || 'free';
+    if (pricing === 'paid' || pricing === 'freemium') {
+      const fallback = pricing === 'freemium' ? (isJa ? '無料+Pro' : 'Free+Pro') : (isJa ? '有料' : 'Paid');
+      const label = (isJa ? p.price_label_ja : p.price_label_en) || fallback;
+      return `<div class="kb-price-badge kb-price-paid">${esc(label)}</div>`;
+    }
+    return `<div class="kb-price-badge kb-price-free">${isJa ? '無料' : 'Free'}</div>`;
+  }
+
   /**
    * プラグイン詳細ページを生成する。
    * JA: dist/products/{slug}.html      (imgPrefix: ../)
@@ -162,6 +180,7 @@ try {
                                 ? `https://plugbits.app/products/${p.slug}.html`
                                 : `https://plugbits.app/products/en/${p.slug}.html`,
       '%%ALT_LANG_URL%%':     altLangUrl,
+      '%%LAUNCHER_STORE_URL%%': LAUNCHER_STORE_URL,
       '%%SUPPORT_MAIL%%':     SUPPORT_MAIL,
       '%%SITE_COPYRIGHT%%':   SITE_COPYRIGHT,
     };
@@ -186,6 +205,7 @@ try {
         .replaceAll('%%TITLE%%',          esc(p.title_ja))
         .replaceAll('%%SLUG%%',           p.slug)
         .replaceAll('%%MANUAL_CONTENT%%', content)
+        .replaceAll('%%LAUNCHER_STORE_URL%%', LAUNCHER_STORE_URL)
         .replaceAll('%%SUPPORT_MAIL%%',   SUPPORT_MAIL)
         .replaceAll('%%SITE_COPYRIGHT%%', SITE_COPYRIGHT);
       fs.writeFileSync(path.join(PRODUCTS_DIR, `${p.slug}-manual.html`), out);
@@ -197,6 +217,7 @@ try {
         .replaceAll('%%TITLE%%',          esc(p.title_en))
         .replaceAll('%%SLUG%%',           p.slug)
         .replaceAll('%%MANUAL_CONTENT%%', content)
+        .replaceAll('%%LAUNCHER_STORE_URL%%', LAUNCHER_STORE_URL)
         .replaceAll('%%SUPPORT_MAIL%%',   SUPPORT_MAIL)
         .replaceAll('%%SITE_COPYRIGHT%%', SITE_COPYRIGHT);
       fs.writeFileSync(path.join(PRODUCTS_EN_DIR, `${p.slug}-manual.html`), out);
@@ -242,6 +263,7 @@ try {
       '%%TOOL_URL%%':              post.tool_url,
       '%%TOOL_NAME%%':             esc(post.tool_name),
       '%%CONTENT_HTML%%':          contentHtml,
+      '%%LAUNCHER_STORE_URL%%':    LAUNCHER_STORE_URL,
       '%%SUPPORT_MAIL%%':          SUPPORT_MAIL,
       '%%SITE_COPYRIGHT%%':        SITE_COPYRIGHT,
       '%%JSONLD%%':                jsonLd,
@@ -282,6 +304,9 @@ try {
   // インデックスページ用カード生成
   function buildCards(lang) {
     const isJa = lang === 'ja';
+    // EN index は /en/ 配下にあるため、相対パスには ../ を付ける（絶対パス・URLはそのまま）
+    const pre = isJa ? '' : '../';
+    const rel = s => /^([a-z]+:)?\//i.test(s || '') ? s : pre + s;
     const visible = products.filter(p => (p.status || 'public') !== 'unlisted');
     const extensions = visible.filter(p => p.type === 'extension');
     const pluginList  = visible.filter(p => p.type === 'plugin');
@@ -290,7 +315,7 @@ try {
     const websiteHtml = websites.map(p => {
       const title   = isJa ? p.title_ja        : p.title_en;
       const summary = isJa ? p.short_summary_ja : p.short_summary_en;
-      const href    = p.page_url || '#';
+      const href    = rel(p.page_url || '#');
       const label   = isJa ? '詳しく見る →' : 'Learn more →';
       const badge   = isJa ? '無料 / Webツール' : 'Free / Web Tool';
       return [
@@ -302,7 +327,7 @@ try {
         `    <span class="kb-btn kb-btn-primary kb-launcher-cta">${label}</span>`,
         '  </div>',
         '  <div class="kb-launcher-card-visual">',
-        `    <img src="${esc(p.hero_image)}" alt="${esc(title)}" class="kb-launcher-logo">`,
+        `    <img src="${esc(rel(p.hero_image))}" alt="${esc(title)}" class="kb-launcher-logo">`,
         '  </div>',
         '</a>',
       ].join('\n');
@@ -311,9 +336,35 @@ try {
     const extHtml = extensions.map(p => {
       const title   = isJa ? p.title_ja         : p.title_en;
       const summary = isJa ? p.short_summary_ja  : p.short_summary_en;
-      const href    = p.page_url || (isJa ? `products/${p.slug}.html` : `products/en/${p.slug}.html`);
+      const href    = rel(p.page_url || (isJa ? `products/${p.slug}.html` : `products/en/${p.slug}.html`));
       const label   = isJa ? '詳しく見る →' : 'Learn more →';
       const badge   = isJa ? '無料 / ブラウザ拡張機能' : 'Free / Browser Extension';
+      const highlights = renderFeatures(isJa ? p.highlights_ja : p.highlights_en);
+
+      // store_url か highlights があれば主力プロダクトとして大きく見せる
+      if (p.store_url || highlights) {
+        const storeBtn = p.store_url
+          ? `<a class="kb-cta-primary" href="${esc(p.store_url)}" target="_blank" rel="noopener">${isJa ? 'Chromeに追加（無料）' : 'Add to Chrome — Free'}</a>`
+          : '';
+        return [
+          '<div class="kb-ext-featured">',
+          '  <div class="kb-ext-featured-body">',
+          `    <span class="kb-launcher-tag">${badge}</span>`,
+          `    <h3>${esc(title)}</h3>`,
+          `    <p>${esc(summary)}</p>`,
+          highlights ? `    <ul class="kb-ext-highlights">${highlights}</ul>` : '',
+          '    <div class="kb-ext-cta-row">',
+          `      ${storeBtn}`,
+          `      <a class="kb-cta-secondary" href="${esc(href)}">${label}</a>`,
+          '    </div>',
+          '  </div>',
+          '  <div class="kb-ext-featured-visual">',
+          `    <img src="${esc(rel(p.hero_image))}" alt="${esc(title)}">`,
+          '  </div>',
+          '</div>',
+        ].filter(Boolean).join('\n');
+      }
+
       return [
         `<a class="kb-launcher-card" href="${esc(href)}">`,
         '  <div class="kb-launcher-card-body">',
@@ -323,7 +374,7 @@ try {
         `    <span class="kb-btn kb-btn-primary kb-launcher-cta">${label}</span>`,
         '  </div>',
         '  <div class="kb-launcher-card-visual">',
-        `    <img src="${esc(p.hero_image)}" alt="${esc(title)}" class="kb-launcher-logo">`,
+        `    <img src="${esc(rel(p.hero_image))}" alt="${esc(title)}" class="kb-launcher-logo">`,
         '  </div>',
         '</a>',
       ].join('\n');
@@ -334,16 +385,14 @@ try {
       const title    = isJa ? p.title_ja : p.title_en;
       const desc     = shortText(isJa ? (p.short_summary_ja || p.summary_ja) : (p.short_summary_en || p.summary_en), 64);
       const tags     = renderTags(isJa ? p.tags_ja : p.tags_en);
-      const href     = isComing ? '#' : (isJa ? `products/${p.slug}.html` : `products/en/${p.slug}.html`);
-      const badge    = isComing
-        ? `<div class="kb-price-badge kb-price-coming">COMING SOON</div>`
-        : `<div class="kb-price-badge kb-price-free">${isJa ? '無料' : 'Free'}</div>`;
+      const href     = isComing ? '#' : rel(isJa ? `products/${p.slug}.html` : `products/en/${p.slug}.html`);
+      const badge    = priceBadge(p, isJa);
       const btnLabel = isComing ? (isJa ? '準備中' : 'Coming Soon') : (isJa ? '詳細' : 'Details');
       const cardClass = 'kb-card' + (isComing ? ' kb-card--coming' : '');
       return [
         `<a class="${cardClass}" href="${esc(href)}">`,
         '  <div class="kb-card-img">',
-        `    <img class="kb-hero-image" src="${esc(p.hero_image)}" alt="${esc(title)}" loading="lazy">`,
+        `    <img class="kb-hero-image" src="${esc(rel(p.hero_image))}" alt="${esc(title)}" loading="lazy">`,
         '  </div>',
         '  <div class="kb-card-body">',
         `    <h3 class="kb-card-title">${esc(title)}</h3>`,
@@ -369,6 +418,7 @@ try {
       .replaceAll('%%EXTENSION_CARDS%%', extJa)
       .replaceAll('%%PRODUCT_CARDS%%',   pluginsJa)
       .replaceAll('%%WEBSITE_CARDS%%',   websitesJa)
+      .replaceAll('%%LAUNCHER_STORE_URL%%', LAUNCHER_STORE_URL)
       .replaceAll('%%SUPPORT_MAIL%%',    SUPPORT_MAIL)
       .replaceAll('%%SITE_COPYRIGHT%%',  SITE_COPYRIGHT)
   );
@@ -379,6 +429,7 @@ try {
       .replaceAll('%%EXTENSION_CARDS%%', extEn)
       .replaceAll('%%PRODUCT_CARDS%%',   pluginsEn)
       .replaceAll('%%WEBSITE_CARDS%%',   websitesEn)
+      .replaceAll('%%LAUNCHER_STORE_URL%%', LAUNCHER_STORE_URL)
       .replaceAll('%%SUPPORT_MAIL%%',    SUPPORT_MAIL)
       .replaceAll('%%SITE_COPYRIGHT%%',  SITE_COPYRIGHT)
   );
