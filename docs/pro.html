@@ -17,27 +17,223 @@
   <style>
     /* ── Pro page extras ─────────────────────────────────────── */
     .pro-hero {
-      text-align: center;
-      padding: 80px 0 56px;
+      display: grid;
+      grid-template-columns: 1.05fr 1fr;
+      gap: 48px;
+      align-items: center;
+      padding: 72px 0 72px;
+      text-align: left;
     }
     .pro-hero .eyebrow {
       display: inline-block;
     }
     .pro-hero h1 {
-      font-size: clamp(36px, 5.5vw, 64px);
+      font-size: clamp(30px, 4.2vw, 50px);
       max-width: none;
       letter-spacing: -0.04em;
       margin: 0 0 20px;
     }
     .pro-hero .hero-lead {
-      margin: 0 auto;
-      max-width: 560px;
-      font-size: 17px;
+      margin: 0;
+      max-width: 540px;
+      font-size: 16.5px;
     }
     .pro-hero .hero-actions {
-      margin-top: 36px;
-      justify-content: center;
+      margin-top: 32px;
+      justify-content: flex-start;
     }
+    .hero-trust {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px 18px;
+      margin-top: 20px;
+      color: var(--muted);
+      font-size: 12.5px;
+    }
+    .hero-trust span::before { content: '✓ '; color: var(--accent); font-weight: 700; }
+    @media (max-width: 880px) {
+      .pro-hero { grid-template-columns: 1fr; gap: 36px; text-align: center; padding: 56px 0; }
+      .pro-hero .hero-lead { margin: 0 auto; }
+      .pro-hero .hero-actions { justify-content: center; }
+      .hero-trust { justify-content: center; }
+      .pro-demo { max-width: 480px; margin: 0 auto; }
+    }
+
+    /* ── Hero demo（実機動画が来たら .pro-demo-window の中身を <video> に差し替え） ── */
+    .pro-demo { width: 100%; }
+    .pro-demo-window {
+      position: relative;
+      background: #171a21;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: 0 30px 60px rgba(0, 0, 0, .45);
+    }
+    .hero-video { display: block; width: 100%; height: auto; }
+    .pro-demo-bar {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 10px 14px;
+      border-bottom: 1px solid #232837;
+    }
+    .pro-demo-title { font-size: 12px; font-weight: 700; color: #e8ecf4; display: flex; gap: 8px; align-items: center; }
+    .pro-demo-title img { width: 16px; height: 16px; border-radius: 4px; }
+    .pro-demo-save {
+      font-size: 11px; font-weight: 700; color: #fff;
+      background: var(--accent);
+      border-radius: 8px; padding: 5px 12px;
+      animation: proSave 9s ease-in-out infinite;
+    }
+    .pro-demo-grid { padding: 4px 12px 16px; }
+    .pro-xrow { display: grid; grid-template-columns: 1.3fr 1fr .8fr; }
+    .pro-xrow span {
+      position: relative;
+      padding: 9px 10px; font-size: 11.5px; color: #c7cedd;
+      border-bottom: 1px solid #232837; border-left: 1px solid #232837;
+      white-space: nowrap; overflow: hidden;
+    }
+    .pro-xrow span:first-child { border-left: 0; }
+    .pro-xrow--head span { color: #8b94a7; font-weight: 700; font-size: 10px; letter-spacing: .05em; }
+    .pro-cell-edit { animation: proCell 9s ease-in-out infinite; }
+    .pro-old { position: absolute; left: 10px; top: 9px; text-decoration: none; animation: proOld 9s ease-in-out infinite; }
+    .pro-type {
+      display: inline-block; overflow: hidden; white-space: nowrap;
+      width: 0; color: #fff; font-weight: 700;
+      animation: proType 9s infinite;
+    }
+    .pro-cell-edited2 { animation: proEdited2 9s ease-in-out infinite; }
+    .pro-toast {
+      position: absolute; left: 50%; bottom: 12px;
+      transform: translate(-50%, 8px);
+      background: #12351f; color: #7ee2a8;
+      border: 1px solid #1f5c36;
+      font-size: 11px; font-weight: 700;
+      padding: 7px 14px; border-radius: 999px;
+      opacity: 0;
+      animation: proToast 9s ease-in-out infinite;
+      pointer-events: none;
+    }
+    .pro-demo-caption { margin: 12px 4px 0; font-size: 12.5px; color: var(--muted); text-align: center; }
+    @keyframes proCell {
+      0%, 10%  { box-shadow: none; background: transparent; }
+      13%, 56% { box-shadow: inset 0 0 0 2px var(--accent); background: rgba(95, 140, 255, .08); }
+      64%, 100%{ box-shadow: none; background: transparent; }
+    }
+    @keyframes proOld {
+      0%, 13%  { opacity: 1; }
+      15%, 86% { opacity: 0; }
+      94%, 100%{ opacity: 1; }
+    }
+    @keyframes proType {
+      0%, 15%  { width: 0; animation-timing-function: steps(7, end); }
+      31%, 86% { width: 7.4ch; }
+      93%, 100%{ width: 0; }
+    }
+    @keyframes proEdited2 {
+      0%, 36%  { background: transparent; }
+      40%, 56% { background: rgba(255, 190, 90, .12); }
+      64%, 100%{ background: transparent; }
+    }
+    @keyframes proSave {
+      0%, 48%  { transform: scale(1); box-shadow: none; }
+      53%      { transform: scale(1.12); box-shadow: 0 0 0 6px rgba(95, 140, 255, .25); }
+      58%, 100%{ transform: scale(1); }
+    }
+    @keyframes proToast {
+      0%, 56%  { opacity: 0; transform: translate(-50%, 8px); }
+      62%, 84% { opacity: 1; transform: translate(-50%, 0); }
+      92%, 100%{ opacity: 0; transform: translate(-50%, 8px); }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .pro-demo *, .pro-demo *::before { animation: none !important; }
+      .pro-old { display: none; }
+      .pro-type { width: auto; }
+      .pro-toast { display: none; }
+    }
+
+    /* ── 共通セクション見出し ── */
+    .pro-h2 {
+      text-align: center;
+      margin: 0 0 14px;
+      font-size: 28px;
+      font-weight: 700;
+      letter-spacing: -0.03em;
+    }
+    .pro-h2-sub {
+      text-align: center;
+      margin: 0 0 40px;
+      color: var(--muted);
+      font-size: 14.5px;
+      line-height: 1.8;
+    }
+
+    /* ── Before / After ── */
+    .ba-section { padding: 0 0 80px; }
+    .ba-grid {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 20px;
+      max-width: 860px; margin: 0 auto;
+    }
+    .ba-card {
+      border-radius: 18px; padding: 26px 24px;
+      border: 1px solid var(--line); background: var(--panel);
+    }
+    .ba-card--after {
+      border-color: rgba(95, 140, 255, .35);
+      background: linear-gradient(160deg, rgba(95, 140, 255, .10), var(--panel));
+    }
+    .ba-label {
+      display: inline-block; font-size: 11px; font-weight: 800; letter-spacing: .08em;
+      padding: 3px 10px; border-radius: 999px; margin-bottom: 14px;
+      background: rgba(255, 255, 255, .06); color: var(--muted);
+    }
+    .ba-card--after .ba-label {
+      background: rgba(95, 140, 255, .15);
+      border: 1px solid rgba(95, 140, 255, .3);
+      color: #9ab4ff;
+    }
+    .ba-card ul { margin: 0; padding-left: 1.2em; color: #c7cedd; font-size: 14px; line-height: 1.95; }
+    .ba-note { margin: 14px 0 0; font-size: 12.5px; color: var(--muted); }
+    .ba-card--after .ba-note { color: #9ab4ff; font-weight: 600; }
+    @media (max-width: 720px) { .ba-grid { grid-template-columns: 1fr; } }
+
+    /* ── Free vs Pro 比較表 ── */
+    .compare-section { padding: 0 0 80px; max-width: 720px; margin: 0 auto; }
+    .compare-wrap { overflow-x: auto; }
+    .compare-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+    .compare-table th, .compare-table td {
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--line);
+      text-align: left;
+    }
+    .compare-table th:nth-child(n+2), .compare-table td:nth-child(n+2) {
+      text-align: center; width: 88px; white-space: nowrap;
+    }
+    .compare-table thead th { color: var(--muted); font-size: 12px; letter-spacing: .06em; border-bottom: 1px solid #2c3345; }
+    .compare-table thead th.pro-col { color: #9ab4ff; }
+    .compare-table td.pro-col { background: rgba(95, 140, 255, .06); }
+    .compare-table .yes { color: #7ee2a8; font-weight: 700; }
+    .compare-table .no { color: #4a5164; }
+
+    /* ── 3ステップ ── */
+    .steps-section { padding: 0 0 80px; }
+    .steps-grid {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px;
+      max-width: 860px; margin: 0 auto;
+    }
+    .step-card {
+      text-align: center; padding: 28px 20px;
+      background: var(--panel); border: 1px solid var(--line); border-radius: 18px;
+    }
+    .step-num {
+      width: 40px; height: 40px; border-radius: 50%;
+      background: rgba(95, 140, 255, .15); border: 1px solid rgba(95, 140, 255, .3);
+      color: #9ab4ff; font-weight: 800; font-size: 16px;
+      display: flex; align-items: center; justify-content: center;
+      margin: 0 auto 14px;
+    }
+    .step-card h3 { margin: 0 0 8px; font-size: 15px; font-weight: 700; }
+    .step-card p { margin: 0; color: var(--muted); font-size: 13.5px; line-height: 1.7; }
+    .steps-note { text-align: center; margin: 20px 0 0; color: var(--muted); font-size: 13px; }
+    @media (max-width: 720px) { .steps-grid { grid-template-columns: 1fr; } }
 
     /* ── Feature grid ────────────────────────────────────────── */
     .pro-features {
@@ -295,15 +491,67 @@
     <main>
       <!-- Hero -->
       <section class="pro-hero">
-        <p class="eyebrow">PlugBits Launcher Pro</p>
-        <h1>kintone 操作を、<br />次のレベルへ。</h1>
-        <p class="hero-lead">
-          Grid Edit による一括編集、Excel とのコピー＆ペーストなど、<br />
-          日々の業務を加速する Pro 専用機能をアンロックします。
-        </p>
-        <div class="hero-actions">
-          <a class="button button-primary" href="#pricing">14日間無料で試す</a>
-          <a class="button button-secondary" href="./launcher/">無料版の機能を確認する</a>
+        <div class="pro-hero-copy">
+          <p class="eyebrow">PlugBits Launcher Pro</p>
+          <h1>1件ずつ開いて直す作業、<br />今日で終わり。</h1>
+          <p class="hero-lead">
+            kintoneの一覧を、Excelのように編集して一括保存。
+            CSVの書き出し・読み込みの往復も、レコードを開いては閉じる繰り返しも、もう必要ありません。
+          </p>
+          <div class="hero-actions">
+            <a class="button button-primary" href="#pricing">14日間無料で試す</a>
+            <a class="button button-secondary" href="#compare">無料版との違いを見る</a>
+          </div>
+          <div class="hero-trust">
+            <span>クレジットカード不要</span>
+            <span>いつでも解約可能</span>
+            <span>データは外部サーバーを一切経由しません</span>
+          </div>
+        </div>
+
+        <!-- Grid Edit デモ（装飾）
+             実機動画が用意できたら .pro-demo-window の中身を丸ごと以下に差し替え:
+             <video class="hero-video" src="./images/pro/grid-edit.mp4" poster="./images/pro/grid-edit-poster.png" autoplay muted loop playsinline></video> -->
+        <div class="pro-demo" aria-hidden="true">
+          <div class="pro-demo-window">
+            <div class="pro-demo-bar">
+              <span class="pro-demo-title"><img src="./launcher/assets/icon128.png" alt="">Grid Edit — 受注管理</span>
+              <span class="pro-demo-save">一括保存</span>
+            </div>
+            <div class="pro-demo-grid">
+              <div class="pro-xrow pro-xrow--head"><span>案件名</span><span>金額</span><span>状況</span></div>
+              <div class="pro-xrow"><span>A社 定期保守</span><span>1,200,000</span><span>商談中</span></div>
+              <div class="pro-xrow"><span>B社 追加部品</span><span class="pro-cell-edit"><s class="pro-old">380,000</s><b class="pro-type">450,000</b></span><span>受注</span></div>
+              <div class="pro-xrow"><span>C社 検査治具</span><span>80,000</span><span class="pro-cell-edited2">納品済</span></div>
+              <div class="pro-xrow"><span>D社 年間契約</span><span>2,400,000</span><span>商談中</span></div>
+            </div>
+            <span class="pro-toast">✓ 2件の変更を保存しました</span>
+          </div>
+          <p class="pro-demo-caption">Grid Edit：一覧の上でセルを直接編集して、最後に一括保存。</p>
+        </div>
+      </section>
+
+      <!-- Before / After -->
+      <section class="ba-section">
+        <h2 class="pro-h2">「50件の値を直す」が、こう変わる。</h2>
+        <p class="pro-h2-sub">たとえば、棚卸し後の数量反映や、単価改定の一斉更新。</p>
+        <div class="ba-grid">
+          <div class="ba-card">
+            <span class="ba-label">これまで</span>
+            <ul>
+              <li>レコードを開く → 編集 → 保存 → 一覧に戻る、を50回繰り返す</li>
+              <li>または CSV を書き出して Excel で編集し、読み込んでエラーを直す</li>
+            </ul>
+            <p class="ba-note">画面遷移の連続で、集中が途切れる。</p>
+          </div>
+          <div class="ba-card ba-card--after">
+            <span class="ba-label">GRID EDIT なら</span>
+            <ul>
+              <li>一覧の上でセルを直接編集（Excelからの貼り付けもOK）</li>
+              <li>最後に「一括保存」を1クリック</li>
+            </ul>
+            <p class="ba-note">kintoneの画面から離れずに、そのまま完了。</p>
+          </div>
         </div>
       </section>
 
@@ -348,6 +596,75 @@
             <span class="badge">COMING SOON</span>
           </div>
         </div>
+      </section>
+
+      <!-- Free vs Pro 比較表 -->
+      <section class="compare-section" id="compare">
+        <h2 class="pro-h2">無料版と Pro</h2>
+        <p class="pro-h2-sub">無料版だけでも毎日使えます。編集が必要になったら、Pro へ。</p>
+        <div class="compare-wrap">
+          <table class="compare-table">
+            <thead>
+              <tr><th>機能</th><th>無料</th><th class="pro-col">Pro</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>サイドパネル（ショートカット・履歴・ウォッチリスト・レコードピン）</td><td><span class="yes">✓</span></td><td class="pro-col"><span class="yes">✓</span></td></tr>
+              <tr><td>Ctrl+/ コマンドパレット</td><td><span class="yes">✓</span></td><td class="pro-col"><span class="yes">✓</span></td></tr>
+              <tr><td>Quick New（レコード新規追加）</td><td><span class="yes">✓</span></td><td class="pro-col"><span class="yes">✓</span></td></tr>
+              <tr><td>Spreadsheet View（一覧のスプレッドシート表示・閲覧）</td><td><span class="yes">✓</span></td><td class="pro-col"><span class="yes">✓</span></td></tr>
+              <tr><td>Grid Edit（セル編集・一括保存・行追加）</td><td><span class="no">—</span></td><td class="pro-col"><span class="yes">✓</span></td></tr>
+              <tr><td>Excel コピー＆ペースト（双方向）</td><td><span class="no">—</span></td><td class="pro-col"><span class="yes">✓</span></td></tr>
+              <tr><td>ルックアップフィールド対応</td><td><span class="no">—</span></td><td class="pro-col"><span class="yes">✓</span></td></tr>
+              <tr><td>今後追加される Pro 機能</td><td><span class="no">—</span></td><td class="pro-col"><span class="yes">✓</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- ユースケース -->
+      <section class="pro-features">
+        <h2 class="pro-h2">こんな場面で効きます</h2>
+        <p class="pro-h2-sub">「一覧をまとめて直したい」仕事は、どの部署にもあります。</p>
+        <div class="feature-grid">
+          <div class="feature-card">
+            <div class="icon">📈</div>
+            <h3>営業</h3>
+            <p>定例会議の前に、商談の確度・金額・次回アクションを一覧の上でまとめて更新。1件ずつ開く必要はありません。</p>
+          </div>
+          <div class="feature-card">
+            <div class="icon">🏭</div>
+            <h3>製造・在庫</h3>
+            <p>棚卸しで集めた実数をExcelからそのまま貼り付けて反映。進捗や数量の一斉更新も一覧の上で完結します。</p>
+          </div>
+          <div class="feature-card">
+            <div class="icon">🗂</div>
+            <h3>バックオフィス</h3>
+            <p>マスタの一斉メンテナンスや単価改定など、定期的に発生する「まとめて直す」作業を短時間で終わらせます。</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- 始め方 3ステップ -->
+      <section class="steps-section">
+        <h2 class="pro-h2">3分で試せます</h2>
+        <div class="steps-grid">
+          <div class="step-card">
+            <div class="step-num">1</div>
+            <h3>Chromeに追加（無料）</h3>
+            <p>Chrome Web Store から PlugBits Launcher をインストールします。</p>
+          </div>
+          <div class="step-card">
+            <div class="step-num">2</div>
+            <h3>メールアドレスを入力</h3>
+            <p>拡張機能の設定画面「Pro ライセンス」タブにメールアドレスを入れるだけ。</p>
+          </div>
+          <div class="step-card">
+            <div class="step-num">3</div>
+            <h3>14日間、Proをフル体験</h3>
+            <p>Grid Edit・Excelコピー＆ペーストをすべて使えます。気に入らなければ何もしなくてOK。</p>
+          </div>
+        </div>
+        <p class="steps-note">クレジットカードの登録は不要です。トライアル終了後に自動課金されることはありません。</p>
       </section>
 
       <!-- Pricing -->
@@ -411,6 +728,13 @@
             <dd>
               はい。拡張機能の設定画面「Pro ライセンス」タブでメールアドレスを入力すると、
               その場で14日間の Pro トライアルが始まります。クレジットカードの登録は不要です。
+            </dd>
+          </div>
+          <div class="faq-item">
+            <dt>編集したデータは外部のサーバーを経由しますか？</dt>
+            <dd>
+              いいえ。すべての処理はお使いのブラウザ内で行われ、データは kintone に直接保存されます。
+              PlugBits のサーバーを含め、外部のサーバーにレコードの内容が送信されることは一切ありません。
             </dd>
           </div>
           <div class="faq-item">
