@@ -28,7 +28,7 @@
       display: inline-block;
     }
     .pro-hero h1 {
-      font-size: clamp(30px, 4.2vw, 50px);
+      font-size: clamp(27px, 3.4vw, 42px);
       max-width: none;
       letter-spacing: -0.04em;
       margin: 0 0 20px;
@@ -509,25 +509,17 @@
           </div>
         </div>
 
-        <!-- Grid Edit デモ（装飾）
-             実機動画が用意できたら .pro-demo-window の中身を丸ごと以下に差し替え:
-             <video class="hero-video" src="./images/pro/grid-edit.mp4" poster="./images/pro/grid-edit-poster.png" autoplay muted loop playsinline></video> -->
-        <div class="pro-demo" aria-hidden="true">
+        <!-- Excel Overlay 実機デモ動画 -->
+        <div class="pro-demo">
           <div class="pro-demo-window">
-            <div class="pro-demo-bar">
-              <span class="pro-demo-title"><img src="./launcher/assets/icon128.png" alt="">Grid Edit — 受注管理</span>
-              <span class="pro-demo-save">一括保存</span>
-            </div>
-            <div class="pro-demo-grid">
-              <div class="pro-xrow pro-xrow--head"><span>案件名</span><span>金額</span><span>状況</span></div>
-              <div class="pro-xrow"><span>A社 定期保守</span><span>1,200,000</span><span>商談中</span></div>
-              <div class="pro-xrow"><span>B社 追加部品</span><span class="pro-cell-edit"><s class="pro-old">380,000</s><b class="pro-type">450,000</b></span><span>受注</span></div>
-              <div class="pro-xrow"><span>C社 検査治具</span><span>80,000</span><span class="pro-cell-edited2">納品済</span></div>
-              <div class="pro-xrow"><span>D社 年間契約</span><span>2,400,000</span><span>商談中</span></div>
-            </div>
-            <span class="pro-toast">✓ 2件の変更を保存しました</span>
+            <video class="hero-video" poster="./images/videos/excel-overlay-poster.jpg"
+                   autoplay muted loop playsinline
+                   aria-label="Excel Overlayのデモ：kintoneの一覧をスプレッドシート形式で直接編集し、一括保存して一覧に反映されるまで">
+              <source src="./images/videos/excel-overlay.webm" type="video/webm">
+              <source src="./images/videos/excel-overlay.mp4" type="video/mp4">
+            </video>
           </div>
-          <p class="pro-demo-caption">Grid Edit：一覧の上でセルを直接編集して、最後に一括保存。</p>
+          <p class="pro-demo-caption">実際の画面：一覧の上でセルを直接編集して、最後に一括保存。</p>
         </div>
       </section>
 
@@ -706,13 +698,15 @@
               </li>
             </ul>
             <div class="pricing-cta">
-              <!-- TODO: Stripe決済リンクが用意でき次第、購入ボタン（今すぐ始める — ¥980/月）をここに追加 -->
               <a class="button button-primary" id="trial-btn" href="https://chromewebstore.google.com/detail/plugbits-launcher-for-kin/bmnijafgcjnpbgbdijjfidiaodphjjpd" target="_blank" rel="noopener">
                 14日間無料でProを試す
               </a>
+              <a class="button button-secondary" id="checkout-btn" href="https://buy.stripe.com/aFabJ39Yb1gual26R78so00" target="_blank" rel="noopener">
+                今すぐ購入 — ¥980/月
+              </a>
               <p class="sub-note">
-                拡張機能をインストール後、設定画面でメールアドレスを入力するだけで開始。<br />
-                クレジットカード不要 · 継続時は Stripe による安全な決済 · いつでも解約可能
+                トライアルは拡張機能の設定画面でメールアドレスを入力するだけ（クレジットカード不要）。<br />
+                購入は Stripe による安全な決済 · いつでも解約可能
               </p>
             </div>
           </div>
@@ -780,10 +774,16 @@
       <section class="footer-cta">
         <h2>今日から Pro を試す</h2>
         <p>14日間無料・クレジットカード不要。継続する場合は月額 ¥980、いつでもキャンセル可能です。</p>
-        <a class="button button-primary" href="https://chromewebstore.google.com/detail/plugbits-launcher-for-kin/bmnijafgcjnpbgbdijjfidiaodphjjpd" target="_blank" rel="noopener"
-           style="font-size:16px;min-height:52px;padding:0 28px;">
-          無料トライアルを始める
-        </a>
+        <div class="hero-actions" style="justify-content:center;">
+          <a class="button button-primary" href="https://chromewebstore.google.com/detail/plugbits-launcher-for-kin/bmnijafgcjnpbgbdijjfidiaodphjjpd" target="_blank" rel="noopener"
+             style="font-size:16px;min-height:52px;padding:0 28px;">
+            無料トライアルを始める
+          </a>
+          <a class="button button-secondary" href="https://buy.stripe.com/aFabJ39Yb1gual26R78so00" target="_blank" rel="noopener"
+             style="font-size:16px;min-height:52px;padding:0 28px;">
+            今すぐ購入 — ¥980/月
+          </a>
+        </div>
       </section>
     </main>
 
@@ -797,6 +797,14 @@
       </nav>
     </footer>
   </div>
+  <script>
+  // アニメーション抑制設定のユーザーには動画を自動再生しない
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    document.querySelectorAll('video[autoplay]').forEach(v => {
+      v.removeAttribute('autoplay'); v.pause(); v.controls = true;
+    });
+  }
+  </script>
 <!-- Cloudflare Web Analytics --><script defer src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon='{"token": "86511d1154774394986239de33d21882"}'></script><!-- End Cloudflare Web Analytics -->
 </body>
 </html>
