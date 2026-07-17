@@ -1,0 +1,118 @@
+<nav class="kb-article-toc" aria-label="目次">
+  <h2>目次</h2>
+  <ol class="kb-article-ordered">
+    <li><a href="#motive">工場レイアウトをExcelで作っていた頃</a></li>
+    <li><a href="#excel-heavy">Excelの一番の問題、動作の重さ</a></li>
+    <li><a href="#search">探しても、ちょうどいい無料ツールがなかった</a></li>
+    <li><a href="#solidworks">SolidWorksで試して気づいたこと</a></li>
+    <li><a href="#square">全部を四角形で表すことにした理由</a></li>
+    <li><a href="#walk">3Dで歩けるようにした理由</a></li>
+    <li><a href="#made-with-ai">AIに相談しながら作った</a></li>
+    <li><a href="#closing">軽さを優先した結果</a></li>
+    <li><a href="#faq">よくある質問</a></li>
+  </ol>
+</nav>
+
+<section id="motive" class="kb-article-section">
+  <h2>工場レイアウトをExcelで作っていた頃</h2>
+  <div class="kb-section-card">
+    <p class="kb-article-paragraph">自分で工場のレイアウトを検討するとき、以前はExcelを使っていました。セルを方眼紙のように使って、設備や通路を四角形で並べていくやり方です。特別なソフトを用意しなくても社内の誰もが開ける形式なので、使い勝手自体は悪くありませんでした。</p>
+    <p class="kb-article-paragraph">ただ、レイアウトの規模が大きくなるほど、作成にかかる時間がどんどん延びていきました。とくにアメリカの工場のレイアウトを作ろうとしたときは、敷地も設備の数も日本の工場よりずっと大きく、「正直やってられない」と思うくらい時間がかかりました。</p>
+  </div>
+</section>
+
+<section id="excel-heavy" class="kb-article-section">
+  <h2>Excelの一番の問題、動作の重さ</h2>
+  <div class="kb-section-card">
+    <p class="kb-article-paragraph">時間がかかること自体もつらいのですが、それ以上に困っていたのが、作り込むほどExcelの動作が重くなっていくことでした。四角形を置く数が増え、シートが大きくなるにつれて、スクロールひとつにも引っかかりを感じるようになります。</p>
+    <p class="kb-article-paragraph">レイアウトは検討しながら何度も配置を直すものなので、動作が重いと、直すたびにストレスがたまります。これを何とかしたい、というのが、今回ツールを作ろうと思った一番の理由でした。</p>
+  </div>
+</section>
+
+<section id="search" class="kb-article-section">
+  <h2>探しても、ちょうどいい無料ツールがなかった</h2>
+  <div class="kb-section-card">
+    <p class="kb-article-paragraph">Excel以外に何かないかと思い、Googleで無料の工場レイアウトツールを探してみました。ただ、探してみても、無料でそれなりの工場レイアウトが作れるツールは見当たりませんでした。</p>
+    <p class="kb-article-paragraph">「工場レイアウト 作成 無料」で検索して出てくるものは、テンプレート集だったり、一般的な図形描画ツールだったりして、工場のレイアウト検討にそのまま使いやすいとは感じられませんでした。</p>
+  </div>
+</section>
+
+<section id="solidworks" class="kb-article-section">
+  <h2>SolidWorksで試して気づいたこと</h2>
+  <div class="kb-section-card">
+    <p class="kb-article-paragraph">手元にSolidWorksがあったので、3D CADで工場レイアウトを作ることも試してみました。ただ、実際にやってみると、SolidWorksは機能が優秀すぎて、逆に工場レイアウトのようなおおまかな検討には作りづらいと感じました。</p>
+    <p class="kb-article-paragraph">部品ひとつひとつを正確にモデリングできる分、レイアウト全体をざっくり動かしながら検討する、という使い方には向いていなかったのだと思います。SolidWorks自体が悪いわけではなく、「高機能=万能」とは限らないんだな、という実感が残りました。</p>
+  </div>
+</section>
+
+<section id="square" class="kb-article-section">
+  <h2>全部を四角形で表すことにした理由</h2>
+  <div class="kb-section-card kb-section-card--stack">
+    <p class="kb-article-paragraph">そこで、レイアウトの中身を全部、四角形で表すことにしました。本当はロボットならロボットの形、コンベアならコンベアの形を、それぞれ入れられた方がよかったのかもしれません。</p>
+    <p class="kb-article-paragraph">ただ、今回は「ブラウザで軽く動かしたい」というのが検討を始めたきっかけだったので、「じゃあもう四角形でいいじゃないか」となりました。決め手になったのは、どうせExcelでも四角形を積み上げてレイアウトを作っていた、という点です。それなら、形を四角形に絞っても、やっていることは今までと同じだと思いました。</p>
+    <p class="kb-article-hint">これは妥協というより、Excelで四角形を並べていた自分のやり方を、そのままブラウザに持ってきただけだ、という気づきに近いものでした。</p>
+  </div>
+</section>
+
+<section id="walk" class="kb-article-section">
+  <h2>3Dで歩けるようにした理由</h2>
+  <div class="kb-section-card">
+    <p class="kb-article-paragraph">レイアウトを3Dにしたうえで、その中を人の目線で歩けるようにしました。理由は、正直に言うと遊び心が一番です。</p>
+    <p class="kb-article-paragraph">ただ、実際に歩いてみると、上から見ているだけではわからなかった配置の良さや、通路の狭さが、人の目線だと一番よくわかると思いました。遊びのつもりで入れた機能が、思いのほか検討に役立った、という形です。</p>
+  </div>
+</section>
+
+<section id="made-with-ai" class="kb-article-section">
+  <h2>AIに相談しながら作った</h2>
+  <div class="kb-section-card">
+    <p class="kb-article-paragraph">自分はコードを書けないので、作るときはAIに相談しています。「工場レイアウトをブラウザで作れるようにしたい」と相談したところ、「簡単にできますよ」と言われたので、そのまま実装してもらいました。</p>
+    <p class="kb-article-paragraph">歩行機能についても同じで、「3D空間を人の目線で歩けるようにできる？」と聞いたら「簡単にできます」と言われたので、「いいじゃん」とそのまま入れてもらいました。仕組みそのものについては、正直、自分では詳しく理解できていません。</p>
+  </div>
+</section>
+
+<section id="closing" class="kb-article-section">
+  <h2>軽さを優先した結果</h2>
+  <div class="kb-section-card kb-section-card--stack">
+    <p class="kb-article-paragraph">表現できる形を四角形だけに絞ったこと、それ以外の機能を最低限にしたことで、ブラウザで軽く動く工場レイアウトツールになりました。凝った機能を削った分、かえって自分の用途には合うものができた、というのが、作ってみての率直な感想です。</p>
+    <p class="kb-article-paragraph">ロボットの形やコンベアの形をそのまま再現したい、という方には物足りないかもしれません。ただ、レイアウトの配置検討をとにかく手早く済ませたい、という方には、この軽さが向いているのではないかと思っています。</p>
+  </div>
+</section>
+
+<section id="faq" class="kb-article-section">
+  <h2>よくある質問</h2>
+  <div class="kb-faq">
+    <div class="kb-faq-item">
+      <h3>無料で使える？</h3>
+      <p>はい、無料でご利用いただけます。</p>
+    </div>
+    <div class="kb-faq-item">
+      <h3>会員登録は必要？</h3>
+      <p>不要です。ブラウザでアクセスするだけでお使いいただけます。</p>
+    </div>
+    <div class="kb-faq-item">
+      <h3>設備の形は四角形しか使えない？</h3>
+      <p>はい、現状はすべて四角形で表示する仕様です。ロボットやコンベアなど、個別の形状の再現には対応していません。</p>
+    </div>
+    <div class="kb-faq-item">
+      <h3>3Dで歩く機能はどんな時に使う？</h3>
+      <p>上から見ただけではわかりにくい通路の狭さや配置の見え方を、人の目線で確認したいときに使っています。</p>
+    </div>
+    <div class="kb-faq-item">
+      <h3>スマートフォンでも使える？</h3>
+      <p>表示自体は可能ですが、画面が狭い端末では配置の操作がしづらいため、PCまたはタブレットでのご利用をおすすめします。</p>
+    </div>
+  </div>
+</section>
+
+<div class="kb-divider" role="presentation"></div>
+
+<section class="kb-article-section">
+  <p class="kb-article-paragraph">軽さを最優先にしたら、かえって自分の用途に合うものができた、というのが今回の一番の実感です。四角形にしたのも、歩けるようにしたのも、技術的な工夫というより、自分がそうしたかったからという理由がほとんどです。それでも、実際に動くところまで作れたのは、素直によかったと思っています。</p>
+  <div class="kb-support-cards">
+    <div class="kb-support-card">
+      <strong>このツールで試せます</strong>
+      <p class="kb-article-paragraph">会員登録・インストール不要、ブラウザだけで工場レイアウトの作成から3D確認まで完結します。</p>
+      <p><a href="https://factory-layout.plugbits.app/" target="_blank" rel="noopener">工場レイアウトツールを開く →</a></p>
+    </div>
+  </div>
+</section>
