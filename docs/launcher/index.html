@@ -4,11 +4,12 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>PlugBits Launcher for kintone</title>
-  <meta name="description" content="kintoneの『探しもの』を最短ルートに。PlugBits Launcherは、ショートカット・履歴・ウォッチリスト・Spreadsheet Viewを1つのサイドパネルにまとめる無料のChrome拡張です。" />
+  <meta name="description" content="kintoneの開発・入力・修正をキーボードだけで。コマンドパレット(Ctrl+/)、自分専用の入力フォーム、一覧の一括編集。ひとりでkintoneを回す人のための無料Chrome拡張です。" />
   <meta property="og:title" content="PlugBits Launcher for kintone" />
-  <meta property="og:description" content="kintoneの『探しもの』を最短ルートに。ショートカット・履歴・ウォッチリスト・Spreadsheet Viewを1つのサイドパネルにまとめる無料のChrome拡張です。" />
+  <meta property="og:description" content="kintoneの開発・入力・修正をキーボードだけで。コマンドパレット(Ctrl+/)、自分専用の入力フォーム、一覧の一括編集。ひとりでkintoneを回す人のための無料Chrome拡張です。" />
   <meta property="og:type" content="website" />
   <meta property="og:image" content="https://plugbits.app/images/ogp.png" />
+  <meta name="twitter:description" content="kintoneの開発・入力・修正をキーボードだけで。コマンドパレット(Ctrl+/)、自分専用の入力フォーム、一覧の一括編集。ひとりでkintoneを回す人のための無料Chrome拡張です。" />
   <meta name="theme-color" content="#0f1115" />
   <link rel="stylesheet" href="styles.css" />
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -34,18 +35,18 @@
       <section class="hero">
         <div class="hero-copy">
           <p class="eyebrow">Chrome Extension for kintone</p>
-          <h1>kintoneの「探しもの」を、<br />最短ルートに。</h1>
+          <h1>kintoneの開発も、入力も、修正も。<br />ひとりでやるなら、キーボードで。</h1>
           <p class="hero-lead">
-            kintoneで仕事をしていると、<br />
-            「あのアプリ」「さっきのレコード」「今どの仕事が残っているか」を探す時間が意外と増えていきます。<br />
-            PlugBits Launcherは、<strong>ショートカット・履歴・ウォッチリスト・Spreadsheet Viewを1つのサイドパネルにまとめる</strong>無料のChrome拡張です。
+            kintoneをひとりで回していると、<br />
+            移動も入力も修正も、こまかい操作が一日中つきまといます。<br />
+            PlugBits Launcherは、<strong>コマンドパレット・クイック入力・一括編集</strong>で、その手間をキーボードに置き換える無料のChrome拡張です。
           </p>
           <div class="hero-actions">
             <a class="button button-primary" href="#install">Chrome拡張を無料でインストール</a>
             <a class="button button-secondary" href="#features">機能を見る</a>
           </div>
           <div class="hero-note">
-            無料で使えます / Side Panel + Shortcuts + Watch + Spreadsheet View
+            無料で使えます / Command Palette + Quick New + Grid Edit
           </div>
         </div>
 
@@ -120,6 +121,76 @@
         <div class="feature-stack">
           <article class="feature-card">
             <div class="feature-header">
+              <span class="feature-tag">コマンドパレット / Free</span>
+              <h3>キーボードだけで、kintoneを操る。</h3>
+            </div>
+            <div class="feature-media">
+              <video poster="../images/videos/palette-poster.jpg"
+                     autoplay muted loop playsinline
+                     aria-label="コマンドパレットのデモ：ビュー切替、別アプリへの移動、ポータルへの移動を実行"
+                     style="display:block;width:100%;height:auto;border-radius:12px;">
+                <source src="../images/videos/palette.webm" type="video/webm">
+                <source src="../images/videos/palette.mp4" type="video/mp4">
+              </video>
+            </div>
+            <div class="feature-list single">
+              <div class="feature-item">
+                <h4>Ctrl+/ で、どこからでも</h4>
+                <p>
+                  ビューの切り替え、別アプリへの移動、レコード作成まで、名前を打つだけで一発実行。<br />
+                  マウスに持ち替える回数が減り、kintoneの移動が体感で変わります。
+                </p>
+              </div>
+            </div>
+          </article>
+
+          <article class="feature-card">
+            <div class="feature-header">
+              <span class="feature-tag">クイック新規レコード / Free</span>
+              <h3>入力する項目は、自分で決める。</h3>
+            </div>
+            <div class="feature-media">
+              <video poster="../images/videos/quicknew-poster.jpg"
+                     autoplay muted loop playsinline
+                     aria-label="クイック新規レコードのデモ：一覧画面から入力モーダルを開き、必要なフィールドだけを入力して保存"
+                     style="display:block;width:100%;height:auto;border-radius:12px;">
+                <source src="../images/videos/quicknew.webm" type="video/webm">
+                <source src="../images/videos/quicknew.mp4" type="video/mp4">
+              </video>
+            </div>
+            <div class="feature-list single">
+              <div class="feature-item">
+                <h4>Shift+Alt+N で、すぐ入力</h4>
+                <p>
+                  kintoneのフォームは全員のために作られているので、項目はどうしても増えていきます。でも入力する瞬間に必要なのは、そのうちの数個だけ。<br />
+                  クイック新規レコードは、自分に必要なフィールドだけを、自分の決めた並び順で表示する入力モーダルです。目移りせず、上から順に、最短で登録が終わります。<br />
+                  一覧画面から離れず、保存後もスクロール位置はそのまま。
+                </p>
+              </div>
+            </div>
+          </article>
+
+          <article class="feature-card">
+            <div class="feature-header">
+              <span class="feature-tag">スプレッドシート / Free</span>
+              <h3>必要なときだけ、さっと開いて一覧を確認</h3>
+            </div>
+            <div class="feature-media">
+              <img src="./assets/spreadsheet-view.png" alt="PlugBits LauncherのSpreadsheet View" />
+            </div>
+            <div class="feature-list single">
+              <div class="feature-item">
+                <h4>補助ビューとして素早く開ける</h4>
+                <p>
+                  スプレッドシートは、kintoneを置き換えるものではなく、必要なときにさっと開ける補助ビューです。<br />
+                  元の画面を離れすぎず、一覧の中で必要な情報をまとめて確認できます。
+                </p>
+              </div>
+            </div>
+          </article>
+
+          <article class="feature-card">
+            <div class="feature-header">
               <span class="feature-tag">Side Panel</span>
               <h3>よく使う操作を1か所に集約</h3>
             </div>
@@ -144,50 +215,6 @@
                 </div>
                 <h4>レコードピン</h4>
                 <p>気になるレコードはサイドパネルに固定。開きたいときにすぐ開けます。</p>
-              </div>
-            </div>
-          </article>
-
-          <article class="feature-card">
-            <div class="feature-header">
-              <span class="feature-tag">スプレッドシート / Free</span>
-              <h3>必要なときだけ、さっと開いて一覧を確認</h3>
-            </div>
-            <div class="feature-media">
-              <img src="./assets/Spreadsheet View.png" alt="PlugBits LauncherのSpreadsheet View" />
-            </div>
-            <div class="feature-list single">
-              <div class="feature-item">
-                <h4>補助ビューとして素早く開ける</h4>
-                <p>
-                  スプレッドシートは、kintoneを置き換えるものではなく、必要なときにさっと開ける補助ビューです。<br />
-                  元の画面を離れすぎず、一覧の中で必要な情報をまとめて確認できます。
-                </p>
-              </div>
-            </div>
-          </article>
-
-          <article class="feature-card">
-            <div class="feature-header">
-              <span class="feature-tag">コマンドパレット / Free</span>
-              <h3>キーボードだけで、kintoneを操る。</h3>
-            </div>
-            <div class="feature-media">
-              <video poster="../images/videos/palette-poster.jpg"
-                     autoplay muted loop playsinline
-                     aria-label="コマンドパレットのデモ：ビュー切替、別アプリへの移動、ポータルへの移動を実行"
-                     style="display:block;width:100%;height:auto;border-radius:12px;">
-                <source src="../images/videos/palette.webm" type="video/webm">
-                <source src="../images/videos/palette.mp4" type="video/mp4">
-              </video>
-            </div>
-            <div class="feature-list single">
-              <div class="feature-item">
-                <h4>Ctrl+/ で、どこからでも</h4>
-                <p>
-                  ビューの切り替え、別アプリへの移動、レコード作成まで、名前を打つだけで一発実行。<br />
-                  マウスに持ち替える回数が減り、kintoneの移動が体感で変わります。
-                </p>
               </div>
             </div>
           </article>
