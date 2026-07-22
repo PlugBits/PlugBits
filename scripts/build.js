@@ -15,7 +15,9 @@ const BLOG_DIST = path.join(DIST, 'blog');
 
 // サイト共通定数（products.json に持たせない）
 const SUPPORT_MAIL = 'support@plugbits.app';
-const SITE_COPYRIGHT = '© 2025 PlugBits. All rights reserved.';
+const SITE_COPYRIGHT = `© ${new Date().getFullYear()} PlugBits. All rights reserved.`;
+const SITE_ORIGIN = 'https://plugbits.app';
+const DEFAULT_BLOG_OG_IMAGE = 'assets/blog/note_eyecatch_v2.png';
 
 function esc(s) {
   return String(s ?? '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
@@ -60,6 +62,10 @@ function renderFAQ(lines) {
     const [q, a] = String(line).split('|');
     return `<div class="kb-faq-item"><h3>${esc(q||'')}</h3><p>${esc(a||'')}</p></div>`;
   }).join('');
+}
+
+function withQuery(url, query) {
+  return url + (url.includes('?') ? '&' : '?') + query;
 }
 
 function shortText(s, n = 64) {
@@ -232,10 +238,9 @@ try {
   for (const post of visiblePosts) {
     const contentPath = path.join(BLOG_CONTENT_SRC, post.content_file);
     const contentHtml = fileExists(contentPath) ? readText(contentPath) : '';
-    const ogUrl = `https://plugbits.app/blog/${post.slug}/`;
-    const ogImageTag = post.og_image
-      ? `<meta property="og:image" content="https://plugbits.app/${post.og_image.replace(/^\.?\/+/, '')}">`
-      : '';
+    const ogUrl = `${SITE_ORIGIN}/blog/${post.slug}/`;
+    const ogImagePath = (post.og_image || DEFAULT_BLOG_OG_IMAGE).replace(/^\.?\/+/, '');
+    const ogImageTag = `<meta property="og:image" content="${SITE_ORIGIN}/${ogImagePath}">`;
     const jsonLd = JSON.stringify({
       '@context': 'https://schema.org',
       '@type': 'Article',
@@ -264,6 +269,7 @@ try {
       '%%TOOL_NAME%%':             esc(post.tool_name),
       '%%CONTENT_HTML%%':          contentHtml,
       '%%LAUNCHER_STORE_URL%%':    LAUNCHER_STORE_URL,
+      '%%LAUNCHER_STORE_URL_BANNER%%': withQuery(LAUNCHER_STORE_URL, 'utm_source=blog&utm_medium=banner'),
       '%%SUPPORT_MAIL%%':          SUPPORT_MAIL,
       '%%SITE_COPYRIGHT%%':        SITE_COPYRIGHT,
       '%%JSONLD%%':                jsonLd,

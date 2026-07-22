@@ -303,5 +303,5 @@ push to main
 
 ```js
 const SUPPORT_MAIL = 'support@plugbits.app';
-const SITE_COPYRIGHT = '© 2025 PlugBits. All rights reserved.';
+const SITE_COPYRIGHT = `© ${new Date().getFullYear()} PlugBits. All rights reserved.`;
 ```
