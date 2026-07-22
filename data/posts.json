@@ -52,5 +52,23 @@
     "tool_name": "工場レイアウトツール",
     "cta_intro": "工場のレイアウトを今すぐ検討したい方へ。会員登録・インストール不要、ブラウザだけで使えます。",
     "card_summary": "Excelでレイアウトを作るたびに重くなるのが嫌で、ブラウザで軽く動く工場レイアウトツールを作ってみました。"
+  },
+  {
+    "slug": "kintone-bulk-edit",
+    "status": "public",
+    "title": "kintoneのレコードを一括編集する4つの方法と、それぞれが行き詰まるところ",
+    "h1": "kintoneのレコードを一括編集する4つの方法と、それぞれが行き詰まるところ",
+    "description": "kintoneでレコードをまとめて直す方法を、インライン編集・ファイル読み込み・プラグイン・ブラウザ拡張の4つで整理しました。手順ではなく、それぞれがどこで行き詰まるかと、自分の状況での選び方を書いています。",
+    "keywords": "kintone 一括編集, kintone 一覧 編集, kintone Excel 貼り付け, kintone CSV 更新キー",
+    "hero_label": "kintone 一括編集ガイド",
+    "read_time": "6分で読めます",
+    "published_at": "2026-07-22",
+    "updated_at": "2026-07-22",
+    "content_file": "kintone-bulk-edit.html",
+    "og_image": "",
+    "tool_url": "https://chromewebstore.google.com/detail/plugbits-launcher-for-kin/bmnijafgcjnpbgbdijjfidiaodphjjpd?utm_source=blog",
+    "tool_name": "PlugBits Launcher",
+    "cta_intro": "kintoneのレコード編集を日常的に楽にしたい方へ。ブラウザに追加するだけで使えます。",
+    "card_summary": "kintoneの一括編集、方法は4つありますが、どれもどこかで行き詰まります。それぞれの限界と選び方を整理しました。"
   }
 ]
