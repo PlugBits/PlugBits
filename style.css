@@ -90,6 +90,10 @@
 .kb-support-card ul li::before{content:"• ";color:var(--kb-primary);font-weight:700}
 .kb-support-meta{font-size:13px;color:var(--kb-sub)}
 .kb-divider{margin:48px auto 0;height:1px;width:100%;max-width:520px;background:linear-gradient(90deg,rgba(47,100,226,0),rgba(47,100,226,.35),rgba(47,100,226,0))}
+.kb-article-table-wrap{margin-top:18px;overflow-x:auto;border-radius:16px;box-shadow:0 20px 44px rgba(15,23,42,.06)}
+.kb-article-table-wrap table{width:100%;border-collapse:collapse;font-size:14.5px;background:#fff}
+.kb-article-table-wrap th{background:var(--kb-primary-050);color:var(--kb-ink);font-weight:700;text-align:left;padding:14px 20px;border:1px solid var(--kb-line)}
+.kb-article-table-wrap td{padding:14px 20px;border:1px solid var(--kb-line);vertical-align:top;color:var(--kb-text)}
 @media (max-width:720px){
   .kb-article{margin-bottom:56px}
   .kb-article-header{padding:36px 28px}

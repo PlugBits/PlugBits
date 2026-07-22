@@ -1,0 +1,134 @@
+<nav class="kb-article-toc" aria-label="目次">
+  <h2>目次</h2>
+  <ol class="kb-article-ordered">
+    <li><a href="#overview">kintoneのレコードを一括編集する4つの方法</a></li>
+    <li><a href="#inline">方法1：一覧画面のインライン編集</a></li>
+    <li><a href="#import">方法2：ファイルの読み込み（Excel／CSV）</a></li>
+    <li><a href="#plugin">方法3：プラグインを導入する</a></li>
+    <li><a href="#extension">方法4：ブラウザ拡張機能を使う</a></li>
+    <li><a href="#usage">使い分けの目安</a></li>
+    <li><a href="#faq">よくある質問</a></li>
+  </ol>
+</nav>
+
+<section id="overview" class="kb-article-section">
+  <h2>kintoneのレコードを一括編集する4つの方法</h2>
+  <div class="kb-section-card kb-section-card--stack">
+    <p class="kb-article-paragraph">kintoneを使っていると、「複数のレコードをまとめて直したい」という場面が必ず出てきます。単価の一斉改定、担当者の付け替え、ステータスの一括変更。1件ずつレコードを開いて直すには数が多すぎる、という状況です。</p>
+    <p class="kb-article-paragraph">方法自体は4つあり、手順はkintoneのヘルプにも各社の解説記事にも載っています。この記事で書きたいのはそこではなく、<strong>それぞれの方法がどこで行き詰まるか</strong>です。手順を知っていても、自分の状況でどれを選べばいいかは別の話だからです。</p>
+    <p class="kb-article-paragraph">先に結論を表にしておきます。</p>
+    <div class="kb-article-table-wrap">
+      <table>
+        <thead>
+          <tr><th>状況</th><th>向いている方法</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>数件をその場で直したい</td><td>一覧のインライン編集</td></tr>
+          <tr><td>数百件以上を月に一度洗い替える</td><td>ファイル読み込み（Excel／CSV）</td></tr>
+          <tr><td>組織全体で常時使う</td><td>有料プラグイン</td></tr>
+          <tr><td>自分の担当業務を毎週楽にしたい</td><td>ブラウザ拡張機能</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="kb-article-paragraph">以下、それぞれの限界を順に見ていきます。</p>
+  </div>
+</section>
+
+<section id="inline" class="kb-article-section">
+  <h2>方法1：一覧画面のインライン編集</h2>
+  <div class="kb-section-card kb-section-card--stack">
+    <p class="kb-article-paragraph">kintoneの一覧画面では、レコードを開かずにその場で値を直せます。この機能は標準で有効になっているので、特別な設定は要りません。2024年9月のアップデート以降は、セルのダブルクリックで編集を開始でき、保存とキャンセルのボタンがレコードのすぐ下に固定表示されるようになりました。</p>
+    <p class="kb-article-paragraph">なお、この機能をアプリ側で止めることもできます。〔アプリの設定〕→〔設定〕タブ→〔その他の設定〕→〔高度な設定〕の「レコード一覧でのインライン編集」で、直接編集と削除を無効にできます。一覧から誰でも編集できてしまうのが困る場合はここを見てください。</p>
+    <h3 class="kb-article-subheading">行き詰まるところ</h3>
+    <p class="kb-article-paragraph">保存が1レコード単位で走ります。つまり10件直せば10回の保存です。そして、Excelでよくやる「範囲を選択してまとめて貼り付ける」「1つのセルをコピーして下方向にフィル」といった操作はできません。数件なら十分ですが、数十件を超えたあたりから手が止まります。</p>
+  </div>
+</section>
+
+<section id="import" class="kb-article-section">
+  <h2>方法2：ファイルの読み込み（Excel／CSV）</h2>
+  <div class="kb-section-card kb-section-card--stack">
+    <p class="kb-article-paragraph">まとまった件数を直すときの標準的な方法です。一覧をファイルに書き出し、手元で直して、〔レコードの一覧〕画面右上のオプションから〔ファイルから読み込む〕で書き戻します。</p>
+    <p class="kb-article-paragraph">読み込めるファイル形式はExcel（xlsx）、CSV、TXT、TSVです。<strong>Excelファイルをそのまま読み込めます</strong>ので、いったんCSVに変換する必要はありません。件数の上限は、Excelファイルが最大1MB・1,000行まで、CSV／TXT／TSVが最大100MB・10万行までです。1,000行を超えるならCSVを選ぶ、と覚えておくと迷いません。</p>
+    <p class="kb-article-paragraph">既存レコードを直す場合は、読み込み画面の〔アプリへの反映方法〕で「レコードの更新と追加」を選び、〔更新キー〕を指定します。更新キーは、ファイルの各行をアプリのどのレコードに当てるかを決めるフィールドです。キーの値が一致すれば既存レコードが更新され、一致しなければ新規レコードとして登録されます。</p>
+    <p class="kb-article-paragraph">更新キーに指定できるのは、レコード番号、文字列（1行）、数値、日付、日時、リンクの6種類です。レコード番号は重複しないので素直に使えます。それ以外のフィールドを使う場合は、そのフィールドの設定で「値の重複を禁止する」を先に有効にしておく必要があります。</p>
+    <h3 class="kb-article-subheading">行き詰まるところ</h3>
+    <p class="kb-article-paragraph">3つあります。</p>
+    <ul class="kb-article-list">
+      <li>権限：〔ファイルから読み込む〕を使うには、アプリのアクセス権で「ファイル読み込み」の権限が要ります。メニューにこの項目が出てこない場合は権限がありません。自分でアプリを管理していれば問題になりませんが、そうでない場合は管理者に依頼するところから始まります。</li>
+      <li>対応付けの手間：更新したくないフィールドには「（指定しない）」を選んでおかないと、古い値で上書きしてしまいます。テーブル（表形式のフィールド）を含むレコードを更新する場合は、変更のない列も含めてテーブル内の全フィールドを指定しなければなりません。計算フィールドのように読み込み対象にならないものもあります。</li>
+      <li>往復そのもの：書き出す、直す、読み込む、結果を確認する。1回あたり数分で終わるとしても、週に何度も発生する修正でこれを回すのは、正直しんどいところです。</li>
+    </ul>
+    <p class="kb-article-paragraph">ファイル読み込みは「月に一度の洗い替え」には最適ですが、「日常の細かい修正」には重すぎます。</p>
+  </div>
+</section>
+
+<section id="plugin" class="kb-article-section">
+  <h2>方法3：プラグインを導入する</h2>
+  <div class="kb-section-card kb-section-card--stack">
+    <p class="kb-article-paragraph">一覧をExcelのような表形式で編集できる有料プラグインが各社から提供されています。高機能なものが多く、組織全体で本格的に使うならこの選択肢が本命になります。</p>
+    <h3 class="kb-article-subheading">行き詰まるところ</h3>
+    <p class="kb-article-paragraph">プラグインはアプリごとに管理者が設定します。自分がアプリ管理者でなければ導入できませんし、管理者であっても、対象のアプリが増えるたびに設定が必要です。料金体系もドメイン単位の年額契約が中心で、会社として稟議を通す規模の話になります。</p>
+    <p class="kb-article-paragraph">「自分の担当業務だけ楽にしたい」という一人のユーザーにとっては、手続きのほうが本題より重くなりがちです。</p>
+  </div>
+</section>
+
+<section id="extension" class="kb-article-section">
+  <h2>方法4：ブラウザ拡張機能を使う</h2>
+  <div class="kb-section-card kb-section-card--stack">
+    <p class="kb-article-paragraph">もう一つの選択肢が、Chromeなどのブラウザ拡張機能です。プラグインと違ってアプリごとの設定は不要で、自分のブラウザに入れるだけで、すべてのアプリの一覧で使えます。管理者権限も要りません。会社のkintoneの設定を何ひとつ変えずに、自分の手元だけを変えられるのが、この方式のいちばんの特徴です。</p>
+    <p class="kb-article-paragraph">私たちが開発している<strong>PlugBits Launcher</strong>もこの方式です。一覧画面で <code>Ctrl+Shift+E</code> を押すと、そのままスプレッドシート形式のビューが開きます。詳しくは<a href="/launcher/">Launcherの紹介ページ</a>をご覧ください。</p>
+    <p class="kb-article-paragraph">一覧をスプレッドシート形式で開いて、フィルタ・ソート・コピーをするところまでは無料です。セルの直接編集、Excelからの貼り付け、一括保存はPro（月額980円）になります。14日間の無料トライアルがあり、メールアドレスのみで開始できます。</p>
+    <p class="kb-article-paragraph">kintoneのDOMには手を加えない設計なので、標準機能の動作やほかのプラグインには影響しません。編集はkintoneのREST API経由で行われるため、自分に編集権限のあるレコードだけが対象になります。権限を回避するものではありません。</p>
+    <h3 class="kb-article-subheading">行き詰まるところ</h3>
+    <p class="kb-article-paragraph">自分のブラウザにしか入らないので、チーム全員に同じ環境を配りたい場合は、人数分インストールしてもらう必要があります。組織全体に一度で行き渡らせたいなら、方法3のプラグインのほうが素直です。</p>
+  </div>
+</section>
+
+<section id="usage" class="kb-article-section">
+  <h2>使い分けの目安</h2>
+  <div class="kb-section-card kb-section-card--stack">
+    <p class="kb-article-paragraph">改めて整理します。</p>
+    <ul class="kb-article-check">
+      <li><strong>数件のその場修正</strong> → インライン編集。設定不要で最速です。</li>
+      <li><strong>月に一度の大規模な洗い替え</strong> → ファイル読み込み。10万行まで扱えます。</li>
+      <li><strong>組織全体で常時使う</strong> → 有料プラグイン。管理者が一度設定すれば全員が使えます。</li>
+      <li><strong>自分の担当業務を日常的に楽にしたい</strong> → ブラウザ拡張機能。会社の設定を触らずに済みます。</li>
+    </ul>
+    <p class="kb-article-paragraph">まずは無料でできる範囲（インライン編集、ファイル読み込み、拡張機能の閲覧機能）から試して、手順の重さが気になった段階で有料の選択肢を検討するのが、遠回りのない順番だと思います。</p>
+  </div>
+</section>
+
+<section id="faq" class="kb-article-section">
+  <h2>よくある質問</h2>
+  <div class="kb-faq">
+    <div class="kb-faq-item">
+      <h3>一覧のインライン編集は事前に設定が必要？</h3>
+      <p>いいえ、標準で有効になっています。逆に一覧からの編集・削除を止めたい場合は、〔アプリの設定〕→〔設定〕タブ→〔その他の設定〕→〔高度な設定〕から無効化できます。</p>
+    </div>
+    <div class="kb-faq-item">
+      <h3>ファイル読み込みでExcelファイルはそのまま使える？</h3>
+      <p>はい、xlsx形式をそのまま読み込めます（最大1MB・1,000行）。1,000行を超える場合はCSV／TXT／TSV（最大100MB・10万行）をご利用ください。</p>
+    </div>
+    <div class="kb-faq-item">
+      <h3>ファイル読み込みに権限は必要？</h3>
+      <p>必要です。アプリのアクセス権に「ファイル読み込み」の権限がないと、〔ファイルから読み込む〕のメニュー自体が表示されません。</p>
+    </div>
+    <div class="kb-faq-item">
+      <h3>PlugBits Launcherの無料版でできることは？</h3>
+      <p>一覧をスプレッドシート形式で開いて、フィルタ・ソート・コピーをするところまでです。セルの直接編集・Excelからの貼り付け・一括保存はProの機能になります。</p>
+    </div>
+  </div>
+</section>
+
+<div class="kb-divider" role="presentation"></div>
+
+<section class="kb-article-section">
+  <p class="kb-article-paragraph">4つの方法に優劣はなく、向いている状況が違うだけです。数件ならインライン編集、月イチの洗い替えならファイル読み込み、組織全体ならプラグイン。そして、自分の担当業務を日常的に楽にしたいなら、会社の設定を何も変えずに始められるブラウザ拡張機能が向いています。</p>
+  <div class="kb-support-cards">
+    <div class="kb-support-card">
+      <strong>ブラウザ拡張機能で試せます</strong>
+      <p class="kb-article-paragraph">一覧をスプレッドシート形式で開いて眺めるところまでは無料です。自分のアプリで表示だけ試してみて、編集が必要そうならProのトライアルに進めます。</p>
+      <p><a href="https://chromewebstore.google.com/detail/plugbits-launcher-for-kin/bmnijafgcjnpbgbdijjfidiaodphjjpd?utm_source=blog" target="_blank" rel="noopener">PlugBits LauncherをChromeに追加（無料） →</a></p>
+    </div>
+  </div>
+</section>
