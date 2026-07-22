@@ -121,6 +121,11 @@ try {
   const storeExt = products.find(p => p.type === 'extension' && p.store_url);
   const LAUNCHER_STORE_URL = (storeExt && storeExt.store_url) || '/launcher/';
 
+  // クロスセルバナー用のutm付きストアURL。utm_source はページ種別（blog/product/manual等）で出し分ける
+  function bannerStoreUrl(utmSource) {
+    return withQuery(LAUNCHER_STORE_URL, `utm_source=${utmSource}&utm_medium=banner`);
+  }
+
   // 価格バッジ：pricing (free / freemium / paid) で出し分け。未設定は free 扱い
   function priceBadge(p, isJa) {
     if (p.status === 'coming-soon') {
@@ -187,6 +192,7 @@ try {
                                 : `https://plugbits.app/products/en/${p.slug}.html`,
       '%%ALT_LANG_URL%%':     altLangUrl,
       '%%LAUNCHER_STORE_URL%%': LAUNCHER_STORE_URL,
+      '%%LAUNCHER_STORE_URL_BANNER%%': bannerStoreUrl('product'),
       '%%SUPPORT_MAIL%%':     SUPPORT_MAIL,
       '%%SITE_COPYRIGHT%%':   SITE_COPYRIGHT,
     };
@@ -212,6 +218,7 @@ try {
         .replaceAll('%%SLUG%%',           p.slug)
         .replaceAll('%%MANUAL_CONTENT%%', content)
         .replaceAll('%%LAUNCHER_STORE_URL%%', LAUNCHER_STORE_URL)
+        .replaceAll('%%LAUNCHER_STORE_URL_BANNER%%', bannerStoreUrl('manual'))
         .replaceAll('%%SUPPORT_MAIL%%',   SUPPORT_MAIL)
         .replaceAll('%%SITE_COPYRIGHT%%', SITE_COPYRIGHT);
       fs.writeFileSync(path.join(PRODUCTS_DIR, `${p.slug}-manual.html`), out);
@@ -224,6 +231,7 @@ try {
         .replaceAll('%%SLUG%%',           p.slug)
         .replaceAll('%%MANUAL_CONTENT%%', content)
         .replaceAll('%%LAUNCHER_STORE_URL%%', LAUNCHER_STORE_URL)
+        .replaceAll('%%LAUNCHER_STORE_URL_BANNER%%', bannerStoreUrl('manual'))
         .replaceAll('%%SUPPORT_MAIL%%',   SUPPORT_MAIL)
         .replaceAll('%%SITE_COPYRIGHT%%', SITE_COPYRIGHT);
       fs.writeFileSync(path.join(PRODUCTS_EN_DIR, `${p.slug}-manual.html`), out);
@@ -269,7 +277,7 @@ try {
       '%%TOOL_NAME%%':             esc(post.tool_name),
       '%%CONTENT_HTML%%':          contentHtml,
       '%%LAUNCHER_STORE_URL%%':    LAUNCHER_STORE_URL,
-      '%%LAUNCHER_STORE_URL_BANNER%%': withQuery(LAUNCHER_STORE_URL, 'utm_source=blog&utm_medium=banner'),
+      '%%LAUNCHER_STORE_URL_BANNER%%': bannerStoreUrl('blog'),
       '%%SUPPORT_MAIL%%':          SUPPORT_MAIL,
       '%%SITE_COPYRIGHT%%':        SITE_COPYRIGHT,
       '%%JSONLD%%':                jsonLd,
