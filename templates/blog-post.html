@@ -24,14 +24,14 @@
     }
 
     /* ===== 記事レイアウト調整（このテンプレート限定・2026-07） ===== */
-    /* 本文の可読性：コンテンツ幅720px・17px・行間1.9・段落下1.6em */
-    .kb-article-body{max-width:768px;margin:0 auto;padding:0 24px}
+    /* 本文の可読性：コンテンツ幅780px・17px・行間1.9・段落下1.6em */
+    .kb-article-body{max-width:828px;margin:0 auto;padding:0 24px}
     .kb-article-paragraph{font-size:17px;line-height:1.9;margin:0 0 1.6em}
     .kb-article-section{margin-top:52px}
     .kb-article-section h2{font-size:27px;line-height:1.5;margin:0 0 .8em}
     .kb-article-subheading{font-size:20px;margin:2em 0 .6em}
     /* 導入CTAも本文幅に揃える */
-    .kb-article-intro-cta{margin:0 auto 8px;max-width:768px;width:calc(100% - 48px)}
+    .kb-article-intro-cta{margin:0 auto 8px;max-width:828px;width:calc(100% - 48px)}
     /* 中間層（セクションごとの枠）を廃止：見出しと本文を背景に直置き */
     .kb-section-card{background:none;border:none;box-shadow:none;border-radius:0;padding:0;margin-top:0}
     .kb-section-card--stack{display:block}
@@ -41,6 +41,12 @@
     /* チェックリスト：箱を外す（✔は残す） */
     .kb-article-check li{background:none;border:none;box-shadow:none;border-radius:0;padding:2px 0 2px 28px}
     .kb-article-check li::before{left:0;top:2px}
+    /* モバイル：導入CTAボタンのはみ出し防止 */
+    @media (max-width:720px){
+      .kb-article-intro-cta .kb-cta-primary{white-space:normal;flex-shrink:1}
+    }
+    /* 記事メタ：1行表示 */
+    .kb-article-meta-line{margin:16px 0 0;font-size:13.5px;color:var(--kb-sub)}
   </style>
   <script type="application/ld+json">%%JSONLD%%</script>
 </head>
@@ -74,20 +80,7 @@
       <header class="kb-article-header">
         <p class="kb-article-label">%%HERO_LABEL%%</p>
         <h1>%%H1%%</h1>
-        <div class="kb-article-meta">
-          <div class="kb-meta-chip">
-            <strong>公開日</strong>
-            <span>%%PUBLISHED_AT_DISPLAY%%</span>
-          </div>
-          <div class="kb-meta-chip">
-            <strong>更新日</strong>
-            <span>%%UPDATED_AT_DISPLAY%%</span>
-          </div>
-          <div class="kb-meta-chip">
-            <strong>読了目安</strong>
-            <span>%%READ_TIME%%</span>
-          </div>
-        </div>
+        <p class="kb-article-meta-line">%%META_LINE%%</p>
       </header>
 
       <div class="kb-article-intro-cta">
