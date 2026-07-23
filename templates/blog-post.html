@@ -22,6 +22,25 @@
     @media (max-width:720px){
       .kb-article-intro-cta{margin:0 24px 8px;padding:16px 18px}
     }
+
+    /* ===== 記事レイアウト調整（このテンプレート限定・2026-07） ===== */
+    /* 本文の可読性：コンテンツ幅720px・17px・行間1.9・段落下1.6em */
+    .kb-article-body{max-width:768px;margin:0 auto;padding:0 24px}
+    .kb-article-paragraph{font-size:17px;line-height:1.9;margin:0 0 1.6em}
+    .kb-article-section{margin-top:52px}
+    .kb-article-section h2{font-size:27px;line-height:1.5;margin:0 0 .8em}
+    .kb-article-subheading{font-size:20px;margin:2em 0 .6em}
+    /* 導入CTAも本文幅に揃える */
+    .kb-article-intro-cta{margin:0 auto 8px;max-width:768px;width:calc(100% - 48px)}
+    /* 中間層（セクションごとの枠）を廃止：見出しと本文を背景に直置き */
+    .kb-section-card{background:none;border:none;box-shadow:none;border-radius:0;padding:0;margin-top:0}
+    .kb-section-card--stack{display:block}
+    /* 「行き詰まるところ」等の箇条書き：白箱 → 左ボーダー4px */
+    .kb-article-list li{background:none;border:none;box-shadow:none;border-radius:0;border-left:4px solid var(--kb-primary);padding:2px 0 2px 16px}
+    .kb-article-list li::before{content:none}
+    /* チェックリスト：箱を外す（✔は残す） */
+    .kb-article-check li{background:none;border:none;box-shadow:none;border-radius:0;padding:2px 0 2px 28px}
+    .kb-article-check li::before{left:0;top:2px}
   </style>
   <script type="application/ld+json">%%JSONLD%%</script>
 </head>
