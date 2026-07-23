@@ -261,6 +261,10 @@ try {
       mainEntityOfPage: ogUrl,
     });
 
+    const metaLine = (post.updated_at && post.updated_at !== post.published_at)
+      ? `${formatDateJa(post.published_at)}公開（${formatDateJa(post.updated_at)}更新）・ ${post.read_time}`
+      : `${formatDateJa(post.published_at)}公開 ・ ${post.read_time}`;
+
     const map = {
       '%%TITLE%%':                 esc(post.title),
       '%%H1%%':                    esc(post.h1 || post.title),
@@ -272,6 +276,7 @@ try {
       '%%READ_TIME%%':             esc(post.read_time),
       '%%PUBLISHED_AT_DISPLAY%%':  esc(formatDateJa(post.published_at)),
       '%%UPDATED_AT_DISPLAY%%':    esc(formatDateJa(post.updated_at || post.published_at)),
+      '%%META_LINE%%':             esc(metaLine),
       '%%CTA_INTRO%%':             esc(post.cta_intro),
       '%%TOOL_URL%%':              post.tool_url,
       '%%TOOL_NAME%%':             esc(post.tool_name),

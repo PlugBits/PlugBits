@@ -627,7 +627,7 @@
 @media (max-width:720px) {
   .kb-topbar-nav a:not(:last-child) { display:none; }
   .kb-hero-actions { flex-direction:column; }
-  .kb-cta-primary, .kb-cta-secondary { width:100%; }
+  .kb-cta-primary, .kb-cta-secondary { width:100%; box-sizing:border-box; }
   .kb-launcher-card { flex-direction:column; padding:20px; gap:16px; }
   .kb-launcher-card-visual { display:none; }
 }
@@ -1058,7 +1058,7 @@
     align-items: flex-start;
     padding: 20px 20px;
   }
-  .kb-manual-cta .kb-btn-primary { width: 100%; justify-content: center; }
+  .kb-manual-cta .kb-btn-primary { width: 100%; justify-content: center; box-sizing: border-box; }
 }
 
 /* ===================================================================
@@ -1576,7 +1576,7 @@
 @media (max-width: 720px) {
   .kb-ext-featured { flex-direction: column-reverse; padding: 24px 20px; gap: 20px; text-align: left; }
   .kb-ext-featured-visual img { width: 88px; height: 88px; }
-  .kb-ext-cta-row .kb-cta-primary, .kb-ext-cta-row .kb-cta-secondary { width: 100%; }
+  .kb-ext-cta-row .kb-cta-primary, .kb-ext-cta-row .kb-cta-secondary { width: 100%; box-sizing: border-box; }
 }
 
 /* ---- Card hover: image zoom ---- */
@@ -1609,7 +1609,7 @@
 @media (max-width: 600px) {
   .kb-crosssell-inner { padding: 22px 20px; }
   .kb-crosssell-actions { width: 100%; flex-direction: column; }
-  .kb-crosssell-actions .kb-cta-primary, .kb-crosssell-actions .kb-cta-secondary { width: 100%; }
+  .kb-crosssell-actions .kb-cta-primary, .kb-crosssell-actions .kb-cta-secondary { width: 100%; box-sizing: border-box; }
 }
 
 /* ---- Developer note ---- */
