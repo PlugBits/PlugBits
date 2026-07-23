@@ -38,6 +38,9 @@
   <h2>方法1：一覧画面のインライン編集</h2>
   <div class="kb-section-card kb-section-card--stack">
     <p class="kb-article-paragraph">kintoneの一覧画面では、レコードを開かずにその場で値を直せます。この機能は標準で有効になっているので、特別な設定は要りません。2024年9月のアップデート以降は、セルのダブルクリックで編集を開始でき、保存とキャンセルのボタンがレコードのすぐ下に固定表示されるようになりました。</p>
+    <figure class="kb-article-figure">
+      <img src="/assets/blog/kintone-inline-edit.webp" alt="kintoneの一覧画面でレコードを直接編集しているところ。編集中の行の下にキャンセルと保存のボタンが表示されている" width="1200" height="693" loading="lazy">
+    </figure>
     <p class="kb-article-paragraph">なお、この機能をアプリ側で止めることもできます。〔アプリの設定〕→〔設定〕タブ→〔その他の設定〕→〔高度な設定〕の「レコード一覧でのインライン編集」で、直接編集と削除を無効にできます。一覧から誰でも編集できてしまうのが困る場合はここを見てください。</p>
     <h3 class="kb-article-subheading">行き詰まるところ</h3>
     <p class="kb-article-paragraph">保存が1レコード単位で走ります。つまり10件直せば10回の保存です。そして、Excelでよくやる「範囲を選択してまとめて貼り付ける」「1つのセルをコピーして下方向にフィル」といった操作はできません。数件なら十分ですが、数十件を超えたあたりから手が止まります。</p>
@@ -51,6 +54,10 @@
     <p class="kb-article-paragraph">読み込めるファイル形式はExcel（xlsx）、CSV、TXT、TSVです。<strong>Excelファイルをそのまま読み込めます</strong>ので、いったんCSVに変換する必要はありません。件数の上限は、Excelファイルが最大1MB・1,000行まで、CSV／TXT／TSVが最大100MB・10万行までです。1,000行を超えるならCSVを選ぶ、と覚えておくと迷いません。</p>
     <p class="kb-article-paragraph">既存レコードを直す場合は、読み込み画面の〔アプリへの反映方法〕で「レコードの更新と追加」を選び、〔更新キー〕を指定します。更新キーは、ファイルの各行をアプリのどのレコードに当てるかを決めるフィールドです。キーの値が一致すれば既存レコードが更新され、一致しなければ新規レコードとして登録されます。</p>
     <p class="kb-article-paragraph">更新キーに指定できるのは、レコード番号、文字列（1行）、数値、日付、日時、リンクの6種類です。レコード番号は重複しないので素直に使えます。それ以外のフィールドを使う場合は、そのフィールドの設定で「値の重複を禁止する」を先に有効にしておく必要があります。</p>
+    <figure class="kb-article-figure">
+      <img src="/assets/blog/kintone-import-update-key.webp" alt="kintoneのファイル読み込み画面。アプリへの反映方法でレコードの更新と追加を選び、更新キーと対応するファイルの列を指定しているところ" width="1200" height="720" loading="lazy">
+      <figcaption>更新キーにレコード番号以外のフィールドを使う場合は、そのフィールドで「値の重複を禁止する」を有効にしておく必要があります</figcaption>
+    </figure>
     <h3 class="kb-article-subheading">行き詰まるところ</h3>
     <p class="kb-article-paragraph">3つあります。</p>
     <ul class="kb-article-list">
@@ -77,6 +84,9 @@
   <div class="kb-section-card kb-section-card--stack">
     <p class="kb-article-paragraph">もう一つの選択肢が、Chromeなどのブラウザ拡張機能です。プラグインと違ってアプリごとの設定は不要で、自分のブラウザに入れるだけで、すべてのアプリの一覧で使えます。管理者権限も要りません。会社のkintoneの設定を何ひとつ変えずに、自分の手元だけを変えられるのが、この方式のいちばんの特徴です。</p>
     <p class="kb-article-paragraph">私たちが開発している<strong>PlugBits Launcher</strong>もこの方式です。一覧画面で <code>Ctrl+Shift+E</code> を押すと、そのままスプレッドシート形式のビューが開きます。詳しくは<a href="/launcher/">Launcherの紹介ページ</a>をご覧ください。</p>
+    <figure class="kb-article-figure">
+      <img src="/assets/blog/plugbits-grid-edit.webp" alt="PlugBits Launcherでkintoneの一覧をスプレッドシート形式で開き、複数のセルをまとめて編集しているところ" width="1200" height="716" loading="lazy">
+    </figure>
     <p class="kb-article-paragraph">一覧をスプレッドシート形式で開いて、フィルタ・ソート・コピーをするところまでは無料です。セルの直接編集、Excelからの貼り付け、一括保存はPro（月額980円）になります。14日間の無料トライアルがあり、メールアドレスのみで開始できます。</p>
     <p class="kb-article-paragraph">kintoneのDOMには手を加えない設計なので、標準機能の動作やほかのプラグインには影響しません。編集はkintoneのREST API経由で行われるため、自分に編集権限のあるレコードだけが対象になります。権限を回避するものではありません。</p>
     <h3 class="kb-article-subheading">行き詰まるところ</h3>
