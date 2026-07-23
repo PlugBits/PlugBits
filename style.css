@@ -1058,7 +1058,7 @@
     align-items: flex-start;
     padding: 20px 20px;
   }
-  .kb-manual-cta .kb-btn-primary { width: 100%; justify-content: center; }
+  .kb-manual-cta .kb-btn-primary { width: 100%; justify-content: center; box-sizing: border-box; }
 }
 
 /* ===================================================================
