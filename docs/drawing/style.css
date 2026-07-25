@@ -1,5 +1,7 @@
 /* PlugBits — 類似図面検索 for kintone LP
-   自己完結スタイル。サイト共通の /style.css には依存しない。 */
+   自己完結スタイル。サイト共通の /style.css には依存しない。
+   トーン: Sansan的な余白の大きさ・面と影のカード・タイポスケール。
+   パレットは4色固定(--paper/--ink/--blue/--rule)。青は類似グリッドとCTAのみ。 */
 
 :root {
   --paper: #FBFBF9;
@@ -11,6 +13,9 @@
   --sub-gray: #55534E;
   --radius-s: 2px;
   --radius-m: 4px;
+  --radius-l: 8px;
+  --shadow-card: 0 2px 8px rgba(26, 26, 26, 0.06);
+  --shadow-header: 0 1px 4px rgba(26, 26, 26, 0.08);
   --header-offset: 88px;
 }
 
@@ -69,7 +74,7 @@ button {
 /* ---------- meta line (図面の表題欄風) ---------- */
 
 .dw-meta-line {
-  margin: 0 0 10px;
+  margin: 0 0 12px;
   font-size: 12px;
   letter-spacing: 0.04em;
   color: var(--meta-gray);
@@ -81,8 +86,8 @@ button {
   position: sticky;
   top: 0;
   z-index: 50;
-  border-bottom: 1px solid var(--rule);
   background: var(--paper);
+  box-shadow: var(--shadow-header);
 }
 
 .dw-header-inner {
@@ -145,28 +150,37 @@ button {
   color: var(--ink);
 }
 
+@media (max-width: 719.98px) {
+  .dw-brand-tagline,
+  .dw-nav {
+    display: none;
+  }
+}
+
 /* ---------- hero ---------- */
 
 .dw-hero {
-  padding: 56px 0 64px;
+  padding: 64px 0 88px;
 }
 
 .dw-hero-inner {
   display: flex;
   flex-direction: column;
-  gap: 40px;
+  gap: 56px;
 }
 
 .dw-hero-copy h1 {
-  margin: 0 0 14px;
-  font-size: clamp(28px, 5vw, 40px);
-  line-height: 1.4;
+  margin: 0 0 24px;
+  font-size: clamp(34px, 6vw, 60px);
+  line-height: 1.25;
+  letter-spacing: -0.01em;
   font-weight: 700;
 }
 
 .dw-hero-lead {
-  margin: 0 0 24px;
-  font-size: 16px;
+  margin: 0 0 40px;
+  font-size: clamp(17px, 2vw, 18px);
+  line-height: 1.8;
   color: var(--sub-gray);
   max-width: 46em;
 }
@@ -190,13 +204,6 @@ button {
 .dw-cta-button--small {
   padding: 9px 16px;
   font-size: 13.5px;
-}
-
-@media (max-width: 719.98px) {
-  .dw-brand-tagline,
-  .dw-nav {
-    display: none;
-  }
 }
 
 /* ---------- similarity grid ---------- */
@@ -294,13 +301,12 @@ button {
 }
 
 .dw-grid-disclaimer {
-  margin: 20px 0 0;
+  margin: 24px 0 0;
   font-size: 12.5px;
   color: var(--sub-gray);
 }
 
 @media (min-width: 720px) {
-  .dw-hero-inner { gap: 48px; }
   .dw-grid { grid-template-columns: 1.1fr 1fr; gap: 28px; }
   .dw-grid-results { gap: 14px; }
 }
@@ -321,8 +327,7 @@ button {
 }
 
 .dw-section {
-  padding: 56px 0;
-  border-top: 1px solid var(--rule);
+  padding: 64px 0;
 }
 
 .dw-section-alt {
@@ -330,9 +335,9 @@ button {
 }
 
 .dw-section-inner h2 {
-  margin: 0 0 24px;
-  font-size: clamp(22px, 3.4vw, 28px);
-  line-height: 1.5;
+  margin: 0 0 32px;
+  font-size: clamp(26px, 4vw, 36px);
+  line-height: 1.35;
   font-weight: 700;
   max-width: 24em;
 }
@@ -342,12 +347,38 @@ button {
 }
 
 .dw-prose p {
-  margin: 0 0 1.2em;
-  font-size: 15.5px;
+  margin: 0 0 1.3em;
+  font-size: 16px;
   line-height: 1.9;
 }
 
 .dw-prose p:last-child { margin-bottom: 0; }
+
+@media (min-width: 860px) {
+  .dw-section { padding: 104px 0; }
+}
+
+/* ---------- centered rhythm (RESULT / CONTACT) ---------- */
+
+.dw-align-center {
+  text-align: center;
+}
+
+.dw-align-center .dw-meta-line {
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.dw-align-center h2 {
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.dw-align-center > p {
+  max-width: 42em;
+  margin-left: auto;
+  margin-right: auto;
+}
 
 /* ---------- subject callout (section 2) ---------- */
 
@@ -359,14 +390,14 @@ button {
 }
 
 .dw-callout {
-  border: 1px solid var(--rule);
-  border-radius: var(--radius-m);
+  border-radius: var(--radius-l);
   background: #FFFFFF;
-  padding: 20px 22px;
+  box-shadow: var(--shadow-card);
+  padding: 28px 28px;
 }
 
 .dw-callout-label {
-  margin: 0 0 14px;
+  margin: 0 0 16px;
   font-size: 11px;
   letter-spacing: 0.08em;
   color: var(--meta-gray);
@@ -379,7 +410,7 @@ button {
 }
 
 .dw-callout-list li {
-  padding: 10px 0;
+  padding: 12px 0;
   font-size: 19px;
   font-weight: 700;
   color: var(--ink);
@@ -391,7 +422,7 @@ button {
 }
 
 .dw-callout-note {
-  margin: 16px 0 0;
+  margin: 20px 0 0;
   font-size: 13px;
   line-height: 1.8;
   color: var(--sub-gray);
@@ -406,22 +437,22 @@ button {
 .dw-basis-intro,
 .dw-basis-outro {
   max-width: 42em;
-  font-size: 15.5px;
+  font-size: 16px;
   line-height: 1.9;
-  margin: 0 0 24px;
+  margin: 0 0 32px;
 }
 
 .dw-basis-outro {
-  margin: 24px 0 0;
+  margin: 32px 0 0;
 }
 
 .dw-compare {
   display: grid;
   grid-template-columns: 1fr;
-  border: 1px solid var(--rule);
-  border-radius: var(--radius-m);
+  border-radius: var(--radius-l);
   overflow: hidden;
   background: #FFFFFF;
+  box-shadow: var(--shadow-card);
 }
 
 .dw-compare-col + .dw-compare-col {
@@ -430,7 +461,7 @@ button {
 
 .dw-compare-label {
   margin: 0;
-  padding: 14px 18px;
+  padding: 16px 20px;
   font-size: 12px;
   letter-spacing: 0.04em;
   color: var(--meta-gray);
@@ -439,7 +470,7 @@ button {
 
 .dw-compare-row {
   margin: 0;
-  padding: 14px 18px;
+  padding: 16px 20px;
   font-size: 14.5px;
   line-height: 1.7;
   border-bottom: 1px solid var(--rule);
@@ -463,17 +494,24 @@ button {
   width: 100%;
   max-width: 640px;
   border-collapse: collapse;
-  border: 1px solid var(--rule);
+  border-radius: var(--radius-l);
   background: #FFFFFF;
+  box-shadow: var(--shadow-card);
+  overflow: hidden;
 }
 
 .dw-titleblock th,
 .dw-titleblock td {
-  border: 1px solid var(--rule);
-  padding: 12px 16px;
+  border-bottom: 1px solid var(--rule);
+  padding: 14px 18px;
   text-align: left;
   font-weight: 400;
   vertical-align: top;
+}
+
+.dw-titleblock tr:last-child th,
+.dw-titleblock tr:last-child td {
+  border-bottom: none;
 }
 
 .dw-titleblock th {
@@ -482,6 +520,7 @@ button {
   color: var(--meta-gray);
   background: #F4F3EF;
   white-space: nowrap;
+  border-right: 1px solid var(--rule);
 }
 
 .dw-titleblock td {
@@ -511,26 +550,26 @@ button {
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 24px;
 }
 
 .dw-step {
-  border: 1px solid var(--rule);
-  border-radius: var(--radius-m);
-  padding: 20px 22px;
+  border-radius: var(--radius-l);
+  padding: 28px 26px;
   background: #FFFFFF;
+  box-shadow: var(--shadow-card);
 }
 
 .dw-step-label {
-  margin: 0 0 8px;
+  margin: 0 0 10px;
   font-size: 11px;
   letter-spacing: 0.08em;
   color: var(--meta-gray);
 }
 
 .dw-step h3 {
-  margin: 0 0 8px;
-  font-size: 17px;
+  margin: 0 0 10px;
+  font-size: 18px;
   font-weight: 700;
 }
 
@@ -563,22 +602,38 @@ button {
 .dw-stats {
   display: grid;
   grid-template-columns: 1fr;
-  gap: 20px;
-  margin-bottom: 24px;
+  gap: 24px;
+  margin: 0 0 32px;
+  max-width: 760px;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .dw-stat {
-  border: 1px solid var(--rule);
-  border-radius: var(--radius-m);
-  padding: 20px;
+  border-radius: var(--radius-l);
+  padding: 28px;
   background: #FFFFFF;
+  box-shadow: var(--shadow-card);
 }
 
 .dw-stat-value {
-  margin: 0 0 6px;
-  font-size: 32px;
+  margin: 0 0 8px;
+  font-size: clamp(40px, 5vw, 56px);
+  line-height: 1.1;
   font-weight: 500;
   color: var(--ink);
+  white-space: nowrap;
+}
+
+/* "約5,000点" has more characters than "82.6%" / "95.7%"; a slightly
+   smaller scale keeps it on one line at the same card width. */
+.dw-stat-value--long {
+  font-size: clamp(30px, 3.6vw, 40px);
+}
+
+.dw-stat-unit {
+  font-size: 0.5em;
+  margin-left: 2px;
 }
 
 .dw-stat-label {
@@ -592,7 +647,7 @@ button {
   font-size: 14px;
   line-height: 1.9;
   color: var(--sub-gray);
-  margin: 0;
+  margin: 0 auto;
 }
 
 @media (min-width: 640px) {
@@ -602,20 +657,36 @@ button {
 /* ---------- CTA / form (section 7) ---------- */
 
 .dw-section-cta {
-  padding-bottom: 72px;
+  background: var(--ink);
+  color: #FFFFFF;
+}
+
+.dw-section-cta .dw-meta-line {
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.dw-section-cta h2 {
+  color: #FFFFFF;
+}
+
+.dw-section-cta :focus-visible {
+  outline-color: #FFFFFF;
 }
 
 .dw-cta-lead {
-  margin: 0 0 28px;
-  font-size: 15.5px;
-  color: var(--sub-gray);
+  margin: 0 0 40px;
+  font-size: 16px;
+  line-height: 1.9;
+  color: rgba(255, 255, 255, 0.72);
 }
 
 .dw-form {
   max-width: 440px;
+  margin: 0 auto;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 20px;
+  text-align: left;
 }
 
 .dw-form[hidden] {
@@ -625,12 +696,12 @@ button {
 .dw-form-row {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
 }
 
 .dw-form-row label {
   font-size: 13px;
-  color: var(--sub-gray);
+  color: rgba(255, 255, 255, 0.72);
 }
 
 .dw-form-row input {
@@ -667,22 +738,24 @@ button {
   margin: 4px 0 0;
   font-size: 12.5px;
   line-height: 1.8;
-  color: var(--sub-gray);
+  color: rgba(255, 255, 255, 0.72);
 }
 
 .dw-form-message {
   margin: 0;
   min-height: 1.4em;
   font-size: 13.5px;
-  color: #B3261E;
+  color: #FF8A80;
 }
 
 .dw-form-success {
   max-width: 440px;
-  border: 1px solid var(--blue);
-  border-radius: var(--radius-m);
-  padding: 24px;
+  margin: 0 auto;
+  border-radius: var(--radius-l);
+  padding: 28px;
   background: #FFFFFF;
+  box-shadow: var(--shadow-card);
+  text-align: left;
 }
 
 .dw-form-success-title {
@@ -701,8 +774,8 @@ button {
 /* ---------- footer ---------- */
 
 .dw-footer {
-  border-top: 1px solid var(--rule);
-  padding: 32px 0 40px;
+  background: var(--paper);
+  padding: 40px 0 48px;
 }
 
 .dw-footer-inner {
