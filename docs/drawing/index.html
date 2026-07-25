@@ -34,11 +34,14 @@
           <span class="dw-brand-tagline">kintone向けプラグイン＆ブラウザ拡張機能</span>
         </span>
       </a>
-      <nav class="dw-nav">
-        <a href="/#plugins">プラグイン</a>
-        <a href="/blog/">ブログ</a>
-        <a href="/privacy.html">プライバシー</a>
-      </nav>
+      <div class="dw-header-right">
+        <nav class="dw-nav">
+          <a href="/#plugins">プラグイン</a>
+          <a href="/blog/">ブログ</a>
+          <a href="/privacy.html">プライバシー</a>
+        </nav>
+        <a class="dw-cta-button dw-cta-button--small" href="#waitlist">先行案内を受け取る</a>
+      </div>
     </div>
   </header>
 
@@ -112,11 +115,22 @@
       <div class="dw-container dw-section-inner">
         <p class="dw-meta-line">SUBJECT — 検索で出ない情報</p>
         <h2>検索窓に入れる言葉が、ない</h2>
-        <div class="dw-prose">
-          <p>品番や品名が分かっている図面は、いまのkintoneでも探せます。困るのはその先です。</p>
-          <p>刃物が入らなかった。薄板が反った。この掴み方だと変形した。現場で効くのは、こうした情報です。そしてこれらは品番と結びついていません。</p>
-          <p>手がかりは「前に似た形をやった」という記憶だけです。形が似た過去の図面にたどり着いて、はじめてその先の情報が出てきます。</p>
-          <p>この製品が受け持つのは、その「形で辿る」部分です。</p>
+        <div class="dw-subject-grid">
+          <div class="dw-prose">
+            <p>品番や品名が分かっている図面は、いまのkintoneでも探せます。困るのはその先です。</p>
+            <p>現場で効くのは、そうした具体的な情報です。</p>
+            <p>手がかりは「前に似た形をやった」という記憶だけです。形が似た過去の図面にたどり着いて、はじめてその先の情報が出てきます。</p>
+            <p>この製品が受け持つのは、その「形で辿る」部分です。</p>
+          </div>
+          <aside class="dw-callout">
+            <p class="dw-callout-label">NOTE</p>
+            <ul class="dw-callout-list">
+              <li>刃物が入らなかった</li>
+              <li>薄板が反った</li>
+              <li>この掴み方だと変形した</li>
+            </ul>
+            <p class="dw-callout-note">こうした情報は、品番と結びついていません。</p>
+          </aside>
         </div>
       </div>
     </section>
@@ -153,11 +167,22 @@
       <div class="dw-container dw-section-inner">
         <p class="dw-meta-line">BASIS — 台帳が古くならない理由</p>
         <h2>誰も台帳を作らないのに、資産が貯まる</h2>
-        <div class="dw-prose">
-          <p>図面管理システムを導入すると、「図面を登録する」という新しい仕事が生まれます。多くの場合、初期投入が終わると更新が止まり、台帳は古くなっていきます。</p>
-          <p>kintoneでは、受注、製造指示、検査という日々の流れの中でレコードが立ち、図面が添付されていきます。台帳を作ろうとした人は誰もいないのに、業務の副産物として検索対象が増えていきます。</p>
-          <p>このプラグインは、いま使っているkintoneアプリに後付けします。図面をどこかへ移す必要はありません。データはkintoneに残ります。</p>
+        <p class="dw-basis-intro">図面管理の仕組みを新しく導入する場合と、kintoneに後付けする場合とでは、日々の流れが変わります。</p>
+        <div class="dw-compare">
+          <div class="dw-compare-col">
+            <p class="dw-compare-label">専用の図面管理システム</p>
+            <p class="dw-compare-row">図面を登録する仕事が増える</p>
+            <p class="dw-compare-row">初期投入のあとで更新が止まる</p>
+            <p class="dw-compare-row">台帳が古くなっていく</p>
+          </div>
+          <div class="dw-compare-col">
+            <p class="dw-compare-label">kintone</p>
+            <p class="dw-compare-row">受注・製造指示・検査でレコードが立つ</p>
+            <p class="dw-compare-row">業務の流れの中で図面が添付される</p>
+            <p class="dw-compare-row">副産物として検索対象が貯まっていく</p>
+          </div>
         </div>
+        <p class="dw-basis-outro">このプラグインは、いま使っているkintoneアプリに後付けします。図面をどこかへ移す必要はありません。データはkintoneに残ります。</p>
       </div>
     </section>
 
@@ -189,12 +214,26 @@
       <div class="dw-container dw-section-inner">
         <p class="dw-meta-line">DRAWN BY — 作っている人</p>
         <h2>製造業の中から作っています</h2>
-        <div class="dw-prose">
-          <p>製造業で15年働いてきました。海外工場の運営と、原価管理が長いです。</p>
-          <p>いまも現職で、自社の生産管理システムを自分で作って動かしています。</p>
-          <p>この製品は、「前に似たものをやったはずだ」と図面の山を探した自分の経験から始まっています。</p>
-          <p>個人で開発しています。案内のメールも本人が書きます。</p>
-        </div>
+        <table class="dw-titleblock">
+          <tbody>
+            <tr>
+              <th scope="row">経歴</th>
+              <td>製造業で15年。海外工場の運営と原価管理。</td>
+            </tr>
+            <tr>
+              <th scope="row">現職</th>
+              <td>自社の生産管理システムを自分で作って動かしています。</td>
+            </tr>
+            <tr>
+              <th scope="row">はじまり</th>
+              <td>「前に似たものをやったはずだ」と図面の山を探した経験。</td>
+            </tr>
+            <tr>
+              <th scope="row">体制</th>
+              <td>個人で開発。案内のメールも本人が書きます。</td>
+            </tr>
+          </tbody>
+        </table>
       </div>
     </section>
 

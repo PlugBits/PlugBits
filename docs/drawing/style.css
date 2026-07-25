@@ -11,6 +11,7 @@
   --sub-gray: #55534E;
   --radius-s: 2px;
   --radius-m: 4px;
+  --header-offset: 88px;
 }
 
 * { box-sizing: border-box; }
@@ -58,7 +59,10 @@ button {
 .dw-grid-hint,
 .grid-score,
 .dw-stat-value,
-.dw-step-label {
+.dw-step-label,
+.dw-callout-label,
+.dw-compare-label,
+.dw-titleblock th {
   font-family: 'IBM Plex Mono', 'Liberation Mono', monospace;
 }
 
@@ -74,6 +78,9 @@ button {
 /* ---------- header ---------- */
 
 .dw-header {
+  position: sticky;
+  top: 0;
+  z-index: 50;
   border-bottom: 1px solid var(--rule);
   background: var(--paper);
 }
@@ -81,11 +88,18 @@ button {
 .dw-header-inner {
   max-width: 1080px;
   margin: 0 auto;
-  padding: 16px 24px;
+  padding: 14px 24px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 16px;
+  flex-wrap: wrap;
+}
+
+.dw-header-right {
+  display: flex;
+  align-items: center;
+  gap: 24px;
   flex-wrap: wrap;
 }
 
@@ -171,6 +185,18 @@ button {
 
 .dw-cta-button:hover {
   background: #24518f;
+}
+
+.dw-cta-button--small {
+  padding: 9px 16px;
+  font-size: 13.5px;
+}
+
+@media (max-width: 719.98px) {
+  .dw-brand-tagline,
+  .dw-nav {
+    display: none;
+  }
 }
 
 /* ---------- similarity grid ---------- */
@@ -289,6 +315,11 @@ button {
 
 /* ---------- generic sections ---------- */
 
+.dw-section,
+.dw-hero {
+  scroll-margin-top: var(--header-offset);
+}
+
 .dw-section {
   padding: 56px 0;
   border-top: 1px solid var(--rule);
@@ -317,6 +348,160 @@ button {
 }
 
 .dw-prose p:last-child { margin-bottom: 0; }
+
+/* ---------- subject callout (section 2) ---------- */
+
+.dw-subject-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 28px;
+  align-items: start;
+}
+
+.dw-callout {
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-m);
+  background: #FFFFFF;
+  padding: 20px 22px;
+}
+
+.dw-callout-label {
+  margin: 0 0 14px;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  color: var(--meta-gray);
+}
+
+.dw-callout-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.dw-callout-list li {
+  padding: 10px 0;
+  font-size: 19px;
+  font-weight: 700;
+  color: var(--ink);
+  border-bottom: 1px solid var(--rule);
+}
+
+.dw-callout-list li:last-child {
+  border-bottom: none;
+}
+
+.dw-callout-note {
+  margin: 16px 0 0;
+  font-size: 13px;
+  line-height: 1.8;
+  color: var(--sub-gray);
+}
+
+@media (min-width: 860px) {
+  .dw-subject-grid { grid-template-columns: 1.3fr 1fr; gap: 40px; }
+}
+
+/* ---------- basis compare table (section 4) ---------- */
+
+.dw-basis-intro,
+.dw-basis-outro {
+  max-width: 42em;
+  font-size: 15.5px;
+  line-height: 1.9;
+  margin: 0 0 24px;
+}
+
+.dw-basis-outro {
+  margin: 24px 0 0;
+}
+
+.dw-compare {
+  display: grid;
+  grid-template-columns: 1fr;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-m);
+  overflow: hidden;
+  background: #FFFFFF;
+}
+
+.dw-compare-col + .dw-compare-col {
+  border-top: 1px solid var(--rule);
+}
+
+.dw-compare-label {
+  margin: 0;
+  padding: 14px 18px;
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  color: var(--meta-gray);
+  border-bottom: 1px solid var(--rule);
+}
+
+.dw-compare-row {
+  margin: 0;
+  padding: 14px 18px;
+  font-size: 14.5px;
+  line-height: 1.7;
+  border-bottom: 1px solid var(--rule);
+}
+
+.dw-compare-row:last-child {
+  border-bottom: none;
+}
+
+@media (min-width: 640px) {
+  .dw-compare { grid-template-columns: 1fr 1fr; }
+  .dw-compare-col + .dw-compare-col {
+    border-top: none;
+    border-left: 1px solid var(--rule);
+  }
+}
+
+/* ---------- title-block table (section 6) ---------- */
+
+.dw-titleblock {
+  width: 100%;
+  max-width: 640px;
+  border-collapse: collapse;
+  border: 1px solid var(--rule);
+  background: #FFFFFF;
+}
+
+.dw-titleblock th,
+.dw-titleblock td {
+  border: 1px solid var(--rule);
+  padding: 12px 16px;
+  text-align: left;
+  font-weight: 400;
+  vertical-align: top;
+}
+
+.dw-titleblock th {
+  width: 96px;
+  font-size: 12px;
+  color: var(--meta-gray);
+  background: #F4F3EF;
+  white-space: nowrap;
+}
+
+.dw-titleblock td {
+  font-size: 14.5px;
+  line-height: 1.7;
+  color: var(--ink);
+}
+
+@media (max-width: 480px) {
+  .dw-titleblock th {
+    width: 68px;
+    font-size: 10.5px;
+    padding: 10px 8px;
+    white-space: normal;
+  }
+  .dw-titleblock td {
+    font-size: 13.5px;
+    padding: 10px 12px;
+  }
+}
 
 /* ---------- steps (section 3) ---------- */
 
