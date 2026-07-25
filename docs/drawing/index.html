@@ -6,7 +6,7 @@
   <title>類似図面検索 for kintone — 形で、過去の図面を探す | PlugBits</title>
   <meta name="description" content="kintoneに貯まった図面PDFを、形の似ている順に探せるプラグインを開発しています。先行案内の登録を受け付けています。">
   <link rel="canonical" href="https://plugbits.app/drawing/">
-  <meta name="theme-color" content="#1A1A1A">
+  <meta name="theme-color" content="#FDFCF9">
 
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://plugbits.app/drawing/">
@@ -20,7 +20,7 @@
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@700&family=Zen+Kaku+Gothic+New:wght@400;700&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
 
   <link rel="stylesheet" href="style.css">
 </head>
@@ -28,7 +28,10 @@
 
   <header class="dw-header" id="site-header">
     <div class="dw-container dw-header-inner">
-      <a class="dw-brand" href="/"><span class="dw-brand-name">PlugBits</span></a>
+      <a class="dw-brand" href="/">
+        <img src="/assets/plugbits-logo.webp" alt="" class="dw-brand-logo">
+        <span class="dw-brand-name">PlugBits</span>
+      </a>
       <nav class="dw-nav">
         <a href="/#plugins">プラグイン</a>
         <a href="/blog/">ブログ</a>
@@ -44,7 +47,11 @@
     <section class="dw-hero">
       <div class="dw-container dw-hero-copy" data-reveal>
         <p class="dw-meta-line">PLUGBITS — KINTONE PLUGIN / 類似図面検索(開発中)</p>
-        <h1>形で、過去の図面を探す。</h1>
+        <div class="dw-hero-bubbles" aria-hidden="true">
+          <p class="dw-bubble dw-bubble-1">前に似たの、やったよな…</p>
+          <p class="dw-bubble dw-bubble-2">あの反った薄板、どの図面だっけ</p>
+        </div>
+        <h1><span class="dw-marker">形</span>で、過去の図面を探す。</h1>
         <p class="dw-hero-lead">kintoneに貯まった図面PDFを、形の似ている順に並べます。</p>
         <a class="dw-cta-button" href="#waitlist">先行案内を受け取る</a>
       </div>
@@ -106,7 +113,7 @@
     <section class="dw-section">
       <div class="dw-container">
         <p class="dw-meta-line" data-reveal>SUBJECT — 検索で出ない情報</p>
-        <h2 data-reveal>検索窓に入れる言葉が、ない</h2>
+        <h2 data-reveal>検索窓に入れる<span class="dw-marker">言葉</span>が、ない</h2>
 
         <div class="dw-compare">
           <div class="mock-card" data-reveal style="--i:0">
@@ -117,9 +124,9 @@
           <div class="mock-card mock-card-accent" data-reveal style="--i:1">
             <p class="mock-card-label">形で検索</p>
             <div class="mock-thumbs">
-              <div class="mock-thumb"><img src="assets/flange-1.webp" alt="" width="800" height="600" loading="lazy"><span>0.973</span></div>
-              <div class="mock-thumb"><img src="assets/flange-2.webp" alt="" width="800" height="600" loading="lazy"><span>0.958</span></div>
-              <div class="mock-thumb"><img src="assets/flange-3.webp" alt="" width="800" height="600" loading="lazy"><span>0.941</span></div>
+              <div class="mock-thumb"><div class="tape-photo" style="--r:-2deg"><img src="assets/flange-1.webp" alt="" width="800" height="600" loading="lazy"></div><span>0.973</span></div>
+              <div class="mock-thumb"><div class="tape-photo" style="--r:1.5deg"><img src="assets/flange-2.webp" alt="" width="800" height="600" loading="lazy"></div><span>0.958</span></div>
+              <div class="mock-thumb"><div class="tape-photo" style="--r:-1deg"><img src="assets/flange-3.webp" alt="" width="800" height="600" loading="lazy"></div><span>0.941</span></div>
             </div>
           </div>
         </div>
@@ -188,9 +195,9 @@
             <span class="flow-node">検査</span>
           </div>
           <div class="drawing-stack">
-            <img style="--r:-6deg" src="assets/plate-1.webp" alt="" width="800" height="600" loading="lazy">
-            <img style="--r:4deg" src="assets/bracket-3.webp" alt="" width="800" height="600" loading="lazy">
-            <img style="--r:-2deg" src="assets/flange-2.webp" alt="" width="800" height="600" loading="lazy">
+            <div class="tape-photo" style="--r:-6deg"><img src="assets/plate-1.webp" alt="" width="800" height="600" loading="lazy"></div>
+            <div class="tape-photo" style="--r:4deg"><img src="assets/bracket-3.webp" alt="" width="800" height="600" loading="lazy"></div>
+            <div class="tape-photo" style="--r:-2deg"><img src="assets/flange-2.webp" alt="" width="800" height="600" loading="lazy"></div>
           </div>
         </div>
 
@@ -210,7 +217,7 @@
 
         <div class="dw-stats" data-reveal>
           <div class="dw-stat">
-            <p class="dw-stat-value" data-count-prefix="約" data-count-to="5000" data-count-suffix="点">約0点</p>
+            <p class="dw-stat-value" data-count-to="140" data-count-suffix="枚">0枚</p>
             <p class="dw-stat-label">検証に使った図面数</p>
           </div>
           <div class="dw-stat">
@@ -222,7 +229,7 @@
             <p class="dw-stat-label">上位10件に含まれた割合</p>
           </div>
         </div>
-        <p class="dw-stats-note" data-reveal>自社で用意した約5,000点の図面で検証したところ、探していた図面が1位に表示された割合が82.6%、上位10件までに含まれた割合が95.7%でした。図面の内容や点数によって結果は変わります。</p>
+        <p class="dw-stats-note" data-reveal>自社で用意した140枚の図面で検証したところ、探していた図面が1位に表示された割合が82.6%、上位10件までに含まれた割合が95.7%でした。図面の内容や枚数によって結果は変わります。</p>
       </div>
     </section>
 
@@ -239,10 +246,11 @@
       </div>
     </section>
 
-    <!-- 7. CTA(紙に反転) -->
+    <!-- 7. CTA(青パネル反転) -->
     <section class="dw-cta-wrap" id="waitlist">
-      <div class="dw-cta-panel">
-        <div class="dw-container dw-cta-panel-inner">
+      <div class="dw-container">
+        <div class="dw-cta-panel">
+        <div class="dw-cta-panel-inner">
           <p class="dw-meta-line dw-meta-line-onpaper">CONTACT — 先行案内</p>
           <h2 class="dw-cta-heading">先行案内を受け取る</h2>
           <p class="dw-cta-lead">開発の途中です。お試しいただける段階になったら、お知らせします。</p>
@@ -271,6 +279,7 @@
             <p class="dw-form-success-title">登録しました</p>
             <p>案内をお送りするまで、しばらくお待ちください。</p>
           </div>
+        </div>
         </div>
       </div>
     </section>
