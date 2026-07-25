@@ -1,0 +1,805 @@
+/* PlugBits — 類似図面検索 for kintone LP
+   自己完結スタイル。サイト共通の /style.css には依存しない。
+   トーン: Sansan的な余白の大きさ・面と影のカード・タイポスケール。
+   パレットは4色固定(--paper/--ink/--blue/--rule)。青は類似グリッドとCTAのみ。 */
+
+:root {
+  --paper: #FBFBF9;
+  --ink: #1A1A1A;
+  --blue: #2D5FA8;
+  --rule: #D8D6D0;
+  --rule-strong: #B9B6AC;
+  --meta-gray: #5B5954;
+  --sub-gray: #55534E;
+  --radius-s: 2px;
+  --radius-m: 4px;
+  --radius-l: 8px;
+  --shadow-card: 0 2px 8px rgba(26, 26, 26, 0.06);
+  --shadow-header: 0 1px 4px rgba(26, 26, 26, 0.08);
+  --header-offset: 88px;
+}
+
+* { box-sizing: border-box; }
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: 'Zen Kaku Gothic New', 'Hiragino Sans', 'Noto Sans JP', sans-serif;
+  font-size: 16px;
+  line-height: 1.75;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+
+img { max-width: 100%; display: block; }
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.dw-container {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: 2px;
+}
+
+button {
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.dw-mono,
+.dw-meta-line,
+.dw-grid-hint,
+.grid-score,
+.dw-stat-value,
+.dw-step-label,
+.dw-callout-label,
+.dw-compare-label,
+.dw-titleblock th {
+  font-family: 'IBM Plex Mono', 'Liberation Mono', monospace;
+}
+
+/* ---------- meta line (図面の表題欄風) ---------- */
+
+.dw-meta-line {
+  margin: 0 0 12px;
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  color: var(--meta-gray);
+}
+
+/* ---------- header ---------- */
+
+.dw-header {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  background: var(--paper);
+  box-shadow: var(--shadow-header);
+}
+
+.dw-header-inner {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 14px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.dw-header-right {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+
+.dw-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.dw-brand-logo {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-s);
+  flex-shrink: 0;
+}
+
+.dw-brand-text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.3;
+  min-width: 0;
+}
+
+.dw-brand-name {
+  font-weight: 700;
+  font-size: 15px;
+}
+
+.dw-brand-tagline {
+  font-size: 11.5px;
+  color: var(--sub-gray);
+}
+
+.dw-nav {
+  display: flex;
+  gap: 20px;
+  font-size: 14px;
+}
+
+.dw-nav a:hover,
+.dw-brand:hover {
+  color: var(--ink);
+}
+
+@media (max-width: 719.98px) {
+  .dw-brand-tagline,
+  .dw-nav {
+    display: none;
+  }
+}
+
+/* ---------- hero ---------- */
+
+.dw-hero {
+  padding: 64px 0 88px;
+}
+
+.dw-hero-inner {
+  display: flex;
+  flex-direction: column;
+  gap: 56px;
+}
+
+.dw-hero-copy h1 {
+  margin: 0 0 24px;
+  font-size: clamp(34px, 6vw, 60px);
+  line-height: 1.25;
+  letter-spacing: -0.01em;
+  font-weight: 700;
+}
+
+.dw-hero-lead {
+  margin: 0 0 40px;
+  font-size: clamp(17px, 2vw, 18px);
+  line-height: 1.8;
+  color: var(--sub-gray);
+  max-width: 46em;
+}
+
+.dw-cta-button {
+  display: inline-block;
+  background: var(--blue);
+  color: #FFFFFF;
+  font-weight: 700;
+  font-size: 15px;
+  padding: 14px 28px;
+  border-radius: var(--radius-m);
+  border: none;
+  line-height: 1;
+}
+
+.dw-cta-button:hover {
+  background: #24518f;
+}
+
+.dw-cta-button--small {
+  padding: 9px 16px;
+  font-size: 13.5px;
+}
+
+/* ---------- similarity grid ---------- */
+
+.dw-grid-wrap {
+  width: 100%;
+}
+
+.dw-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 20px;
+  align-items: start;
+}
+
+.dw-grid-query-col {
+  display: flex;
+  flex-direction: column;
+}
+
+.dw-grid-query {
+  display: block;
+  width: 100%;
+  padding: 0;
+  border: 2px solid var(--blue);
+  border-radius: var(--radius-m);
+  background: #FFFFFF;
+  overflow: hidden;
+  line-height: 0;
+}
+
+.dw-grid-query img {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  transition: opacity 0.2s ease;
+}
+
+.dw-grid-hint {
+  margin: 10px 0 0;
+  font-size: 12px;
+  color: var(--sub-gray);
+}
+
+.dw-grid-indicators {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.grid-indicator {
+  width: 14px;
+  height: 14px;
+  border-radius: var(--radius-s);
+  border: 1px solid var(--rule-strong);
+  background: transparent;
+  padding: 0;
+}
+
+.grid-indicator[aria-current="true"] {
+  background: var(--blue);
+  border-color: var(--blue);
+}
+
+.dw-grid-results {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+
+.grid-result {
+  border: 1px solid var(--blue);
+  border-radius: var(--radius-s);
+  background: #FFFFFF;
+  overflow: hidden;
+  text-align: center;
+  transition: opacity 0.2s ease;
+}
+
+.grid-result img {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+}
+
+.grid-score {
+  display: block;
+  padding: 5px 4px;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--blue);
+  border-top: 1px solid var(--rule);
+}
+
+.dw-grid-disclaimer {
+  margin: 24px 0 0;
+  font-size: 12.5px;
+  color: var(--sub-gray);
+}
+
+@media (min-width: 720px) {
+  .dw-grid { grid-template-columns: 1.1fr 1fr; gap: 28px; }
+  .dw-grid-results { gap: 14px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dw-grid-query img,
+  .grid-result,
+  .grid-result img {
+    transition: none;
+  }
+}
+
+/* ---------- generic sections ---------- */
+
+.dw-section,
+.dw-hero {
+  scroll-margin-top: var(--header-offset);
+}
+
+.dw-section {
+  padding: 64px 0;
+}
+
+.dw-section-alt {
+  background: #F4F3EF;
+}
+
+.dw-section-inner h2 {
+  margin: 0 0 32px;
+  font-size: clamp(26px, 4vw, 36px);
+  line-height: 1.35;
+  font-weight: 700;
+  max-width: 24em;
+}
+
+.dw-prose {
+  max-width: 42em;
+}
+
+.dw-prose p {
+  margin: 0 0 1.3em;
+  font-size: 16px;
+  line-height: 1.9;
+}
+
+.dw-prose p:last-child { margin-bottom: 0; }
+
+@media (min-width: 860px) {
+  .dw-section { padding: 104px 0; }
+}
+
+/* ---------- centered rhythm (RESULT / CONTACT) ---------- */
+
+.dw-align-center {
+  text-align: center;
+}
+
+.dw-align-center .dw-meta-line {
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.dw-align-center h2 {
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.dw-align-center > p {
+  max-width: 42em;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* ---------- subject callout (section 2) ---------- */
+
+.dw-subject-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 28px;
+  align-items: start;
+}
+
+.dw-callout {
+  border-radius: var(--radius-l);
+  background: #FFFFFF;
+  box-shadow: var(--shadow-card);
+  padding: 28px 28px;
+}
+
+.dw-callout-label {
+  margin: 0 0 16px;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  color: var(--meta-gray);
+}
+
+.dw-callout-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.dw-callout-list li {
+  padding: 12px 0;
+  font-size: 19px;
+  font-weight: 700;
+  color: var(--ink);
+  border-bottom: 1px solid var(--rule);
+}
+
+.dw-callout-list li:last-child {
+  border-bottom: none;
+}
+
+.dw-callout-note {
+  margin: 20px 0 0;
+  font-size: 13px;
+  line-height: 1.8;
+  color: var(--sub-gray);
+}
+
+@media (min-width: 860px) {
+  .dw-subject-grid { grid-template-columns: 1.3fr 1fr; gap: 40px; }
+}
+
+/* ---------- basis compare table (section 4) ---------- */
+
+.dw-basis-intro,
+.dw-basis-outro {
+  max-width: 42em;
+  font-size: 16px;
+  line-height: 1.9;
+  margin: 0 0 32px;
+}
+
+.dw-basis-outro {
+  margin: 32px 0 0;
+}
+
+.dw-compare {
+  display: grid;
+  grid-template-columns: 1fr;
+  border-radius: var(--radius-l);
+  overflow: hidden;
+  background: #FFFFFF;
+  box-shadow: var(--shadow-card);
+}
+
+.dw-compare-col + .dw-compare-col {
+  border-top: 1px solid var(--rule);
+}
+
+.dw-compare-label {
+  margin: 0;
+  padding: 16px 20px;
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  color: var(--meta-gray);
+  border-bottom: 1px solid var(--rule);
+}
+
+.dw-compare-row {
+  margin: 0;
+  padding: 16px 20px;
+  font-size: 14.5px;
+  line-height: 1.7;
+  border-bottom: 1px solid var(--rule);
+}
+
+.dw-compare-row:last-child {
+  border-bottom: none;
+}
+
+@media (min-width: 640px) {
+  .dw-compare { grid-template-columns: 1fr 1fr; }
+  .dw-compare-col + .dw-compare-col {
+    border-top: none;
+    border-left: 1px solid var(--rule);
+  }
+}
+
+/* ---------- title-block table (section 6) ---------- */
+
+.dw-titleblock {
+  width: 100%;
+  max-width: 640px;
+  border-collapse: collapse;
+  border-radius: var(--radius-l);
+  background: #FFFFFF;
+  box-shadow: var(--shadow-card);
+  overflow: hidden;
+}
+
+.dw-titleblock th,
+.dw-titleblock td {
+  border-bottom: 1px solid var(--rule);
+  padding: 14px 18px;
+  text-align: left;
+  font-weight: 400;
+  vertical-align: top;
+}
+
+.dw-titleblock tr:last-child th,
+.dw-titleblock tr:last-child td {
+  border-bottom: none;
+}
+
+.dw-titleblock th {
+  width: 96px;
+  font-size: 12px;
+  color: var(--meta-gray);
+  background: #F4F3EF;
+  white-space: nowrap;
+  border-right: 1px solid var(--rule);
+}
+
+.dw-titleblock td {
+  font-size: 14.5px;
+  line-height: 1.7;
+  color: var(--ink);
+}
+
+@media (max-width: 480px) {
+  .dw-titleblock th {
+    width: 68px;
+    font-size: 10.5px;
+    padding: 10px 8px;
+    white-space: normal;
+  }
+  .dw-titleblock td {
+    font-size: 13.5px;
+    padding: 10px 12px;
+  }
+}
+
+/* ---------- steps (section 3) ---------- */
+
+.dw-steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.dw-step {
+  border-radius: var(--radius-l);
+  padding: 28px 26px;
+  background: #FFFFFF;
+  box-shadow: var(--shadow-card);
+}
+
+.dw-step-label {
+  margin: 0 0 10px;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  color: var(--meta-gray);
+}
+
+.dw-step h3 {
+  margin: 0 0 10px;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.dw-step p {
+  margin: 0;
+  font-size: 14.5px;
+  line-height: 1.8;
+  color: var(--sub-gray);
+}
+
+.dw-step-arrow {
+  text-align: center;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 20px;
+  color: var(--rule-strong);
+  transform: rotate(90deg);
+}
+
+@media (min-width: 860px) {
+  .dw-steps {
+    flex-direction: row;
+    align-items: stretch;
+  }
+  .dw-step { flex: 1; }
+  .dw-step-arrow { transform: none; display: flex; align-items: center; }
+}
+
+/* ---------- stats (section 5) ---------- */
+
+.dw-stats {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 24px;
+  margin: 0 0 32px;
+  max-width: 760px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.dw-stat {
+  border-radius: var(--radius-l);
+  padding: 28px;
+  background: #FFFFFF;
+  box-shadow: var(--shadow-card);
+}
+
+.dw-stat-value {
+  margin: 0 0 8px;
+  font-size: clamp(40px, 5vw, 56px);
+  line-height: 1.1;
+  font-weight: 500;
+  color: var(--ink);
+  white-space: nowrap;
+}
+
+/* "約5,000点" has more characters than "82.6%" / "95.7%"; a slightly
+   smaller scale keeps it on one line at the same card width. */
+.dw-stat-value--long {
+  font-size: clamp(30px, 3.6vw, 40px);
+}
+
+.dw-stat-unit {
+  font-size: 0.5em;
+  margin-left: 2px;
+}
+
+.dw-stat-label {
+  margin: 0;
+  font-size: 13px;
+  color: var(--sub-gray);
+}
+
+.dw-stats-note {
+  max-width: 42em;
+  font-size: 14px;
+  line-height: 1.9;
+  color: var(--sub-gray);
+  margin: 0 auto;
+}
+
+@media (min-width: 640px) {
+  .dw-stats { grid-template-columns: repeat(3, 1fr); }
+}
+
+/* ---------- CTA / form (section 7) ---------- */
+
+.dw-section-cta {
+  background: var(--ink);
+  color: #FFFFFF;
+}
+
+.dw-section-cta .dw-meta-line {
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.dw-section-cta h2 {
+  color: #FFFFFF;
+}
+
+.dw-section-cta :focus-visible {
+  outline-color: #FFFFFF;
+}
+
+.dw-cta-lead {
+  margin: 0 0 40px;
+  font-size: 16px;
+  line-height: 1.9;
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.dw-form {
+  max-width: 440px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  text-align: left;
+}
+
+.dw-form[hidden] {
+  display: none;
+}
+
+.dw-form-row {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.dw-form-row label {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.dw-form-row input {
+  font-family: inherit;
+  font-size: 15px;
+  padding: 11px 12px;
+  border: 1px solid var(--rule-strong);
+  border-radius: var(--radius-m);
+  background: #FFFFFF;
+  color: var(--ink);
+}
+
+.dw-form-row input:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: 1px;
+}
+
+.dw-honeypot {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.dw-form-submit {
+  margin-top: 4px;
+  width: 100%;
+  text-align: center;
+}
+
+.dw-form-note {
+  margin: 4px 0 0;
+  font-size: 12.5px;
+  line-height: 1.8;
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.dw-form-message {
+  margin: 0;
+  min-height: 1.4em;
+  font-size: 13.5px;
+  color: #FF8A80;
+}
+
+.dw-form-success {
+  max-width: 440px;
+  margin: 0 auto;
+  border-radius: var(--radius-l);
+  padding: 28px;
+  background: #FFFFFF;
+  box-shadow: var(--shadow-card);
+  text-align: left;
+}
+
+.dw-form-success-title {
+  margin: 0 0 8px;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.dw-form-success p:last-child {
+  margin: 0;
+  font-size: 14px;
+  color: var(--sub-gray);
+}
+
+/* ---------- footer ---------- */
+
+.dw-footer {
+  background: var(--paper);
+  padding: 40px 0 48px;
+}
+
+.dw-footer-inner {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.dw-footer-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  font-size: 13.5px;
+}
+
+.dw-footer-inner small {
+  font-size: 12.5px;
+  color: var(--sub-gray);
+}
+
+@media (min-width: 640px) {
+  .dw-footer-inner {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+  }
+}
