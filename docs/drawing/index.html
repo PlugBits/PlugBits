@@ -6,6 +6,7 @@
   <title>類似図面検索 for kintone — 形で、過去の図面を探す | PlugBits</title>
   <meta name="description" content="kintoneに貯まった図面PDFを、形の似ている順に探せるプラグインを開発しています。先行案内の登録を受け付けています。">
   <link rel="canonical" href="https://plugbits.app/drawing/">
+  <meta name="theme-color" content="#1A1A1A">
 
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://plugbits.app/drawing/">
@@ -25,23 +26,15 @@
 </head>
 <body>
 
-  <header class="dw-header">
-    <div class="dw-header-inner">
-      <a class="dw-brand" href="/">
-        <img src="/assets/plugbits-logo.webp" alt="PlugBits" class="dw-brand-logo">
-        <span class="dw-brand-text">
-          <span class="dw-brand-name">PlugBits</span>
-          <span class="dw-brand-tagline">kintone向けプラグイン＆ブラウザ拡張機能</span>
-        </span>
-      </a>
-      <div class="dw-header-right">
-        <nav class="dw-nav">
-          <a href="/#plugins">プラグイン</a>
-          <a href="/blog/">ブログ</a>
-          <a href="/privacy.html">プライバシー</a>
-        </nav>
-        <a class="dw-cta-button dw-cta-button--small" href="#waitlist">先行案内を受け取る</a>
-      </div>
+  <header class="dw-header" id="site-header">
+    <div class="dw-container dw-header-inner">
+      <a class="dw-brand" href="/"><span class="dw-brand-name">PlugBits</span></a>
+      <nav class="dw-nav">
+        <a href="/#plugins">プラグイン</a>
+        <a href="/blog/">ブログ</a>
+        <a href="/privacy.html">プライバシー</a>
+      </nav>
+      <a class="dw-header-cta" href="#waitlist">先行案内を受け取る</a>
     </div>
   </header>
 
@@ -49,224 +42,235 @@
 
     <!-- 1. HERO -->
     <section class="dw-hero">
-      <div class="dw-container dw-hero-inner">
-        <div class="dw-hero-copy">
-          <p class="dw-meta-line">PLUGBITS — KINTONE PLUGIN / 類似図面検索(開発中)</p>
-          <h1>形で、過去の図面を探す。</h1>
-          <p class="dw-hero-lead">kintoneに貯まった図面PDFを、形の似ている順に並べるプラグインです。</p>
-          <a class="dw-cta-button" href="#waitlist">先行案内を受け取る</a>
-        </div>
+      <div class="dw-container dw-hero-copy" data-reveal>
+        <p class="dw-meta-line">PLUGBITS — KINTONE PLUGIN / 類似図面検索(開発中)</p>
+        <h1>形で、過去の図面を探す。</h1>
+        <p class="dw-hero-lead">kintoneに貯まった図面PDFを、形の似ている順に並べます。</p>
+        <a class="dw-cta-button" href="#waitlist">先行案内を受け取る</a>
+      </div>
 
-        <div class="dw-grid-wrap">
-          <div class="dw-grid">
-            <div class="dw-grid-query-col">
-              <button type="button" id="grid-query" class="dw-grid-query" aria-label="別の図面パターンに切り替える">
-                <img id="grid-query-img"
-                     src="assets/flange-q.webp"
-                     alt="サンプル図面: 円形フランジ 図番PB-2041"
-                     width="800" height="600"
-                     loading="eager">
-              </button>
-              <p class="dw-grid-hint">クリックで別の図面に切り替え</p>
-              <div class="dw-grid-indicators">
-                <button type="button" class="grid-indicator" aria-current="true" aria-label="パターン1: 円形フランジ"></button>
-                <button type="button" class="grid-indicator" aria-current="false" aria-label="パターン2: L字ブラケット"></button>
-                <button type="button" class="grid-indicator" aria-current="false" aria-label="パターン3: 穴あきプレート"></button>
-                <button type="button" class="grid-indicator" aria-current="false" aria-label="パターン4: 段付きシャフト"></button>
-              </div>
+      <div class="dw-container">
+        <div class="dw-app-window" data-reveal>
+          <div class="dw-app-bar">
+            <span class="dw-app-bar-label">DRAWING SEARCH</span>
+            <div class="dw-app-indicators" id="app-indicators">
+              <button type="button" class="app-indicator" aria-current="true" aria-label="パターン1: 円形フランジ"></button>
+              <button type="button" class="app-indicator" aria-current="false" aria-label="パターン2: L字ブラケット"></button>
+              <button type="button" class="app-indicator" aria-current="false" aria-label="パターン3: 穴あきプレート"></button>
+              <button type="button" class="app-indicator" aria-current="false" aria-label="パターン4: 段付きシャフト"></button>
             </div>
-
-            <div class="dw-grid-results">
-              <div class="grid-result">
+          </div>
+          <div class="dw-app-body">
+            <button type="button" id="app-query" class="dw-app-query" aria-label="別の図面パターンに切り替える">
+              <img id="app-query-img"
+                   src="assets/flange-q.webp"
+                   alt="サンプル図面: 円形フランジ 図番PB-2041"
+                   width="800" height="600"
+                   loading="eager">
+            </button>
+            <div class="dw-app-results" id="app-results">
+              <div class="app-result" style="--i:0">
                 <img src="assets/flange-1.webp" alt="サンプル図面: 円形フランジ 図番PB-2044" width="800" height="600" loading="eager">
-                <span class="grid-score">SCORE 0.973</span>
+                <span class="app-score" data-target="0.973">SCORE 0.000</span>
               </div>
-              <div class="grid-result">
+              <div class="app-result" style="--i:1">
                 <img src="assets/flange-2.webp" alt="サンプル図面: 円形フランジ 図番PB-2039" width="800" height="600" loading="eager">
-                <span class="grid-score">SCORE 0.958</span>
+                <span class="app-score" data-target="0.958">SCORE 0.000</span>
               </div>
-              <div class="grid-result">
+              <div class="app-result" style="--i:2">
                 <img src="assets/flange-3.webp" alt="サンプル図面: 円形フランジ 図番PB-2052" width="800" height="600" loading="eager">
-                <span class="grid-score">SCORE 0.941</span>
+                <span class="app-score" data-target="0.941">SCORE 0.000</span>
               </div>
-              <div class="grid-result">
+              <div class="app-result" style="--i:3">
                 <img src="assets/flange-4.webp" alt="サンプル図面: 円形フランジ 図番PB-2037" width="800" height="600" loading="eager">
-                <span class="grid-score">SCORE 0.926</span>
+                <span class="app-score" data-target="0.926">SCORE 0.000</span>
               </div>
-              <div class="grid-result">
+              <div class="app-result" style="--i:4">
                 <img src="assets/flange-5.webp" alt="サンプル図面: 円形フランジ 図番PB-2061" width="800" height="600" loading="eager">
-                <span class="grid-score">SCORE 0.909</span>
+                <span class="app-score" data-target="0.909">SCORE 0.000</span>
               </div>
-              <div class="grid-result">
+              <div class="app-result" style="--i:5">
                 <img src="assets/flange-6.webp" alt="サンプル図面: 円形フランジ 図番PB-2048" width="800" height="600" loading="eager">
-                <span class="grid-score">SCORE 0.891</span>
+                <span class="app-score" data-target="0.891">SCORE 0.000</span>
               </div>
             </div>
           </div>
-
-          <p class="dw-grid-disclaimer">掲載している図面は、すべて検証用に作成したサンプルです。実際のお客様の図面は使用していません。</p>
-          <div id="demo-link-slot" hidden><!-- 公開デモURLをここに差し込む --></div>
         </div>
+
+        <p class="dw-hero-note">掲載している図面は、すべて検証用に作成したサンプルです。実際のお客様の図面は使用していません。</p>
+        <div id="demo-link-slot" hidden><!-- 公開デモURLをここに差し込む --></div>
       </div>
     </section>
 
     <!-- 2. 課題 -->
     <section class="dw-section">
-      <div class="dw-container dw-section-inner">
-        <p class="dw-meta-line">SUBJECT — 検索で出ない情報</p>
-        <h2>検索窓に入れる言葉が、ない</h2>
-        <div class="dw-subject-grid">
-          <div class="dw-prose">
-            <p>品番や品名が分かっている図面は、いまのkintoneでも探せます。困るのはその先です。</p>
-            <p>現場で効くのは、そうした具体的な情報です。</p>
-            <p>手がかりは「前に似た形をやった」という記憶だけです。形が似た過去の図面にたどり着いて、はじめてその先の情報が出てきます。</p>
-            <p>この製品が受け持つのは、その「形で辿る」部分です。</p>
+      <div class="dw-container">
+        <p class="dw-meta-line" data-reveal>SUBJECT — 検索で出ない情報</p>
+        <h2 data-reveal>検索窓に入れる言葉が、ない</h2>
+
+        <div class="dw-compare">
+          <div class="mock-card" data-reveal style="--i:0">
+            <p class="mock-card-label">品番で検索</p>
+            <div class="mock-input"><span>PB-____</span></div>
+            <p class="mock-empty">該当 0件</p>
           </div>
-          <aside class="dw-callout">
-            <p class="dw-callout-label">NOTE</p>
-            <ul class="dw-callout-list">
-              <li>刃物が入らなかった</li>
-              <li>薄板が反った</li>
-              <li>この掴み方だと変形した</li>
-            </ul>
-            <p class="dw-callout-note">こうした情報は、品番と結びついていません。</p>
-          </aside>
+          <div class="mock-card mock-card-accent" data-reveal style="--i:1">
+            <p class="mock-card-label">形で検索</p>
+            <div class="mock-thumbs">
+              <div class="mock-thumb"><img src="assets/flange-1.webp" alt="" width="800" height="600" loading="lazy"><span>0.973</span></div>
+              <div class="mock-thumb"><img src="assets/flange-2.webp" alt="" width="800" height="600" loading="lazy"><span>0.958</span></div>
+              <div class="mock-thumb"><img src="assets/flange-3.webp" alt="" width="800" height="600" loading="lazy"><span>0.941</span></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="dw-lines" data-reveal>
+          <p>刃物が入らなかった。薄板が反った。この掴み方だと変形した。</p>
+          <p>こうした情報は、品番と結びついていません。</p>
+          <p>形が似た図面にたどり着いて、はじめて出てきます。</p>
         </div>
       </div>
     </section>
 
     <!-- 3. 見つけたあと -->
     <section class="dw-section dw-section-alt">
-      <div class="dw-container dw-section-inner">
-        <p class="dw-meta-line">PROCEDURE — 検索から先の流れ</p>
-        <h2>図面にたどり着いてからが、本題です</h2>
-        <ol class="dw-steps">
-          <li class="dw-step">
-            <p class="dw-step-label">STEP</p>
-            <h3>図面から探す</h3>
-            <p>詳細画面のボタンひとつで検索します。手元のPDFをドラッグして探すこともできます。</p>
-          </li>
-          <li class="dw-step-arrow" aria-hidden="true">→</li>
-          <li class="dw-step">
-            <p class="dw-step-label">STEP</p>
-            <h3>形の似た順に並ぶ</h3>
-            <p>図番も品名も入力しません。似ている順に候補が並びます。</p>
-          </li>
-          <li class="dw-step-arrow" aria-hidden="true">→</li>
-          <li class="dw-step">
-            <p class="dw-step-label">STEP</p>
-            <h3>レコードへ進む</h3>
-            <p>図面はkintoneのレコードに付いています。工程、加工条件、不具合履歴、部品構成へ、そのまま進めます。</p>
-          </li>
-        </ol>
+      <div class="dw-container">
+        <p class="dw-meta-line" data-reveal>PROCEDURE — 検索から先の流れ</p>
+        <h2 data-reveal>図面にたどり着いてからが、本題です</h2>
+
+        <div class="dw-flow-cards">
+          <div class="flow-card" data-reveal style="--i:0">
+            <p class="flow-card-label">SEARCH</p>
+            <div class="flow-card-art">
+              <span class="art-btn">図面から検索</span>
+            </div>
+            <p class="flow-card-text">図面から探します。詳細画面のボタンひとつです。</p>
+          </div>
+          <div class="flow-card" data-reveal style="--i:1">
+            <p class="flow-card-label">RESULTS</p>
+            <div class="flow-card-art">
+              <div class="mock-thumbs">
+                <div class="mock-thumb"><img src="assets/bracket-1.webp" alt="" width="800" height="600" loading="lazy"><span>0.968</span></div>
+                <div class="mock-thumb"><img src="assets/bracket-2.webp" alt="" width="800" height="600" loading="lazy"><span>0.952</span></div>
+                <div class="mock-thumb"><img src="assets/bracket-3.webp" alt="" width="800" height="600" loading="lazy"><span>0.937</span></div>
+              </div>
+            </div>
+            <p class="flow-card-text">形の似た順に並びます。図番も品名も不要です。</p>
+          </div>
+          <div class="flow-card" data-reveal style="--i:2">
+            <p class="flow-card-label">RECORD</p>
+            <div class="flow-card-art">
+              <ul class="art-list">
+                <li>工程</li>
+                <li>加工条件</li>
+                <li>不具合履歴</li>
+                <li>部品構成</li>
+              </ul>
+            </div>
+            <p class="flow-card-text">レコードへ、そのまま進めます。</p>
+          </div>
+        </div>
       </div>
     </section>
 
-    <!-- 4. kintoneだから成立する理由 -->
+    <!-- 4. kintoneだから -->
     <section class="dw-section">
-      <div class="dw-container dw-section-inner">
-        <p class="dw-meta-line">BASIS — 台帳が古くならない理由</p>
-        <h2>誰も台帳を作らないのに、資産が貯まる</h2>
-        <p class="dw-basis-intro">図面管理の仕組みを新しく導入する場合と、kintoneに後付けする場合とでは、日々の流れが変わります。</p>
-        <div class="dw-compare">
-          <div class="dw-compare-col">
-            <p class="dw-compare-label">専用の図面管理システム</p>
-            <p class="dw-compare-row">図面を登録する仕事が増える</p>
-            <p class="dw-compare-row">初期投入のあとで更新が止まる</p>
-            <p class="dw-compare-row">台帳が古くなっていく</p>
+      <div class="dw-container">
+        <p class="dw-meta-line" data-reveal>BASIS — 台帳が古くならない理由</p>
+        <h2 data-reveal>誰も台帳を作らないのに、資産が貯まる</h2>
+
+        <div class="dw-stack-flow" data-reveal>
+          <div class="flow-nodes">
+            <span class="flow-node">受注</span>
+            <span class="flow-node-arrow" aria-hidden="true">→</span>
+            <span class="flow-node">製造指示</span>
+            <span class="flow-node-arrow" aria-hidden="true">→</span>
+            <span class="flow-node">検査</span>
           </div>
-          <div class="dw-compare-col">
-            <p class="dw-compare-label">kintone</p>
-            <p class="dw-compare-row">受注・製造指示・検査でレコードが立つ</p>
-            <p class="dw-compare-row">業務の流れの中で図面が添付される</p>
-            <p class="dw-compare-row">副産物として検索対象が貯まっていく</p>
+          <div class="drawing-stack">
+            <img style="--r:-6deg" src="assets/plate-1.webp" alt="" width="800" height="600" loading="lazy">
+            <img style="--r:4deg" src="assets/bracket-3.webp" alt="" width="800" height="600" loading="lazy">
+            <img style="--r:-2deg" src="assets/flange-2.webp" alt="" width="800" height="600" loading="lazy">
           </div>
         </div>
-        <p class="dw-basis-outro">このプラグインは、いま使っているkintoneアプリに後付けします。図面をどこかへ移す必要はありません。データはkintoneに残ります。</p>
+
+        <div class="dw-lines" data-reveal>
+          <p>図面管理システムは、登録という仕事が増えた分だけ、台帳が古くなっていきます。</p>
+          <p>kintoneでは、日々の流れの中で図面が添付され、副産物として検索対象が貯まります。</p>
+        </div>
+        <p class="dw-closing-line" data-reveal>いま使っているkintoneアプリに後付けします。図面を移す必要はありません。</p>
       </div>
     </section>
 
     <!-- 5. 検証結果 -->
     <section class="dw-section dw-section-alt">
-      <div class="dw-container dw-section-inner dw-align-center">
-        <p class="dw-meta-line">RESULT — 検証条件と結果</p>
-        <h2>手元の図面での検証結果</h2>
-        <div class="dw-stats">
+      <div class="dw-container dw-stats-section">
+        <p class="dw-meta-line" data-reveal>RESULT — 検証条件と結果</p>
+        <h2 data-reveal>手元の図面での検証結果</h2>
+
+        <div class="dw-stats" data-reveal>
           <div class="dw-stat">
-            <p class="dw-stat-value dw-stat-value--long">約5,000<span class="dw-stat-unit">点</span></p>
+            <p class="dw-stat-value" data-count-prefix="約" data-count-to="5000" data-count-suffix="点">約0点</p>
             <p class="dw-stat-label">検証に使った図面数</p>
           </div>
           <div class="dw-stat">
-            <p class="dw-stat-value">82.6%</p>
+            <p class="dw-stat-value" data-count-to="82.6" data-count-decimals="1" data-count-suffix="%">0.0%</p>
             <p class="dw-stat-label">1位に表示された割合</p>
           </div>
           <div class="dw-stat">
-            <p class="dw-stat-value">95.7%</p>
+            <p class="dw-stat-value" data-count-to="95.7" data-count-decimals="1" data-count-suffix="%">0.0%</p>
             <p class="dw-stat-label">上位10件に含まれた割合</p>
           </div>
         </div>
-        <p class="dw-stats-note">自社で用意した約5,000点の図面で検証したところ、探していた図面が1位に表示された割合が82.6%、上位10件までに含まれた割合が95.7%でした。図面の内容や点数によって結果は変わります。</p>
+        <p class="dw-stats-note" data-reveal>自社で用意した約5,000点の図面で検証したところ、探していた図面が1位に表示された割合が82.6%、上位10件までに含まれた割合が95.7%でした。図面の内容や点数によって結果は変わります。</p>
       </div>
     </section>
 
     <!-- 6. 作っている人 -->
     <section class="dw-section">
-      <div class="dw-container dw-section-inner">
-        <p class="dw-meta-line">DRAWN BY — 作っている人</p>
-        <h2>製造業の中から作っています</h2>
-        <table class="dw-titleblock">
-          <tbody>
-            <tr>
-              <th scope="row">経歴</th>
-              <td>製造業で15年。海外工場の運営と原価管理。</td>
-            </tr>
-            <tr>
-              <th scope="row">現職</th>
-              <td>自社の生産管理システムを自分で作って動かしています。</td>
-            </tr>
-            <tr>
-              <th scope="row">はじまり</th>
-              <td>「前に似たものをやったはずだ」と図面の山を探した経験。</td>
-            </tr>
-            <tr>
-              <th scope="row">体制</th>
-              <td>個人で開発。案内のメールも本人が書きます。</td>
-            </tr>
-          </tbody>
-        </table>
+      <div class="dw-container">
+        <p class="dw-meta-line" data-reveal>DRAWN BY — 作っている人</p>
+        <h2 data-reveal>製造業の中から作っています</h2>
+        <div class="dw-lines dw-lines-wide" data-reveal>
+          <p>製造業で15年。海外工場の運営と原価管理をしてきました。</p>
+          <p>いまも現職で、自社の生産管理システムを自分で作っています。</p>
+          <p>この製品は、図面の山を探した自分の経験から始まっています。個人で開発し、案内のメールも本人が書きます。</p>
+        </div>
       </div>
     </section>
 
-    <!-- 7. CTA -->
-    <section class="dw-section dw-section-cta" id="waitlist">
-      <div class="dw-container dw-section-inner dw-align-center">
-        <p class="dw-meta-line">CONTACT — 先行案内</p>
-        <h2>先行案内を受け取る</h2>
-        <p class="dw-cta-lead">開発の途中です。お試しいただける段階になったら、お知らせします。</p>
+    <!-- 7. CTA(紙に反転) -->
+    <section class="dw-cta-wrap" id="waitlist">
+      <div class="dw-cta-panel">
+        <div class="dw-container dw-cta-panel-inner">
+          <p class="dw-meta-line dw-meta-line-onpaper">CONTACT — 先行案内</p>
+          <h2 class="dw-cta-heading">先行案内を受け取る</h2>
+          <p class="dw-cta-lead">開発の途中です。お試しいただける段階になったら、お知らせします。</p>
 
-        <form id="waitlist-form" class="dw-form" novalidate>
-          <div class="dw-form-row">
-            <label for="field-email">メールアドレス</label>
-            <input type="email" id="field-email" name="EMAIL" autocomplete="email" inputmode="email" required>
+          <form id="waitlist-form" class="dw-form" novalidate>
+            <div class="dw-form-row">
+              <label for="field-email">メールアドレス</label>
+              <input type="email" id="field-email" name="EMAIL" autocomplete="email" inputmode="email" required>
+            </div>
+            <div class="dw-form-row">
+              <label for="field-company">会社名(任意)</label>
+              <input type="text" id="field-company" name="COMPANY" autocomplete="organization">
+            </div>
+
+            <div class="dw-honeypot" aria-hidden="true">
+              <label for="field-hp">この項目は入力しないでください</label>
+              <input type="text" id="field-hp" name="email_address_check" tabindex="-1" autocomplete="off">
+            </div>
+
+            <button type="submit" class="dw-cta-button dw-form-submit">先行案内を受け取る</button>
+            <p class="dw-form-note">開発の進捗と、先行してお試しいただける段階になったときにご連絡します。営業のご連絡はしません。いつでも配信を停止できます。</p>
+            <p id="waitlist-message" class="dw-form-message" aria-live="polite"></p>
+          </form>
+
+          <div id="waitlist-success" class="dw-form-success" hidden tabindex="-1">
+            <p class="dw-form-success-title">登録しました</p>
+            <p>案内をお送りするまで、しばらくお待ちください。</p>
           </div>
-          <div class="dw-form-row">
-            <label for="field-company">会社名(任意)</label>
-            <input type="text" id="field-company" name="COMPANY" autocomplete="organization">
-          </div>
-
-          <div class="dw-honeypot" aria-hidden="true">
-            <label for="field-hp">この項目は入力しないでください</label>
-            <input type="text" id="field-hp" name="email_address_check" tabindex="-1" autocomplete="off">
-          </div>
-
-          <button type="submit" class="dw-cta-button dw-form-submit">先行案内を受け取る</button>
-          <p class="dw-form-note">開発の進捗と、先行してお試しいただける段階になったときにご連絡します。営業のご連絡はしません。いつでも配信を停止できます。</p>
-          <p id="waitlist-message" class="dw-form-message" aria-live="polite"></p>
-        </form>
-
-        <div id="waitlist-success" class="dw-form-success" hidden tabindex="-1">
-          <p class="dw-form-success-title">登録しました</p>
-          <p>案内をお送りするまで、しばらくお待ちください。</p>
         </div>
       </div>
     </section>
