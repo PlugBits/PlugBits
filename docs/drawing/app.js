@@ -6,7 +6,7 @@
 const BREVO_FORM_ACTION = '';
 
 /* ------------------------------------------------------------------ */
-/* Hero similarity grid: 4 fixed patterns (query + 6 results each).    */
+/* Hero pseudo-app: 4 fixed patterns (query + 6 results each).         */
 /* No server communication — everything below is static sample data.   */
 /* ------------------------------------------------------------------ */
 const PATTERNS = [
@@ -56,80 +56,228 @@ const PATTERNS = [
   },
 ];
 
-(function initGrid() {
-  const queryButton = document.getElementById('grid-query');
-  const queryImg = document.getElementById('grid-query-img');
-  const resultEls = Array.prototype.slice.call(document.querySelectorAll('.grid-result'));
-  const indicatorEls = Array.prototype.slice.call(document.querySelectorAll('.grid-indicator'));
-  if (!queryButton || !queryImg || resultEls.length === 0) return;
+const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/* ------------------------------------------------------------------ */
+/* Hero pseudo-app: autoplay loop + click/keyboard override            */
+/* ------------------------------------------------------------------ */
+(function initHeroApp() {
+  const queryBtn = document.getElementById('app-query');
+  const queryImg = document.getElementById('app-query-img');
+  const appWindow = document.querySelector('.dw-app-window');
+  const resultEls = Array.prototype.slice.call(document.querySelectorAll('.app-result'));
+  const indicatorEls = Array.prototype.slice.call(document.querySelectorAll('.app-indicator'));
+  if (!queryBtn || !queryImg || resultEls.length === 0) return;
+
+  const CYCLE_MS = 5000;
+  const FADE_MS = 350;
 
   let current = 0;
-  const preloaded = {};
+  let advanceTimer = null;
+  let paused = false;
 
-  function preload(pattern) {
-    const urls = [pattern.query.src].concat(pattern.results.map(r => r.src));
-    urls.forEach(src => {
-      if (preloaded[src]) return;
-      preloaded[src] = true;
+  // Preload every pattern's images up front so the autoplay loop never
+  // shows a blank frame mid-cycle.
+  PATTERNS.forEach(pattern => {
+    [pattern.query.src].concat(pattern.results.map(r => r.src)).forEach(src => {
       const img = new Image();
       img.src = src;
     });
+  });
+
+  function animateScore(el, target) {
+    if (prefersReducedMotion) {
+      el.textContent = 'SCORE ' + target.toFixed(3);
+      return;
+    }
+    const duration = 500;
+    const start = performance.now();
+    function step(now) {
+      const t = Math.min(1, (now - start) / duration);
+      el.textContent = 'SCORE ' + (target * t).toFixed(3);
+      if (t < 1) window.requestAnimationFrame(step);
+      else el.textContent = 'SCORE ' + target.toFixed(3);
+    }
+    window.requestAnimationFrame(step);
   }
 
-  function render(index) {
-    const pattern = PATTERNS[index];
+  function applyContent(pattern) {
+    queryImg.src = pattern.query.src;
+    queryImg.alt = pattern.query.alt;
+    pattern.results.forEach((result, i) => {
+      const el = resultEls[i];
+      if (!el) return;
+      const img = el.querySelector('img');
+      const scoreEl = el.querySelector('.app-score');
+      if (img) { img.src = result.src; img.alt = result.alt; }
+      if (scoreEl) scoreEl.textContent = 'SCORE 0.000';
+    });
+  }
 
-    queryImg.style.opacity = '0';
-    resultEls.forEach(el => { el.style.opacity = '0'; });
-
-    window.setTimeout(() => {
-      queryImg.src = pattern.query.src;
-      queryImg.alt = pattern.query.alt;
-      queryImg.style.opacity = '1';
-
+  function revealContent(pattern, animate) {
+    if (!animate || prefersReducedMotion) {
       pattern.results.forEach((result, i) => {
         const el = resultEls[i];
         if (!el) return;
-        const img = el.querySelector('img');
-        const scoreEl = el.querySelector('.grid-score');
-        if (img) {
-          img.src = result.src;
-          img.alt = result.alt;
-        }
-        if (scoreEl) {
-          scoreEl.textContent = 'SCORE ' + result.score.toFixed(3);
-        }
-        el.style.opacity = '1';
+        const scoreEl = el.querySelector('.app-score');
+        if (scoreEl) scoreEl.textContent = 'SCORE ' + result.score.toFixed(3);
       });
-    }, 20);
+      return;
+    }
+    // query card: fade + translateY in
+    queryBtn.classList.add('is-entering');
+    // results: each card carries a CSS transition-delay derived from --i, so
+    // toggling the class on all of them at once still reveals them staggered.
+    resultEls.forEach(el => el.classList.add('is-entering'));
 
+    window.requestAnimationFrame(() => {
+      window.requestAnimationFrame(() => {
+        queryBtn.classList.remove('is-entering');
+        resultEls.forEach(el => el.classList.remove('is-entering'));
+      });
+    });
+
+    // Score count-up starts roughly when each card becomes visible.
+    resultEls.forEach((el, i) => {
+      window.setTimeout(() => {
+        animateScore(el.querySelector('.app-score'), pattern.results[i].score);
+      }, i * 90 + 120);
+    });
+  }
+
+  function updateIndicators(index) {
     indicatorEls.forEach((el, i) => {
       el.setAttribute('aria-current', i === index ? 'true' : 'false');
     });
-
-    // Preload the next pattern so the following click/keypress feels instant.
-    preload(PATTERNS[(index + 1) % PATTERNS.length]);
   }
 
-  function goTo(index) {
+  function scheduleAdvance() {
+    window.clearTimeout(advanceTimer);
+    if (prefersReducedMotion || paused) return;
+    advanceTimer = window.setTimeout(() => {
+      goTo(current + 1);
+    }, CYCLE_MS);
+  }
+
+  function goTo(index, opts) {
+    const isInitial = !!(opts && opts.initial);
     current = ((index % PATTERNS.length) + PATTERNS.length) % PATTERNS.length;
-    render(current);
+    const pattern = PATTERNS[current];
+    updateIndicators(current);
+
+    if (prefersReducedMotion) {
+      applyContent(pattern);
+      revealContent(pattern, false);
+      scheduleAdvance();
+      return;
+    }
+
+    if (isInitial) {
+      applyContent(pattern);
+      revealContent(pattern, true);
+    } else {
+      // crossfade: fade current content out, swap, fade new content in
+      queryBtn.classList.add('is-entering');
+      resultEls.forEach(el => el.classList.add('is-entering'));
+      window.setTimeout(() => {
+        applyContent(pattern);
+        revealContent(pattern, true);
+      }, FADE_MS);
+    }
+    scheduleAdvance();
   }
 
-  queryButton.addEventListener('click', () => {
-    goTo(current + 1);
-  });
+  queryBtn.addEventListener('click', () => goTo(current + 1));
 
   indicatorEls.forEach((el, i) => {
     el.addEventListener('click', () => goTo(i));
   });
 
-  // First pattern is already in the DOM (eager-loaded); just wire up preload
-  // for the second pattern and the indicator state.
-  indicatorEls.forEach((el, i) => {
-    el.setAttribute('aria-current', i === 0 ? 'true' : 'false');
-  });
-  preload(PATTERNS[1 % PATTERNS.length]);
+  if (appWindow) {
+    appWindow.addEventListener('mouseenter', () => {
+      paused = true;
+      window.clearTimeout(advanceTimer);
+    });
+    appWindow.addEventListener('mouseleave', () => {
+      paused = false;
+      scheduleAdvance();
+    });
+  }
+
+  goTo(0, { initial: true });
+})();
+
+/* ------------------------------------------------------------------ */
+/* Scroll reveal: IntersectionObserver fades [data-reveal] elements in */
+/* ------------------------------------------------------------------ */
+(function initScrollReveal() {
+  const targets = document.querySelectorAll('[data-reveal]');
+  if (targets.length === 0) return;
+
+  if (prefersReducedMotion || !('IntersectionObserver' in window)) {
+    targets.forEach(t => t.classList.add('is-revealed'));
+    return;
+  }
+
+  const io = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('is-revealed');
+        io.unobserve(entry.target);
+      }
+    });
+  }, { threshold: 0.15 });
+
+  targets.forEach(t => io.observe(t));
+})();
+
+/* ------------------------------------------------------------------ */
+/* Verification stats: count up on scroll into view                    */
+/* ------------------------------------------------------------------ */
+(function initCountUp() {
+  const targets = document.querySelectorAll('.dw-stat-value[data-count-to]');
+  if (targets.length === 0) return;
+
+  function format(value, el) {
+    const decimals = parseInt(el.getAttribute('data-count-decimals') || '0', 10);
+    const prefix = el.getAttribute('data-count-prefix') || '';
+    const suffix = el.getAttribute('data-count-suffix') || '';
+    const text = decimals > 0 ? value.toFixed(decimals) : Math.round(value).toLocaleString('ja-JP');
+    return prefix + text + suffix;
+  }
+
+  function animate(el) {
+    const target = parseFloat(el.getAttribute('data-count-to'));
+    if (prefersReducedMotion || !('requestAnimationFrame' in window)) {
+      el.textContent = format(target, el);
+      return;
+    }
+    const duration = 800;
+    const start = performance.now();
+    function step(now) {
+      const t = Math.min(1, (now - start) / duration);
+      el.textContent = format(target * t, el);
+      if (t < 1) window.requestAnimationFrame(step);
+      else el.textContent = format(target, el);
+    }
+    window.requestAnimationFrame(step);
+  }
+
+  if (!('IntersectionObserver' in window)) {
+    targets.forEach(animate);
+    return;
+  }
+
+  const io = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        animate(entry.target);
+        io.unobserve(entry.target);
+      }
+    });
+  }, { threshold: 0.4 });
+
+  targets.forEach(t => io.observe(t));
 })();
 
 /* ------------------------------------------------------------------ */
