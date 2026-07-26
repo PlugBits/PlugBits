@@ -509,7 +509,7 @@ try {
   urls.push('/blog/');
   for (const post of visiblePosts) urls.push(`/blog/${post.slug}/`);
   const xml = base.replace('</urlset>',
-    urls.map(u => `<url><loc>{{BASE_URL}}${u}</loc></url>`).join('') + '</urlset>'
+    urls.map(u => `<url><loc>${SITE_ORIGIN}${u}</loc></url>`).join('') + '</urlset>'
   );
   fs.writeFileSync(path.join(DIST, 'sitemap.xml'), xml);
 
