@@ -296,6 +296,36 @@ h1, h2 {
   border: 1px solid var(--line);
   border-radius: 20px;
   box-shadow: var(--shadow);
+  overflow: hidden;
+}
+
+/* Kintone-flavored chrome strip: a CSS-only abstraction (no logo/wordmark),
+   just the yellow band + dark nav band silhouette, to read as "this lives
+   inside kintone" at a glance. Confined to the hero demo window only — it
+   does not touch the page's own palette. */
+
+.dw-app-chrome-yellow {
+  height: 11px;
+  background: #FDD000;
+}
+
+.dw-app-chrome-nav {
+  height: 20px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 0 14px;
+  background: #3E3E3E;
+}
+
+.dw-app-chrome-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.32);
+}
+
+.dw-app-content {
   padding: 16px;
 }
 
@@ -304,7 +334,7 @@ h1, h2 {
   align-items: center;
   justify-content: space-between;
   margin-bottom: 16px;
-  background: var(--blue-soft);
+  background: #F0F0F0;
   border-radius: 12px;
   padding: 10px 14px;
 }
@@ -315,7 +345,7 @@ h1, h2 {
   font-family: 'Zen Kaku Gothic New', 'Hiragino Sans', 'Noto Sans JP', sans-serif;
   font-size: 13px;
   font-weight: 700;
-  color: var(--blue-panel);
+  color: var(--ink);
 }
 
 .dw-app-indicators {
@@ -743,10 +773,29 @@ h1, h2 {
   .dw-flow-cards { flex-direction: row; }
 }
 
-/* ---------- section 4: flow + stack ---------- */
+/* ---------- section 4: real screenshot + flow ---------- */
+
+.dw-real-shot {
+  margin: 24px 0 8px;
+}
+
+.dw-real-shot img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 16px;
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow);
+}
+
+.dw-real-shot figcaption {
+  margin: 10px 2px 0;
+  font-size: 12.5px;
+  color: var(--sub);
+}
 
 .dw-stack-flow {
-  margin: 8px 0 24px;
+  margin: 28px 0 24px;
 }
 
 .flow-nodes {
@@ -754,7 +803,6 @@ h1, h2 {
   align-items: center;
   gap: 12px;
   flex-wrap: wrap;
-  margin-bottom: 32px;
 }
 
 .flow-node {
@@ -769,27 +817,6 @@ h1, h2 {
   color: var(--sub);
   font-size: 16px;
 }
-
-.drawing-stack {
-  position: relative;
-  height: 160px;
-  max-width: 260px;
-}
-
-.drawing-stack .tape-photo {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 200px;
-}
-
-.drawing-stack .tape-photo img {
-  width: 100%;
-}
-
-.drawing-stack .tape-photo:nth-child(1) { top: 0; left: 0; }
-.drawing-stack .tape-photo:nth-child(2) { top: 14px; left: 28px; }
-.drawing-stack .tape-photo:nth-child(3) { top: 28px; left: 56px; }
 
 /* ---------- section 5: stats ---------- */
 

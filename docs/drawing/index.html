@@ -62,55 +62,65 @@
 
       <div class="dw-container">
         <div class="dw-app-window" data-reveal>
-          <div class="dw-app-bar">
-            <span class="dw-app-bar-label">図面台帳 — レコード詳細</span>
-            <div class="dw-app-indicators" id="app-indicators">
-              <button type="button" class="app-indicator" aria-current="true" aria-label="パターン1: 円形フランジ"></button>
-              <button type="button" class="app-indicator" aria-current="false" aria-label="パターン2: L字ブラケット"></button>
-              <button type="button" class="app-indicator" aria-current="false" aria-label="パターン3: 穴あきプレート"></button>
-              <button type="button" class="app-indicator" aria-current="false" aria-label="パターン4: 段付きシャフト"></button>
+          <div class="dw-app-chrome" aria-hidden="true">
+            <div class="dw-app-chrome-yellow"></div>
+            <div class="dw-app-chrome-nav">
+              <span class="dw-app-chrome-dot"></span>
+              <span class="dw-app-chrome-dot"></span>
+              <span class="dw-app-chrome-dot"></span>
             </div>
           </div>
-          <div class="dw-app-body">
-            <div class="dw-app-left">
-              <div class="record-fields">
-                <p class="record-field"><span class="record-field-label">品番</span><span class="record-field-value" id="field-partno">PB-2041</span></p>
-                <p class="record-field"><span class="record-field-label">品名</span><span class="record-field-value" id="field-partname">円形フランジ</span></p>
-                <p class="record-field"><span class="record-field-label">添付</span><span class="record-field-value">図面.pdf</span></p>
+          <div class="dw-app-content">
+            <div class="dw-app-bar">
+              <span class="dw-app-bar-label">図面台帳 — レコード詳細</span>
+              <div class="dw-app-indicators" id="app-indicators">
+                <button type="button" class="app-indicator" aria-current="true" aria-label="パターン1: 円形フランジ"></button>
+                <button type="button" class="app-indicator" aria-current="false" aria-label="パターン2: L字ブラケット"></button>
+                <button type="button" class="app-indicator" aria-current="false" aria-label="パターン3: 穴あきプレート"></button>
+                <button type="button" class="app-indicator" aria-current="false" aria-label="パターン4: 段付きシャフト"></button>
               </div>
-              <button type="button" id="app-search-btn" class="record-search-btn">類似図面検索</button>
-              <button type="button" id="app-query" class="dw-app-query" aria-label="別の図面パターンに切り替える">
-                <img id="app-query-img"
-                     src="assets/flange-q.webp"
-                     alt="サンプル図面: 円形フランジ 図番PB-2041"
-                     width="800" height="600"
-                     loading="eager">
-              </button>
             </div>
-            <div class="dw-app-results" id="app-results">
-              <div class="app-result" style="--i:0">
-                <img src="assets/flange-1.webp" alt="サンプル図面: 円形フランジ 図番PB-2044" width="800" height="600" loading="eager">
-                <span class="app-score" data-target="0.973">SCORE 0.000</span>
+            <div class="dw-app-body">
+              <div class="dw-app-left">
+                <div class="record-fields">
+                  <p class="record-field"><span class="record-field-label">品番</span><span class="record-field-value" id="field-partno">PB-2041</span></p>
+                  <p class="record-field"><span class="record-field-label">品名</span><span class="record-field-value" id="field-partname">円形フランジ</span></p>
+                  <p class="record-field"><span class="record-field-label">添付</span><span class="record-field-value">図面.pdf</span></p>
+                </div>
+                <button type="button" id="app-search-btn" class="record-search-btn">類似図面検索</button>
+                <button type="button" id="app-query" class="dw-app-query" aria-label="別の図面パターンに切り替える">
+                  <img id="app-query-img"
+                       src="assets/flange-q.webp"
+                       alt="サンプル図面: 円形フランジ 図番PB-2041"
+                       width="800" height="600"
+                       loading="eager">
+                </button>
               </div>
-              <div class="app-result" style="--i:1">
-                <img src="assets/flange-2.webp" alt="サンプル図面: 円形フランジ 図番PB-2039" width="800" height="600" loading="eager">
-                <span class="app-score" data-target="0.958">SCORE 0.000</span>
-              </div>
-              <div class="app-result" style="--i:2">
-                <img src="assets/flange-3.webp" alt="サンプル図面: 円形フランジ 図番PB-2052" width="800" height="600" loading="eager">
-                <span class="app-score" data-target="0.941">SCORE 0.000</span>
-              </div>
-              <div class="app-result" style="--i:3">
-                <img src="assets/flange-4.webp" alt="サンプル図面: 円形フランジ 図番PB-2037" width="800" height="600" loading="eager">
-                <span class="app-score" data-target="0.926">SCORE 0.000</span>
-              </div>
-              <div class="app-result" style="--i:4">
-                <img src="assets/flange-5.webp" alt="サンプル図面: 円形フランジ 図番PB-2061" width="800" height="600" loading="eager">
-                <span class="app-score" data-target="0.909">SCORE 0.000</span>
-              </div>
-              <div class="app-result" style="--i:5">
-                <img src="assets/flange-6.webp" alt="サンプル図面: 円形フランジ 図番PB-2048" width="800" height="600" loading="eager">
-                <span class="app-score" data-target="0.891">SCORE 0.000</span>
+              <div class="dw-app-results" id="app-results">
+                <div class="app-result" style="--i:0">
+                  <img src="assets/flange-1.webp" alt="サンプル図面: 円形フランジ 図番PB-2044" width="800" height="600" loading="eager">
+                  <span class="app-score" data-target="0.973">SCORE 0.000</span>
+                </div>
+                <div class="app-result" style="--i:1">
+                  <img src="assets/flange-2.webp" alt="サンプル図面: 円形フランジ 図番PB-2039" width="800" height="600" loading="eager">
+                  <span class="app-score" data-target="0.958">SCORE 0.000</span>
+                </div>
+                <div class="app-result" style="--i:2">
+                  <img src="assets/flange-3.webp" alt="サンプル図面: 円形フランジ 図番PB-2052" width="800" height="600" loading="eager">
+                  <span class="app-score" data-target="0.941">SCORE 0.000</span>
+                </div>
+                <div class="app-result" style="--i:3">
+                  <img src="assets/flange-4.webp" alt="サンプル図面: 円形フランジ 図番PB-2037" width="800" height="600" loading="eager">
+                  <span class="app-score" data-target="0.926">SCORE 0.000</span>
+                </div>
+                <div class="app-result" style="--i:4">
+                  <img src="assets/flange-5.webp" alt="サンプル図面: 円形フランジ 図番PB-2061" width="800" height="600" loading="eager">
+                  <span class="app-score" data-target="0.909">SCORE 0.000</span>
+                </div>
+                <div class="app-result" style="--i:5">
+                  <img src="assets/flange-6.webp" alt="サンプル図面: 円形フランジ 図番PB-2048" width="800" height="600" loading="eager">
+                  <span class="app-score" data-target="0.891">SCORE 0.000</span>
+                </div>
               </div>
             </div>
           </div>
@@ -205,6 +215,13 @@
         <p class="dw-meta-line" data-reveal>BASIS — 台帳が古くならない理由</p>
         <h2 data-reveal>kintoneに貯まってきたものが、<span class="dw-marker">そのまま資産</span>になる</h2>
 
+        <figure class="dw-real-shot" data-reveal>
+          <img src="assets/kintone-list.webp"
+               alt="kintoneの製品マスターアプリの一覧画面。図番・品名・材質などのレコードが275件並び、図面登録と図面検索のボタンが付いている"
+               width="1600" height="923" loading="lazy">
+          <figcaption>開発中のプラグインが動いている実際のkintone画面です。データはデモ用に作成したものです。</figcaption>
+        </figure>
+
         <div class="dw-stack-flow" data-reveal>
           <div class="flow-nodes">
             <span class="flow-node">受注</span>
@@ -212,11 +229,6 @@
             <span class="flow-node">製造指示</span>
             <span class="flow-node-arrow" aria-hidden="true">→</span>
             <span class="flow-node">検査</span>
-          </div>
-          <div class="drawing-stack">
-            <div class="tape-photo" style="--r:-6deg"><img src="assets/plate-1.webp" alt="" width="800" height="600" loading="lazy"></div>
-            <div class="tape-photo" style="--r:4deg"><img src="assets/bracket-3.webp" alt="" width="800" height="600" loading="lazy"></div>
-            <div class="tape-photo" style="--r:-2deg"><img src="assets/flange-2.webp" alt="" width="800" height="600" loading="lazy"></div>
           </div>
         </div>
 
