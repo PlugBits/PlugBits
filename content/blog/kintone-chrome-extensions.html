@@ -1,0 +1,158 @@
+<nav class="kb-article-toc" aria-label="目次">
+  <h2>目次</h2>
+  <ol class="kb-article-ordered">
+    <li><a href="#diff">プラグインと拡張機能は何が違うのか</a></li>
+    <li><a href="#limits">拡張機能にできないこと</a></li>
+    <li><a href="#fieldcode">フィールドコードを確認したい</a></li>
+    <li><a href="#export">アプリの設定をドキュメントとして書き出したい</a></li>
+    <li><a href="#copy">画面上の値をコピーしたい</a></li>
+    <li><a href="#migrate">プラグインの設定を別のアプリに移したい</a></li>
+    <li><a href="#devtools">開発者向けのツールをまとめて使いたい</a></li>
+    <li><a href="#keyboard">キーボードだけで操作したい</a></li>
+    <li><a href="#stale">更新が止まっている拡張機能に注意</a></li>
+    <li><a href="#checklist">導入前に確認したい3つのこと</a></li>
+    <li><a href="#faq">よくある質問</a></li>
+  </ol>
+</nav>
+
+<section id="diff" class="kb-article-section">
+  <h2>プラグインと拡張機能は何が違うのか</h2>
+  <div class="kb-section-card kb-section-card--stack">
+    <p class="kb-article-paragraph">kintoneをもう少し便利にしたいと思ったとき、まず候補に挙がるのはプラグインだと思います。ただ、プラグインはアプリごとに管理者が設定するものなので、自分がアプリ管理者でなかったり、会社としての導入手続きが必要だったりすると、そこで止まってしまいます。</p>
+    <p class="kb-article-paragraph">そんなときにもう一つある選択肢が、Chromeなどのブラウザ拡張機能です。自分のブラウザに入れるだけで使えて、会社のkintoneの設定は何ひとつ変えません。</p>
+    <p class="kb-article-paragraph">この記事では、kintone向けのChrome拡張機能を目的別に整理します。サイボウズが自ら提供しているものもありますので、あわせて紹介します。</p>
+    <p class="kb-article-paragraph">同じ「kintoneを拡張するもの」ですが、置き場所が違います。プラグインはkintone側に、拡張機能は自分のブラウザ側に入ります。この違いが、そのまま使い勝手の違いになります。</p>
+    <div class="kb-article-table-wrap">
+      <table>
+        <thead>
+          <tr><th></th><th>プラグイン</th><th>ブラウザ拡張機能</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>導入する場所</td><td>kintone（アプリごとに設定）</td><td>自分のブラウザ</td></tr>
+          <tr><td>必要な権限</td><td>アプリ管理者権限</td><td>不要</td></tr>
+          <tr><td>影響する範囲</td><td>そのアプリを使う全員</td><td>入れた自分だけ</td></tr>
+          <tr><td>対象アプリ</td><td>設定したアプリのみ</td><td>すべてのアプリ</td></tr>
+          <tr><td>費用</td><td>ドメイン単位の年額契約が中心</td><td>無料のものが多い</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="kb-article-paragraph">拡張機能の利点は、<strong>始めるのに誰の許可も要らない</strong>ことです。自分のブラウザに入れるだけなので、稟議も、管理者への依頼も、アプリごとの設定作業も発生しません。試してみて合わなければ削除するだけです。</p>
+    <p class="kb-article-paragraph">サイボウズの技術者向けブログでも、Chrome拡張の利点として「kintoneの管理者権限がなくてもカスタマイズできる」「影響範囲が自分だけなので安心」という点が挙げられています。</p>
+  </div>
+</section>
+
+<section id="limits" class="kb-article-section">
+  <h2>拡張機能にできないこと</h2>
+  <div class="kb-section-card kb-section-card--stack">
+    <p class="kb-article-paragraph">先に限界のほうを書いておきます。</p>
+    <p class="kb-article-paragraph">自分のブラウザにしか入らないので、<strong>チーム全員に同じ環境を配ることができません</strong>。10人に使ってほしければ、10人にインストールしてもらう必要があります。組織全体で統一して使いたいなら、プラグインのほうが素直です。</p>
+    <p class="kb-article-paragraph">もう一つ、拡張機能は基本的に「表示や操作を助けるもの」です。kintoneの権限設定を超えて何かができるようになるわけではありません。自分が見られないレコードは、拡張機能を入れても見られません。</p>
+    <p class="kb-article-paragraph">つまり拡張機能は、<strong>組織のkintoneを変えるものではなく、自分の手元だけを変えるもの</strong>です。この線引きを踏まえた上で選ぶと、迷いにくくなります。</p>
+  </div>
+</section>
+
+<section id="fieldcode" class="kb-article-section">
+  <h2>フィールドコードを確認したい</h2>
+  <div class="kb-section-card kb-section-card--stack">
+    <p class="kb-article-paragraph">カスタマイズやAPI連携を書いていると、フィールドコードを確認する場面が何度も出てきます。標準では、アプリの設定画面を開いて、フォーム設定に入って、対象フィールドの歯車から設定を開いて、ようやくコードが見られます。書いている画面と設定画面を往復することになります。</p>
+    <p class="kb-article-paragraph">ここを短縮する拡張機能として、<a href="https://chromewebstore.google.com/detail/%E3%83%95%E3%82%A3%E3%83%BC%E3%83%AB%E3%83%89%E3%82%B3%E3%83%BC%E3%83%89%E8%A1%A8%E7%A4%BA-for-kintone/bnlpeolgcdlgdaiokimelcacehodjbpk" target="_blank" rel="noopener"><strong>フィールドコード表示 for kintone</strong></a> があります。サイボウズ株式会社が提供しているもので、レコード詳細画面にフィールドコードを直接表示し、クリックでコピーできます。関連レコードやテーブル、スペースフィールドにも対応しています。2026年5月の更新で表示と非表示をトグルできるようになり、拡張アイコンまたは <code>Ctrl/Cmd+Shift+K</code> で切り替えられます。</p>
+    <p class="kb-article-paragraph">公式が提供しているという安心感があるので、フィールドコードの確認だけが目的なら、まずこれを試すのがいちばん早いと思います。</p>
+  </div>
+</section>
+
+<section id="export" class="kb-article-section">
+  <h2>アプリの設定をドキュメントとして書き出したい</h2>
+  <div class="kb-section-card kb-section-card--stack">
+    <p class="kb-article-paragraph">アプリの引き継ぎ資料を作る、本番環境と開発環境の構成を比べる、新しく担当することになったアプリの全体像を把握する。こうした場面で使えるのが <a href="https://chromewebstore.google.com/detail/kw-app-exporter-for-kinto/kojeebklgjlejjpfadmaaobdmbmjcfld" target="_blank" rel="noopener"><strong>KW App Exporter for kintone</strong></a> です。</p>
+    <p class="kb-article-paragraph">アプリの基本情報、フィールド構成、レイアウト、一覧設定、プロセス管理、各種アクセス権限といった項目を選んで、HTML・JSON・Excel・Markdownの形式で書き出せます。設定画面を1つずつ開いてスクリーンショットを撮る作業が、ポップアップからのワンクリックに置き換わります。</p>
+  </div>
+</section>
+
+<section id="copy" class="kb-article-section">
+  <h2>画面上の値をコピーしたい</h2>
+  <div class="kb-section-card kb-section-card--stack">
+    <p class="kb-article-paragraph">kintoneの一覧や詳細画面から値を取り出したいとき、範囲選択がうまくいかずに苦労することがあります。<a href="https://chromewebstore.google.com/detail/kintoys/johmoplafihagepgbceblbhlmacejoee" target="_blank" rel="noopener"><strong>kinToys</strong></a> は、そこに特化した拡張機能です。</p>
+    <p class="kb-article-paragraph">セルをクリックするとセル単体・行全体・レコード全体をクリップボードにコピーする「クイックコピー」と、表全体やレコード全体をまとめて取得する「グラブコピー」があります。何をコピーするかはポップアップであらかじめ選んでおく形です。kintone界隈で活動されているキン担ラボの本橋さんが公開されています。</p>
+  </div>
+</section>
+
+<section id="migrate" class="kb-article-section">
+  <h2>プラグインの設定を別のアプリに移したい</h2>
+  <div class="kb-section-card kb-section-card--stack">
+    <p class="kb-article-paragraph">同じプラグインを複数のアプリに入れていて、設定を一つずつ手で写している。そういう状況に効くのが <a href="https://chromewebstore.google.com/detail/kintonepluginmigrator/pndmdhhanlckeimjahjfijelpkbgoeac" target="_blank" rel="noopener"><strong>kintonePluginMigrator</strong></a> です。プラグインの設定画面からJSONとして保存し、別のアプリで読み込めます。同じく本橋さんが公開されています。</p>
+    <p class="kb-article-paragraph">対象がかなり限定される拡張機能ですが、当てはまる人にとっては作業時間がまるごと消えます。</p>
+  </div>
+</section>
+
+<section id="devtools" class="kb-article-section">
+  <h2>開発者向けのツールをまとめて使いたい</h2>
+  <div class="kb-section-card kb-section-card--stack">
+    <p class="kb-article-paragraph"><strong>Devkinox</strong> は、kintoneエンジニアが集まる開発者コミュニティの「Chrome拡張部」から生まれた、開発者向けツール集の拡張機能です。個別の課題を解く拡張ではなく、複数のツールがまとまっている形になっています。</p>
+  </div>
+</section>
+
+<section id="keyboard" class="kb-article-section">
+  <h2>キーボードだけで操作したい</h2>
+  <div class="kb-section-card kb-section-card--stack">
+    <p class="kb-article-paragraph">ここからは私たちが開発しているものの話になります。</p>
+    <p class="kb-article-paragraph">アプリを作っていると、設定画面への移動そのものが積み上がってきます。アプリ一覧を開いて、目的のアプリを探して、歯車を押して、フォーム設定を開く。フォーム設定だけでなく、一覧、プロセス管理、アクセス権、APIトークン、カスタマイズ、プラグイン、デプロイと、行き先は9か所あります。1回あたりは10秒程度ですが、開発中は1日に何十回も繰り返します。</p>
+    <p class="kb-article-paragraph"><strong>PlugBits Launcher</strong> は、この移動をコマンドパレットに置き換えるChrome拡張機能です。kintoneの画面で <code>Ctrl+/</code> を押すとパレットが開き、「フォーム」と打てばフォーム設定へ、「アクセス権」と打てばアクセス権の設定へ直接飛べます。アプリの切り替えも、フィールドコードやフォーム定義JSONのコピーも、同じパレットから実行できます。</p>
+    <p class="kb-article-paragraph">ここまでがすべて無料です。このほか、一覧をスプレッドシート形式で開いて眺める機能（<code>Ctrl+Shift+E</code>）と、自分に必要なフィールドだけを自分の並び順で表示する新規登録モーダル（<code>Shift+Alt+N</code>）も無料で使えます。一覧のセルを直接編集してExcelから貼り付ける機能だけがPro（月額980円）です。</p>
+    <p class="kb-article-paragraph">詳しくは<a href="/launcher/">PlugBits Launcherの紹介ページ</a>をご覧ください。一覧の一括編集については<a href="/blog/kintone-bulk-edit/">kintoneのレコードを一括編集する4つの方法</a>にまとめています。</p>
+  </div>
+</section>
+
+<section id="stale" class="kb-article-section">
+  <h2>更新が止まっている拡張機能に注意</h2>
+  <div class="kb-section-card kb-section-card--stack">
+    <p class="kb-article-paragraph">kintone向けの拡張機能を検索すると、古いものも一緒に出てきます。たとえば <a href="https://chromewebstore.google.com/detail/kintone-extension-search/mgbdmlpflafibjhcjnakcfdnihlgaodc" target="_blank" rel="noopener"><strong>kintone extension search</strong></a> は、拡張機能のポップアップからkintone内を検索できるものですが、公開されている更新履歴は2017年で止まっています。</p>
+    <p class="kb-article-paragraph">拡張機能はブラウザ側の仕様変更の影響を受けます。Chromeの拡張機能の仕組みは Manifest V3 という新しい形式に移行しており、古い形式のまま更新されていないものは動かなくなる可能性があります。ストアのページで最終更新日を確認してから入れるのが安全です。</p>
+  </div>
+</section>
+
+<section id="checklist" class="kb-article-section">
+  <h2>導入前に確認したい3つのこと</h2>
+  <div class="kb-section-card kb-section-card--stack">
+    <p class="kb-article-paragraph">拡張機能は業務データが表示されている画面の上で動きます。無料で手軽に入れられるぶん、入れる前に見ておきたい点があります。</p>
+    <p class="kb-article-paragraph"><strong>1つ目は、インストール時に表示される権限です。</strong> 「すべてのウェブサイトのデータの読み取りと変更」という警告が出る拡張機能は、kintone以外のページでも動ける状態になっています。kintoneだけで使うツールであれば、対象ドメインが限定されているか、インストール後に自分で許可する形になっているほうが安心です。</p>
+    <p class="kb-article-paragraph"><strong>2つ目は、開発元が分かるかどうかです。</strong> ストアのページに開発者名やサポート先、プライバシーポリシーへのリンクがあるかを見てください。会社の業務で使うのであれば、ここが空欄のものは避けたほうがよいと思います。</p>
+    <p class="kb-article-paragraph"><strong>3つ目は、kintoneの画面をどう扱っているかです。</strong> kintoneの画面構造（DOM）を直接書き換えるタイプの拡張機能は、サイボウズ側のUI更新のたびに動かなくなる可能性があります。更新が続いているかどうかが、そのまま使い続けられるかどうかにつながります。</p>
+    <p class="kb-article-paragraph">なお、会社によっては拡張機能のインストール自体がポリシーで制限されている場合があります。入れる前に情報システム部門の方針を確認しておくと確実です。</p>
+  </div>
+</section>
+
+<section id="faq" class="kb-article-section">
+  <h2>よくある質問</h2>
+  <div class="kb-faq">
+    <div class="kb-faq-item">
+      <h3>kintoneのプラグインと拡張機能はどちらを選べばいいですか？</h3>
+      <p>組織全体で統一して使いたいならプラグイン、自分の担当業務だけ楽にしたいなら拡張機能が向いています。拡張機能は管理者権限もアプリごとの設定も不要なので、まず自分で試してから組織展開を検討する、という順番も取れます。</p>
+    </div>
+    <div class="kb-faq-item">
+      <h3>拡張機能を入れるとkintoneの動作に影響しますか？</h3>
+      <p>拡張機能によります。kintoneの画面構造を直接書き換えるタイプは、kintoneのアップデートで動かなくなったり、他のプラグインと干渉したりする可能性があります。気になる場合は、まず自分のテスト用アプリで試してみてください。</p>
+    </div>
+    <div class="kb-faq-item">
+      <h3>拡張機能で、自分に権限のないレコードも見られますか？</h3>
+      <p>見られません。拡張機能はkintoneのAPIや画面を通してデータを扱うため、kintone側で設定されたアクセス権がそのまま適用されます。権限を回避するものではありません。</p>
+    </div>
+    <div class="kb-faq-item">
+      <h3>Microsoft Edgeでも使えますか？</h3>
+      <p>多くの拡張機能はChromiumベースのブラウザで動作するため、EdgeやBraveでもChromeウェブストアから導入できることが一般的です。ただし対応状況は拡張機能ごとに異なるので、ストアのページで確認してください。</p>
+    </div>
+  </div>
+</section>
+
+<div class="kb-divider" role="presentation"></div>
+
+<section class="kb-article-section">
+  <p class="kb-article-paragraph">kintone向けのChrome拡張機能は、目的がはっきりしているものが多く、複数を組み合わせて使うこともできます。フィールドコードの確認、設定のドキュメント化、値のコピー、キーボードでの移動と、それぞれ別の課題を解いています。</p>
+  <p class="kb-article-paragraph">プラグインのように稟議も設定作業も要らないので、気になったものを入れてみて、合わなければ削除する。その手軽さが、この選択肢のいちばんの価値だと思います。</p>
+  <div class="kb-support-cards">
+    <div class="kb-support-card">
+      <strong>キーボードでkintoneを操作してみる</strong>
+      <p class="kb-article-paragraph">PlugBits Launcher は、設定画面への移動もフィールドコードのコピーも <code>Ctrl+/</code> のコマンドパレットから実行できるChrome拡張機能です。ブラウザに追加するだけで、すべてのアプリで使えます。</p>
+      <p><a href="https://chromewebstore.google.com/detail/plugbits-launcher-for-kin/bmnijafgcjnpbgbdijjfidiaodphjjpd?utm_source=blog&amp;utm_medium=article" target="_blank" rel="noopener">PlugBits LauncherをChromeに追加（無料） →</a></p>
+    </div>
+  </div>
+</section>

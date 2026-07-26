@@ -70,5 +70,23 @@
     "tool_name": "PlugBits Launcher",
     "cta_intro": "kintoneのレコード編集を日常的に楽にしたい方へ。ブラウザに追加するだけで使えます。",
     "card_summary": "kintoneの一括編集、方法は4つありますが、どれもどこかで行き詰まります。それぞれの限界と選び方を整理しました。"
+  },
+  {
+    "slug": "kintone-chrome-extensions",
+    "status": "public",
+    "title": "kintoneのChrome拡張機能まとめ｜プラグインとの違いと、目的別の選び方",
+    "h1": "kintoneのChrome拡張機能まとめ｜プラグインとの違いと、目的別の選び方",
+    "description": "kintone向けのChrome拡張機能を、サイボウズ公式のものを含めて目的別に整理しました。プラグインとの違い、拡張機能にできないこと、導入前に確認したい権限の話までまとめています。",
+    "keywords": "kintone Chrome拡張, kintone 拡張機能, kintone プラグイン 拡張機能 違い",
+    "hero_label": "kintone拡張機能ガイド",
+    "read_time": "8分で読めます",
+    "published_at": "2026-07-26",
+    "updated_at": "2026-07-26",
+    "content_file": "kintone-chrome-extensions.html",
+    "og_image": "",
+    "tool_url": "https://chromewebstore.google.com/detail/plugbits-launcher-for-kin/bmnijafgcjnpbgbdijjfidiaodphjjpd?utm_source=blog&utm_medium=article",
+    "tool_name": "PlugBits Launcher",
+    "cta_intro": "kintoneのChrome拡張機能をいろいろ試してみたい方へ。ブラウザに追加するだけで使えます。",
+    "card_summary": "kintone向けのChrome拡張機能を目的別に整理しました。公式提供のものから開発コミュニティのものまで、プラグインとの違いを踏まえて紹介します。"
   }
 ]
