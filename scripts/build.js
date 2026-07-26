@@ -407,13 +407,21 @@ try {
 
     const pluginHtml = pluginList.map(p => {
       const isComing = p.status === 'coming-soon';
+      // A coming-soon plugin with its own page_url (e.g. a waitlist LP) links
+      // out to that page instead of showing a disabled "準備中" card — the
+      // COMING SOON badge still renders via priceBadge() either way.
+      const hasComingPage = isComing && !!p.page_url;
       const title    = isJa ? p.title_ja : p.title_en;
       const desc     = shortText(isJa ? (p.short_summary_ja || p.summary_ja) : (p.short_summary_en || p.summary_en), 64);
       const tags     = renderTags(isJa ? p.tags_ja : p.tags_en);
-      const href     = isComing ? '#' : rel(isJa ? `products/${p.slug}.html` : `products/en/${p.slug}.html`);
+      const href     = hasComingPage ? rel(p.page_url)
+                      : isComing ? '#'
+                      : rel(isJa ? `products/${p.slug}.html` : `products/en/${p.slug}.html`);
       const badge    = priceBadge(p, isJa);
-      const btnLabel = isComing ? (isJa ? '準備中' : 'Coming Soon') : (isJa ? '詳細' : 'Details');
-      const cardClass = 'kb-card' + (isComing ? ' kb-card--coming' : '');
+      const btnLabel = hasComingPage ? (isJa ? '先行案内 →' : 'Waitlist →')
+                      : isComing ? (isJa ? '準備中' : 'Coming Soon')
+                      : (isJa ? '詳細' : 'Details');
+      const cardClass = 'kb-card' + (isComing && !hasComingPage ? ' kb-card--coming' : '');
       return [
         `<a class="${cardClass}" href="${esc(href)}">`,
         '  <div class="kb-card-img">',
