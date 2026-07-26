@@ -76,10 +76,11 @@ h1, h2 {
 .app-score,
 .dw-stat-value,
 .flow-card-label,
-.dw-app-bar-label,
 .mock-card-label,
 .mock-thumb span,
-.flow-node {
+.flow-node,
+.record-field-label,
+.record-link-caption {
   font-family: 'IBM Plex Mono', 'Liberation Mono', monospace;
   font-weight: 500;
 }
@@ -97,6 +98,7 @@ h1, h2 {
   background-image: linear-gradient(transparent 62%, var(--marker) 62%);
   background-repeat: no-repeat;
   padding: 0 1px;
+  white-space: nowrap;
 }
 
 /* ---------- scroll reveal ---------- */
@@ -221,6 +223,27 @@ h1, h2 {
 .dw-bubble-1 { transform: rotate(-1.5deg); }
 .dw-bubble-2 { transform: rotate(1deg); margin-top: 6px; }
 
+/* ---------- pill row (generic; hero badges + BASIS closing pills) ---------- */
+
+.dw-pill-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.dw-hero-badges { margin: 0 0 16px; }
+
+.dw-pill {
+  display: inline-block;
+  background: var(--blue-soft);
+  color: var(--ink);
+  font-family: 'Zen Kaku Gothic New', 'Hiragino Sans', 'Noto Sans JP', sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 7px 16px;
+  border-radius: var(--radius-pill);
+}
+
 .dw-hero-copy h1 {
   margin: 0 0 14px;
   font-size: clamp(34px, 6vw, 60px);
@@ -287,8 +310,11 @@ h1, h2 {
 }
 
 .dw-app-bar-label {
-  font-size: 11px;
-  letter-spacing: 0.1em;
+  /* Sample app name, not a monospace meta label — a regular typeface reads
+     more like a real kintone app/record title. */
+  font-family: 'Zen Kaku Gothic New', 'Hiragino Sans', 'Noto Sans JP', sans-serif;
+  font-size: 13px;
+  font-weight: 700;
   color: var(--blue-panel);
 }
 
@@ -314,6 +340,60 @@ h1, h2 {
   display: flex;
   flex-direction: column;
   gap: 16px;
+}
+
+.dw-app-left {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* ---------- record field mock (kintone record detail flavor) ---------- */
+
+.record-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px 14px;
+  background: #F9F8F4;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+}
+
+.record-field {
+  display: flex;
+  gap: 10px;
+  margin: 0;
+  font-size: 12.5px;
+}
+
+.record-field-label {
+  flex: 0 0 auto;
+  min-width: 3.4em;
+  color: var(--sub);
+}
+
+.record-field-value {
+  color: var(--ink);
+  font-family: 'Zen Kaku Gothic New', 'Hiragino Sans', 'Noto Sans JP', sans-serif;
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.record-search-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  align-self: flex-start;
+  background: var(--blue);
+  color: #FFFFFF;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 9px 18px;
+  border: none;
+  border-radius: var(--radius-pill);
 }
 
 .dw-app-query {
@@ -388,7 +468,7 @@ h1, h2 {
     align-items: flex-start;
     gap: 24px;
   }
-  .dw-app-query { flex: 1.1; }
+  .dw-app-left { flex: 1.1; }
   .dw-app-results { flex: 1; gap: 14px; }
 }
 
@@ -608,6 +688,48 @@ h1, h2 {
   border-radius: var(--radius-pill);
   padding: 7px 12px;
   text-align: center;
+}
+
+/* RECORD card: thumbnail + "same record" frame, connected down to the chips */
+
+.flow-card-art-record {
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.record-link-top {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.record-link-frame {
+  display: block;
+  width: 72px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  overflow: hidden;
+  background: #FFFFFF;
+  box-shadow: var(--shadow);
+}
+
+.record-link-frame img {
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+}
+
+.record-link-caption {
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  color: var(--sub);
+}
+
+.record-link-line {
+  width: 1px;
+  height: 22px;
+  background: var(--line);
 }
 
 .flow-card-text {

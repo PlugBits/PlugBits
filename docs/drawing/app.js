@@ -11,7 +11,7 @@ const BREVO_FORM_ACTION = '';
 /* ------------------------------------------------------------------ */
 const PATTERNS = [
   {
-    query: { src: 'assets/flange-q.webp', alt: 'サンプル図面: 円形フランジ 図番PB-2041' },
+    query: { src: 'assets/flange-q.webp', alt: 'サンプル図面: 円形フランジ 図番PB-2041', partNo: 'PB-2041', partName: '円形フランジ' },
     results: [
       { src: 'assets/flange-1.webp', score: 0.973, alt: 'サンプル図面: 円形フランジ 図番PB-2044' },
       { src: 'assets/flange-2.webp', score: 0.958, alt: 'サンプル図面: 円形フランジ 図番PB-2039' },
@@ -22,7 +22,7 @@ const PATTERNS = [
     ],
   },
   {
-    query: { src: 'assets/bracket-q.webp', alt: 'サンプル図面: L字ブラケット 図番PB-3112' },
+    query: { src: 'assets/bracket-q.webp', alt: 'サンプル図面: L字ブラケット 図番PB-3112', partNo: 'PB-3112', partName: 'L字ブラケット' },
     results: [
       { src: 'assets/bracket-1.webp', score: 0.968, alt: 'サンプル図面: L字ブラケット 図番PB-3115' },
       { src: 'assets/bracket-2.webp', score: 0.952, alt: 'サンプル図面: L字ブラケット 図番PB-3109' },
@@ -33,7 +33,7 @@ const PATTERNS = [
     ],
   },
   {
-    query: { src: 'assets/plate-q.webp', alt: 'サンプル図面: 穴あきプレート 図番PB-4208' },
+    query: { src: 'assets/plate-q.webp', alt: 'サンプル図面: 穴あきプレート 図番PB-4208', partNo: 'PB-4208', partName: '穴あきプレート' },
     results: [
       { src: 'assets/plate-1.webp', score: 0.958, alt: 'サンプル図面: 穴あきプレート 図番PB-4211' },
       { src: 'assets/plate-2.webp', score: 0.941, alt: 'サンプル図面: 穴あきプレート 図番PB-4205' },
@@ -44,7 +44,7 @@ const PATTERNS = [
     ],
   },
   {
-    query: { src: 'assets/shaft-q.webp', alt: 'サンプル図面: 段付きシャフト 図番PB-5117' },
+    query: { src: 'assets/shaft-q.webp', alt: 'サンプル図面: 段付きシャフト 図番PB-5117', partNo: 'PB-5117', partName: '段付きシャフト' },
     results: [
       { src: 'assets/shaft-1.webp', score: 0.947, alt: 'サンプル図面: 段付きシャフト 図番PB-5119' },
       { src: 'assets/shaft-2.webp', score: 0.926, alt: 'サンプル図面: 段付きシャフト 図番PB-5114' },
@@ -64,6 +64,9 @@ const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)
 (function initHeroApp() {
   const queryBtn = document.getElementById('app-query');
   const queryImg = document.getElementById('app-query-img');
+  const searchBtn = document.getElementById('app-search-btn');
+  const fieldPartNoEl = document.getElementById('field-partno');
+  const fieldPartNameEl = document.getElementById('field-partname');
   const appWindow = document.querySelector('.dw-app-window');
   const resultEls = Array.prototype.slice.call(document.querySelectorAll('.app-result'));
   const indicatorEls = Array.prototype.slice.call(document.querySelectorAll('.app-indicator'));
@@ -104,6 +107,8 @@ const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)
   function applyContent(pattern) {
     queryImg.src = pattern.query.src;
     queryImg.alt = pattern.query.alt;
+    if (fieldPartNoEl) fieldPartNoEl.textContent = pattern.query.partNo;
+    if (fieldPartNameEl) fieldPartNameEl.textContent = pattern.query.partName;
     pattern.results.forEach((result, i) => {
       const el = resultEls[i];
       if (!el) return;
@@ -188,6 +193,12 @@ const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)
   }
 
   queryBtn.addEventListener('click', () => goTo(current + 1));
+
+  // Decorative "類似図面検索" button above the record fields: same action as
+  // clicking the query drawing itself.
+  if (searchBtn) {
+    searchBtn.addEventListener('click', () => goTo(current + 1));
+  }
 
   indicatorEls.forEach((el, i) => {
     el.addEventListener('click', () => goTo(i));
