@@ -7,7 +7,6 @@
     <li><a href="#export">アプリの設定をドキュメントとして書き出したい</a></li>
     <li><a href="#copy">画面上の値をコピーしたい</a></li>
     <li><a href="#migrate">プラグインの設定を別のアプリに移したい</a></li>
-    <li><a href="#devtools">開発者向けのツールをまとめて使いたい</a></li>
     <li><a href="#keyboard">キーボードだけで操作したい</a></li>
     <li><a href="#stale">更新が止まっている拡張機能に注意</a></li>
     <li><a href="#checklist">導入前に確認したい3つのこと</a></li>
@@ -20,7 +19,7 @@
   <div class="kb-section-card kb-section-card--stack">
     <p class="kb-article-paragraph">kintoneをもう少し便利にしたいと思ったとき、まず候補に挙がるのはプラグインだと思います。ただ、プラグインはアプリごとに管理者が設定するものなので、自分がアプリ管理者でなかったり、会社としての導入手続きが必要だったりすると、そこで止まってしまいます。</p>
     <p class="kb-article-paragraph">そんなときにもう一つある選択肢が、Chromeなどのブラウザ拡張機能です。自分のブラウザに入れるだけで使えて、会社のkintoneの設定は何ひとつ変えません。</p>
-    <p class="kb-article-paragraph">この記事では、kintone向けのChrome拡張機能を目的別に整理します。サイボウズが自ら提供しているものもありますので、あわせて紹介します。</p>
+    <p class="kb-article-paragraph">この記事では、kintone向けのChrome拡張機能を目的別に整理します。</p>
     <p class="kb-article-paragraph">同じ「kintoneを拡張するもの」ですが、置き場所が違います。プラグインはkintone側に、拡張機能は自分のブラウザ側に入ります。この違いが、そのまま使い勝手の違いになります。</p>
     <div class="kb-article-table-wrap">
       <table>
@@ -55,8 +54,8 @@
   <h2>フィールドコードを確認したい</h2>
   <div class="kb-section-card kb-section-card--stack">
     <p class="kb-article-paragraph">カスタマイズやAPI連携を書いていると、フィールドコードを確認する場面が何度も出てきます。標準では、アプリの設定画面を開いて、フォーム設定に入って、対象フィールドの歯車から設定を開いて、ようやくコードが見られます。書いている画面と設定画面を往復することになります。</p>
-    <p class="kb-article-paragraph">ここを短縮する拡張機能として、<a href="https://chromewebstore.google.com/detail/%E3%83%95%E3%82%A3%E3%83%BC%E3%83%AB%E3%83%89%E3%82%B3%E3%83%BC%E3%83%89%E8%A1%A8%E7%A4%BA-for-kintone/bnlpeolgcdlgdaiokimelcacehodjbpk" target="_blank" rel="noopener"><strong>フィールドコード表示 for kintone</strong></a> があります。サイボウズ株式会社が提供しているもので、レコード詳細画面にフィールドコードを直接表示し、クリックでコピーできます。関連レコードやテーブル、スペースフィールドにも対応しています。2026年5月の更新で表示と非表示をトグルできるようになり、拡張アイコンまたは <code>Ctrl/Cmd+Shift+K</code> で切り替えられます。</p>
-    <p class="kb-article-paragraph">公式が提供しているという安心感があるので、フィールドコードの確認だけが目的なら、まずこれを試すのがいちばん早いと思います。</p>
+    <p class="kb-article-paragraph">ここを短縮する拡張機能として、<a href="https://chromewebstore.google.com/detail/%E3%83%95%E3%82%A3%E3%83%BC%E3%83%AB%E3%83%89%E3%82%B3%E3%83%BC%E3%83%89%E8%A1%A8%E7%A4%BA-for-kintone/bnlpeolgcdlgdaiokimelcacehodjbpk" target="_blank" rel="noopener"><strong>フィールドコード表示 for kintone</strong></a> があります。potara が提供しているもので、レコード詳細画面にフィールドコードを直接表示し、クリックでコピーできます。関連レコードやテーブル、スペースフィールドにも対応しています。2026年5月の更新で表示と非表示をトグルできるようになり、拡張アイコンまたは <code>Ctrl/Cmd+Shift+K</code> で切り替えられます。</p>
+    <p class="kb-article-paragraph">フィールドコードの確認だけが目的なら、単機能で分かりやすいので、まずこれを試すのがいちばん早いと思います。</p>
   </div>
 </section>
 
@@ -72,7 +71,7 @@
   <h2>画面上の値をコピーしたい</h2>
   <div class="kb-section-card kb-section-card--stack">
     <p class="kb-article-paragraph">kintoneの一覧や詳細画面から値を取り出したいとき、範囲選択がうまくいかずに苦労することがあります。<a href="https://chromewebstore.google.com/detail/kintoys/johmoplafihagepgbceblbhlmacejoee" target="_blank" rel="noopener"><strong>kinToys</strong></a> は、そこに特化した拡張機能です。</p>
-    <p class="kb-article-paragraph">セルをクリックするとセル単体・行全体・レコード全体をクリップボードにコピーする「クイックコピー」と、表全体やレコード全体をまとめて取得する「グラブコピー」があります。何をコピーするかはポップアップであらかじめ選んでおく形です。kintone界隈で活動されているキン担ラボの本橋さんが公開されています。</p>
+    <p class="kb-article-paragraph">一覧画面や詳細画面から、CSV・TSV・YAML・JSONといった用途に応じた形式で、1クリックでデータを取り出せます。あらかじめ用意したテンプレートにレコード情報を流し込んでコピーすることもできるので、レコードからメール文面を作るような使い方もできます。編集画面では、クリップボードのCSVをサブテーブルに貼り付けることも可能です。kintone界隈で活動されているキン担ラボの本橋さんが公開されています。</p>
   </div>
 </section>
 
@@ -80,16 +79,10 @@
   <h2>プラグインの設定を別のアプリに移したい</h2>
   <div class="kb-section-card kb-section-card--stack">
     <p class="kb-article-paragraph">同じプラグインを複数のアプリに入れていて、設定を一つずつ手で写している。そういう状況に効くのが <a href="https://chromewebstore.google.com/detail/kintonepluginmigrator/pndmdhhanlckeimjahjfijelpkbgoeac" target="_blank" rel="noopener"><strong>kintonePluginMigrator</strong></a> です。プラグインの設定画面からJSONとして保存し、別のアプリで読み込めます。同じく本橋さんが公開されています。</p>
-    <p class="kb-article-paragraph">対象がかなり限定される拡張機能ですが、当てはまる人にとっては作業時間がまるごと消えます。</p>
+    <p class="kb-article-paragraph">対象がかなり限定される拡張機能ですが、当てはまる人にとっては作業時間がまるごと消えます。なお、同じ作者のkinToysにもプラグイン設定ファイルのダウンロードとアップロードの機能が含まれているため、すでにkinToysを使っている場合はそちらで足りることもあります。</p>
   </div>
 </section>
 
-<section id="devtools" class="kb-article-section">
-  <h2>開発者向けのツールをまとめて使いたい</h2>
-  <div class="kb-section-card kb-section-card--stack">
-    <p class="kb-article-paragraph"><strong>Devkinox</strong> は、kintoneエンジニアが集まる開発者コミュニティの「Chrome拡張部」から生まれた、開発者向けツール集の拡張機能です。個別の課題を解く拡張ではなく、複数のツールがまとまっている形になっています。</p>
-  </div>
-</section>
 
 <section id="keyboard" class="kb-article-section">
   <h2>キーボードだけで操作したい</h2>
