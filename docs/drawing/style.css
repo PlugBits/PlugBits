@@ -350,19 +350,32 @@ h1, h2 {
 
 .dw-app-indicators {
   display: flex;
-  gap: 8px;
+  gap: 2px;
 }
 
+/* 見た目は9pxのドットのまま、タッチターゲットは24pxを確保する */
 .app-indicator {
+  width: 24px;
+  height: 24px;
+  border-radius: var(--radius-pill);
+  border: none;
+  background: transparent;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.app-indicator::before {
+  content: '';
   width: 9px;
   height: 9px;
   border-radius: var(--radius-pill);
   border: 1px solid var(--blue);
   background: transparent;
-  padding: 0;
 }
 
-.app-indicator[aria-current="true"] {
+.app-indicator[aria-current="true"]::before {
   background: var(--blue);
 }
 
@@ -464,22 +477,24 @@ h1, h2 {
   background: #FFFFFF;
   overflow: hidden;
   text-align: center;
+}
+
+/* フェードは画像のみに適用する。カード全体を透過させるとフェード中の
+   スコア文字がコントラスト不足になるため、文字は常時不透明を保つ */
+.app-result img {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
   opacity: 1;
   transform: translateY(0);
   transition: opacity 0.3s ease, transform 0.3s ease;
   transition-delay: calc(var(--i, 0) * 90ms);
 }
 
-.app-result.is-entering {
+.app-result.is-entering img {
   opacity: 0;
   transform: translateY(10px);
-}
-
-.app-result img {
-  width: 100%;
-  height: auto;
-  aspect-ratio: 4 / 3;
-  object-fit: cover;
 }
 
 .app-score {
@@ -504,11 +519,11 @@ h1, h2 {
 
 @media (prefers-reduced-motion: reduce) {
   .dw-app-query img,
-  .app-result {
+  .app-result img {
     transition: none !important;
   }
   .dw-app-query.is-entering img,
-  .app-result.is-entering {
+  .app-result.is-entering img {
     opacity: 1 !important;
     transform: none !important;
   }
