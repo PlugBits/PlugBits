@@ -338,11 +338,15 @@ const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)
 
     const formData = new FormData(form);
     formData.set('locale', 'ja');
+    // sibformsはmultipart/form-dataを受け付けないため、ホスト版フォームと同じ
+    // application/x-www-form-urlencoded に変換して送る
+    const body = new URLSearchParams();
+    formData.forEach((value, key) => { body.append(key, String(value)); });
 
     fetch(BREVO_FORM_ACTION, {
       method: 'POST',
       mode: 'no-cors',
-      body: formData,
+      body: body,
     }).then(() => {
       // sibforms responds without CORS headers, so the response here is an
       // opaque object regardless of outcome. resolve() is treated as success;
