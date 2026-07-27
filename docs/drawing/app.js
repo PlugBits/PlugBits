@@ -343,24 +343,41 @@ const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)
     const body = new URLSearchParams();
     formData.forEach((value, key) => { body.append(key, String(value)); });
 
-    fetch(BREVO_FORM_ACTION, {
-      method: 'POST',
-      mode: 'no-cors',
-      body: body,
-    }).then(() => {
-      // sibforms responds without CORS headers, so the response here is an
-      // opaque object regardless of outcome. resolve() is treated as success;
-      // only a network-level rejection counts as a failure.
+    const fail = () => {
+      setMessage('送信できませんでした。少し時間をおいてもう一度お試しください');
+      if (submitButton) submitButton.disabled = false;
+    };
+    const succeed = () => {
       try {
         history.pushState({}, '', '/drawing/thanks/');
       } catch (e) {
         /* ignore pushState failures (e.g. sandboxed preview) */
       }
       showSuccess();
-    }).catch(() => {
-      setMessage('送信できませんでした。少し時間をおいてもう一度お試しください');
-      if (submitButton) submitButton.disabled = false;
-    });
+    };
+
+    // Brevoの公式埋め込みJSと同じ ?isAjax=1 のエンドポイントはCORSに対応して
+    // おり、JSONで成否が返る。まずこちらで送信し、レスポンスを読んで判定する。
+    // CORSがブロックされる環境ではno-cors送信にフォールバックし、従来どおり
+    // 「通信が通れば成功」とみなす。
+    fetch(BREVO_FORM_ACTION + (BREVO_FORM_ACTION.indexOf('?') === -1 ? '?isAjax=1' : '&isAjax=1'), {
+      method: 'POST',
+      body: body,
+    }).then(res => res.json().then(data => ({ ok: res.ok, data })), err => Promise.reject(err))
+      .then(({ ok, data }) => {
+        if (ok && data && (data.success === true || data.success === undefined)) {
+          succeed();
+        } else {
+          console.error('Brevo form rejected:', data);
+          fail();
+        }
+      })
+      .catch(err => {
+        console.warn('Brevo ajax submit failed, falling back to no-cors:', err);
+        fetch(BREVO_FORM_ACTION, { method: 'POST', mode: 'no-cors', body: body })
+          .then(succeed)
+          .catch(fail);
+      });
   });
 
   window.addEventListener('popstate', function () {
