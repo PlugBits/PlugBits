@@ -13,45 +13,45 @@ const PATTERNS = [
   {
     query: { src: '/drawing/assets/flange-q.webp', alt: 'サンプル図面: 円形フランジ 図番PB-2041', partNo: 'PB-2041', partName: '円形フランジ' },
     results: [
-      { src: '/drawing/assets/flange-1.webp', score: 0.973, alt: 'サンプル図面: 円形フランジ 図番PB-2044' },
-      { src: '/drawing/assets/flange-2.webp', score: 0.958, alt: 'サンプル図面: 円形フランジ 図番PB-2039' },
-      { src: '/drawing/assets/flange-3.webp', score: 0.941, alt: 'サンプル図面: 円形フランジ 図番PB-2052' },
-      { src: '/drawing/assets/flange-4.webp', score: 0.926, alt: 'サンプル図面: 円形フランジ 図番PB-2037' },
-      { src: '/drawing/assets/flange-5.webp', score: 0.909, alt: 'サンプル図面: 円形フランジ 図番PB-2061' },
-      { src: '/drawing/assets/flange-6.webp', score: 0.891, alt: 'サンプル図面: 円形フランジ 図番PB-2048' },
+      { src: '/drawing/assets/flange-1-s.webp', score: 0.973, alt: 'サンプル図面: 円形フランジ 図番PB-2044' },
+      { src: '/drawing/assets/flange-2-s.webp', score: 0.958, alt: 'サンプル図面: 円形フランジ 図番PB-2039' },
+      { src: '/drawing/assets/flange-3-s.webp', score: 0.941, alt: 'サンプル図面: 円形フランジ 図番PB-2052' },
+      { src: '/drawing/assets/flange-4-s.webp', score: 0.926, alt: 'サンプル図面: 円形フランジ 図番PB-2037' },
+      { src: '/drawing/assets/flange-5-s.webp', score: 0.909, alt: 'サンプル図面: 円形フランジ 図番PB-2061' },
+      { src: '/drawing/assets/flange-6-s.webp', score: 0.891, alt: 'サンプル図面: 円形フランジ 図番PB-2048' },
     ],
   },
   {
     query: { src: '/drawing/assets/bracket-q.webp', alt: 'サンプル図面: L字ブラケット 図番PB-3112', partNo: 'PB-3112', partName: 'L字ブラケット' },
     results: [
-      { src: '/drawing/assets/bracket-1.webp', score: 0.968, alt: 'サンプル図面: L字ブラケット 図番PB-3115' },
-      { src: '/drawing/assets/bracket-2.webp', score: 0.952, alt: 'サンプル図面: L字ブラケット 図番PB-3109' },
-      { src: '/drawing/assets/bracket-3.webp', score: 0.937, alt: 'サンプル図面: L字ブラケット 図番PB-3121' },
-      { src: '/drawing/assets/bracket-4.webp', score: 0.919, alt: 'サンプル図面: L字ブラケット 図番PB-3104' },
-      { src: '/drawing/assets/bracket-5.webp', score: 0.902, alt: 'サンプル図面: L字ブラケット 図番PB-3130' },
-      { src: '/drawing/assets/bracket-6.webp', score: 0.884, alt: 'サンプル図面: L字ブラケット 図番PB-3117' },
+      { src: '/drawing/assets/bracket-1-s.webp', score: 0.968, alt: 'サンプル図面: L字ブラケット 図番PB-3115' },
+      { src: '/drawing/assets/bracket-2-s.webp', score: 0.952, alt: 'サンプル図面: L字ブラケット 図番PB-3109' },
+      { src: '/drawing/assets/bracket-3-s.webp', score: 0.937, alt: 'サンプル図面: L字ブラケット 図番PB-3121' },
+      { src: '/drawing/assets/bracket-4-s.webp', score: 0.919, alt: 'サンプル図面: L字ブラケット 図番PB-3104' },
+      { src: '/drawing/assets/bracket-5-s.webp', score: 0.902, alt: 'サンプル図面: L字ブラケット 図番PB-3130' },
+      { src: '/drawing/assets/bracket-6-s.webp', score: 0.884, alt: 'サンプル図面: L字ブラケット 図番PB-3117' },
     ],
   },
   {
     query: { src: '/drawing/assets/plate-q.webp', alt: 'サンプル図面: 穴あきプレート 図番PB-4208', partNo: 'PB-4208', partName: '穴あきプレート' },
     results: [
-      { src: '/drawing/assets/plate-1.webp', score: 0.958, alt: 'サンプル図面: 穴あきプレート 図番PB-4211' },
-      { src: '/drawing/assets/plate-2.webp', score: 0.941, alt: 'サンプル図面: 穴あきプレート 図番PB-4205' },
-      { src: '/drawing/assets/plate-3.webp', score: 0.923, alt: 'サンプル図面: 穴あきプレート 図番PB-4219' },
-      { src: '/drawing/assets/plate-4.webp', score: 0.905, alt: 'サンプル図面: 穴あきプレート 図番PB-4201' },
-      { src: '/drawing/assets/plate-5.webp', score: 0.887, alt: 'サンプル図面: 穴あきプレート 図番PB-4226' },
-      { src: '/drawing/assets/plate-6.webp', score: 0.869, alt: 'サンプル図面: 穴あきプレート 図番PB-4214' },
+      { src: '/drawing/assets/plate-1-s.webp', score: 0.958, alt: 'サンプル図面: 穴あきプレート 図番PB-4211' },
+      { src: '/drawing/assets/plate-2-s.webp', score: 0.941, alt: 'サンプル図面: 穴あきプレート 図番PB-4205' },
+      { src: '/drawing/assets/plate-3-s.webp', score: 0.923, alt: 'サンプル図面: 穴あきプレート 図番PB-4219' },
+      { src: '/drawing/assets/plate-4-s.webp', score: 0.905, alt: 'サンプル図面: 穴あきプレート 図番PB-4201' },
+      { src: '/drawing/assets/plate-5-s.webp', score: 0.887, alt: 'サンプル図面: 穴あきプレート 図番PB-4226' },
+      { src: '/drawing/assets/plate-6-s.webp', score: 0.869, alt: 'サンプル図面: 穴あきプレート 図番PB-4214' },
     ],
   },
   {
     query: { src: '/drawing/assets/shaft-q.webp', alt: 'サンプル図面: 段付きシャフト 図番PB-5117', partNo: 'PB-5117', partName: '段付きシャフト' },
     results: [
-      { src: '/drawing/assets/shaft-1.webp', score: 0.947, alt: 'サンプル図面: 段付きシャフト 図番PB-5119' },
-      { src: '/drawing/assets/shaft-2.webp', score: 0.926, alt: 'サンプル図面: 段付きシャフト 図番PB-5114' },
-      { src: '/drawing/assets/shaft-3.webp', score: 0.905, alt: 'サンプル図面: 段付きシャフト 図番PB-5123' },
-      { src: '/drawing/assets/shaft-4.webp', score: 0.884, alt: 'サンプル図面: 段付きシャフト 図番PB-5108' },
-      { src: '/drawing/assets/shaft-5.webp', score: 0.861, alt: 'サンプル図面: 段付きシャフト 図番PB-5131' },
-      { src: '/drawing/assets/shaft-6.webp', score: 0.837, alt: 'サンプル図面: 段付きシャフト 図番PB-5121' },
+      { src: '/drawing/assets/shaft-1-s.webp', score: 0.947, alt: 'サンプル図面: 段付きシャフト 図番PB-5119' },
+      { src: '/drawing/assets/shaft-2-s.webp', score: 0.926, alt: 'サンプル図面: 段付きシャフト 図番PB-5114' },
+      { src: '/drawing/assets/shaft-3-s.webp', score: 0.905, alt: 'サンプル図面: 段付きシャフト 図番PB-5123' },
+      { src: '/drawing/assets/shaft-4-s.webp', score: 0.884, alt: 'サンプル図面: 段付きシャフト 図番PB-5108' },
+      { src: '/drawing/assets/shaft-5-s.webp', score: 0.861, alt: 'サンプル図面: 段付きシャフト 図番PB-5131' },
+      { src: '/drawing/assets/shaft-6-s.webp', score: 0.837, alt: 'サンプル図面: 段付きシャフト 図番PB-5121' },
     ],
   },
 ];
@@ -79,14 +79,22 @@ const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)
   let advanceTimer = null;
   let paused = false;
 
-  // Preload every pattern's images up front so the autoplay loop never
-  // shows a blank frame mid-cycle.
-  PATTERNS.forEach(pattern => {
-    [pattern.query.src].concat(pattern.results.map(r => r.src)).forEach(src => {
-      const img = new Image();
-      img.src = src;
+  // Preload every pattern's images so the autoplay loop never shows a blank
+  // frame mid-cycle — but only after the page has finished loading, so the
+  // preloads don't compete with the LCP hero image for bandwidth.
+  function preloadAllPatterns() {
+    PATTERNS.forEach(pattern => {
+      [pattern.query.src].concat(pattern.results.map(r => r.src)).forEach(src => {
+        const img = new Image();
+        img.src = src;
+      });
     });
-  });
+  }
+  if (document.readyState === 'complete') {
+    preloadAllPatterns();
+  } else {
+    window.addEventListener('load', preloadAllPatterns, { once: true });
+  }
 
   function animateScore(el, target) {
     if (prefersReducedMotion) {
