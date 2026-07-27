@@ -3,7 +3,7 @@
 /* ------------------------------------------------------------------ */
 /* Brevo form endpoint. Empty until configured — see README.md.        */
 /* ------------------------------------------------------------------ */
-const BREVO_FORM_ACTION = '';
+const BREVO_FORM_ACTION = 'https://dca617a2.sibforms.com/serve/MUIFAADJ4N3DbJz4RS9TRz43ZFlD9TvMZa8m6VZiqHvtg__tVPVKMXt2zHU_OqRUpqAjYOn8b1tUjKBI5rZe1BC3KiBMb69dYxRPMWbTFiCeaw0lJuDlr4h8C_NsgB7mcMUqQO4jX-zChqCgqiM0SZvteV257IdAHQ79fCGtdo_4g3nEQq1jO1MWDsr_p0fmeDKbauPzPIA3bsc2jw==';
 
 /* ------------------------------------------------------------------ */
 /* Hero pseudo-app: 4 fixed patterns (query + 6 results each).         */
