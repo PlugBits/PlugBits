@@ -338,6 +338,10 @@ const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)
 
     const formData = new FormData(form);
     formData.set('locale', 'ja');
+    // ハニーポットはブラウザの自動入力(特にSafari)が値を入れてしまうことがあり、
+    // 値が入っているとBrevoは成功を返しつつ登録を黙って破棄する。人間の送信では
+    // 常に空が正なので、送信直前に必ず空へ戻す
+    formData.set('email_address_check', '');
     // sibformsはmultipart/form-dataを受け付けないため、ホスト版フォームと同じ
     // application/x-www-form-urlencoded に変換して送る
     const body = new URLSearchParams();
