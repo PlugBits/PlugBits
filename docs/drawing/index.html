@@ -392,9 +392,14 @@
         <div class="dw-cta-panel-inner">
           <p class="dw-meta-line dw-meta-line-onpaper">START — 無料ではじめる</p>
           <h2 class="dw-cta-heading">無料で始める</h2>
-          <p class="dw-cta-lead">500枚まで・期間無制限。メールアドレスだけで始められます。</p>
+          <p class="dw-cta-lead">500枚まで・期間無制限。kintoneサブドメインとメールアドレスだけで始められます。</p>
 
           <form id="waitlist-form" class="dw-form" novalidate>
+            <div class="dw-form-row">
+              <label for="field-subdomain">kintoneサブドメイン</label>
+              <input type="text" id="field-subdomain" name="SUBDOMAIN" autocomplete="off" inputmode="text" placeholder="example" required>
+              <p class="dw-form-note">example.cybozu.com の <strong>example</strong> の部分です</p>
+            </div>
             <div class="dw-form-row">
               <label for="field-email">メールアドレス</label>
               <input type="email" id="field-email" name="EMAIL" autocomplete="email" inputmode="email" required>
@@ -410,13 +415,13 @@
             </div>
 
             <button type="submit" class="dw-cta-button dw-form-submit">無料で始める</button>
-            <p class="dw-form-note">1営業日以内に、開始手順のご案内をメールでお送りします。営業の電話はしません。データはいつでも削除できます。</p>
+            <p class="dw-form-note">数分以内に、開始手順のご案内をメールでお送りします。営業の電話はしません。データはいつでも削除できます。</p>
             <p id="waitlist-message" class="dw-form-message" aria-live="polite"></p>
           </form>
 
           <div id="waitlist-success" class="dw-form-success" hidden tabindex="-1">
             <p class="dw-form-success-title">受け付けました</p>
-            <p>開始手順のご案内をお送りします。1営業日以内に届かない場合は support@plugbits.app までご連絡ください。</p>
+            <p>開始手順のご案内をお送りします。数分以内に届かない場合は迷惑メールフォルダをご確認いただくか、support@plugbits.app までご連絡ください。</p>
           </div>
         </div>
         </div>
