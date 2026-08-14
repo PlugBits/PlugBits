@@ -6,7 +6,7 @@
   <title>類似図面検索 for kintone — 形で、過去の図面を探す | PlugBits</title>
   <meta name="description" content="kintoneに貯まった図面PDFを、形の似ている順に探せるプラグイン。無料で500枚まで、期間無制限。実図面4,616枚の検証で、類似図面17種すべてを上位5件以内に発見しました。">
   <link rel="canonical" href="https://plugbits.app/drawing/">
-  <meta name="theme-color" content="#FDFCF9">
+  <meta name="theme-color" content="#FAFBFC">
 
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://plugbits.app/drawing/">
@@ -23,7 +23,7 @@
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@700&family=Zen+Kaku+Gothic+New:wght@400;700&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 
   <link rel="stylesheet" href="style.css">
 </head>
@@ -49,33 +49,26 @@
 
     <!-- 1. HERO -->
     <section class="dw-hero">
-      <div class="dw-container dw-hero-copy" data-reveal>
-        <p class="dw-meta-line">PLUGBITS — KINTONE PLUGIN / 類似図面検索</p>
-        <div class="dw-hero-bubbles" aria-hidden="true">
-          <p class="dw-bubble dw-bubble-1">前に似たの、やったよな…</p>
-          <p class="dw-bubble dw-bubble-2">あの反った薄板、どの図面だっけ</p>
-        </div>
-        <div class="dw-pill-row dw-hero-badges">
-          <span class="dw-pill">kintoneプラグイン</span>
-          <span class="dw-pill">いまのアプリに後付け</span>
-        </div>
-        <h1><span class="dw-marker">形</span>で、過去の図面を探す。</h1>
-        <p class="dw-hero-lead">いま使っているkintoneアプリに後付けするプラグインです。貯まってきた図面PDFが、形で探せる資産に変わります。</p>
-        <a class="dw-cta-button" href="#waitlist">無料で始める</a>
-        <p class="dw-hero-cta-note">500枚まで無料・期間無制限・クレジットカード不要</p>
-      </div>
-
-      <div class="dw-container">
-        <div class="dw-app-window" data-reveal>
-          <div class="dw-app-chrome" aria-hidden="true">
-            <div class="dw-app-chrome-yellow"></div>
-            <div class="dw-app-chrome-nav">
-              <span class="dw-app-chrome-dot"></span>
-              <span class="dw-app-chrome-dot"></span>
-              <span class="dw-app-chrome-dot"></span>
-            </div>
+      <div class="dw-container dw-hero-grid">
+        <div class="dw-hero-copy" data-reveal>
+          <p class="dw-meta-line">00 — PLUGBITS / KINTONE PLUGIN / 類似図面検索</p>
+          <div class="dw-pill-row dw-hero-badges">
+            <span class="dw-pill">kintoneプラグイン</span>
+            <span class="dw-pill">いまのアプリに後付け</span>
           </div>
-          <div class="dw-app-content">
+          <h1><span class="dw-marker">形</span>で、過去の図面を探す。</h1>
+          <p class="dw-hero-lead">いま使っているkintoneアプリに後付けするプラグインです。貯まってきた図面PDFが、形で探せる資産に変わります。</p>
+          <a class="dw-cta-button" href="#waitlist">無料で始める</a>
+          <p class="dw-hero-cta-note">500枚まで無料・期間無制限・クレジットカード不要</p>
+          <div class="dw-hero-dim">
+            <p class="dw-hero-dim-value"><span class="dw-hero-dim-tag">Hit@5</span>100%</p>
+            <span class="dw-dim-line dw-dim-line-sm" aria-hidden="true"></span>
+            <p class="dw-hero-dim-label">実図面4,616枚での検証結果</p>
+          </div>
+        </div>
+
+        <div class="dw-hero-visual" data-reveal>
+          <div class="dw-app-window">
             <div class="dw-app-bar">
               <span class="dw-app-bar-label">図面台帳 — レコード詳細</span>
               <div class="dw-app-indicators" id="app-indicators">
@@ -85,61 +78,63 @@
                 <button type="button" class="app-indicator" aria-current="false" aria-label="パターン4: 段付きシャフト"></button>
               </div>
             </div>
-            <div class="dw-app-body">
-              <div class="dw-app-left">
-                <div class="record-fields">
-                  <p class="record-field"><span class="record-field-label">品番</span><span class="record-field-value" id="field-partno">PB-2041</span></p>
-                  <p class="record-field"><span class="record-field-label">品名</span><span class="record-field-value" id="field-partname">円形フランジ</span></p>
-                  <p class="record-field"><span class="record-field-label">添付</span><span class="record-field-value">図面.pdf</span></p>
+            <div class="dw-app-content">
+              <div class="dw-app-body">
+                <div class="dw-app-left">
+                  <div class="record-fields">
+                    <p class="record-field"><span class="record-field-label">品番</span><span class="record-field-value" id="field-partno">PB-2041</span></p>
+                    <p class="record-field"><span class="record-field-label">品名</span><span class="record-field-value" id="field-partname">円形フランジ</span></p>
+                    <p class="record-field"><span class="record-field-label">添付</span><span class="record-field-value">図面.pdf</span></p>
+                  </div>
+                  <button type="button" id="app-search-btn" class="record-search-btn">類似図面検索</button>
+                  <button type="button" id="app-query" class="dw-app-query" aria-label="別の図面パターンに切り替える">
+                    <img id="app-query-img"
+                         src="/drawing/assets/flange-q.webp"
+                         alt="サンプル図面: 円形フランジ 図番PB-2041"
+                         width="800" height="600"
+                         loading="eager" fetchpriority="high">
+                  </button>
                 </div>
-                <button type="button" id="app-search-btn" class="record-search-btn">類似図面検索</button>
-                <button type="button" id="app-query" class="dw-app-query" aria-label="別の図面パターンに切り替える">
-                  <img id="app-query-img"
-                       src="/drawing/assets/flange-q.webp"
-                       alt="サンプル図面: 円形フランジ 図番PB-2041"
-                       width="800" height="600"
-                       loading="eager" fetchpriority="high">
-                </button>
-              </div>
-              <div class="dw-app-results" id="app-results">
-                <div class="app-result" style="--i:0">
-                  <img src="/drawing/assets/flange-1-s.webp" alt="サンプル図面: 円形フランジ 図番PB-2044" width="480" height="360" loading="eager">
-                  <span class="app-score" data-target="0.973">SCORE 0.000</span>
-                </div>
-                <div class="app-result" style="--i:1">
-                  <img src="/drawing/assets/flange-2-s.webp" alt="サンプル図面: 円形フランジ 図番PB-2039" width="480" height="360" loading="eager">
-                  <span class="app-score" data-target="0.958">SCORE 0.000</span>
-                </div>
-                <div class="app-result" style="--i:2">
-                  <img src="/drawing/assets/flange-3-s.webp" alt="サンプル図面: 円形フランジ 図番PB-2052" width="480" height="360" loading="eager">
-                  <span class="app-score" data-target="0.941">SCORE 0.000</span>
-                </div>
-                <div class="app-result" style="--i:3">
-                  <img src="/drawing/assets/flange-4-s.webp" alt="サンプル図面: 円形フランジ 図番PB-2037" width="480" height="360" loading="eager">
-                  <span class="app-score" data-target="0.926">SCORE 0.000</span>
-                </div>
-                <div class="app-result" style="--i:4">
-                  <img src="/drawing/assets/flange-5-s.webp" alt="サンプル図面: 円形フランジ 図番PB-2061" width="480" height="360" loading="eager">
-                  <span class="app-score" data-target="0.909">SCORE 0.000</span>
-                </div>
-                <div class="app-result" style="--i:5">
-                  <img src="/drawing/assets/flange-6-s.webp" alt="サンプル図面: 円形フランジ 図番PB-2048" width="480" height="360" loading="eager">
-                  <span class="app-score" data-target="0.891">SCORE 0.000</span>
+                <div class="dw-app-results" id="app-results">
+                  <div class="app-result" style="--i:0">
+                    <img src="/drawing/assets/flange-1-s.webp" alt="サンプル図面: 円形フランジ 図番PB-2044" width="480" height="360" loading="eager">
+                    <span class="app-score" data-target="0.973">SCORE 0.000</span>
+                  </div>
+                  <div class="app-result" style="--i:1">
+                    <img src="/drawing/assets/flange-2-s.webp" alt="サンプル図面: 円形フランジ 図番PB-2039" width="480" height="360" loading="eager">
+                    <span class="app-score" data-target="0.958">SCORE 0.000</span>
+                  </div>
+                  <div class="app-result" style="--i:2">
+                    <img src="/drawing/assets/flange-3-s.webp" alt="サンプル図面: 円形フランジ 図番PB-2052" width="480" height="360" loading="eager">
+                    <span class="app-score" data-target="0.941">SCORE 0.000</span>
+                  </div>
+                  <div class="app-result" style="--i:3">
+                    <img src="/drawing/assets/flange-4-s.webp" alt="サンプル図面: 円形フランジ 図番PB-2037" width="480" height="360" loading="eager">
+                    <span class="app-score" data-target="0.926">SCORE 0.000</span>
+                  </div>
+                  <div class="app-result" style="--i:4">
+                    <img src="/drawing/assets/flange-5-s.webp" alt="サンプル図面: 円形フランジ 図番PB-2061" width="480" height="360" loading="eager">
+                    <span class="app-score" data-target="0.909">SCORE 0.000</span>
+                  </div>
+                  <div class="app-result" style="--i:5">
+                    <img src="/drawing/assets/flange-6-s.webp" alt="サンプル図面: 円形フランジ 図番PB-2048" width="480" height="360" loading="eager">
+                    <span class="app-score" data-target="0.891">SCORE 0.000</span>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
-        </div>
 
-        <p class="dw-hero-note">掲載している図面は、すべて検証用に作成したサンプルです。実際のお客様の図面は使用していません。</p>
-        <div id="demo-link-slot" hidden><!-- 公開デモURLをここに差し込む --></div>
+          <p class="dw-hero-note">掲載している図面は、すべて検証用に作成したサンプルです。実際のお客様の図面は使用していません。</p>
+          <div id="demo-link-slot" hidden><!-- 公開デモURLをここに差し込む --></div>
+        </div>
       </div>
     </section>
 
     <!-- 2. 課題 -->
     <section class="dw-section">
       <div class="dw-container">
-        <p class="dw-meta-line" data-reveal>SUBJECT — 検索で出ない情報</p>
+        <p class="dw-meta-line" data-reveal>01 — SUBJECT — 検索で出ない情報</p>
         <h2 data-reveal>検索窓に入れる<span class="dw-marker">言葉</span>が、ない</h2>
 
         <div class="dw-compare">
@@ -151,9 +146,9 @@
           <div class="mock-card mock-card-accent" data-reveal style="--i:1">
             <p class="mock-card-label">形で検索</p>
             <div class="mock-thumbs">
-              <div class="mock-thumb"><div class="tape-photo" style="--r:-2deg"><img src="/drawing/assets/flange-1.webp" alt="" width="800" height="600" loading="lazy"></div><span>0.973</span></div>
-              <div class="mock-thumb"><div class="tape-photo" style="--r:1.5deg"><img src="/drawing/assets/flange-2.webp" alt="" width="800" height="600" loading="lazy"></div><span>0.958</span></div>
-              <div class="mock-thumb"><div class="tape-photo" style="--r:-1deg"><img src="/drawing/assets/flange-3.webp" alt="" width="800" height="600" loading="lazy"></div><span>0.941</span></div>
+              <div class="mock-thumb"><div class="tape-photo"><img src="/drawing/assets/flange-1.webp" alt="" width="800" height="600" loading="lazy"></div><span>0.973</span></div>
+              <div class="mock-thumb"><div class="tape-photo"><img src="/drawing/assets/flange-2.webp" alt="" width="800" height="600" loading="lazy"></div><span>0.958</span></div>
+              <div class="mock-thumb"><div class="tape-photo"><img src="/drawing/assets/flange-3.webp" alt="" width="800" height="600" loading="lazy"></div><span>0.941</span></div>
             </div>
           </div>
         </div>
@@ -169,7 +164,7 @@
     <!-- 3. 見つけたあと -->
     <section class="dw-section dw-section-alt">
       <div class="dw-container">
-        <p class="dw-meta-line" data-reveal>PROCEDURE — 検索から先の流れ</p>
+        <p class="dw-meta-line" data-reveal>02 — PROCEDURE — 検索から先の流れ</p>
         <h2 data-reveal>図面にたどり着いてからが、本題です</h2>
 
         <div class="dw-flow-cards">
@@ -217,7 +212,7 @@
     <!-- 4. kintoneだから -->
     <section class="dw-section">
       <div class="dw-container">
-        <p class="dw-meta-line" data-reveal>BASIS — 台帳が古くならない理由</p>
+        <p class="dw-meta-line" data-reveal>03 — BASIS — 台帳が古くならない理由</p>
         <h2 data-reveal>kintoneに貯まってきたものが、<span class="dw-marker">そのまま資産</span>になる</h2>
 
         <figure class="dw-real-shot" data-reveal>
@@ -253,20 +248,29 @@
     <!-- 5. 検証結果 -->
     <section class="dw-section dw-section-alt">
       <div class="dw-container dw-stats-section">
-        <p class="dw-meta-line" data-reveal>RESULT — 検証条件と結果</p>
+        <p class="dw-meta-line" data-reveal>04 — RESULT — 検証条件と結果</p>
         <h2 data-reveal>実図面<span class="dw-marker">4,616枚</span>での検証結果</h2>
 
         <div class="dw-stats" data-reveal>
           <div class="dw-stat">
-            <p class="dw-stat-value" data-count-to="4616" data-count-suffix="枚">0枚</p>
+            <div class="dw-dim">
+              <p class="dw-stat-value">4,616<span class="dw-stat-unit">枚</span></p>
+              <span class="dw-dim-line" aria-hidden="true"></span>
+            </div>
             <p class="dw-stat-label">検証に使った実図面</p>
           </div>
           <div class="dw-stat">
-            <p class="dw-stat-value" data-count-to="100" data-count-suffix="%">0%</p>
+            <div class="dw-dim">
+              <p class="dw-stat-value">100<span class="dw-stat-unit">%</span></p>
+              <span class="dw-dim-line" aria-hidden="true"></span>
+            </div>
             <p class="dw-stat-label">上位5件以内に見つかった割合</p>
           </div>
           <div class="dw-stat">
-            <p class="dw-stat-value" data-count-to="76.5" data-count-decimals="1" data-count-suffix="%">0.0%</p>
+            <div class="dw-dim">
+              <p class="dw-stat-value">76.5<span class="dw-stat-unit">%</span></p>
+              <span class="dw-dim-line" aria-hidden="true"></span>
+            </div>
             <p class="dw-stat-label">1位に表示された割合</p>
           </div>
         </div>
@@ -277,7 +281,7 @@
     <!-- 6. 料金 -->
     <section class="dw-section" id="pricing">
       <div class="dw-container">
-        <p class="dw-meta-line" data-reveal>PRICING — 料金</p>
+        <p class="dw-meta-line" data-reveal>05 — PRICING — 料金</p>
         <h2 data-reveal>価格は、<span class="dw-marker">全部公開</span>です</h2>
 
         <div class="dw-pricing" data-reveal>
@@ -293,7 +297,7 @@
             <a class="dw-cta-button price-cta" href="#waitlist">無料で始める</a>
           </div>
           <div class="price-card price-card-accent">
-            <p class="price-badge">まずはこちら</p>
+            <p class="price-badge">推奨</p>
             <p class="price-name">月額プラン</p>
             <p class="price-value">9,800<span class="price-per">円/月</span></p>
             <ul class="price-list">
@@ -322,17 +326,26 @@
     <!-- 7. セキュリティ -->
     <section class="dw-section dw-section-alt">
       <div class="dw-container">
-        <p class="dw-meta-line" data-reveal>SECURITY — 図面の扱い</p>
+        <p class="dw-meta-line" data-reveal>06 — SECURITY — 図面の扱い</p>
         <h2 data-reveal>図面は、貴社の<span class="dw-marker">機密</span>として扱います</h2>
         <div class="dw-lines" data-reveal>
           <p>図面PDFそのものは、お客様のkintoneに置いたままです。お預かりするのは検索用の数値データと、AES-256で暗号化したサムネイルだけ。復号鍵は当方のサーバーに保存されません。</p>
           <p>データはお客様ごとに完全に分離され、AIの学習には一切使いません。解約時は、お預かりしたデータをすべて削除します。</p>
         </div>
-        <div class="dw-pill-row" data-reveal>
-          <span class="dw-pill">図面はkintoneの中</span>
-          <span class="dw-pill">サムネイル暗号化</span>
-          <span class="dw-pill">学習に不使用</span>
-          <span class="dw-pill">解約時に全削除</span>
+        <div class="dw-specs" data-reveal>
+          <table class="dw-spec-table">
+            <thead>
+              <tr><th>項目</th><th>内容</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>図面原本の保管場所</td><td>お客様のkintone内(移行なし)</td></tr>
+              <tr><td>お預かりするデータ</td><td>検索用の数値データ + 暗号化したサムネイルのみ</td></tr>
+              <tr><td>暗号化方式</td><td>AES-256(復号鍵はサーバー非保持)</td></tr>
+              <tr><td>データ分離</td><td>テナントごとに完全分離</td></tr>
+              <tr><td>AI学習への利用</td><td>一切なし</td></tr>
+              <tr><td>解約時</td><td>お預かりしたデータを全削除(図面原本はkintone内)</td></tr>
+            </tbody>
+          </table>
         </div>
       </div>
     </section>
@@ -340,7 +353,7 @@
     <!-- 8. FAQ -->
     <section class="dw-section">
       <div class="dw-container">
-        <p class="dw-meta-line" data-reveal>FAQ — よくある質問</p>
+        <p class="dw-meta-line" data-reveal>07 — FAQ — よくある質問</p>
         <h2 data-reveal>よくある質問</h2>
         <div class="dw-faq" data-reveal>
           <details>
@@ -374,7 +387,7 @@
     <!-- 9. 作っている人 -->
     <section class="dw-section">
       <div class="dw-container">
-        <p class="dw-meta-line" data-reveal>DRAWN BY — 作っている人</p>
+        <p class="dw-meta-line" data-reveal>08 — DRAWN BY — 作っている人</p>
         <h2 data-reveal>製造業の中から作っています</h2>
         <div class="dw-lines dw-lines-wide" data-reveal>
           <p>製造業で15年。海外工場の運営と原価管理をしてきました。</p>
@@ -390,7 +403,7 @@
       <div class="dw-container">
         <div class="dw-cta-panel">
         <div class="dw-cta-panel-inner">
-          <p class="dw-meta-line dw-meta-line-onpaper">START — 無料ではじめる</p>
+          <p class="dw-meta-line dw-meta-line-onpaper">09 — START — 無料ではじめる</p>
           <h2 class="dw-cta-heading">無料で始める</h2>
           <p class="dw-cta-lead">500枚まで・期間無制限。kintoneサブドメインとメールアドレスだけで始められます。</p>
 
