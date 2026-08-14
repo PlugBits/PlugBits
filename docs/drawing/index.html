@@ -123,6 +123,9 @@
                 </div>
               </div>
             </div>
+            <div class="dw-app-titleblock" aria-hidden="true">
+              <p class="dw-app-titleblock-text">DWG. 類似図面検索<br>SCALE 1:1</p>
+            </div>
           </div>
 
           <p class="dw-hero-note">掲載している図面は、すべて検証用に作成したサンプルです。実際のお客様の図面は使用していません。</p>
@@ -140,6 +143,48 @@
         <div class="dw-compare">
           <div class="mock-card" data-reveal style="--i:0">
             <p class="mock-card-label">品番で検索</p>
+            <div class="mock-card-drawing" aria-hidden="true">
+              <svg viewBox="0 0 440 250" role="img" focusable="false">
+                <circle cx="120" cy="115" r="76" style="fill:none;stroke:var(--ink);stroke-width:1.5"></circle>
+                <circle cx="120" cy="115" r="52" style="fill:none;stroke:var(--sub);stroke-width:1;stroke-dasharray:6 3"></circle>
+                <circle cx="120" cy="115" r="20" style="fill:none;stroke:var(--ink);stroke-width:1.5"></circle>
+                <line x1="25" y1="115" x2="215" y2="115" style="stroke:var(--sub);stroke-width:1;stroke-dasharray:12 3 2 3"></line>
+                <line x1="120" y1="25" x2="120" y2="205" style="stroke:var(--sub);stroke-width:1;stroke-dasharray:12 3 2 3"></line>
+                <g style="fill:none;stroke:var(--ink);stroke-width:1.5">
+                  <circle cx="120" cy="63" r="5" transform="rotate(0 120 115)"></circle>
+                  <circle cx="120" cy="63" r="5" transform="rotate(60 120 115)"></circle>
+                  <circle cx="120" cy="63" r="5" transform="rotate(120 120 115)"></circle>
+                  <circle cx="120" cy="63" r="5" transform="rotate(180 120 115)"></circle>
+                  <circle cx="120" cy="63" r="5" transform="rotate(240 120 115)"></circle>
+                  <circle cx="120" cy="63" r="5" transform="rotate(300 120 115)"></circle>
+                </g>
+
+                <line x1="44" y1="191" x2="44" y2="228" style="stroke:var(--sub);stroke-width:1"></line>
+                <line x1="196" y1="191" x2="196" y2="228" style="stroke:var(--sub);stroke-width:1"></line>
+                <line x1="44" y1="220" x2="196" y2="220" style="stroke:var(--sub);stroke-width:1"></line>
+                <polyline points="50,216 44,220 50,224" style="fill:none;stroke:var(--sub);stroke-width:1"></polyline>
+                <polyline points="190,216 196,220 190,224" style="fill:none;stroke:var(--sub);stroke-width:1"></polyline>
+                <text x="120" y="213" text-anchor="middle" style="font-family:'IBM Plex Mono',monospace;font-size:10px;fill:var(--sub)">φ120</text>
+
+                <line x1="100" y1="115" x2="140" y2="115" style="stroke:var(--sub);stroke-width:1"></line>
+                <polyline points="106,111 100,115 106,119" style="fill:none;stroke:var(--sub);stroke-width:1"></polyline>
+                <polyline points="134,111 140,115 134,119" style="fill:none;stroke:var(--sub);stroke-width:1"></polyline>
+                <text x="120" y="133" text-anchor="middle" style="font-family:'IBM Plex Mono',monospace;font-size:9px;fill:var(--sub)">φ40</text>
+
+                <rect x="300" y="45" width="50" height="140" style="fill:var(--blue-tint);stroke:var(--ink);stroke-width:1.5"></rect>
+                <line x1="280" y1="115" x2="366" y2="115" style="stroke:var(--sub);stroke-width:1;stroke-dasharray:12 3 2 3"></line>
+
+                <line x1="350" y1="45" x2="380" y2="45" style="stroke:var(--sub);stroke-width:1"></line>
+                <line x1="350" y1="185" x2="380" y2="185" style="stroke:var(--sub);stroke-width:1"></line>
+                <line x1="376" y1="45" x2="376" y2="185" style="stroke:var(--sub);stroke-width:1"></line>
+                <polyline points="372,51 376,45 380,51" style="fill:none;stroke:var(--sub);stroke-width:1"></polyline>
+                <polyline points="372,179 376,185 380,179" style="fill:none;stroke:var(--sub);stroke-width:1"></polyline>
+                <text x="386" y="118" transform="rotate(90 386 118)" style="font-family:'IBM Plex Mono',monospace;font-size:9px;fill:var(--sub)">42±0.1</text>
+
+                <text x="120" y="243" text-anchor="middle" style="font-family:'IBM Plex Mono',monospace;font-size:10px;fill:var(--sub)">正面図</text>
+                <text x="325" y="243" text-anchor="middle" style="font-family:'IBM Plex Mono',monospace;font-size:10px;fill:var(--sub)">側面図</text>
+              </svg>
+            </div>
             <div class="mock-input"><span>PB-____</span></div>
             <p class="mock-empty">該当 0件</p>
           </div>
@@ -161,10 +206,110 @@
       </div>
     </section>
 
-    <!-- 3. 見つけたあと -->
+    <!-- 3. 仕組み -->
+    <section class="dw-section">
+      <div class="dw-container">
+        <p class="dw-meta-line" data-reveal>02 — PROCESS — 検索の仕組み</p>
+        <h2 data-reveal>どうやって<span class="dw-marker">探している</span>のか</h2>
+
+        <div class="dw-diagram-steps" data-reveal>
+          <div class="diagram-step">
+            <div class="diagram-step-art" aria-hidden="true">
+              <svg viewBox="0 0 140 190" role="img" focusable="false">
+                <rect x="6" y="6" width="128" height="178" style="fill:none;stroke:var(--line-strong);stroke-width:1"></rect>
+                <rect x="16" y="16" width="108" height="140" style="fill:none;stroke:var(--ink);stroke-width:1.5"></rect>
+                <rect x="44" y="54" width="46" height="34" style="fill:none;stroke:var(--ink);stroke-width:1.5"></rect>
+                <circle cx="67" cy="71" r="8" style="fill:none;stroke:var(--ink);stroke-width:1.5"></circle>
+                <line x1="52" y1="71" x2="82" y2="71" style="stroke:var(--sub);stroke-width:1;stroke-dasharray:12 3 2 3"></line>
+                <line x1="67" y1="56" x2="67" y2="86" style="stroke:var(--sub);stroke-width:1;stroke-dasharray:12 3 2 3"></line>
+                <rect x="16" y="156" width="108" height="20" style="fill:none;stroke:var(--line-strong);stroke-width:1"></rect>
+                <line x1="56" y1="156" x2="56" y2="176" style="stroke:var(--line);stroke-width:1"></line>
+                <line x1="96" y1="156" x2="96" y2="176" style="stroke:var(--line);stroke-width:1"></line>
+                <text x="20" y="170" style="font-family:'IBM Plex Mono',monospace;font-size:9px;fill:var(--sub)">DWG.PDF</text>
+              </svg>
+            </div>
+            <p class="diagram-step-caption">1. 図面を画像として読む</p>
+          </div>
+
+          <div class="diagram-arrow" aria-hidden="true">
+            <svg viewBox="0 0 40 20" focusable="false">
+              <line x1="2" y1="10" x2="30" y2="10" style="stroke:var(--sub);stroke-width:1.5"></line>
+              <polyline points="22,3 32,10 22,17" style="fill:none;stroke:var(--sub);stroke-width:1.5"></polyline>
+            </svg>
+          </div>
+
+          <div class="diagram-step">
+            <div class="diagram-step-art" aria-hidden="true">
+              <svg viewBox="0 0 140 190" role="img" focusable="false">
+                <g style="stroke:var(--line);stroke-width:1">
+                  <line x1="10" y1="10" x2="10" y2="130"></line>
+                  <line x1="34" y1="10" x2="34" y2="130"></line>
+                  <line x1="58" y1="10" x2="58" y2="130"></line>
+                  <line x1="82" y1="10" x2="82" y2="130"></line>
+                  <line x1="106" y1="10" x2="106" y2="130"></line>
+                  <line x1="130" y1="10" x2="130" y2="130"></line>
+                  <line x1="10" y1="10" x2="130" y2="10"></line>
+                  <line x1="10" y1="34" x2="130" y2="34"></line>
+                  <line x1="10" y1="58" x2="130" y2="58"></line>
+                  <line x1="10" y1="82" x2="130" y2="82"></line>
+                  <line x1="10" y1="106" x2="130" y2="106"></line>
+                  <line x1="10" y1="130" x2="130" y2="130"></line>
+                </g>
+                <polyline points="34,34 58,58 82,34 106,82 58,106 34,82" style="fill:none;stroke:var(--sub);stroke-width:1"></polyline>
+                <g style="fill:var(--blue)">
+                  <circle cx="34" cy="34" r="3"></circle>
+                  <circle cx="58" cy="58" r="3"></circle>
+                  <circle cx="82" cy="34" r="3"></circle>
+                  <circle cx="106" cy="82" r="3"></circle>
+                  <circle cx="58" cy="106" r="3"></circle>
+                  <circle cx="34" cy="82" r="3"></circle>
+                </g>
+                <text x="10" y="150" style="font-family:'IBM Plex Mono',monospace;font-size:9px;fill:var(--sub)">[ 0.973, 0.041,</text>
+                <text x="10" y="164" style="font-family:'IBM Plex Mono',monospace;font-size:9px;fill:var(--sub)">  0.958, … ]</text>
+              </svg>
+            </div>
+            <p class="diagram-step-caption">2. AIが形を数値の並びに変換</p>
+          </div>
+
+          <div class="diagram-arrow" aria-hidden="true">
+            <svg viewBox="0 0 40 20" focusable="false">
+              <line x1="2" y1="10" x2="30" y2="10" style="stroke:var(--sub);stroke-width:1.5"></line>
+              <polyline points="22,3 32,10 22,17" style="fill:none;stroke:var(--sub);stroke-width:1.5"></polyline>
+            </svg>
+          </div>
+
+          <div class="diagram-step">
+            <div class="diagram-step-art" aria-hidden="true">
+              <svg viewBox="0 0 140 190" role="img" focusable="false">
+                <line x1="6" y1="18" x2="6" y2="172" style="stroke:var(--sub);stroke-width:1"></line>
+                <polyline points="2,166 6,172 10,166" style="fill:none;stroke:var(--sub);stroke-width:1"></polyline>
+
+                <text x="16" y="34" style="font-family:'IBM Plex Mono',monospace;font-size:9px;fill:var(--sub)">1</text>
+                <rect x="28" y="18" width="54" height="34" style="fill:none;stroke:var(--blue);stroke-width:1.5"></rect>
+                <circle cx="55" cy="35" r="9" style="fill:none;stroke:var(--sub);stroke-width:1"></circle>
+                <text x="90" y="39" style="font-family:'IBM Plex Mono',monospace;font-size:11px;fill:var(--blue)">0.973</text>
+
+                <text x="16" y="90" style="font-family:'IBM Plex Mono',monospace;font-size:9px;fill:var(--sub)">2</text>
+                <rect x="28" y="74" width="54" height="34" style="fill:none;stroke:var(--ink);stroke-width:1.5"></rect>
+                <circle cx="55" cy="91" r="9" style="fill:none;stroke:var(--sub);stroke-width:1"></circle>
+                <text x="90" y="95" style="font-family:'IBM Plex Mono',monospace;font-size:11px;fill:var(--sub)">0.958</text>
+
+                <text x="16" y="146" style="font-family:'IBM Plex Mono',monospace;font-size:9px;fill:var(--sub)">3</text>
+                <rect x="28" y="130" width="54" height="34" style="fill:none;stroke:var(--ink);stroke-width:1.5"></rect>
+                <circle cx="55" cy="147" r="9" style="fill:none;stroke:var(--sub);stroke-width:1"></circle>
+                <text x="90" y="151" style="font-family:'IBM Plex Mono',monospace;font-size:11px;fill:var(--sub)">0.941</text>
+              </svg>
+            </div>
+            <p class="diagram-step-caption">3. 数値が近い順に並べる</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 4. 見つけたあと -->
     <section class="dw-section dw-section-alt">
       <div class="dw-container">
-        <p class="dw-meta-line" data-reveal>02 — PROCEDURE — 検索から先の流れ</p>
+        <p class="dw-meta-line" data-reveal>03 — PROCEDURE — 検索から先の流れ</p>
         <h2 data-reveal>図面にたどり着いてからが、本題です</h2>
 
         <div class="dw-flow-cards">
@@ -209,10 +354,10 @@
       </div>
     </section>
 
-    <!-- 4. kintoneだから -->
+    <!-- 5. kintoneだから -->
     <section class="dw-section">
       <div class="dw-container">
-        <p class="dw-meta-line" data-reveal>03 — BASIS — 台帳が古くならない理由</p>
+        <p class="dw-meta-line" data-reveal>04 — BASIS — 台帳が古くならない理由</p>
         <h2 data-reveal>kintoneに貯まってきたものが、<span class="dw-marker">そのまま資産</span>になる</h2>
 
         <figure class="dw-real-shot" data-reveal>
@@ -245,10 +390,10 @@
       </div>
     </section>
 
-    <!-- 5. 検証結果 -->
+    <!-- 6. 検証結果 -->
     <section class="dw-section dw-section-alt">
       <div class="dw-container dw-stats-section">
-        <p class="dw-meta-line" data-reveal>04 — RESULT — 検証条件と結果</p>
+        <p class="dw-meta-line" data-reveal>05 — RESULT — 検証条件と結果</p>
         <h2 data-reveal>実図面<span class="dw-marker">4,616枚</span>での検証結果</h2>
 
         <div class="dw-stats" data-reveal>
@@ -278,10 +423,23 @@
       </div>
     </section>
 
-    <!-- 6. 料金 -->
+    <!-- 7. 青焼きストリップ -->
+    <section class="dw-blueprint-strip">
+      <div class="dw-blueprint-strip-track" aria-hidden="true">
+        <img src="/drawing/assets/flange-1.webp" alt="" width="800" height="600" loading="lazy">
+        <img src="/drawing/assets/bracket-2.webp" alt="" width="800" height="600" loading="lazy">
+        <img src="/drawing/assets/flange-4.webp" alt="" width="800" height="600" loading="lazy">
+        <img src="/drawing/assets/bracket-5.webp" alt="" width="800" height="600" loading="lazy">
+        <img src="/drawing/assets/flange-2.webp" alt="" width="800" height="600" loading="lazy">
+        <img src="/drawing/assets/bracket-1.webp" alt="" width="800" height="600" loading="lazy">
+      </div>
+      <p class="dw-blueprint-strip-label">4,616枚の実図面で検証済み</p>
+    </section>
+
+    <!-- 8. 料金 -->
     <section class="dw-section" id="pricing">
       <div class="dw-container">
-        <p class="dw-meta-line" data-reveal>05 — PRICING — 料金</p>
+        <p class="dw-meta-line" data-reveal>06 — PRICING — 料金</p>
         <h2 data-reveal>価格は、<span class="dw-marker">全部公開</span>です</h2>
 
         <div class="dw-pricing" data-reveal>
@@ -323,10 +481,10 @@
       </div>
     </section>
 
-    <!-- 7. セキュリティ -->
+    <!-- 9. セキュリティ -->
     <section class="dw-section dw-section-alt">
       <div class="dw-container">
-        <p class="dw-meta-line" data-reveal>06 — SECURITY — 図面の扱い</p>
+        <p class="dw-meta-line" data-reveal>07 — SECURITY — 図面の扱い</p>
         <h2 data-reveal>図面は、貴社の<span class="dw-marker">機密</span>として扱います</h2>
         <div class="dw-lines" data-reveal>
           <p>図面PDFそのものは、お客様のkintoneに置いたままです。お預かりするのは検索用の数値データと、AES-256で暗号化したサムネイルだけ。復号鍵は当方のサーバーに保存されません。</p>
@@ -350,10 +508,10 @@
       </div>
     </section>
 
-    <!-- 8. FAQ -->
+    <!-- 10. FAQ -->
     <section class="dw-section">
       <div class="dw-container">
-        <p class="dw-meta-line" data-reveal>07 — FAQ — よくある質問</p>
+        <p class="dw-meta-line" data-reveal>08 — FAQ — よくある質問</p>
         <h2 data-reveal>よくある質問</h2>
         <div class="dw-faq" data-reveal>
           <details>
@@ -384,10 +542,10 @@
       </div>
     </section>
 
-    <!-- 9. 作っている人 -->
+    <!-- 11. 作っている人 -->
     <section class="dw-section">
       <div class="dw-container">
-        <p class="dw-meta-line" data-reveal>08 — DRAWN BY — 作っている人</p>
+        <p class="dw-meta-line" data-reveal>09 — DRAWN BY — 作っている人</p>
         <h2 data-reveal>製造業の中から作っています</h2>
         <div class="dw-lines dw-lines-wide" data-reveal>
           <p>製造業で15年。海外工場の運営と原価管理をしてきました。</p>
@@ -398,12 +556,12 @@
       </div>
     </section>
 
-    <!-- 7. CTA(青パネル反転) -->
+    <!-- 12. CTA(青パネル反転) -->
     <section class="dw-cta-wrap" id="waitlist">
       <div class="dw-container">
         <div class="dw-cta-panel">
         <div class="dw-cta-panel-inner">
-          <p class="dw-meta-line dw-meta-line-onpaper">09 — START — 無料ではじめる</p>
+          <p class="dw-meta-line dw-meta-line-onpaper">10 — START — 無料ではじめる</p>
           <h2 class="dw-cta-heading">無料で始める</h2>
           <p class="dw-cta-lead">500枚まで・期間無制限。kintoneサブドメインとメールアドレスだけで始められます。</p>
 

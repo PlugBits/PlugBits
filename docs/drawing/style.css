@@ -216,6 +216,10 @@ h1, h2 {
 
 .dw-hero {
   padding: 48px 0 64px;
+  background-color: var(--paper);
+  background-image:
+    repeating-linear-gradient(0deg, rgba(30, 86, 160, 0.05) 0, rgba(30, 86, 160, 0.05) 1px, transparent 1px, transparent 20px),
+    repeating-linear-gradient(90deg, rgba(30, 86, 160, 0.05) 0, rgba(30, 86, 160, 0.05) 1px, transparent 1px, transparent 20px);
 }
 
 .dw-hero-grid {
@@ -402,6 +406,26 @@ h1, h2 {
 
 .dw-app-content {
   padding: 16px;
+}
+
+/* ---------- app window title block (bottom-right corner tag) ---------- */
+
+.dw-app-titleblock {
+  display: flex;
+  justify-content: flex-end;
+  padding: 6px 16px;
+  border-top: 1px solid var(--line);
+  background: var(--paper-alt);
+}
+
+.dw-app-titleblock-text {
+  margin: 0;
+  text-align: right;
+  font-family: 'IBM Plex Mono', 'Liberation Mono', monospace;
+  font-size: 9px;
+  line-height: 1.5;
+  letter-spacing: 0.02em;
+  color: var(--sub);
 }
 
 .dw-app-body {
@@ -636,6 +660,18 @@ h1, h2 {
   color: var(--sub);
 }
 
+.mock-card-drawing {
+  margin: 0 0 14px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--line);
+}
+
+.mock-card-drawing svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
 .mock-input {
   border: 1px solid var(--line);
   border-radius: var(--radius);
@@ -800,6 +836,66 @@ h1, h2 {
   .dw-flow-cards { flex-direction: row; }
 }
 
+/* ---------- section: 3-step mechanism diagram ---------- */
+
+.dw-diagram-steps {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+  margin-top: 8px;
+}
+
+.diagram-step {
+  width: 100%;
+  max-width: 220px;
+  text-align: center;
+}
+
+.diagram-step-art {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  padding: 10px;
+}
+
+.diagram-step-art svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 140 / 190;
+}
+
+.diagram-step-caption {
+  margin: 10px 0 0;
+  font-family: 'IBM Plex Mono', 'Liberation Mono', monospace;
+  font-size: 12px;
+  color: var(--sub);
+}
+
+.diagram-arrow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transform: rotate(90deg);
+}
+
+.diagram-arrow svg {
+  width: 32px;
+  height: 16px;
+}
+
+@media (min-width: 860px) {
+  .dw-diagram-steps {
+    flex-direction: row;
+    align-items: flex-start;
+    justify-content: center;
+    gap: 8px;
+  }
+  .diagram-step { flex: 0 0 200px; }
+  .diagram-arrow { transform: none; margin-top: 76px; flex: 0 0 auto; }
+}
+
 /* ---------- section 4: real screenshot + flow ---------- */
 
 .dw-real-shot {
@@ -911,6 +1007,51 @@ h1, h2 {
   .dw-stat { border-top: none; border-left: 1px solid var(--line); }
   .dw-stat:first-child { border-left: none; }
   .dw-stats-note { text-align: center; }
+}
+
+/* ---------- blueprint strip (decorative band between RESULT and PRICING) ---------- */
+
+.dw-blueprint-strip {
+  position: relative;
+  height: 180px;
+  overflow: hidden;
+  background: var(--blue-deep);
+}
+
+.dw-blueprint-strip-track {
+  position: absolute;
+  inset: 0;
+  display: flex;
+}
+
+.dw-blueprint-strip-track img {
+  flex: 1 1 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  filter: invert(1) hue-rotate(190deg) saturate(1.6) brightness(0.9);
+  mix-blend-mode: screen;
+  opacity: 0.85;
+}
+
+.dw-blueprint-strip-label {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  padding: 0 24px;
+  text-align: center;
+  font-family: 'IBM Plex Mono', 'Liberation Mono', monospace;
+  font-size: clamp(14px, 2.4vw, 20px);
+  letter-spacing: 0.06em;
+  color: #FFFFFF;
+  background: rgba(20, 60, 116, 0.4);
+}
+
+@media (min-width: 720px) {
+  .dw-blueprint-strip { height: 200px; }
 }
 
 /* ---------- CTA panel (blue-deep, blueprint grid) ---------- */
