@@ -90,7 +90,7 @@ h1, h2 {
 .price-badge,
 .dw-spec-table th,
 .dw-spec-table td:first-child {
-  font-family: 'IBM Plex Mono', 'Liberation Mono', monospace;
+  font-family: 'Roboto Mono', 'Liberation Mono', monospace;
   font-weight: 500;
   font-variant-numeric: tabular-nums;
 }
@@ -248,7 +248,7 @@ h1, h2 {
   display: inline-block;
   background: transparent;
   color: var(--sub);
-  font-family: 'IBM Plex Mono', 'Liberation Mono', monospace;
+  font-family: 'Roboto Mono', 'Liberation Mono', monospace;
   font-size: 12px;
   font-weight: 500;
   letter-spacing: 0.02em;
@@ -460,7 +460,7 @@ h1, h2 {
 .dw-app-titleblock-text {
   margin: 0;
   text-align: right;
-  font-family: 'IBM Plex Mono', 'Liberation Mono', monospace;
+  font-family: 'Roboto Mono', 'Liberation Mono', monospace;
   font-size: 9px;
   line-height: 1.5;
   letter-spacing: 0.02em;
@@ -653,7 +653,7 @@ h1, h2 {
 
 .dw-number-value {
   margin: 0 0 8px;
-  font-family: 'IBM Plex Mono', 'Liberation Mono', monospace;
+  font-family: 'Roboto Mono', 'Liberation Mono', monospace;
   font-weight: 500;
   font-variant-numeric: tabular-nums;
   font-size: clamp(48px, 13cqi, 56px);
@@ -781,7 +781,7 @@ h1, h2 {
   border: 1px solid var(--line);
   border-radius: var(--radius);
   padding: 10px 12px;
-  font-family: 'IBM Plex Mono', monospace;
+  font-family: 'Roboto Mono', monospace;
   font-size: 14px;
   color: var(--ink);
   margin-bottom: 10px;
@@ -840,7 +840,7 @@ h1, h2 {
   margin: 0 0 12px;
   padding-bottom: 10px;
   border-bottom: 1px solid var(--line);
-  font-family: 'IBM Plex Mono', 'Liberation Mono', monospace;
+  font-family: 'Roboto Mono', 'Liberation Mono', monospace;
   font-size: 12px;
   font-weight: 500;
   letter-spacing: 0.06em;
@@ -881,7 +881,7 @@ h1, h2 {
 .howto-shot figcaption {
   padding: 0 12px;
   text-align: center;
-  font-family: 'IBM Plex Mono', 'Liberation Mono', monospace;
+  font-family: 'Roboto Mono', 'Liberation Mono', monospace;
   font-size: 11px;
   letter-spacing: 0.02em;
   color: var(--sub);
@@ -906,7 +906,7 @@ h1, h2 {
   height: 24px;
   border: 1px solid var(--blue);
   border-radius: 50%;
-  font-family: 'IBM Plex Mono', 'Liberation Mono', monospace;
+  font-family: 'Roboto Mono', 'Liberation Mono', monospace;
   font-size: 12px;
   color: var(--blue);
 }
@@ -1008,7 +1008,7 @@ h1, h2 {
   grid-template-columns: 1fr 1fr;
   gap: 8px;
   width: 100%;
-  font-family: 'IBM Plex Mono', monospace;
+  font-family: 'Roboto Mono', monospace;
   font-size: 12px;
   color: var(--ink);
 }
@@ -1104,7 +1104,7 @@ h1, h2 {
 
 .diagram-step-caption {
   margin: 10px 0 0;
-  font-family: 'IBM Plex Mono', 'Liberation Mono', monospace;
+  font-family: 'Roboto Mono', 'Liberation Mono', monospace;
   font-size: 12px;
   color: var(--sub);
 }
@@ -1279,7 +1279,7 @@ h1, h2 {
   margin: 0;
   padding: 0 24px;
   text-align: center;
-  font-family: 'IBM Plex Mono', 'Liberation Mono', monospace;
+  font-family: 'Roboto Mono', 'Liberation Mono', monospace;
   font-size: clamp(14px, 2.4vw, 20px);
   letter-spacing: 0.06em;
   color: #FFFFFF;
@@ -1465,8 +1465,8 @@ h1, h2 {
 .price-card-accent { border: 2px solid var(--blue); }
 .price-badge { position: absolute; top: -11px; left: 20px; margin: 0; background: var(--blue); color: #fff; font-size: 11px; letter-spacing: 0.04em; padding: 3px 10px; border-radius: var(--radius); }
 .price-name { margin: 0; font-weight: 700; color: var(--sub); font-size: 14px; letter-spacing: .06em; }
-.price-value { margin: 6px 0 14px; font-size: clamp(38px, 8vw, 52px); font-weight: 500; line-height: 1.1; font-family: 'IBM Plex Mono', 'Liberation Mono', monospace; font-variant-numeric: tabular-nums; }
-.price-per { font-size: 14px; font-weight: 500; color: var(--sub); margin-left: 4px; font-family: 'IBM Plex Mono', 'Liberation Mono', monospace; }
+.price-value { margin: 6px 0 14px; font-size: clamp(38px, 8vw, 52px); font-weight: 500; line-height: 1.1; font-family: 'Roboto Mono', 'Liberation Mono', monospace; font-variant-numeric: tabular-nums; }
+.price-per { font-size: 14px; font-weight: 500; color: var(--sub); margin-left: 4px; font-family: 'Roboto Mono', 'Liberation Mono', monospace; }
 .price-list { margin: 0 0 22px; padding: 0; list-style: none; flex: 1; }
 .price-list li { padding: 7px 0 7px 26px; position: relative; border-top: 1px dashed var(--line); font-size: 14.5px; }
 .price-list li:first-child { border-top: 0; }
