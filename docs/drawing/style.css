@@ -771,10 +771,11 @@ h1, h2 {
   border-bottom: 1px solid var(--line);
 }
 
-.mock-card-drawing svg {
+.mock-card-drawing img {
   display: block;
   width: 100%;
   height: auto;
+  border: 1px solid var(--line);
 }
 
 .mock-input {
@@ -832,25 +833,36 @@ h1, h2 {
 .usecase-card {
   background: var(--surface);
   border: 1px solid var(--line);
+  border-top: 3px solid var(--blue);
   border-radius: var(--radius);
-  padding: 20px;
+  padding: 32px;
 }
 
 .usecase-label {
-  margin: 0 0 12px;
-  padding-bottom: 10px;
-  border-bottom: 1px solid var(--line);
+  display: inline-block;
+  margin: 0 0 18px;
+  padding: 4px 10px;
   font-family: 'Roboto Mono', 'Liberation Mono', monospace;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 500;
   letter-spacing: 0.06em;
-  color: var(--sub);
+  color: #fff;
+  background: var(--blue);
+  border-radius: var(--radius);
 }
 
-.usecase-text {
+.usecase-emphasis {
+  margin: 0 0 10px;
+  font-size: 21px;
+  font-weight: 700;
+  line-height: 1.5;
+  color: var(--ink);
+}
+
+.usecase-sub {
   margin: 0;
-  font-size: 14.5px;
-  line-height: 1.9;
+  font-size: 15px;
+  line-height: 1.8;
   color: var(--sub);
 }
 
@@ -950,6 +962,9 @@ h1, h2 {
 
 .dw-feature-table .chk-yes { color: var(--blue); font-weight: 700; }
 .dw-feature-table .chk-no { color: var(--sub); }
+
+.feature-name { display: block; font-weight: 700; color: var(--ink); }
+.feature-desc { display: block; margin-top: 4px; font-size: 14px; font-weight: 400; line-height: 1.6; color: var(--sub); }
 
 /* ---------- section 3: flow cards ---------- */
 
@@ -1528,3 +1543,22 @@ h1, h2 {
 
 /* H1の改行制御: 狭幅では自然折返しに任せる */
 @media (max-width: 700px) { .h1-br { display: none; } }
+
+/* --- レビュー修正(v13): 比較カードの高さ揃えと日本語の改行位置 --- */
+
+/* 「品番で検索」に実図面を入れた分、対の「形で検索」側に余白が偏るため、
+   カードをflex化してサムネイル群を縦中央に置く */
+.mock-card { display: flex; flex-direction: column; }
+.mock-card-accent .mock-thumbs { margin-top: auto; margin-bottom: auto; }
+/* 図面が縦に伸びすぎると対のカードに余白が偏るため上限を設ける */
+.mock-card-drawing img { max-height: 300px; object-fit: contain; object-position: center; }
+
+/* 文節での改行(対応ブラウザのみ。非対応は従来どおり)。
+   「ワンクリッ/ク。」のような語中改行を避ける */
+.usecase-emphasis,
+.dw-section h2,
+.dw-hero-lead,
+.dw-section-lead {
+  word-break: auto-phrase;
+  line-break: strict;
+}
