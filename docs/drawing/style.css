@@ -1286,3 +1286,6 @@ h1, h2 {
 .dw-faq details p { margin: 0 0 16px; color: var(--sub); font-size: 14.5px; }
 
 .dw-inline-link { text-decoration: underline; text-underline-offset: 3px; }
+
+/* セクション直下のリード文(見出しの補足1行) */
+.dw-section-lead { margin: 4px 0 0; color: var(--sub); font-size: 15.5px; max-width: 40em; }
