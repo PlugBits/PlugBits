@@ -274,11 +274,19 @@ h1, h2 {
 }
 
 .dw-hero-lead {
-  margin: 0 0 24px;
+  margin: 0 0 6px;
   font-size: 16px;
   line-height: 1.9;
   color: rgba(255, 255, 255, 0.85);
   max-width: 40em;
+}
+
+/* 2行目(「図面が、単価・工程・履歴への入り口になります。」)はやや強調。
+   1行目のトーン(rgba .85)はそのまま、2行目だけ白100%・太字にする */
+.dw-hero-lead-strong {
+  margin: 0 0 24px;
+  font-weight: 700;
+  color: #FFFFFF;
 }
 
 .dw-cta-button {
@@ -964,6 +972,26 @@ h1, h2 {
 
 .feature-name { display: block; font-weight: 700; color: var(--ink); }
 .feature-desc { display: block; margin-top: 4px; font-size: 14px; font-weight: 400; line-height: 1.6; color: var(--sub); }
+
+/* ---------- section: 選び方の目安 comparison table (専用システム vs kintone) ----------
+   .dw-feature-table を流用しつつ、2列目以降は短いチェックマークではなく文章が入るため
+   中央寄せ・nowrapを解除し左寄せに戻す。右列(kintone)は背景を敷いて強調する */
+.dw-compare-table th:not(:first-child),
+.dw-compare-table td:not(:first-child) {
+  text-align: left;
+  white-space: normal;
+}
+
+.dw-compare-table td:first-child {
+  color: var(--sub);
+  white-space: nowrap;
+}
+
+.dw-compare-table .col-kintone {
+  background: var(--blue-tint);
+  font-weight: 700;
+  color: var(--ink);
+}
 
 /* ---------- section 3: flow cards ---------- */
 

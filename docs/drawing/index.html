@@ -54,6 +54,7 @@
           <p class="dw-meta-line">00 — PLUGBITS / KINTONE PLUGIN / 類似図面検索</p>
           <h1>似た図面が、<br class="h1-br"><span class="dw-marker">3秒</span>で<br class="h1-br">出てくる。</h1>
           <p class="dw-hero-lead">kintoneに後付けする、AI類似図面検索プラグイン。</p>
+          <p class="dw-hero-lead dw-hero-lead-strong">図面が、単価・工程・履歴への入り口になります。</p>
           <a class="dw-cta-button" href="#waitlist">無料で始める</a>
           <p class="dw-hero-cta-note">500枚まで無料・カード不要</p>
         </div>
@@ -205,10 +206,85 @@
       </div>
     </section>
 
-    <!-- 4. 仕組み -->
+    <!-- 4. なぜkintoneだと効くのか -->
     <section class="dw-section">
       <div class="dw-container">
-        <p class="dw-meta-line" data-reveal>03 — PROCESS — 検索の仕組み</p>
+        <p class="dw-meta-line" data-reveal>03 — BASIS — 台帳が古くならない理由</p>
+        <h2 data-reveal>なぜkintoneだと効くのか</h2>
+
+        <div class="usecase-cards">
+          <div class="usecase-card" data-reveal style="--i:0">
+            <p class="usecase-label">貯まる</p>
+            <p class="usecase-emphasis">登録という仕事が、要りません。</p>
+            <p class="usecase-sub">図面管理システムは、登録した分だけ台帳が古くなります。kintoneなら受注や製造指示の流れで図面が添付され、検索対象はひとりでに育ちます。</p>
+          </div>
+          <div class="usecase-card" data-reveal style="--i:1">
+            <p class="usecase-label">つながる</p>
+            <p class="usecase-emphasis">図面の隣に、単価も工程もあります。</p>
+            <p class="usecase-sub">類似図面が見つかって終わりではありません。開いたレコードには、その案件の単価・加工方法・材質・やりとりが揃っています。必要な項目は、自社でフィールドを足すだけです。</p>
+          </div>
+          <div class="usecase-card" data-reveal style="--i:2">
+            <p class="usecase-label">増えない</p>
+            <p class="usecase-emphasis">新しいシステムは、増やしません。</p>
+            <p class="usecase-sub">図面を移さず、いまのアプリにプラグインを入れるだけ。ユーザー管理も権限もkintoneのまま。やめるときは外すだけで、図面はkintoneに残ります。</p>
+          </div>
+        </div>
+
+        <figure class="dw-real-shot" data-reveal>
+          <img src="/drawing/assets/kintone-list.webp"
+               alt="kintoneの製品マスターアプリの図面ビュー。図面のサムネイルが図番・品名つきで並び、図面登録と図面検索のボタンが付いている"
+               width="1600" height="723" loading="lazy">
+          <figcaption>プラグインが動いている実際のkintone画面です。データはデモ用に作成したものです。</figcaption>
+        </figure>
+
+        <div class="dw-stack-flow" data-reveal>
+          <div class="flow-nodes">
+            <span class="flow-node">受注</span>
+            <span class="flow-node-arrow" aria-hidden="true">→</span>
+            <span class="flow-node">製造指示</span>
+            <span class="flow-node-arrow" aria-hidden="true">→</span>
+            <span class="flow-node">検査</span>
+          </div>
+        </div>
+
+        <div class="dw-pill-row" data-reveal>
+          <span class="dw-pill">いまのアプリに後付け</span>
+          <span class="dw-pill">図面の移行なし</span>
+          <span class="dw-pill">データはkintoneの中</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- 5. 選び方の目安 -->
+    <section class="dw-section dw-section-alt">
+      <div class="dw-container">
+        <p class="dw-meta-line" data-reveal>04 — COMPARISON — 選び方の目安</p>
+        <h2 data-reveal>選び方の目安</h2>
+        <p class="dw-section-lead" data-reveal>図面管理を一から作り直すなら、専用の図面管理システムの方が向いています。すでにkintoneに図面が貯まっているなら、こちらが早いはずです。</p>
+
+        <div class="dw-specs" data-reveal>
+          <table class="dw-feature-table dw-compare-table">
+            <thead>
+              <tr><th>項目</th><th>専用の図面管理システム</th><th class="col-kintone">kintone + このプラグイン</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>図面の登録</td><td>登録作業が別途発生</td><td class="col-kintone">日常業務の添付がそのまま対象に</td></tr>
+              <tr><td>見つけた先にある情報</td><td>図面とそのメタデータ</td><td class="col-kintone">単価・工程・不具合・コメント…レコード全部</td></tr>
+              <tr><td>項目を増やしたい</td><td>ベンダーに相談</td><td class="col-kintone">kintoneでフィールドを足すだけ</td></tr>
+              <tr><td>ユーザー・権限管理</td><td>新システムで別途</td><td class="col-kintone">kintoneのまま</td></tr>
+              <tr><td>導入</td><td>移行プロジェクト</td><td class="col-kintone">プラグインを入れて10分</td></tr>
+              <tr><td>やめる時</td><td>データ移行し直し</td><td class="col-kintone">外すだけ。図面はkintoneに残る</td></tr>
+              <tr><td>費用</td><td>要問い合わせ</td><td class="col-kintone">月9,800円(税込・公開価格)</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- 6. 仕組み -->
+    <section class="dw-section">
+      <div class="dw-container">
+        <p class="dw-meta-line" data-reveal>05 — PROCESS — 検索の仕組み</p>
         <h2 data-reveal>中で<span class="dw-marker">何をしている</span>のか</h2>
 
         <div class="dw-diagram-steps" data-reveal>
@@ -305,10 +381,10 @@
       </div>
     </section>
 
-    <!-- 5. 使い方 -->
+    <!-- 7. 使い方 -->
     <section class="dw-section dw-section-alt">
       <div class="dw-container">
-        <p class="dw-meta-line" data-reveal>04 — HOWTO — 使い方</p>
+        <p class="dw-meta-line" data-reveal>06 — HOWTO — 使い方</p>
         <h2 data-reveal>使い方は、ボタン1つ</h2>
 
         <div class="dw-howto-steps">
@@ -340,10 +416,10 @@
       </div>
     </section>
 
-    <!-- 6. できること一覧 -->
+    <!-- 8. できること一覧 -->
     <section class="dw-section dw-section-alt">
       <div class="dw-container">
-        <p class="dw-meta-line" data-reveal>05 — FEATURES — できること一覧</p>
+        <p class="dw-meta-line" data-reveal>07 — FEATURES — できること一覧</p>
         <h2 data-reveal>できること一覧</h2>
 
         <div class="dw-specs" data-reveal>
@@ -365,46 +441,10 @@
       </div>
     </section>
 
-    <!-- 7. kintoneだから -->
-    <section class="dw-section">
-      <div class="dw-container">
-        <p class="dw-meta-line" data-reveal>06 — BASIS — 台帳が古くならない理由</p>
-        <h2 data-reveal>kintoneに貯まってきたものが、<span class="dw-marker">そのまま資産</span>になる</h2>
-
-        <figure class="dw-real-shot" data-reveal>
-          <img src="/drawing/assets/kintone-list.webp"
-               alt="kintoneの製品マスターアプリの図面ビュー。図面のサムネイルが図番・品名つきで並び、図面登録と図面検索のボタンが付いている"
-               width="1600" height="723" loading="lazy">
-          <figcaption>開発中のプラグインが動いている実際のkintone画面です。データはデモ用に作成したものです。</figcaption>
-        </figure>
-
-        <div class="dw-stack-flow" data-reveal>
-          <div class="flow-nodes">
-            <span class="flow-node">受注</span>
-            <span class="flow-node-arrow" aria-hidden="true">→</span>
-            <span class="flow-node">製造指示</span>
-            <span class="flow-node-arrow" aria-hidden="true">→</span>
-            <span class="flow-node">検査</span>
-          </div>
-        </div>
-
-        <div class="dw-lines" data-reveal>
-          <p>図面管理システムは、登録という仕事が増えた分だけ、台帳が古くなっていきます。</p>
-          <p>kintoneでは、日々の流れの中で図面が添付され、副産物として検索対象が貯まります。</p>
-        </div>
-        <p class="dw-closing-line" data-reveal>いま使っているkintoneアプリに後付けします。図面を移す必要はありません。</p>
-        <div class="dw-pill-row" data-reveal>
-          <span class="dw-pill">いまのアプリに後付け</span>
-          <span class="dw-pill">図面の移行なし</span>
-          <span class="dw-pill">データはkintoneの中</span>
-        </div>
-      </div>
-    </section>
-
-    <!-- 8. 検証結果 -->
+    <!-- 9. 検証結果 -->
     <section class="dw-section dw-section-alt">
       <div class="dw-container dw-stats-section">
-        <p class="dw-meta-line" data-reveal>07 — RESULT — 検証条件と結果</p>
+        <p class="dw-meta-line" data-reveal>08 — RESULT — 検証条件と結果</p>
         <h2 data-reveal>実図面<span class="dw-marker">4,616枚</span>での検証結果</h2>
 
         <div class="dw-stats" data-reveal>
@@ -434,7 +474,7 @@
       </div>
     </section>
 
-    <!-- 9. 青焼きストリップ -->
+    <!-- 10. 青焼きストリップ -->
     <section class="dw-blueprint-strip">
       <div class="dw-blueprint-strip-track" aria-hidden="true">
         <img src="/drawing/assets/flange-1.webp" alt="" width="800" height="600" loading="lazy">
@@ -447,10 +487,10 @@
       <p class="dw-blueprint-strip-label">4,616枚の実図面で検証済み</p>
     </section>
 
-    <!-- 10. 料金 -->
+    <!-- 11. 料金 -->
     <section class="dw-section" id="pricing">
       <div class="dw-container">
-        <p class="dw-meta-line" data-reveal>08 — PRICING — 料金</p>
+        <p class="dw-meta-line" data-reveal>09 — PRICING — 料金</p>
         <h2 data-reveal>料金</h2>
         <p class="dw-section-lead" data-reveal>類似図面検索は「要問い合わせ」が当たり前の世界でした。初期費用0円・解約自由。この表にない費用はありません。</p>
 
@@ -493,10 +533,10 @@
       </div>
     </section>
 
-    <!-- 11. セキュリティ -->
+    <!-- 12. セキュリティ -->
     <section class="dw-section dw-section-alt">
       <div class="dw-container">
-        <p class="dw-meta-line" data-reveal>09 — SECURITY — 図面の扱い</p>
+        <p class="dw-meta-line" data-reveal>10 — SECURITY — 図面の扱い</p>
         <h2 data-reveal>図面は、貴社の<span class="dw-marker">機密</span>として扱います</h2>
         <div class="dw-lines" data-reveal>
           <p>図面PDFそのものは、お客様のkintoneに置いたままです。お預かりするのは検索用の数値データと、AES-256で暗号化したサムネイルだけ。復号鍵は当方のサーバーに保存されません。</p>
@@ -520,10 +560,10 @@
       </div>
     </section>
 
-    <!-- 12. FAQ -->
+    <!-- 13. FAQ -->
     <section class="dw-section">
       <div class="dw-container">
-        <p class="dw-meta-line" data-reveal>10 — FAQ — よくある質問</p>
+        <p class="dw-meta-line" data-reveal>11 — FAQ — よくある質問</p>
         <h2 data-reveal>よくある質問</h2>
         <div class="dw-faq" data-reveal>
           <details>
@@ -554,10 +594,10 @@
       </div>
     </section>
 
-    <!-- 13. 作っている人 -->
+    <!-- 14. 作っている人 -->
     <section class="dw-section">
       <div class="dw-container">
-        <p class="dw-meta-line" data-reveal>11 — DRAWN BY — 作っている人</p>
+        <p class="dw-meta-line" data-reveal>12 — DRAWN BY — 作っている人</p>
         <h2 data-reveal>製造業の中から作っています</h2>
         <div class="dw-lines dw-lines-wide" data-reveal>
           <p>製造業で15年。海外工場の運営と原価管理をしてきました。</p>
@@ -568,12 +608,12 @@
       </div>
     </section>
 
-    <!-- 14. CTA(青パネル反転) -->
+    <!-- 15. CTA(青パネル反転) -->
     <section class="dw-cta-wrap" id="waitlist">
       <div class="dw-container">
         <div class="dw-cta-panel">
         <div class="dw-cta-panel-inner">
-          <p class="dw-meta-line dw-meta-line-onpaper">12 — START — 無料ではじめる</p>
+          <p class="dw-meta-line dw-meta-line-onpaper">13 — START — 無料ではじめる</p>
           <h2 class="dw-cta-heading">無料で始める</h2>
           <p class="dw-cta-lead">500枚まで・期間無制限。メールアドレスとkintoneサブドメインだけで始められます。</p>
 
