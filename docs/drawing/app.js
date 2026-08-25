@@ -4,7 +4,7 @@
 /* Signup API endpoint（drawing-similarity-api-free の POST /signup）。 */
 /* デプロイ後に実際の無料サービスURLへ差し替える。                     */
 /* ------------------------------------------------------------------ */
-const SIGNUP_API_BASE = 'https://FREE-SERVICE-URL';
+const SIGNUP_API_BASE = 'https://drawing-similarity-api-free-939943665629.asia-northeast1.run.app';
 
 /* ------------------------------------------------------------------ */
 /* Hero pseudo-app: 4 fixed patterns (query + 6 results each).         */
