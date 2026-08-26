@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="ja" class="kb-root">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>セキュリティポリシー</title>
+  <meta name="description" content="PlugBits Drawing が図面データをどう保護しているかを、保存するデータの種類・暗号化・テナント分離・AI学習不使用・削除方針の観点で説明します。">
+  <link rel="stylesheet" href="style.css">
+  <style>
+    .kb-legal{display:flex;flex-direction:column;gap:28px;margin-top:32px;}
+    .kb-legal section h2{font-size:18px;font-weight:700;margin-bottom:12px;color:var(--kb-text);}
+    .kb-legal p{margin-bottom:10px;color:var(--kb-text);}
+    .kb-legal ul{list-style:disc;padding-left:1.2em;margin:10px 0;}
+    .kb-legal li{margin-bottom:8px;color:var(--kb-text);}
+    .kb-legal table{width:100%;border-collapse:collapse;font-size:14px;}
+    .kb-legal th,.kb-legal td{border:1px solid var(--kb-border,#e3e6ea);padding:12px 14px;text-align:left;vertical-align:top;color:var(--kb-text);}
+    .kb-legal th{width:34%;font-weight:700;background:var(--kb-bg-sub,#f7f8fa);}
+    .kb-legal-note{margin-top:32px;color:var(--kb-sub);font-size:13px;}
+    @media (max-width:640px){
+      .kb-legal th,.kb-legal td{display:block;width:auto;border-bottom:none;}
+      .kb-legal tr{display:block;border-bottom:1px solid var(--kb-border,#e3e6ea);}
+      .kb-legal table{border:none;}
+      .kb-legal th,.kb-legal td{border:none;}
+      .kb-legal td{padding-top:0;}
+    }
+  </style>
+</head>
+<body>
+  <div class="kb-container kb-section">
+    <h1>セキュリティポリシー</h1>
+    <p>お客様の図面は、設計ノウハウそのものです。PlugBits Drawing がどのように図面データを保護しているかを説明します。</p>
+
+    <div class="kb-legal">
+      <section>
+        <h2>データの流れ</h2>
+        <p>図面PDFはお客様の kintone に保存されたままです。本サービスがお預かりするのは、検索のために生成した以下のデータのみです。</p>
+        <table>
+          <thead>
+            <tr><th>保存するもの</th><td><strong>形式</strong></td></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th>検索用の特徴ベクトル</th>
+              <td>図面を数値列に変換したもの（画像への復元はできません）</td>
+            </tr>
+            <tr>
+              <th>検索結果表示用サムネイル</th>
+              <td><strong>AES-256-GCM で暗号化</strong>して保存します。復号鍵はお客様の kintone 内にのみ存在し、<strong>当方のサーバーには保存されません</strong>。</td>
+            </tr>
+            <tr>
+              <th>図面のメタデータ</th>
+              <td>図番・品名など、検索精度の向上に使う項目</td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section>
+        <h2>保護の仕組み</h2>
+        <ul>
+          <li><strong>通信の暗号化</strong>: すべての通信は TLS で暗号化されます。</li>
+          <li><strong>テナント分離</strong>: お客様ごとに独立した名前空間でデータを管理し、認証キーなしには自社のデータにもアクセスできません。他社のデータに触れる経路は存在しません。</li>
+          <li><strong>AIの学習に使用しません</strong>: 図面の解析に使用する AI（Google Cloud）は、入力データをモデルの学習に使用しない契約条件で利用しています（<a href="https://cloud.google.com/vertex-ai/generative-ai/docs/data-governance" target="_blank" rel="noopener">Vertex AI のデータガバナンス</a>、<a href="https://cloud.google.com/terms/service-terms" target="_blank" rel="noopener">Google Cloud サービス固有規約</a>）。当方自身もお客様のデータを学習に使用しません。</li>
+          <li><strong>保存場所</strong>: サーバーは Google Cloud（東京リージョン）、検索インデックスは Qdrant Cloud で管理しています。</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>解約時のデータ削除</h2>
+        <p>解約後30日以内に、特徴ベクトル・暗号化サムネイル・メタデータのすべてを削除します。お客様の kintone 内の図面はそのまま残ります（当方は元データを保持していないため、「返却」の必要がそもそもありません）。</p>
+      </section>
+
+      <section>
+        <h2>脆弱性の報告</h2>
+        <p>セキュリティ上の問題を発見された場合は <a href="mailto:support@plugbits.app">support@plugbits.app</a> までご連絡ください。</p>
+      </section>
+    </div>
+
+    <p class="kb-legal-note">最終更新: 2026年8月31日</p>
+    <p class="kb-legal-note">kintone はサイボウズ株式会社の登録商標です。本ページに記載の各製品名・会社名は、それぞれ各社の商標または登録商標です。</p>
+    <p><a href="index.html">← 商品一覧へ戻る</a></p>
+  </div>
+</body>
+</html>

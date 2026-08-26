@@ -1,209 +1,88 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ja" class="kb-root">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Privacy Policy - PlugBits Launcher for kintone</title>
-  <link rel="stylesheet" href="privacy.css" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>プライバシーポリシー</title>
+  <meta name="description" content="PlugBits が提供するサービスにおける個人情報の取得・利用目的・第三者提供・業務委託先・安全管理措置および開示請求の方法を定めたプライバシーポリシーです。">
+  <link rel="stylesheet" href="style.css">
+  <style>
+    .kb-legal{display:flex;flex-direction:column;gap:28px;margin-top:32px;}
+    .kb-legal section h2{font-size:18px;font-weight:700;margin-bottom:12px;color:var(--kb-text);}
+    .kb-legal p{margin-bottom:10px;color:var(--kb-text);}
+    .kb-legal ul{list-style:disc;padding-left:1.2em;margin:10px 0;}
+    .kb-legal li{margin-bottom:8px;color:var(--kb-text);}
+    .kb-legal-note{margin-top:32px;color:var(--kb-sub);font-size:13px;}
+  </style>
 </head>
 <body>
-  <main class="container">
-    <header class="page-header">
-      <h1>Privacy Policy</h1>
-      <p class="lead">
-        This privacy policy describes how the Chrome extension
-        <strong>PlugBits Launcher for kintone</strong>
-        handles user information.
-      </p>
-    </header>
+  <div class="kb-container kb-section">
+    <h1>プライバシーポリシー</h1>
+    <p>PlugBits（プラグビッツ。以下「当方」といいます。）は、当方が提供するサービスおよび本サイトの運営にあたり、個人情報を以下のとおり取り扱います。</p>
 
-    <section class="policy-section">
-      <h2>Information Storage</h2>
-      <p>
-        The extension stores user configuration data using Chrome Extension Storage, including:
-      </p>
-      <ul>
-        <li>Pinned records</li>
-        <li>Favorite shortcuts</li>
-        <li>Recently accessed records</li>
-        <li>User interface preferences</li>
-        <li>Extension settings</li>
-        <li>Pro license key (if entered by the user)</li>
-        <li>License account information returned from verification (email address, expiry date) — stored locally only</li>
-      </ul>
+    <div class="kb-legal">
+      <section>
+        <h2>1. 取得する情報</h2>
+        <ul>
+          <li>アカウント情報: 会社名、担当者氏名、メールアドレス</li>
+          <li>決済情報: 決済は Stripe, Inc. のシステムで処理され、<strong>当方はクレジットカード番号を保持しません</strong>。</li>
+          <li>利用状況: アクセスログ、検索リクエストのメタデータ（障害対応・品質改善のため）</li>
+        </ul>
+      </section>
 
-      <p>The data is stored using:</p>
-      <ul>
-        <li><code>chrome.storage.local</code></li>
-        <li><code>chrome.storage.sync</code></li>
-      </ul>
+      <section>
+        <h2>2. 利用目的</h2>
+        <ul>
+          <li>本サービスの提供、本人確認、課金処理</li>
+          <li>障害対応・サポート・重要なお知らせの送付</li>
+          <li>サービスの品質改善（統計化した情報のみを用います）</li>
+        </ul>
+      </section>
 
-      <p>
-        If <code>chrome.storage.sync</code> is used, settings may be synchronized between the user's Chrome browsers.
-      </p>
-    </section>
+      <section>
+        <h2>3. 第三者提供</h2>
+        <p>法令に基づく場合を除き、本人の同意なく第三者に個人情報を提供しません。</p>
+      </section>
 
-    <section class="policy-section">
-      <h2>Network Communication</h2>
-      <p>
-        The extension communicates with the following services:
-      </p>
-      <ul>
-        <li><strong>kintone environment</strong> (*.kintone.com, *.cybozu.com, *.kintone-dev.com) — to retrieve app metadata and records required for extension features.</li>
-        <li><strong>api.plugbits.app</strong> — to verify the Pro license key entered by the user. Only the license key is transmitted; no kintone data or browsing history is sent.</li>
-      </ul>
-      <p>
-        No kintone record data is sent to external servers.
-      </p>
-    </section>
+      <section>
+        <h2>4. 業務委託先</h2>
+        <p>サービス提供のため、以下の事業者に個人情報の取扱いを委託しています。</p>
+        <ul>
+          <li>Google Cloud（サーバー基盤・AI処理: 東京リージョン）</li>
+          <li>Qdrant Cloud（検索インデックスの保管）</li>
+          <li>Stripe（決済処理）</li>
+        </ul>
+      </section>
 
-    <section class="policy-section">
-      <h2>Personal Data Collection</h2>
-      <p>
-        The extension does not collect browsing history, cookies, or tracking data.
-      </p>
-      <p>
-        When a Pro license key is entered, it is transmitted to <code>api.plugbits.app</code> solely to verify license validity. The server returns the associated email address and expiry date, which are stored locally in Chrome storage to display account information within the extension. This data is not shared with third parties.
-      </p>
-      <p>The extension does not collect:</p>
-      <ul>
-        <li>Browsing history</li>
-        <li>Cookies</li>
-        <li>Tracking or analytics data</li>
-        <li>kintone record contents (these are processed locally and never transmitted externally)</li>
-      </ul>
-    </section>
+      <section>
+        <h2>5. 図面データについて</h2>
+        <p>PlugBits Drawing において契約者が登録した図面データは、個人情報としてではなく機密情報として取り扱い、検索インデックスの生成・提供の目的にのみ使用します。機械学習モデルの学習には使用しません。詳細は<a href="security.html">セキュリティポリシー</a>をご覧ください。</p>
+      </section>
 
-    <section class="policy-section">
-      <h2>Data Sharing</h2>
-      <p>
-        User data is not sold, shared, or used for advertising purposes.
-      </p>
-    </section>
+      <section>
+        <h2>6. 安全管理措置</h2>
+        <p>通信の暗号化（TLS）、保存データの暗号化、アクセス制御その他の合理的な安全管理措置を講じます。</p>
+      </section>
 
-    <section class="policy-section">
-      <h2>External Scripts</h2>
-      <p>
-        The extension does not load external scripts or third-party libraries.
-      </p>
-    </section>
+      <section>
+        <h2>7. 開示・訂正・削除の請求</h2>
+        <p>本人からの開示・訂正・利用停止・削除の請求に、法令に従い遅滞なく対応します。</p>
+        <p>連絡先: <a href="mailto:support@plugbits.app">support@plugbits.app</a></p>
+      </section>
 
-    <section class="policy-section">
-      <h2>Changes</h2>
-      <p>
-        This privacy policy may be updated when necessary.
-      </p>
-    </section>
+      <section>
+        <h2>8. ブラウザ拡張機能について</h2>
+        <p>Chrome 拡張機能「PlugBits Launcher for kintone」の情報の取扱いについては、<a href="launcher-privacy.html">Launcher 専用のプライバシーポリシー</a>に定めます。</p>
+      </section>
 
-    <section class="policy-section">
-      <h2>Contact</h2>
-      <p>
-        If you have any questions about this policy, please contact us at:
-      </p>
-      <p>
-        <a href="mailto:support@plugbits.app">support@plugbits.app</a>
-      </p>
-    </section>
+      <section>
+        <h2>9. 改定</h2>
+        <p>本ポリシーを改定する場合は、本サイトで告知します。</p>
+      </section>
+    </div>
 
-    <div class="divider"></div>
-
-    <header class="page-header section-gap">
-      <h1>プライバシーポリシー</h1>
-      <p class="lead">
-        本プライバシーポリシーは、Chrome拡張機能
-        <strong>PlugBits Launcher for kintone</strong>
-        におけるユーザー情報の取り扱いについて説明するものです。
-      </p>
-    </header>
-
-    <section class="policy-section">
-      <h2>保存される情報</h2>
-      <p>
-        本拡張は、以下の設定情報を Chrome 拡張ストレージに保存します。
-      </p>
-      <ul>
-        <li>ピン留めしたレコード情報</li>
-        <li>お気に入り（ショートカット）設定</li>
-        <li>最近アクセスしたレコード</li>
-        <li>ユーザーインターフェース設定</li>
-        <li>拡張機能の設定</li>
-        <li>Proライセンスキー（ユーザーが入力した場合）</li>
-        <li>ライセンス認証で返却されるアカウント情報（メールアドレス・有効期限）— ローカルにのみ保存</li>
-      </ul>
-
-      <p>保存には以下の Chrome 拡張ストレージが使用されます。</p>
-      <ul>
-        <li><code>chrome.storage.local</code></li>
-        <li><code>chrome.storage.sync</code></li>
-      </ul>
-
-      <p>
-        <code>chrome.storage.sync</code> を利用する場合、Chrome の同期機能によりブラウザ間で設定が同期される場合があります。
-      </p>
-    </section>
-
-    <section class="policy-section">
-      <h2>通信について</h2>
-      <p>
-        本拡張は以下のサービスと通信を行います。
-      </p>
-      <ul>
-        <li><strong>kintone 環境</strong>（*.kintone.com、*.cybozu.com、*.kintone-dev.com）— 機能提供に必要なアプリ情報・レコードの取得のため。</li>
-        <li><strong>api.plugbits.app</strong> — ユーザーが入力した Pro ライセンスキーの認証のため。送信されるのはライセンスキーのみで、kintone のデータや閲覧履歴は送信されません。</li>
-      </ul>
-      <p>
-        kintone のレコードデータが外部サーバーに送信されることはありません。
-      </p>
-    </section>
-
-    <section class="policy-section">
-      <h2>個人情報の収集</h2>
-      <p>
-        本拡張は閲覧履歴・Cookie・トラッキングデータを収集しません。
-      </p>
-      <p>
-        Pro ライセンスキーが入力された場合、ライセンスの有効性確認のみを目的として <code>api.plugbits.app</code> へ送信されます。サーバーから返却されるメールアドレスと有効期限は、拡張機能内のアカウント表示のためにローカルの Chrome ストレージに保存されます。これらの情報は第三者へ提供されません。
-      </p>
-      <p>本拡張が収集しない情報:</p>
-      <ul>
-        <li>ブラウザの閲覧履歴</li>
-        <li>Cookie</li>
-        <li>トラッキングや解析データ</li>
-        <li>kintone のレコード内容（ローカルで処理され、外部に送信されることはありません）</li>
-      </ul>
-    </section>
-
-    <section class="policy-section">
-      <h2>第三者提供</h2>
-      <p>
-        ユーザーデータを第三者へ販売・共有することはありません。また、広告やマーケティング目的で利用することもありません。
-      </p>
-    </section>
-
-    <section class="policy-section">
-      <h2>外部スクリプト</h2>
-      <p>
-        本拡張は外部CDNや外部スクリプトを読み込みません。
-      </p>
-    </section>
-
-    <section class="policy-section">
-      <h2>変更</h2>
-      <p>
-        本ポリシーは必要に応じて更新される場合があります。
-      </p>
-    </section>
-
-    <section class="policy-section">
-      <h2>お問い合わせ</h2>
-      <p>
-        本ポリシーに関するお問い合わせは、以下までご連絡ください。
-      </p>
-      <p>
-        <a href="mailto:support@plugbits.app">support@plugbits.app</a>
-      </p>
-    </section>
-  </main>
-<!-- Cloudflare Web Analytics --><script defer src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon='{"token": "86511d1154774394986239de33d21882"}'></script><!-- End Cloudflare Web Analytics -->
+    <p class="kb-legal-note">制定: 2026年8月31日<br>PlugBits／太田貴也</p>
+    <p><a href="index.html">← 商品一覧へ戻る</a></p>
+  </div>
 </body>
 </html>
