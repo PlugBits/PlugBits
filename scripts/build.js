@@ -202,8 +202,25 @@ try {
     return out;
   }
 
+  /* redirect_to を持つ製品は専用LPが正のページなので、詳細ページの
+     代わりにリダイレクトスタブを置く(数字・文言の二重管理を避ける)。 */
+  function redirectStub(target) {
+    const url = `${SITE_ORIGIN}${target}`;
+    return `<!doctype html><html lang="ja"><head><meta charset="utf-8">` +
+      `<meta http-equiv="refresh" content="0; url=${target}">` +
+      `<link rel="canonical" href="${url}">` +
+      `<meta name="robots" content="noindex">` +
+      `<title>Redirecting…</title></head>` +
+      `<body><p><a href="${target}">${url}</a> へ移動します。</p></body></html>`;
+  }
+
   // プラグイン詳細ページ生成
   for (const p of plugins) {
+    if (p.redirect_to) {
+      fs.writeFileSync(path.join(PRODUCTS_DIR, `${p.slug}.html`),    redirectStub(p.redirect_to));
+      fs.writeFileSync(path.join(PRODUCTS_EN_DIR, `${p.slug}.html`), redirectStub(p.redirect_to));
+      continue;
+    }
     fs.writeFileSync(path.join(PRODUCTS_DIR, `${p.slug}.html`),    fillProduct(p, 'ja'));
     fs.writeFileSync(path.join(PRODUCTS_EN_DIR, `${p.slug}.html`), fillProduct(p, 'en'));
 
@@ -501,6 +518,7 @@ try {
     : '<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"></urlset>';
   const urls = ['/index.html', '/en/index.html', '/terms.html', '/install2.html'];
   for (const p of plugins) {
+    if (p.redirect_to) continue; // リダイレクトスタブは sitemap に載せない
     urls.push(`/products/${p.slug}.html`);
     urls.push(`/products/en/${p.slug}.html`);
     if (fileExists(path.join(MANUALS_SRC, `${p.slug}.ja.md`))) urls.push(`/products/${p.slug}-manual.html`);
