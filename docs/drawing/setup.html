@@ -1,0 +1,190 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>設定ガイド — 類似図面検索 for kintone | PlugBits</title>
+  <meta name="description" content="類似図面検索 for kintone の設定手順。プラグインZIPの読み込みからAPIキーの入力、フィールド設定、図面ギャラリーの有効化まで、画面つきで説明します。所要時間は約10分です。">
+  <link rel="canonical" href="https://plugbits.app/drawing/setup.html">
+  <meta name="theme-color" content="#FAFBFC">
+  <meta property="og:type" content="article">
+  <meta property="og:url" content="https://plugbits.app/drawing/setup.html">
+  <meta property="og:site_name" content="PlugBits">
+  <meta property="og:title" content="設定ガイド — 類似図面検索 for kintone">
+  <meta property="og:description" content="プラグインZIPの読み込みからAPIキーの入力、図面ギャラリーの有効化まで、画面つきで説明します。所要時間は約10分です。">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="style.css">
+  <style>
+    .sg-main { padding: 96px 0 64px; }
+    .sg-article { max-width: 760px; margin: 0 auto; }
+    .sg-article h1 { font-size: clamp(1.6rem, 3.6vw, 2.2rem); line-height: 1.35; margin: 0 0 12px; }
+    .sg-lead { color: rgba(15, 27, 45, 0.72); line-height: 1.9; margin: 0 0 8px; }
+    .sg-article h2 { font-size: clamp(1.15rem, 2.6vw, 1.4rem); line-height: 1.5; margin: 64px 0 12px; padding-top: 24px; border-top: 1px solid rgba(15, 27, 45, 0.1); }
+    .sg-article p { line-height: 1.9; margin: 0 0 14px; }
+    .sg-article ol { padding-left: 1.4em; margin: 0 0 16px; }
+    .sg-article ol li { line-height: 1.9; margin-bottom: 6px; }
+    .sg-article ul { padding-left: 1.4em; margin: 0 0 16px; }
+    .sg-article ul li { line-height: 1.9; margin-bottom: 4px; }
+    .sg-shot { display: block; width: 100%; height: auto; border: 1px solid rgba(15, 27, 45, 0.14); border-radius: 8px; margin: 16px 0 24px; }
+    .sg-shot-narrow { max-width: 420px; }
+    .sg-note { background: rgba(37, 99, 235, 0.06); border-left: 3px solid #2563EB; border-radius: 0 8px 8px 0; padding: 12px 16px; margin: 16px 0 24px; line-height: 1.8; font-size: 0.95em; }
+    .sg-term { font-weight: 700; }
+    .sg-kv { border-collapse: collapse; width: 100%; margin: 0 0 24px; font-size: 0.95em; }
+    .sg-kv th, .sg-kv td { border: 1px solid rgba(15, 27, 45, 0.14); padding: 8px 12px; text-align: left; line-height: 1.7; vertical-align: top; }
+    .sg-kv th { background: rgba(15, 27, 45, 0.04); font-weight: 500; white-space: nowrap; }
+  </style>
+</head>
+<body>
+
+  <header class="dw-header" id="site-header">
+    <div class="dw-container dw-header-inner">
+      <a class="dw-brand" href="/">
+        <img src="/assets/plugbits-logo.webp" alt="" class="dw-brand-logo">
+        <span class="dw-brand-name">PlugBits</span>
+      </a>
+      <nav class="dw-nav">
+        <a href="/drawing/">製品ページ</a>
+        <a href="/drawing/#pricing">料金</a>
+        <a href="/blog/">ブログ</a>
+      </nav>
+      <a class="dw-header-cta" href="/drawing/#waitlist">無料で始める</a>
+    </div>
+  </header>
+
+  <main class="sg-main">
+    <div class="dw-container">
+      <article class="sg-article">
+
+        <p class="dw-meta-line">SETUP GUIDE — 設定ガイド</p>
+        <h1>類似図面検索 for kintone 設定ガイド</h1>
+        <p class="sg-lead">PlugBits Drawingは、kintone上で図面の類似検索ができるサービスです。図面をアップロードすると、過去の似た図面を数秒で探せます。</p>
+        <p class="sg-lead">このページでは、お申し込み後に届く開始案内メールを受け取ってから、類似検索が使えるようになるまでの設定手順を説明します。所要時間は約10分です。</p>
+
+        <h2 id="prepare">設定を始める前に、何が必要ですか?</h2>
+        <p>次の3つが揃っていれば始められます。</p>
+        <ol>
+          <li><span class="sg-term">開始案内メール</span> — お申し込み後にお送りするメールです。API Keyとプラグインのダウンロードリンクが記載されています</li>
+          <li><span class="sg-term">プラグインZIP</span> — メール内のリンクからダウンロードしておきます</li>
+          <li><span class="sg-term">kintoneの管理権限</span> — プラグインの読み込みにはシステム管理権限、アプリへの追加にはそのアプリの管理権限が必要です</li>
+        </ol>
+        <p>図面を管理しているkintoneアプリ(図面台帳など)に、図番・品名・図面PDFの添付ファイルフィールドがあることを前提にしています。</p>
+
+        <h2 id="load">プラグインをkintoneに読み込むには?</h2>
+        <p>kintoneシステム管理の「プラグイン」画面から、ダウンロードしたZIPを読み込みます。</p>
+        <ol>
+          <li>kintone画面右上の歯車アイコンから<span class="sg-term">「kintoneシステム管理」</span>を開きます</li>
+          <li>「その他」の中の<span class="sg-term">「プラグイン」</span>をクリックします</li>
+        </ol>
+        <img class="sg-shot" src="assets/setup/01-system-admin.webp" alt="kintoneシステム管理の画面。その他の項目にプラグインのリンクがある" loading="lazy">
+        <ol start="3">
+          <li>左上の<span class="sg-term">「読み込む」</span>ボタンを押し、ダウンロードしたZIPファイル(kintone-drawing-similarity.zip)を選択して「読み込む」を押します</li>
+        </ol>
+        <img class="sg-shot sg-shot-narrow" src="assets/setup/02-load-dialog.webp" alt="プラグインの読み込みダイアログ。ZIPファイルを選択した状態" loading="lazy">
+        <ol start="4">
+          <li>一覧に<span class="sg-term">「類似図面検索」</span>が表示されれば読み込み完了です。バージョン番号が表示されます</li>
+        </ol>
+        <img class="sg-shot" src="assets/setup/03-plugin-list.webp" alt="読み込んだプラグインの一覧に類似図面検索が表示されている" loading="lazy">
+
+        <h2 id="add">アプリにプラグインを追加するには?</h2>
+        <p>図面を管理しているアプリの設定画面から、読み込んだプラグインを追加します。</p>
+        <ol>
+          <li>対象アプリを開き、右上の歯車アイコンから<span class="sg-term">アプリの設定</span>を開きます</li>
+          <li><span class="sg-term">「設定」タブ</span>の「カスタマイズ/サービス連携」にある<span class="sg-term">「プラグイン」</span>をクリックします</li>
+        </ol>
+        <img class="sg-shot" src="assets/setup/04-app-settings.webp" alt="アプリの設定の設定タブ。カスタマイズ/サービス連携の中にプラグインがある" loading="lazy">
+        <ol start="3">
+          <li><span class="sg-term">「追加する」</span>を押し、「類似図面検索」にチェックを入れて追加します</li>
+        </ol>
+        <img class="sg-shot" src="assets/setup/05-add-dialog.webp" alt="プラグインの追加画面。類似図面検索にチェックを入れた状態" loading="lazy">
+
+        <h2 id="connect">接続設定では何を入力しますか?</h2>
+        <p>接続先プランを選び、開始案内メールに記載のAPI Keyを貼り付けて、接続テストを実行します。</p>
+        <ol>
+          <li>追加したプラグインの<span class="sg-term">歯車アイコン(設定)</span>を開きます</li>
+          <li>接続先プランで<span class="sg-term">「無料プラン」</span>を選択します(有料プランをご契約の場合は「有料プラン」)</li>
+          <li><span class="sg-term">API Key</span>に、開始案内メールに記載のキーをそのまま貼り付けます</li>
+          <li>テナントIDは、お使いのkintoneドメインから自動で判定されるため入力不要です</li>
+          <li><span class="sg-term">「接続テスト」</span>ボタンを押し、「✓ 接続OK」と表示されることを確認します</li>
+        </ol>
+        <img class="sg-shot" src="assets/setup/06-connection-ok.webp" alt="プラグイン設定の接続画面。無料プランとAPI Keyを設定し、接続テストで「接続OK」と表示された状態" loading="lazy">
+        <div class="sg-note">接続テストでエラーになる場合は、API Keyの前後に空白が入っていないかをまず確認してください。解決しない場合は開始案内メールに返信いただければ、こちらで接続状態を確認します。</div>
+
+        <h2 id="fields">フィールド設定では何を対応付けますか?</h2>
+        <p>アプリのどのフィールドが図番・品名・図面PDFなのかをプラグインに教えます。必須は4つです。</p>
+        <table class="sg-kv">
+          <tr><th>図番フィールドコード</th><td>図面番号が入っているフィールド(必須)</td></tr>
+          <tr><th>品名フィールドコード</th><td>品名のフィールド(必須)</td></tr>
+          <tr><th>PDFファイルフィールドコード</th><td>図面PDFの添付ファイルフィールド(必須)</td></tr>
+          <tr><th>加工方法フィールドコード</th><td>加工方法のフィールド(必須)。選択肢は「加工方法 選択肢」にカンマ区切りで入力します(例: レーザー,マシニング,プレス,溶接)</td></tr>
+        </table>
+        <p>材質・寸法(板厚/外径)・タグ・AI形状タグなどの任意フィールドは、設定するとスコア補正やタグ機能に使われます。未設定でも動作します。</p>
+        <p>「検索結果に表示する追加フィールド」にフィールドコードをカンマ区切りで指定すると(例: 見積単価,加工工程,最終受注日)、類似検索の結果カードにその値が表示されます。見積前に過去の単価を引きたい場合に便利です。</p>
+        <img class="sg-shot" src="assets/setup/07-fields.webp" alt="フィールド設定の画面。必須の4フィールドと任意フィールドの対応付け" loading="lazy">
+        <div class="sg-note">「タグスペース要素ID」は、アプリのフォーム設定でスペース要素に「要素ID」を設定してあると選択肢に表示されます。レコード詳細画面のそのスペースにタグ表示が差し込まれます。</div>
+
+        <h2 id="display">表示設定と「高速サムネイル表示」とは?</h2>
+        <p>画面に表示するボタンや情報を選ぶ設定です。「高速サムネイル表示」はONを推奨します。</p>
+        <p><span class="sg-term">高速サムネイル表示</span>をONにすると、図面の縮小画像(300px)を暗号化して検索サーバーに保存し、ギャラリーと検索結果のサムネイル表示が高速になります。復号鍵はこのプラグイン設定の中にのみ保存され、サーバー側ではサムネイルを復号できません。ONにした後に登録・再登録した図面から適用されます。</p>
+        <p>そのほかのスイッチは、必要になったときにONにすれば十分です。</p>
+        <ul>
+          <li><span class="sg-term">「一括図面登録」ボタンを表示</span> — 一覧画面のヘッダーから複数の図面をまとめて登録するボタンを出します</li>
+          <li><span class="sg-term">「過去図面アーカイブ取り込み」を表示</span> — kintoneに登録せず、フォルダ内のPDFをまとめて検索対象に追加するメニューを出します</li>
+          <li><span class="sg-term">デバッグ情報を表示</span> — 開発者向けです。通常はOFFのままにしてください</li>
+        </ul>
+        <p>「ボタン表示」では、図面登録・図面検索などのボタンを表示する一覧を絞れます。ギャラリー用の一覧だけにチェックを入れておくと、通常の一覧画面がすっきりします。</p>
+        <img class="sg-shot" src="assets/setup/08-display.webp" alt="表示設定とボタン表示の画面。高速サムネイル表示がONになっている" loading="lazy">
+
+        <h2 id="gallery">図面ギャラリーを使うには?</h2>
+        <p>一覧の「カスタマイズビュー」を1つ作り、プラグイン設定の「ギャラリービュー」でそのビューを選びます。</p>
+        <ol>
+          <li>アプリの設定の<span class="sg-term">「一覧」タブ</span>で新しい一覧を作成し、レコード一覧の表示形式で<span class="sg-term">「カスタマイズ」</span>を選びます(名前は「図面ギャラリー」など。HTMLは空のままで構いません。ページネーションはオフを推奨します)</li>
+          <li>いったん<span class="sg-term">「アプリを更新」</span>で反映します</li>
+          <li>プラグイン設定に戻り、<span class="sg-term">「ギャラリービュー」</span>で作成したビューを選択します</li>
+        </ol>
+        <p>「絞り込みフィールド」でチェックしたフィールド(加工方法など、値の種類が有限なフィールド向き)は、ギャラリー左パネルからの絞り込みに使えます。「図面クリック時の開き方」は既定の「新しいタブで開く」のままを推奨します。</p>
+        <img class="sg-shot" src="assets/setup/09-gallery-log.webp" alt="図面ギャラリーと利用ログの設定画面" loading="lazy">
+        <p>設定が完了すると、作成したビューが図面サムネイルのギャラリーになります。左パネルの絞り込みと図番・品名の検索が使えます。</p>
+        <img class="sg-shot" src="assets/setup/10-gallery-view.webp" alt="図面ギャラリーの表示例。図面サムネイルが並び、左パネルに材質・形状タグ・加工方法の絞り込みがある" loading="lazy">
+
+        <h2 id="apply">設定を反映するには?</h2>
+        <p>プラグイン設定の「保存する」だけでは反映されません。アプリの設定画面に戻って「アプリを更新」を押してください。</p>
+        <ol>
+          <li>プラグイン設定画面の右下<span class="sg-term">「保存する」</span>を押します</li>
+          <li>アプリの設定画面に戻り、右上の<span class="sg-term">「アプリを更新」</span>を押します</li>
+        </ol>
+        <p>プラグイン設定を保存すると、画面上部に「アプリを更新」を促すメッセージが表示されます。</p>
+        <img class="sg-shot" src="assets/setup/11-config-saved.webp" alt="プラグイン設定の保存後の画面。アプリを更新するよう促すメッセージが表示されている" loading="lazy">
+        <p>これで設定は完了です。図面を登録すると検索対象に追加され、レコード詳細画面やギャラリーから類似図面を探せるようになります。</p>
+
+        <h2 id="freeplan">無料プランの「500枚」はどう数えますか?</h2>
+        <p>登録した図面の合計が500枚までで、期間の制限はありません。</p>
+        <p>月ごとにリセットされる方式ではなく、検索対象として登録済みの図面の合計枚数です。無料プランはAI補正なしのため、図番などのテキストは使わず画像の類似度のみで検索します。500枚を超えて使いたい場合は、有料プラン(月額9,800円・30日返金保証)をご検討ください。詳しくは<a class="dw-inline-link" href="/drawing/#pricing">料金ページ</a>をご覧ください。</p>
+
+        <h2 id="support">困ったときは?</h2>
+        <p>開始案内メールへの返信か、<a class="dw-inline-link" href="mailto:support@plugbits.app">support@plugbits.app</a> までご連絡ください。</p>
+        <p>個人で開発・運営しているサービスのため、返信も開発者本人が行います。設定でつまずいた箇所は、そのままこのガイドの改善に反映します。</p>
+
+      </article>
+    </div>
+  </main>
+
+  <footer class="dw-footer">
+    <div class="dw-container dw-footer-inner">
+      <nav class="dw-footer-links">
+        <a href="mailto:support@plugbits.app">お問い合わせ</a>
+        <a href="/drawing/#pricing">料金</a>
+        <a href="/blog/">ブログ</a>
+        <a href="/privacy.html">プライバシーポリシー</a>
+        <a href="/terms.html">利用規約</a>
+      </nav>
+      <small>© 2026 PlugBits. All rights reserved.</small>
+    </div>
+  </footer>
+
+<!-- Cloudflare Web Analytics --><script defer src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon='{"token": "86511d1154774394986239de33d21882"}'></script><!-- End Cloudflare Web Analytics -->
+</body>
+</html>

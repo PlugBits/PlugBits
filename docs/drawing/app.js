@@ -1,9 +1,10 @@
 'use strict';
 
 /* ------------------------------------------------------------------ */
-/* Brevo form endpoint. Empty until configured — see README.md.        */
+/* Signup API endpoint（drawing-similarity-api-free の POST /signup）。 */
+/* デプロイ後に実際の無料サービスURLへ差し替える。                     */
 /* ------------------------------------------------------------------ */
-const BREVO_FORM_ACTION = 'https://dca617a2.sibforms.com/serve/MUIFAADJ4N3DbJz4RS9TRz43ZFlD9TvMZa8m6VZiqHvtg__tVPVKMXt2zHU_OqRUpqAjYOn8b1tUjKBI5rZe1BC3KiBMb69dYxRPMWbTFiCeaw0lJuDlr4h8C_NsgB7mcMUqQO4jX-zChqCgqiM0SZvteV257IdAHQ79fCGtdo_4g3nEQq1jO1MWDsr_p0fmeDKbauPzPIA3bsc2jw==';
+const SIGNUP_API_BASE = 'https://drawing-similarity-api-free-939943665629.asia-northeast1.run.app';
 
 /* ------------------------------------------------------------------ */
 /* Hero pseudo-app: 4 fixed patterns (query + 6 results each).         */
@@ -306,18 +307,29 @@ const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)
   const form = document.getElementById('waitlist-form');
   if (!form) return;
 
+  const subdomainInput = form.querySelector('input[name="SUBDOMAIN"]');
   const emailInput = form.querySelector('input[name="EMAIL"]');
+  const companyInput = form.querySelector('input[name="LASTNAME"]');
+  const honeypotInput = form.querySelector('input[name="email_address_check"]');
   const messageEl = document.getElementById('waitlist-message');
   const successEl = document.getElementById('waitlist-success');
+  const successMessageEl = successEl ? successEl.querySelector('p:last-child') : null;
+  const successMessageDefault = successMessageEl ? successMessageEl.textContent : '';
   const submitButton = form.querySelector('button[type="submit"]');
 
   const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  const SUBDOMAIN_RE = /^[a-z0-9][a-z0-9-]{1,62}$/;
 
   function setMessage(text) {
     if (messageEl) messageEl.textContent = text || '';
   }
 
   function validate() {
+    const subdomainValue = subdomainInput ? subdomainInput.value.trim().toLowerCase() : '';
+    if (!subdomainValue || !SUBDOMAIN_RE.test(subdomainValue)) {
+      setMessage('kintoneサブドメインをご確認ください(英小文字・数字・ハイフンのみ)');
+      return false;
+    }
     const value = emailInput ? emailInput.value.trim() : '';
     if (!value) {
       setMessage('メールアドレスを入力してください');
@@ -338,57 +350,44 @@ const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)
     if (submitButton) submitButton.disabled = true;
     setMessage('');
 
-    if (!BREVO_FORM_ACTION) {
-      setMessage('送信できませんでした。少し時間をおいてもう一度お試しください');
-      if (submitButton) submitButton.disabled = false;
-      return;
-    }
+    const payload = {
+      subdomain: subdomainInput ? subdomainInput.value.trim() : '',
+      email: emailInput ? emailInput.value.trim() : '',
+      company: companyInput ? companyInput.value.trim() : '',
+      // ハニーポット。ブラウザの自動入力(特にSafari)が値を入れてしまうことがあるが、
+      // 人間の送信では基本空のはず。空でなければサーバ側がbotとみなして黙って処理を破棄する
+      website: honeypotInput ? honeypotInput.value : ''
+    };
 
-    const formData = new FormData(form);
-    formData.set('locale', 'ja');
-    // ハニーポットはブラウザの自動入力(特にSafari)が値を入れてしまうことがあり、
-    // 値が入っているとBrevoは成功を返しつつ登録を黙って破棄する。人間の送信では
-    // 常に空が正なので、送信直前に必ず空へ戻す
-    formData.set('email_address_check', '');
-    // sibformsはmultipart/form-dataを受け付けないため、ホスト版フォームと同じ
-    // application/x-www-form-urlencoded に変換して送る
-    const body = new URLSearchParams();
-    formData.forEach((value, key) => { body.append(key, String(value)); });
-
-    const fail = () => {
-      setMessage('送信できませんでした。少し時間をおいてもう一度お試しください');
+    const fail = (message) => {
+      setMessage(message || '送信できませんでした。少し時間をおいてもう一度お試しください');
       if (submitButton) submitButton.disabled = false;
     };
-    const succeed = () => {
+    const succeed = (message) => {
       try {
         history.pushState({}, '', '/drawing/thanks/');
       } catch (e) {
         /* ignore pushState failures (e.g. sandboxed preview) */
       }
-      showSuccess();
+      showSuccess(message);
     };
 
-    // Brevoの公式埋め込みJSと同じ ?isAjax=1 のエンドポイントはCORSに対応して
-    // おり、JSONで成否が返る。まずこちらで送信し、レスポンスを読んで判定する。
-    // CORSがブロックされる環境ではno-cors送信にフォールバックし、従来どおり
-    // 「通信が通れば成功」とみなす。
-    fetch(BREVO_FORM_ACTION + (BREVO_FORM_ACTION.indexOf('?') === -1 ? '?isAjax=1' : '&isAjax=1'), {
+    fetch(SIGNUP_API_BASE + '/signup', {
       method: 'POST',
-      body: body,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
     }).then(res => res.json().then(data => ({ ok: res.ok, data })), err => Promise.reject(err))
       .then(({ ok, data }) => {
-        if (ok && data && (data.success === true || data.success === undefined)) {
-          succeed();
+        if (ok && data && data.ok === true) {
+          succeed(data.message);
         } else {
-          console.error('Brevo form rejected:', data);
-          fail();
+          console.error('signup request rejected:', data);
+          fail(data && data.message);
         }
       })
       .catch(err => {
-        console.warn('Brevo ajax submit failed, falling back to no-cors:', err);
-        fetch(BREVO_FORM_ACTION, { method: 'POST', mode: 'no-cors', body: body })
-          .then(succeed)
-          .catch(fail);
+        console.warn('signup submit failed:', err);
+        fail();
       });
   });
 
@@ -397,9 +396,12 @@ const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)
     // the DOM regardless of URL, so a back navigation cannot break it.
   });
 
-  function showSuccess() {
+  function showSuccess(message) {
     form.hidden = true;
     if (successEl) {
+      if (successMessageEl) {
+        successMessageEl.textContent = message || successMessageDefault;
+      }
       successEl.hidden = false;
       successEl.focus();
     }
