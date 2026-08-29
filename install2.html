@@ -21,7 +21,10 @@
       --gd-width: 1120px;         /* content max width (wider) */
     }
     @media (prefers-color-scheme: light){
-      :root{ --gd-bg:#f6f8ff; --gd-surface:#ffffff; --gd-text:#0e132a; --gd-sub:#475170; --gd-line:rgba(16,24,40,.08); --gd-shadow:0 10px 24px rgba(16,24,40,.08);}    }
+      :root{ --gd-bg:#f6f8ff; --gd-surface:#ffffff; --gd-text:#0e132a; --gd-sub:#475170; --gd-line:rgba(16,24,40,.08); --gd-shadow:0 10px 24px rgba(16,24,40,.08);}
+      .gd-call.warn{color:#2b0f0d}
+      .gd-call.hint{color:#0b2b23}
+    }
 
     /* ===== Base ===== */
     .gd-root{font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans JP", "Hiragino Kaku Gothic ProN", "Yu Gothic", sans-serif; background: radial-gradient(1200px 600px at 10% -20%, rgba(122,162,255,.18), transparent), radial-gradient(900px 480px at 95% 10%, rgba(112,240,197,.14), transparent), var(--gd-bg); color:var(--gd-text); line-height:1.75;}
@@ -46,7 +49,9 @@
     .gd-grid{display:grid; grid-template-columns: 220px 1fr; gap:28px; margin-top:22px}
     body.toc-hidden .gd-grid{grid-template-columns: 1fr}
     body.toc-hidden .gd-toc{display:none}
-    @media (max-width: 980px){ .gd-grid{ grid-template-columns: 1fr; } .gd-topbar .gd-toggle{display:none} }
+    /* モバイル1カラム時は sticky を切る(iOS Safari は sticky の基準がグリッド全体になり、
+       半透明の目次が本文に重なって追従してくるため) */
+    @media (max-width: 980px){ .gd-grid{ grid-template-columns: 1fr; } .gd-topbar .gd-toggle{display:none} .gd-toc{position:static} }
 
     /* TOC */
     .gd-toc{position:sticky; top:20px; align-self:start; background: linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02)); border:1px solid var(--gd-line); border-radius:16px; padding:16px; box-shadow:var(--gd-shadow)}
@@ -73,8 +78,8 @@
 
     /* Callouts */
     .gd-call{margin-top:12px; border-radius:12px; padding:12px 14px; border:1px solid var(--gd-line); font-size:14px}
-    .gd-call.warn{background:linear-gradient(180deg, rgba(255,180,166,.14), rgba(255,180,166,.06)); color:#2b0f0d}
-    .gd-call.hint{background:linear-gradient(180deg, rgba(112,240,197,.18), rgba(112,240,197,.06)); color:#0b2b23}
+    .gd-call.warn{background:linear-gradient(180deg, rgba(255,180,166,.14), rgba(255,180,166,.06)); color:#ffd3ca}
+    .gd-call.hint{background:linear-gradient(180deg, rgba(112,240,197,.18), rgba(112,240,197,.06)); color:#c9f5e6}
 
     /* Media (screenshots) */
     .gd-shot{margin-top:10px; border:1px dashed var(--gd-line); border-radius:14px; padding:10px; background:rgba(255,255,255,.02)}
