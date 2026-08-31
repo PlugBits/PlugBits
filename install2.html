@@ -98,6 +98,23 @@
     .gd-links{display:flex; gap:12px}
     .gd-links a{color:var(--gd-sub); text-decoration:none}
     .gd-links a:hover{color:var(--gd-text)}
+
+    /* ===== Mobile: 枠の入れ子を平らにする =====
+       (記事パネル→セクションカード→項目カードの三重枠は狭い画面では
+        ノイズになるため、外側2層を透明化して項目カードだけ残す。
+        カスケードで負けないよう末尾に置く) */
+    @media (max-width: 640px){
+      .gd-wrap{padding:20px 14px 48px}
+      .gd-hero{padding:20px 16px 18px}
+      .gd-article{background:none; border:none; box-shadow:none; padding:0}
+      .gd-card{background:none; border:none; padding:0}
+      .gd-sec + .gd-sec{margin-top:36px}
+      .gd-steps{padding-left:0}
+      .gd-steps li{padding:14px 12px 12px 58px}
+      .gd-steps li::before{left:10px; top:12px; width:34px; height:34px; border-radius:10px}
+      .gd-support .gd-list li{background:none; border:none; padding:6px 0 6px 26px}
+      .gd-support .gd-list li::before{left:0; top:9px}
+    }
   </style>
 </head>
 <body class="gd-root">
