@@ -18,6 +18,7 @@ const SUPPORT_MAIL = 'support@plugbits.app';
 const SITE_COPYRIGHT = `© ${new Date().getFullYear()} PlugBits. All rights reserved.`;
 const SITE_ORIGIN = 'https://plugbits.app';
 const DEFAULT_BLOG_OG_IMAGE = 'assets/blog/note_eyecatch_v2.png';
+const DOCS_INDEXABLE_PAGES = ['/drawing/', '/factory-tools/', '/launcher/'];
 
 function esc(s) {
   return String(s ?? '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
@@ -431,7 +432,10 @@ try {
       const title    = isJa ? p.title_ja : p.title_en;
       const desc     = shortText(isJa ? (p.short_summary_ja || p.summary_ja) : (p.short_summary_en || p.summary_en), 64);
       const tags     = renderTags(isJa ? p.tags_ja : p.tags_en);
-      const href     = hasComingPage ? rel(p.page_url)
+      // page_url を持つ製品（専用LPが正のページ）は、products/ のリダイレクト
+      // スタブを経由させず直接そのLPへ送る。リダイレクト1ホップはSEO上も
+      // 計測上も損なので、coming-soon かどうかに関わらず page_url を優先する。
+      const href     = p.page_url ? rel(p.page_url)
                       : isComing ? '#'
                       : rel(isJa ? `products/${p.slug}.html` : `products/en/${p.slug}.html`);
       const badge    = priceBadge(p, isJa);
@@ -524,6 +528,9 @@ try {
     if (fileExists(path.join(MANUALS_SRC, `${p.slug}.ja.md`))) urls.push(`/products/${p.slug}-manual.html`);
     if (fileExists(path.join(MANUALS_SRC, `${p.slug}.en.md`))) urls.push(`/products/en/${p.slug}-manual.html`);
   }
+  // docs/ にそのまま置いている独立LP。products.json 由来ではないので
+  // 明示的に列挙する（/drawing/setup.html のような申込後ページは載せない）。
+  urls.push(...DOCS_INDEXABLE_PAGES);
   urls.push('/blog/');
   for (const post of visiblePosts) urls.push(`/blog/${post.slug}/`);
   const xml = base.replace('</urlset>',
