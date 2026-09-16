@@ -331,6 +331,20 @@ h1, h2 {
   color: rgba(255, 255, 255, 0.6);
 }
 
+.dw-hero-demo-link {
+  display: inline-block;
+  margin: 12px 0 0;
+  font-size: 13px;
+  font-weight: 700;
+  color: #FFFFFF;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.dw-hero-demo-link:hover {
+  color: rgba(255, 255, 255, 0.8);
+}
+
 /* ---------- hero dimension annotation (Hit@5) ---------- */
 
 .dw-hero-dim {
