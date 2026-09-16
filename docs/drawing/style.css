@@ -645,6 +645,43 @@ h1, h2 {
   }
 }
 
+/* ---------- video block (ヒーロー直下・デモ動画) ---------- */
+
+.dw-video-section {
+  padding: 36px 0;
+  background: var(--paper);
+  border-top: 1px solid var(--line);
+  text-align: center;
+}
+
+.dw-video-block {
+  max-width: 720px;
+  margin: 0 auto;
+}
+
+.dw-video {
+  display: block;
+  width: 100%;
+  max-width: 720px;
+  height: auto;
+  margin: 0 auto;
+  border-radius: var(--radius);
+  border: 1px solid var(--line);
+  background: #000000;
+}
+
+.dw-video-caption {
+  margin: 14px 0 4px;
+  font-size: 14px;
+  color: var(--sub);
+}
+
+.dw-video-link {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--blue);
+}
+
 /* ---------- numbers band (v11: ヒーロー直下の数字帯) ---------- */
 /* 検証結果セクション(07)の再掲。無番号(dw-meta-lineなし)で、
    訪問直後に実測値の説得力を見せる。数字の重複再掲は意図的。 */
