@@ -16,6 +16,8 @@ const MAX_RETRY_WAIT_SEC = 20;
 const MAX_RETRIES = 3;
 const SLOW_WARNING_MS = 8000;
 
+// サムネイルは絶対パスで参照する(pushState で /drawing/demo/sample-click/ 等に URL が変わると相対パスが壊れるため)
+const SAMPLES_BASE = '/drawing/demo/samples/';
 const PDFJS_URL = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.7.76/pdf.min.mjs';
 const PDFJS_WORKER_URL = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.7.76/pdf.worker.min.mjs';
 
@@ -586,7 +588,7 @@ function renderSamplesGrid(items) {
     btn.className = 'demo-sample-item';
 
     const img = document.createElement('img');
-    img.src = 'samples/' + item.thumb;
+    img.src = SAMPLES_BASE + item.thumb;
     img.alt = item.title || ('サンプル図面 ' + (idx + 1));
     img.loading = 'lazy';
     img.width = 160;
@@ -625,7 +627,7 @@ function openSamplePanel(idx) {
 
       const img = document.createElement('img');
       img.className = 'demo-ranked-thumb';
-      img.src = 'samples/' + r.item.thumb;
+      img.src = SAMPLES_BASE + r.item.thumb;
       img.alt = '';
       img.loading = 'lazy';
       li.appendChild(img);
