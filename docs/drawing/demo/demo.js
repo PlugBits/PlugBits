@@ -79,7 +79,12 @@ function isImageFile(file) {
 }
 
 function fireWarmup() {
-  fetch(DEMO_API_BASE + '/demo/warmup').catch(() => { /* ignore */ });
+  // レスポンスボディを読み捨てないと、一部のサーバー(chunked応答)相手では
+  // リクエストがブラウザ内で「読み込み中」のまま残り続け、同一オリジンへの
+  // 接続を専有し続けることがある(実機検証で確認)。必ず本文を消費する。
+  fetch(DEMO_API_BASE + '/demo/warmup')
+    .then(res => res.text())
+    .catch(() => { /* ignore */ });
 }
 
 /* ------------------------------------------------------------------ */
@@ -231,13 +236,19 @@ async function attachThumb(entry, placeholderEl, imgClass) {
     }
   });
 
-  ['dragenter', 'dragover'].forEach(evt => {
-    dropzone.addEventListener(evt, (e) => {
-      e.preventDefault();
-      if (state.uploading) return;
-      dropzone.classList.add('is-dragging');
-      fireWarmup();
-    });
+  dropzone.addEventListener('dragenter', (e) => {
+    e.preventDefault();
+    if (state.uploading) return;
+    dropzone.classList.add('is-dragging');
+    // dragover は1回のドラッグ中に何十回も発火するため、ウォームアップは
+    // dragenter だけで撃つ(dragover でも撃つとリクエストが積み上がる)。
+    fireWarmup();
+  });
+
+  dropzone.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    if (state.uploading) return;
+    dropzone.classList.add('is-dragging');
   });
 
   ['dragleave', 'dragend'].forEach(evt => {
