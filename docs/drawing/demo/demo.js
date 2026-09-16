@@ -32,6 +32,7 @@ const state = {
   sampleClickShown: false,
   objectUrls: [],
   samples: null,
+  apiDisabled: false,    // /demo/warmup が 404 or ネットワークエラー → 自分の図面アップロードを封じる
 };
 
 let pdfjsLibPromise = null;
@@ -85,6 +86,39 @@ function fireWarmup() {
   fetch(DEMO_API_BASE + '/demo/warmup')
     .then(res => res.text())
     .catch(() => { /* ignore */ });
+}
+
+/* 初回ロード時だけ: warmup の結果でアップロード機能の可否を判定する。
+   - 200: 通常どおり(コールドスタートで時間がかかっても、200が返れば利用可能)
+   - 404: デモがサーバー側で無効 → ドロップ枠をサンプル誘導に差し替え
+   - ネットワークエラー: サーバー未デプロイ/到達不可 → 同様に差し替え
+   - 5xx: 一時的に落ちているだけの可能性があるのでドロップ枠は有効なまま
+     (実際のアップロード時に既存の 503/ネットワークエラー処理に任せる) */
+function checkApiAvailabilityOnLoad() {
+  fetch(DEMO_API_BASE + '/demo/warmup')
+    .then(res => {
+      res.text().catch(() => { /* ignore */ });
+      if (res.status === 404) disableDropzoneForUnavailable();
+      // 200 はそのまま有効。5xx もそのまま有効(既存のアップロード時エラー処理に委ねる)。
+    })
+    .catch(() => {
+      disableDropzoneForUnavailable();
+    });
+}
+
+function disableDropzoneForUnavailable() {
+  // アップロードを開始済みなら、進行中の処理を邪魔しない。
+  if (state.uploading || state.apiDisabled) return;
+  state.apiDisabled = true;
+
+  const normal = $('dropzone-normal');
+  const notice = $('dropzone-unavailable');
+  if (normal) normal.hidden = true;
+  if (notice) notice.hidden = false;
+  setDropzoneMessage('');
+
+  const fileInput = $('file-input');
+  if (fileInput) fileInput.disabled = true;
 }
 
 /* ------------------------------------------------------------------ */
@@ -224,7 +258,7 @@ async function attachThumb(entry, placeholderEl, imgClass) {
   if (!dropzone || !fileInput) return;
 
   function openFileDialog() {
-    if (state.uploading) return;
+    if (state.uploading || state.apiDisabled) return;
     fileInput.click();
   }
 
@@ -238,7 +272,7 @@ async function attachThumb(entry, placeholderEl, imgClass) {
 
   dropzone.addEventListener('dragenter', (e) => {
     e.preventDefault();
-    if (state.uploading) return;
+    if (state.uploading || state.apiDisabled) return;
     dropzone.classList.add('is-dragging');
     // dragover は1回のドラッグ中に何十回も発火するため、ウォームアップは
     // dragenter だけで撃つ(dragover でも撃つとリクエストが積み上がる)。
@@ -247,7 +281,7 @@ async function attachThumb(entry, placeholderEl, imgClass) {
 
   dropzone.addEventListener('dragover', (e) => {
     e.preventDefault();
-    if (state.uploading) return;
+    if (state.uploading || state.apiDisabled) return;
     dropzone.classList.add('is-dragging');
   });
 
@@ -261,7 +295,7 @@ async function attachThumb(entry, placeholderEl, imgClass) {
   dropzone.addEventListener('drop', (e) => {
     e.preventDefault();
     dropzone.classList.remove('is-dragging');
-    if (state.uploading) return;
+    if (state.uploading || state.apiDisabled) return;
     const dt = e.dataTransfer;
     if (dt && dt.files && dt.files.length) {
       handleFileSelection(dt.files);
@@ -269,7 +303,7 @@ async function attachThumb(entry, placeholderEl, imgClass) {
   });
 
   fileInput.addEventListener('change', () => {
-    if (!state.uploading && fileInput.files && fileInput.files.length) {
+    if (!state.uploading && !state.apiDisabled && fileInput.files && fileInput.files.length) {
       fireWarmup();
       handleFileSelection(fileInput.files);
     }
@@ -286,6 +320,15 @@ async function attachThumb(entry, placeholderEl, imgClass) {
     setDropzoneMessage('');
     startUpload(files);
   }
+})();
+
+(function initUnavailableNotice() {
+  const btn = $('dropzone-unavailable-btn');
+  if (!btn) return;
+  btn.addEventListener('click', () => {
+    const el = $('samples-section');
+    if (el) el.scrollIntoView({ behavior: prefersReducedMotion ? 'auto' : 'smooth', block: 'start' });
+  });
 })();
 
 function setDropzoneMessage(text) {
@@ -639,5 +682,5 @@ function closeSamplePanel() {
 /* ------------------------------------------------------------------ */
 /* init                                                                 */
 /* ------------------------------------------------------------------ */
-fireWarmup();
+checkApiAvailabilityOnLoad();
 loadSamples();

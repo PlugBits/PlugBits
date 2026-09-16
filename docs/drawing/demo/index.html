@@ -57,11 +57,17 @@
         <p class="dw-hero-lead demo-lead">図面PDFを5〜20枚まとめて入れると、その中で似ている図面が並びます。登録もkintoneの設定も要りません。図面は保存せず、結果を返したら削除します。</p>
 
         <div class="demo-dropzone" id="dropzone" role="button" tabindex="0" aria-describedby="dropzone-sub dropzone-message">
-          <p class="demo-dropzone-label" id="dropzone-label">ここに図面PDFをまとめてドロップ(5〜20枚)</p>
-          <p class="demo-dropzone-sub" id="dropzone-sub">同じ部品の別サイズや別リビジョンを混ぜて入れると、それらが固まって出るのが分かります。</p>
-          <p class="demo-dropzone-filetypes">PNG/JPGも可(1枚10MBまで)</p>
-          <span class="demo-dropzone-browse" aria-hidden="true">ファイルを選ぶ</span>
-          <input type="file" id="file-input" class="demo-visually-hidden" multiple accept="application/pdf,image/png,image/jpeg" tabindex="-1">
+          <div id="dropzone-normal">
+            <p class="demo-dropzone-label" id="dropzone-label">ここに図面PDFをまとめてドロップ(5〜20枚)</p>
+            <p class="demo-dropzone-sub" id="dropzone-sub">同じ部品の別サイズや別リビジョンを混ぜて入れると、それらが固まって出るのが分かります。</p>
+            <p class="demo-dropzone-filetypes">PNG/JPGも可(1枚10MBまで)</p>
+            <span class="demo-dropzone-browse" aria-hidden="true">ファイルを選ぶ</span>
+            <input type="file" id="file-input" class="demo-visually-hidden" multiple accept="application/pdf,image/png,image/jpeg" tabindex="-1">
+          </div>
+          <div class="demo-dropzone-unavailable" id="dropzone-unavailable" hidden>
+            <p class="demo-dropzone-unavailable-text">自分の図面でのお試しは準備中です。下のサンプル図面で動きをご覧ください。</p>
+            <button type="button" id="dropzone-unavailable-btn" class="demo-dropzone-browse">サンプル図面を見る</button>
+          </div>
           <p class="demo-dropzone-message" id="dropzone-message" aria-live="polite"></p>
         </div>
 

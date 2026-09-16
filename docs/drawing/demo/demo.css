@@ -92,6 +92,14 @@
 
 .demo-dropzone-message:empty { display: none; }
 
+/* API未接続時: ドロップ枠の中身をこちらに差し替える */
+.demo-dropzone-unavailable-text {
+  margin: 0 0 16px;
+  font-size: 14.5px;
+  line-height: 1.8;
+  color: var(--sub);
+}
+
 .demo-visually-hidden {
   position: absolute;
   width: 1px;
