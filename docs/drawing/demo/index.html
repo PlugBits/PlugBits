@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>自分の図面で類似検索を試す — 類似図面検索 for kintone | PlugBits</title>
+  <meta name="description" content="図面PDFを5〜20枚まとめて入れると、その中で似ている図面が並びます。登録もkintoneの設定も要りません。図面は保存せず、結果を返したら削除します。">
+  <link rel="canonical" href="https://plugbits.app/drawing/demo/">
+  <meta name="theme-color" content="#FAFBFC">
+  <meta name="robots" content="index,follow">
+
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://plugbits.app/drawing/demo/">
+  <meta property="og:site_name" content="PlugBits">
+  <meta property="og:title" content="自分の図面で、類似検索を試す">
+  <meta property="og:description" content="図面PDFを5〜20枚まとめて入れると、その中で似ている図面が並びます。登録もkintoneの設定も要りません。図面は保存せず、結果を返したら削除します。">
+  <meta property="og:image" content="https://plugbits.app/drawing/assets/og.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="自分の図面で、類似検索を試す">
+  <meta name="twitter:description" content="図面PDFを5〜20枚まとめて入れると、その中で似ている図面が並びます。登録もkintoneの設定も要りません。図面は保存せず、結果を返したら削除します。">
+  <meta name="twitter:image" content="https://plugbits.app/drawing/assets/og.png">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="../style.css">
+  <link rel="stylesheet" href="demo.css">
+</head>
+<body>
+
+  <header class="dw-header" id="site-header">
+    <div class="dw-container dw-header-inner">
+      <a class="dw-brand" href="/">
+        <img src="/assets/plugbits-logo.webp" alt="" class="dw-brand-logo">
+        <span class="dw-brand-name">PlugBits</span>
+      </a>
+      <nav class="dw-nav">
+        <a href="/#plugins">プラグイン</a>
+        <a href="/drawing/#pricing">料金</a>
+        <a href="/blog/">ブログ</a>
+        <a href="/privacy.html">プライバシー</a>
+      </nav>
+      <a class="dw-header-cta" href="/drawing/#waitlist">無料で始める</a>
+    </div>
+  </header>
+
+  <main>
+
+    <!-- HERO + DROP ZONE -->
+    <section class="dw-section demo-hero">
+      <div class="dw-container">
+        <p class="dw-meta-line">DEMO — 自分の図面で試す</p>
+        <h1 class="demo-h1">自分の図面で、<br class="demo-h1-br">類似検索を試す</h1>
+        <p class="dw-hero-lead demo-lead">図面PDFを5〜20枚まとめて入れると、その中で似ている図面が並びます。登録もkintoneの設定も要りません。図面は保存せず、結果を返したら削除します。</p>
+
+        <div class="demo-dropzone" id="dropzone" role="button" tabindex="0" aria-describedby="dropzone-sub dropzone-message">
+          <div id="dropzone-normal">
+            <p class="demo-dropzone-label" id="dropzone-label">ここに図面PDFをまとめてドロップ(5〜20枚)</p>
+            <p class="demo-dropzone-sub" id="dropzone-sub">同じ部品の別サイズや別リビジョンを混ぜて入れると、それらが固まって出るのが分かります。</p>
+            <p class="demo-dropzone-filetypes">PNG/JPGも可(1枚10MBまで)</p>
+            <span class="demo-dropzone-browse" aria-hidden="true">ファイルを選ぶ</span>
+            <input type="file" id="file-input" class="demo-visually-hidden" multiple accept="application/pdf,image/png,image/jpeg" tabindex="-1">
+          </div>
+          <div class="demo-dropzone-unavailable" id="dropzone-unavailable" hidden>
+            <p class="demo-dropzone-unavailable-text">自分の図面でのお試しは準備中です。下のサンプル図面で動きをご覧ください。</p>
+            <button type="button" id="dropzone-unavailable-btn" class="demo-dropzone-browse">サンプル図面を見る</button>
+          </div>
+          <p class="demo-dropzone-message" id="dropzone-message" aria-live="polite"></p>
+        </div>
+
+        <div class="demo-progress" id="upload-progress" hidden aria-live="polite">
+          <p class="demo-progress-label" id="upload-progress-label">図面を読み取っています(1枚あたり数秒)</p>
+          <div class="demo-progress-bar-track">
+            <div class="demo-progress-bar-fill" id="upload-progress-bar"></div>
+          </div>
+          <p class="demo-progress-file" id="upload-progress-file"></p>
+          <p class="demo-progress-extra" id="upload-progress-extra"></p>
+        </div>
+      </div>
+    </section>
+
+    <!-- 図面の扱い -->
+    <section class="dw-section dw-section-alt demo-handling">
+      <div class="dw-container">
+        <h2 class="demo-h2">図面の扱い</h2>
+        <ul class="demo-handling-list">
+          <li>図面PDFはサーバーに保存しません。検索用の数値データも、結果を返した時点で破棄します</li>
+          <li>AIの学習には使いません</li>
+          <li>通信はTLSで暗号化されます</li>
+          <li>手元に図面がない場合は、デモ用に合成したサンプル図面で試せます(下のリンク)</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- 結果 -->
+    <section class="dw-section demo-results" id="results-section" hidden>
+      <div class="dw-container">
+        <h2 class="demo-h2">この図面に似ている順</h2>
+
+        <div class="demo-query-row" id="query-row"></div>
+
+        <ol class="demo-ranked-list" id="ranked-list"></ol>
+
+        <button type="button" class="demo-restart-btn" id="restart-btn">やり直す</button>
+      </div>
+    </section>
+
+    <!-- サンプル図面 -->
+    <section class="dw-section dw-section-alt demo-samples" id="samples-section" hidden>
+      <div class="dw-container">
+        <p class="dw-meta-line">SAMPLES — 手元に図面がない方へ</p>
+        <h2 class="demo-h2">デモ用のサンプル図面で試す</h2>
+        <p class="dw-section-lead">実在しない部品を、デモのために合成した図面250枚です。実際の図面台帳より整いすぎていますが、検索の動き方は同じです。どれか1枚をクリックすると、似ている図面が並びます。</p>
+
+        <div class="demo-samples-grid" id="samples-grid"></div>
+      </div>
+    </section>
+
+    <!-- サンプル結果パネル(ライトボックス) -->
+    <div class="demo-panel-overlay" id="samples-panel" hidden>
+      <div class="demo-panel" role="dialog" aria-modal="true" aria-labelledby="samples-panel-title">
+        <div class="demo-panel-header">
+          <h3 id="samples-panel-title">この図面に似ている順</h3>
+          <button type="button" class="demo-panel-close" id="samples-panel-close" aria-label="閉じる">×</button>
+        </div>
+        <ol class="demo-ranked-list" id="samples-panel-list"></ol>
+        <button type="button" class="demo-restart-btn" id="samples-panel-back">別の図面で試す</button>
+      </div>
+    </div>
+
+    <!-- 実際のkintoneで使うには -->
+    <section class="dw-section demo-cta">
+      <div class="dw-container">
+        <h2 class="demo-h2">実際のkintoneで使うには</h2>
+        <p class="dw-section-lead demo-cta-lead">無料枠は図面500枚まで・期間無制限です。kintoneの図面台帳はそのままで、プラグインを追加して、図番・品名・図面PDFのフィールドを対応付けます。手順は設定ガイドにまとめています。</p>
+        <div class="demo-cta-buttons">
+          <a class="dw-cta-button" href="/drawing/setup.html">無料枠で始める</a>
+          <a class="demo-cta-secondary" href="/drawing/#pricing">料金と精度の数字を見る</a>
+        </div>
+      </div>
+    </section>
+
+    <!-- 統一紹介文言 -->
+    <section class="dw-section dw-section-alt demo-intro-line">
+      <div class="dw-container">
+        <p class="demo-intro-text">PlugBits Drawingは、kintone上で図面の類似検索ができるサービスです。図面をアップロードすると、過去の似た図面を数秒で探せます。月額9,800円、無料枠は最大500枚・期間無制限(AI補正なし)です。</p>
+      </div>
+    </section>
+
+  </main>
+
+  <footer class="dw-footer">
+    <div class="dw-container dw-footer-inner">
+      <nav class="dw-footer-links">
+        <a href="mailto:support@plugbits.app">お問い合わせ</a>
+        <a href="/drawing/#pricing">料金</a>
+        <a href="/drawing/setup.html">設定ガイド</a>
+        <a href="/blog/">ブログ</a>
+        <a href="/install2.html">導入ガイド</a>
+        <a href="/privacy.html">プライバシーポリシー</a>
+        <a href="/terms.html">利用規約</a>
+      </nav>
+      <small>© 2026 PlugBits. All rights reserved.</small>
+    </div>
+  </footer>
+
+  <script src="demo.js"></script>
+<!-- Cloudflare Web Analytics --><script defer src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon='{"token": "86511d1154774394986239de33d21882"}'></script><!-- End Cloudflare Web Analytics -->
+</body>
+</html>
