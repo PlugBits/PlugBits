@@ -1,5 +1,23 @@
 [
   {
+    "slug": "similar-drawing-search-free",
+    "status": "public",
+    "title": "類似図面検索を無料で試す方法｜フリーソフト・自作・kintoneプラグインの現実的な比較",
+    "h1": "類似図面検索を無料で試す、現実的な3つの入口",
+    "description": "図番の分からない図面から過去の実績を探したい製造業向けに、類似図面検索を無料で試す入口を3つ(フリーソフト・自作、専用システム、kintoneプラグイン)に整理し、それぞれの限界と、実図面4,616枚で測った精度の読み方を解説します。",
+    "keywords": "類似図面検索 無料, 類似図面検索 フリーソフト, 類似図面検索 比較, 図面 検索 ai, 図面管理システム 無料, 図面管理システム 自作, kintone 図面管理",
+    "hero_label": "図面管理ガイド",
+    "read_time": "6分で読めます",
+    "published_at": "2026-09-17",
+    "updated_at": "2026-09-17",
+    "content_file": "similar-drawing-search-free.html",
+    "og_image": "",
+    "tool_url": "https://plugbits.app/drawing/",
+    "tool_name": "PlugBits Drawing(類似図面検索 for kintone)",
+    "cta_intro": "自社の図面で似たものが出るかを確かめたい方へ。kintoneの図面台帳はそのまま、無料枠は図面500枚まで・期間無制限です。",
+    "card_summary": "図番の分からない図面から過去の実績を探したい。類似図面検索を無料で試す3つの入口と、それぞれの限界、精度の数字の読み方をまとめました。"
+  },
+  {
     "slug": "step-file-open",
     "status": "public",
     "title": "STEPファイル(STP)をCADなしで開く方法｜無料・登録不要・タブレット対応",

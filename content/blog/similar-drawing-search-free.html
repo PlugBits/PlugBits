@@ -1,0 +1,113 @@
+<nav class="kb-article-toc" aria-label="目次">
+  <h2>目次</h2>
+  <ol class="kb-article-ordered">
+    <li><a href="#overview">類似図面検索を「まず試す」ための3つの入口</a></li>
+    <li><a href="#diy">方法1：フリーソフトやPythonで自作する</a></li>
+    <li><a href="#system">方法2：類似検索つきの図面管理システムを導入する</a></li>
+    <li><a href="#kintone">方法3：kintoneの図面台帳に類似検索を足す</a></li>
+    <li><a href="#accuracy">「精度」の数字をどう読むか</a></li>
+    <li><a href="#decision">試す前に数えておきたい1つのこと</a></li>
+    <li><a href="#faq">よくある質問</a></li>
+  </ol>
+</nav>
+
+<section id="overview" class="kb-article-section">
+  <h2>類似図面検索を「まず試す」ための3つの入口</h2>
+  <div class="kb-section-card kb-section-card--stack">
+    <p class="kb-article-paragraph">図番の分からない図面を渡されて、「うちで似たものを作ったはずだ」と記憶を頼りに過去図面を探している。そんな製造業の現場で、類似図面検索という言葉を調べはじめた方に向けた記事です。最初に知りたいのは「本当に効くのか、無料で確かめられないか」だと思います。</p>
+    <p class="kb-article-paragraph">私は自社の製造管理のためにkintoneを組み、実図面4,616枚で類似検索を作って検証してきました。その経験から、いま無料で試せる入口を3つに整理し、それぞれがどこで行き詰まるかを書きます。手順よりも「自分の状況ならどれか」を決めるための記事です。</p>
+    <p class="kb-article-paragraph">先に結論を表にします。</p>
+    <div class="kb-article-table-wrap">
+      <table>
+        <thead>
+          <tr><th>状況</th><th>向いている入口</th><th>無料で試せる範囲</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>社内にPythonを書ける人がいて、まず仕組みを理解したい</td><td>フリーソフト・自作</td><td>全部（ただし時間は自分持ち）</td></tr>
+          <tr><td>図面台帳ごと入れ替える予算と担当者がいる</td><td>専用の図面管理システム</td><td>デモ・トライアル（要問い合わせが中心）</td></tr>
+          <tr><td>すでにkintoneがあり、図面PDFを添付で貯めている</td><td>kintoneプラグイン</td><td>図面500枚まで期間無制限</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="kb-article-paragraph">以下、順に見ていきます。</p>
+  </div>
+</section>
+
+<section id="diy" class="kb-article-section">
+  <h2>方法1：フリーソフトやPythonで自作する</h2>
+  <div class="kb-section-card kb-section-card--stack">
+    <p class="kb-article-paragraph">類似図面検索の中身は、図面を画像として読み込み、形の特徴を数値のベクトルに変換して、近いベクトルを探す仕組みです。画像の特徴抽出には公開されている学習済みモデル（私が使っているのはDINOv2という画像モデルです）があり、ベクトル検索用のデータベースも無料で動かせるものがあります。Pythonが書ける人なら、手元の図面PDFで検索が動くところまでは週末で到達できます。</p>
+    <p class="kb-article-paragraph">行き詰まるのは、その先です。動いたあとに残るのは「新しい図面が登録されたら自動で追加する」「誰がどの図面を見てよいかを分ける」「サーバーを止めずに動かし続ける」という運用の仕事で、これは検索そのものより重いです。参考までに、私の構成では常時1台のサーバーを動かす固定費が月に約4,500円、図面1枚を登録するたびに約0.15円かかっています。金額は小さいのですが、誰かがずっと面倒を見る前提になります。</p>
+    <p class="kb-article-paragraph">もう1つ見落としやすいのが、精度の検証です。「似た図面が出た」と感じるだけでは、社内に説明できません。私は類似ファミリー17種を目視で確認した正解セットを作ってから測りました。この正解セット作りが、自作で一番時間のかかる部分でした。</p>
+  </div>
+</section>
+
+<section id="system" class="kb-article-section">
+  <h2>方法2：類似検索つきの図面管理システムを導入する</h2>
+  <div class="kb-section-card kb-section-card--stack">
+    <p class="kb-article-paragraph">図面管理システムの中には、類似検索を機能として持つものがあります。台帳・版管理・権限・検索がひとつに揃うので、図面の管理そのものを作り直したい会社には合理的な選択です。</p>
+    <p class="kb-article-paragraph">試す上での壁は2つあります。1つは、価格を公開せず問い合わせから始まるサービスがあり、比較検討の入口で担当者とのやりとりが要ること。もう1つは、いまの図面台帳を新しいシステムに移す作業が前提になることです。図番・品名・工程の情報がすでに別の場所（Excelやkintone）にある会社ほど、移行の負担が大きくなります。</p>
+    <p class="kb-article-paragraph">「類似検索だけ試したい」という段階では、この入口は大きすぎます。台帳を作り直す時期が来ているなら、その時にまとめて検討するのが順番として自然です。</p>
+  </div>
+</section>
+
+<section id="kintone" class="kb-article-section">
+  <h2>方法3：kintoneの図面台帳に類似検索を足す</h2>
+  <div class="kb-section-card kb-section-card--stack">
+    <p class="kb-article-paragraph">すでにkintoneで図面台帳（図番・品名・図面PDFの添付）を運用している会社なら、台帳はそのままで、類似検索だけをプラグインとして足す方法があります。図面PDFはkintoneに置いたままで、プラグインが検索用の数値データを作り、レコードの画面から似た図面を探せるようにします。</p>
+    <p class="kb-article-paragraph">私が作っているPlugBits Drawingはこの方式で、無料枠は図面500枚まで・期間無制限です。月額9,800円の有料プランとの違いは、AI補正の有無と枚数の上限です。無料枠の検索精度は次の節に書きますが、500枚あれば「自社の図面で本当に似たものが出るか」の確認には足ります。</p>
+    <p class="kb-article-paragraph">この方法の制約も正直に書きます。まずkintoneの契約が前提です。次に、プラグインの読み込みとフィールドの対応付けは、kintoneの管理者が設定画面で行います。手順は<a href="/drawing/setup.html">設定ガイド</a>にまとめていますが、kintoneを触ったことのない人が1人で始めるのは難しいです。そして、図面台帳が「1レコードに複数の図面をまとめて添付」のような形で運用されている場合は、先に台帳の整理が必要になります。</p>
+  </div>
+</section>
+
+<section id="accuracy" class="kb-article-section">
+  <h2>「精度」の数字をどう読むか</h2>
+  <div class="kb-section-card kb-section-card--stack">
+    <p class="kb-article-paragraph">類似図面検索を比較すると「精度」という言葉が出てきますが、何を測った数字かで意味が変わります。私が使っているのは「Hit@5」という指標で、正解の図面が検索結果の上位5件に入っていた割合です。現場で人が5枚くらいなら目で確認できる、という前提の数字です。</p>
+    <p class="kb-article-paragraph">実図面4,616枚、類似ファミリー17種で測った結果は、AI補正ありの構成でHit@5が100%（17件中17件）、AI補正なしの無料枠の構成で94.1%でした。1位に正解が来る割合（Hit@1）はそれぞれ76.5%と70.6%です。つまり無料枠でも「上位5件に入る」水準はほぼ変わらず、差が出るのは1位に来るかどうか、という理解で合っています。</p>
+    <p class="kb-article-paragraph">もう1つ、正解が用意されていない図面を無作為に25枚選んで検索し、上位5件に実務で参考になる図面が入っていたかを目視で判定したところ、80%でした。この数字のほうが日常の使用感に近いと思います。自作でも導入でも、こうした「自分の図面で測った数字」を1つ持っておくと、社内の説明が楽になります。</p>
+  </div>
+</section>
+
+<section id="decision" class="kb-article-section">
+  <h2>試す前に数えておきたい1つのこと</h2>
+  <div class="kb-section-card kb-section-card--stack">
+    <p class="kb-article-paragraph">どの入口を選ぶにしても、先に数えておいてほしいことがあります。「図番の分からない図面を渡されて、過去の実績を探した回数」を、1ヶ月分だけ記録することです。</p>
+    <p class="kb-article-paragraph">私はかつて、類似検索を作った上で、実際に使ってもらう現場を2週間見ていました。結果は、検索の利用がゼロでした。理由は検索の精度ではなく、その現場では発注側が参照図番と過去の価格を先に教えてくれる運用に変わっていて、「探す仕事」自体がなくなっていたからです。図面台帳が整っていて図番が必ず分かる会社なら、類似検索は要りません。</p>
+    <p class="kb-article-paragraph">逆に、商社経由で客先の図面だけが届く、見積もりの前に似た品番の原価を引きたい、という場面が月に何度もあるなら、上の3つのどれかを試す価値があります。無料で確かめられる範囲から始めて、「自分の図面で似たものが出た」を先に体験してから、運用と費用の話に進むのが遠回りのない順番だと思います。</p>
+  </div>
+</section>
+
+<section id="faq" class="kb-article-section">
+  <h2>よくある質問</h2>
+  <div class="kb-faq">
+    <div class="kb-faq-item">
+      <h3>無料枠の「500枚」はどう数えますか？</h3>
+      <p>登録されている図面の合計枚数です。月ごとにリセットされる枠ではなく、期間の制限もありません。500枚を超えて登録したい時点で有料プランを検討してください。</p>
+    </div>
+    <div class="kb-faq-item">
+      <h3>図面のデータは外部に出ますか？</h3>
+      <p>kintoneプラグイン方式では、図面PDFそのものはお客様のkintoneに置いたままです。当方のサーバーが預かるのは検索用の数値データと、暗号化したサムネイルだけで、AIの学習には使いません。自作の場合はサーバーの置き場所を自分で決められるので、この点は自作の利点です。</p>
+    </div>
+    <div class="kb-faq-item">
+      <h3>スキャンした古い図面でも探せますか？</h3>
+      <p>図面PDFを画像として扱うので、スキャンしたPDFも検索の入力にはなります。ただし検証に使った4,616枚は特定の1社の図面なので、図面の描き方が大きく異なる会社でどうなるかは、その会社の図面で確かめるのが確実です。</p>
+    </div>
+    <div class="kb-faq-item">
+      <h3>有料プランにして、合わなかった場合は？</h3>
+      <p>月額9,800円のプランには30日間の返金保証があり、解約もいつでもできます。年額プランは98,000円で、請求書払いに対応しています。</p>
+    </div>
+  </div>
+</section>
+
+<div class="kb-divider" role="presentation"></div>
+
+<section class="kb-article-section">
+  <div class="kb-section-card kb-section-card--stack">
+    <div class="kb-support-card">
+      <strong>自社の図面で、似たものが出るかを確かめる</strong>
+      <p class="kb-article-paragraph">PlugBits Drawingは、kintone上で図面の類似検索ができるサービスです。図面をアップロードすると、過去の似た図面を数秒で探せます。月額9,800円、無料枠は最大500枚・期間無制限（AI補正なし）です。</p>
+      <p><a href="/drawing/">類似図面検索プラグインを見る →</a></p>
+    </div>
+  </div>
+</section>
