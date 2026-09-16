@@ -192,155 +192,6 @@
   color: var(--blue);
 }
 
-/* ---------- results: query row ---------- */
-
-.demo-query-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  margin: 24px 0;
-}
-
-.demo-query-card {
-  width: 96px;
-  border: 2px solid var(--line);
-  border-radius: 6px;
-  background: var(--surface);
-  padding: 6px;
-  cursor: pointer;
-  text-align: center;
-}
-
-.demo-query-card:hover,
-.demo-query-card:focus-visible {
-  border-color: var(--blue);
-}
-
-.demo-query-card.is-active {
-  border-color: var(--blue);
-  background: var(--blue-tint);
-}
-
-.demo-query-card.is-disabled {
-  opacity: 0.5;
-  cursor: default;
-}
-
-.demo-thumb-img,
-.demo-thumb-fallback {
-  width: 100%;
-  aspect-ratio: 4 / 3;
-  object-fit: cover;
-  border-radius: 4px;
-  background: var(--paper-alt);
-  display: block;
-}
-
-.demo-thumb-fallback {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 9px;
-  line-height: 1.4;
-  color: var(--sub);
-  padding: 4px;
-  overflow: hidden;
-  word-break: break-all;
-}
-
-.demo-query-card-name {
-  display: block;
-  margin-top: 4px;
-  font-size: 10px;
-  color: var(--sub);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-/* ---------- ranked list (results + sample panel) ---------- */
-
-.demo-ranked-list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  max-width: 560px;
-}
-
-.demo-ranked-item {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 10px 14px;
-  border: 1px solid var(--line);
-  border-radius: 6px;
-  background: var(--surface);
-}
-
-.demo-ranked-rank {
-  font-family: 'Roboto Mono', 'Liberation Mono', monospace;
-  font-weight: 700;
-  color: var(--sub);
-  width: 2em;
-  flex-shrink: 0;
-}
-
-.demo-ranked-thumb,
-.demo-ranked-thumb-fallback {
-  width: 44px;
-  height: 33px;
-  object-fit: cover;
-  border-radius: 3px;
-  background: var(--paper-alt);
-  flex-shrink: 0;
-}
-
-.demo-ranked-name {
-  flex: 1 1 auto;
-  min-width: 0;
-  font-size: 14px;
-  color: var(--ink);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.demo-badge-near {
-  font-family: 'Roboto Mono', 'Liberation Mono', monospace;
-  font-size: 11px;
-  font-weight: 700;
-  color: #FFFFFF;
-  background: var(--blue-btn);
-  padding: 3px 8px;
-  border-radius: 10px;
-  white-space: nowrap;
-  flex-shrink: 0;
-}
-
-.demo-ranked-item.is-unreadable .demo-ranked-name {
-  color: var(--error);
-}
-
-.demo-restart-btn {
-  margin-top: 24px;
-  display: inline-block;
-  padding: 10px 22px;
-  border-radius: var(--radius);
-  border: 1px solid var(--line-strong);
-  background: transparent;
-  color: var(--ink);
-  font-weight: 700;
-  font-size: 14px;
-}
-
-.demo-restart-btn:hover {
-  border-color: var(--blue);
-  color: var(--blue);
-}
-
 /* ---------- samples grid ---------- */
 
 .demo-samples-grid {
@@ -381,58 +232,416 @@
   border-color: var(--blue);
 }
 
-/* ---------- sample result panel (lightbox) ---------- */
+/* ==========================================================================
+   結果モーダル — 本番kintoneプラグイン(plugin.js/plugin.css)の見た目を移植。
+   クラス名は demo-modal- で名前空間を切り、色トークンも --dmx- として
+   このモーダルのサブツリー内だけで定義する(ページ本体の dw- トークンとは
+   衝突しない)。参照元:
+     plugin.js L2796-3065 (REGISTER_CSS: design tokens / overlay / modal /
+       modal-header / preview-panel / form-panel / sim-item / sim-hero-*)
+     plugin.js L310-360  (createModalShell: overlay・×ボタン・Esc・
+       オーバーレイクリックで閉じる)
+     plugin.js L606-612  (buildReasonBadges → sim-reasonsの見た目、ここでは
+       未使用だが同系のバッジ言語を踏襲)
+     plugin.js L617-621  (scoreBandClass: band-high が「近い」バッジの元)
+     plugin.js L5260-5330 (openSimilarModal: 左=preview-panel/右=form-panel
+       の2ペイン構成そのもの)
+   本番は幅640px以下のレイアウト崩れを想定しない(kintoneはPC専用画面)ため、
+   モバイル縦積みの @media はこのデモ独自に追加している。
+   ========================================================================== */
 
-.demo-panel-overlay {
+.demo-modal-overlay {
+  --dmx-primary: #2563EB;
+  --dmx-primary-hover: #1D4ED8;
+  --dmx-primary-soft: #EFF4FF;
+  --dmx-ink: #0F172A;
+  --dmx-ink-2: #334155;
+  --dmx-muted: #64748B;
+  --dmx-faint: #94A3B8;
+  --dmx-line: #E6E9EF;
+  --dmx-line-2: #D7DEE8;
+  --dmx-bg: #F8FAFC;
+  --dmx-green: #059669;
+  --dmx-green-soft: #ECFDF5;
+  --dmx-radius: 12px;
+  --dmx-radius-sm: 9px;
+  --dmx-shadow: 0 20px 50px rgba(15, 23, 42, .22), 0 4px 12px rgba(15, 23, 42, .10);
+
   position: fixed;
   inset: 0;
-  background: rgba(14, 20, 32, 0.6);
+  background: rgba(15, 23, 42, .5);
+  -webkit-backdrop-filter: blur(3px);
+  backdrop-filter: blur(3px);
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 20px;
-  z-index: 100;
+  z-index: 1000;
+  font-family: 'Noto Sans JP', 'Hiragino Sans', sans-serif;
+  color: var(--dmx-ink);
 }
 
-.demo-panel-overlay[hidden] {
-  display: none;
+.demo-modal-overlay[hidden] { display: none; }
+
+.demo-modal {
+  background: #FFFFFF;
+  border-radius: 16px;
+  width: calc(100vw - 40px);
+  height: calc(100vh - 40px);
+  max-width: 1040px;
+  max-height: calc(100vh - 40px);
+  padding: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  box-shadow: var(--dmx-shadow);
 }
 
-.demo-panel {
-  background: var(--surface);
+.demo-modal-close {
+  position: absolute;
+  top: 14px;
+  right: 16px;
+  width: 32px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
   border-radius: 8px;
-  max-width: 560px;
-  width: 100%;
-  max-height: 85vh;
-  overflow-y: auto;
-  padding: 24px;
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+  color: var(--dmx-faint);
+  transition: background .15s, color .15s;
+  z-index: 5;
 }
 
-.demo-panel-header {
+.demo-modal-close:hover { background: #F1F5F9; color: var(--dmx-ink-2); }
+
+/* 本番はShadow DOMでページ側の :focus-visible が届かないが、このデモは
+   通常DOMなので明示的に打ち消す(モーダル全体が青枠で囲われるのを防ぐ)。
+   閉じるボタン等、個々の操作可能要素のフォーカスリングは活かす。 */
+.demo-modal:focus-visible { outline: none; }
+
+.demo-modal-header {
+  padding: 16px 56px 16px 24px;
+  border-bottom: 1px solid var(--dmx-line);
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  margin: 0 0 16px;
+  flex-shrink: 0;
 }
 
-.demo-panel-header h3 {
+.demo-modal-header h2 {
   margin: 0;
-  font-size: 18px;
-  color: var(--ink);
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--dmx-ink);
+  letter-spacing: .01em;
 }
 
-.demo-panel-close {
-  border: none;
-  background: transparent;
-  font-size: 24px;
-  line-height: 1;
-  color: var(--sub);
+.demo-modal-header-actions {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.demo-modal-btn-secondary {
+  min-height: 36px;
+  padding: 8px 14px;
+  background: #FFFFFF;
+  color: var(--dmx-ink-2);
+  border: 1px solid var(--dmx-line-2);
+  border-radius: var(--dmx-radius-sm);
+  font-size: 13px;
+  font-weight: 600;
   cursor: pointer;
-  padding: 4px 8px;
+  transition: background .15s, border-color .15s;
 }
 
-.demo-panel-close:hover { color: var(--ink); }
+.demo-modal-btn-secondary:hover { background: var(--dmx-bg); border-color: var(--dmx-faint); }
+
+.demo-modal-layout {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+  min-height: 0;
+}
+
+/* ---- 左ペイン: 大きいプレビュー(plugin.js buildPreviewPanel相当) ---- */
+
+.demo-modal-preview {
+  flex: 0 0 40%;
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid var(--dmx-line);
+  background: var(--dmx-bg);
+  min-height: 0;
+}
+
+.demo-modal-preview-label {
+  padding: 8px 14px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--dmx-muted);
+  background: #FFFFFF;
+  border-bottom: 1px solid var(--dmx-line);
+  flex-shrink: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.demo-modal-preview-body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 14px;
+}
+
+.demo-modal-preview-img {
+  max-width: 100%;
+  max-height: 100%;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  border-radius: 6px;
+  background: #FFFFFF;
+}
+
+.demo-modal-preview-placeholder {
+  color: var(--dmx-faint);
+  font-size: 13px;
+  text-align: center;
+  padding: 0 16px;
+}
+
+.demo-modal-preview-actions {
+  flex-shrink: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0 14px 14px;
+}
+
+.demo-modal-preview-reset {
+  min-height: 32px;
+  padding: 4px 12px;
+  background: #FFFFFF;
+  color: var(--dmx-ink-2);
+  border: 1px solid var(--dmx-line-2);
+  border-radius: 8px;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background .15s, border-color .15s;
+}
+
+.demo-modal-preview-reset:hover { background: var(--dmx-bg); border-color: var(--dmx-faint); }
+.demo-modal-preview-reset[hidden] { display: none; }
+
+/* 「この図面を元に並べ直す」: 戻すボタンと並ぶが、実際にリストを組み替える
+   操作なので primary 寄りの配色にして区別する。 */
+.demo-modal-preview-rerank {
+  background: var(--dmx-primary-soft);
+  color: var(--dmx-primary-hover);
+  border-color: transparent;
+}
+
+.demo-modal-preview-rerank:hover { background: var(--dmx-primary-soft); border-color: var(--dmx-primary); }
+
+/* ---- 右ペイン: 候補一覧(plugin.js .form-panel + .sim-item 相当) ---- */
+
+.demo-modal-list {
+  flex: 0 0 60%;
+  overflow-y: auto;
+  padding: 16px 20px 24px;
+}
+
+.demo-modal-item {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 12px;
+  padding: 10px;
+  border: 1px solid var(--dmx-line);
+  border-radius: var(--dmx-radius);
+  background: #FFFFFF;
+  cursor: pointer;
+  transition: border-color .15s, box-shadow .15s;
+  width: 100%;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+}
+
+.demo-modal-item + .demo-modal-item { margin-top: 8px; }
+
+.demo-modal-item:hover,
+.demo-modal-item:focus-visible {
+  border-color: var(--dmx-line-2);
+  box-shadow: 0 4px 14px rgba(15, 23, 42, .07);
+}
+
+.demo-modal-item.is-current {
+  border-color: var(--dmx-primary);
+  box-shadow: 0 0 0 1px var(--dmx-primary) inset;
+}
+
+.demo-modal-item.is-unreadable {
+  cursor: default;
+  opacity: .55;
+}
+
+.demo-modal-item-thumb {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  width: 68px;
+  height: 68px;
+  border: 1px solid var(--dmx-line);
+  border-radius: 8px;
+  background: var(--dmx-bg);
+  color: var(--dmx-faint);
+  font-size: 9px;
+  text-align: center;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.demo-modal-item-thumb img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
+/* plugin.js の .sim-hero-rank(拡大カード用の丸ピル)を、68pxの行サムネイル
+   向けに縮小して移植したもの。色・角丸・ぼかしは同じ言語のまま。 */
+.demo-modal-item-rank {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  padding: 1px 6px;
+  border-radius: 9999px;
+  background: rgba(15, 23, 42, .82);
+  color: #FFFFFF;
+  font-size: 9px;
+  font-weight: 700;
+  -webkit-backdrop-filter: blur(2px);
+  backdrop-filter: blur(2px);
+}
+
+.demo-modal-item-info {
+  min-width: 0;
+}
+
+.demo-modal-item-name {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--dmx-primary-hover);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.demo-modal-item.is-unreadable .demo-modal-item-name { color: var(--dmx-muted); }
+
+.demo-modal-item-meta {
+  margin-top: 3px;
+  color: var(--dmx-muted);
+  font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* plugin.js の .sim-score.band-high(スコア帯トップの見た目)をそのまま
+   「近い」バッジに使う。数値は出さない。 */
+.demo-modal-badge-near {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  padding: 0 10px;
+  border-radius: 9999px;
+  font-size: 12.5px;
+  font-weight: 700;
+  background: var(--dmx-green-soft);
+  color: #166534;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* ---- kintoneでの見え方(要件6) ---- */
+
+.demo-modal-kintone-look {
+  margin-top: 22px;
+  padding-top: 20px;
+  border-top: 1px solid var(--dmx-line);
+}
+
+.demo-modal-kintone-look[hidden] { display: none; }
+
+.demo-modal-kintone-look-heading {
+  margin: 0 0 10px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--dmx-ink);
+}
+
+.demo-modal-kintone-look-img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border: 1px solid var(--dmx-line);
+  border-radius: 10px;
+  background: #FFFFFF;
+}
+
+.demo-modal-kintone-look-caption {
+  margin: 10px 0 4px;
+  font-size: 12.5px;
+  line-height: 1.7;
+  color: var(--dmx-ink-2);
+}
+
+.demo-modal-kintone-look-note {
+  margin: 0;
+  font-size: 11px;
+  color: var(--dmx-muted);
+}
+
+/* ---- 電話幅: 縦積み(本番プラグインはPC専用のためここはデモ独自) ---- */
+
+@media (max-width: 640px) {
+  .demo-modal {
+    width: calc(100vw - 20px);
+    height: calc(100vh - 20px);
+    max-height: calc(100vh - 20px);
+    border-radius: 12px;
+  }
+
+  .demo-modal-header { padding: 14px 48px 14px 16px; }
+
+  .demo-modal-layout { flex-direction: column; }
+
+  .demo-modal-preview {
+    flex: 0 0 auto;
+    max-height: 38vh;
+    border-right: none;
+    border-bottom: 1px solid var(--dmx-line);
+  }
+
+  .demo-modal-list {
+    flex: 1 1 auto;
+    padding: 14px 16px 20px;
+  }
+}
 
 /* ---------- kintone CTA ---------- */
 

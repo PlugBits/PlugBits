@@ -21,6 +21,15 @@ const SAMPLES_BASE = '/drawing/demo/samples/';
 const PDFJS_URL = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.7.76/pdf.min.mjs';
 const PDFJS_WORKER_URL = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.7.76/pdf.worker.min.mjs';
 
+// 「kintone の中ではこう見えます」ブロック。パスをここ1箇所にまとめてあるので、
+// 実際のデモ撮影画像が届いたら KINTONE_LOOK_IMAGE_SRC を
+// '/drawing/assets/demo-in-kintone.webp' に差し替えるだけでよい
+// (docs/drawing/demo/README.md にも同じ手順を記載)。
+const KINTONE_LOOK_IMAGE_SRC = '/drawing/assets/howto-3.webp';
+const KINTONE_LOOK_IMAGE_WIDTH = 1052;
+const KINTONE_LOOK_IMAGE_HEIGHT = 889;
+const KINTONE_LOOK_IMAGE_ALT = 'kintoneのレコード詳細で類似図面検索モーダルが開いた実画面';
+
 const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 /* ------------------------------------------------------------------ */
@@ -28,7 +37,6 @@ const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)
 /* ------------------------------------------------------------------ */
 const state = {
   files: [],          // [{ file, name, status: 'pending'|'done'|'failed', vectors, thumbUrl, thumbFailed }]
-  currentQueryIndex: 0,
   uploading: false,
   resultsShown: false,   // pushState /drawing/demo/results/ が済んだか
   sampleClickShown: false,
@@ -79,6 +87,25 @@ function isAllowedFile(file) {
 function isImageFile(file) {
   if (file.type === 'image/png' || file.type === 'image/jpeg') return true;
   return /\.(png|jpe?g)$/i.test(file.name || '');
+}
+
+// samples.json の manifest 由来の英語トークンを日本語に変換する
+// (候補リストのメタ行にそのまま出さない)。
+const VIEWS_LABELS = { 'three-view': '三面図', 'two-view': '二面図', 'section': '断面図' };
+function formatSampleMeta(item) {
+  const parts = [];
+  if (item.sheet) parts.push(item.sheet);
+  if (item.views) parts.push(VIEWS_LABELS[item.views] || item.views);
+  if (item.scan) parts.push('スキャン');
+  return parts.join(' ・ ');
+}
+
+function fileTypeLabel(file) {
+  if (!file) return '';
+  if (file.type === 'application/pdf' || /\.pdf$/i.test(file.name || '')) return 'PDF';
+  if (file.type === 'image/png' || /\.png$/i.test(file.name || '')) return 'PNG';
+  if (file.type === 'image/jpeg' || /\.jpe?g$/i.test(file.name || '')) return 'JPG';
+  return '';
 }
 
 function fireWarmup() {
@@ -208,7 +235,9 @@ async function renderPdfThumb(file) {
     const pdf = await pdfjsLib.getDocument({ data: buf }).promise;
     const page = await pdf.getPage(1);
     const baseViewport = page.getViewport({ scale: 1 });
-    const scale = Math.min(240 / baseViewport.width, 240 / baseViewport.height, 4);
+    // 結果モーダルの左ペイン(大きいプレビュー)にもそのまま使うため、一覧の
+    // 小さいサムネイル用よりずっと高い解像度でレンダリングしておく。
+    const scale = Math.min(900 / baseViewport.width, 900 / baseViewport.height, 4);
     const viewport = page.getViewport({ scale: scale > 0 ? scale : 1 });
     const canvas = document.createElement('canvas');
     canvas.width = Math.max(1, Math.ceil(viewport.width));
@@ -238,17 +267,6 @@ async function getThumbUrl(entry) {
   if (url) entry.thumbUrl = url;
   else entry.thumbFailed = true;
   return url;
-}
-
-async function attachThumb(entry, placeholderEl, imgClass) {
-  const url = await getThumbUrl(entry);
-  if (!url || !placeholderEl.isConnected) return;
-  const img = document.createElement('img');
-  img.className = imgClass;
-  img.src = url;
-  img.alt = '';
-  img.loading = 'lazy';
-  placeholderEl.replaceWith(img);
 }
 
 /* ------------------------------------------------------------------ */
@@ -373,7 +391,7 @@ async function startUpload(files) {
   const dropzone = $('dropzone');
   state.uploading = true;
   if (dropzone) dropzone.classList.add('is-uploading');
-  hideResultsSection();
+  if (activeModal) activeModal.close();
   showProgress();
 
   state.files = files.map(f => ({ file: f, name: f.name, status: 'pending', vectors: null, thumbUrl: null, thumbFailed: false }));
@@ -435,130 +453,23 @@ async function startUpload(files) {
     return;
   }
 
-  const firstDone = state.files.findIndex(f => f.status === 'done');
-  state.currentQueryIndex = firstDone === -1 ? 0 : firstDone;
-  renderResults();
+  openUploadResultsModal();
 }
 
-/* ------------------------------------------------------------------ */
-/* results rendering                                                    */
-/* ------------------------------------------------------------------ */
-function hideResultsSection() {
-  const section = $('results-section');
-  if (section) section.hidden = true;
-  const queryRow = $('query-row');
-  if (queryRow) queryRow.innerHTML = '';
-  const rankedList = $('ranked-list');
-  if (rankedList) rankedList.innerHTML = '';
+function performRestart() {
+  state.objectUrls.forEach(url => { try { URL.revokeObjectURL(url); } catch (e) { /* ignore */ } });
+  state.objectUrls = [];
+  state.files = [];
+  state.resultsShown = false;
+
+  hideProgress();
+  setDropzoneMessage('');
+
+  try { history.pushState({}, '', '/drawing/demo/'); } catch (e) { /* ignore */ }
+
+  const dropzone = $('dropzone');
+  if (dropzone) dropzone.scrollIntoView({ behavior: prefersReducedMotion ? 'auto' : 'smooth', block: 'start' });
 }
-
-function renderResults() {
-  const section = $('results-section');
-  const queryRow = $('query-row');
-  const rankedList = $('ranked-list');
-  if (!section || !queryRow || !rankedList) return;
-
-  queryRow.innerHTML = '';
-  rankedList.innerHTML = '';
-
-  state.files.forEach((entry, idx) => {
-    const card = document.createElement('button');
-    card.type = 'button';
-    const isActive = idx === state.currentQueryIndex;
-    card.className = 'demo-query-card' + (entry.status !== 'done' ? ' is-disabled' : '') + (isActive ? ' is-active' : '');
-    card.disabled = entry.status !== 'done';
-    card.setAttribute('aria-pressed', isActive ? 'true' : 'false');
-
-    const placeholder = document.createElement('div');
-    placeholder.className = 'demo-thumb-fallback';
-    placeholder.textContent = entry.status === 'done' ? entry.name : '読み取れませんでした';
-    card.appendChild(placeholder);
-
-    const nameEl = document.createElement('span');
-    nameEl.className = 'demo-query-card-name';
-    nameEl.textContent = entry.name;
-    card.appendChild(nameEl);
-
-    if (entry.status === 'done') {
-      card.addEventListener('click', () => {
-        state.currentQueryIndex = idx;
-        renderResults();
-      });
-      attachThumb(entry, placeholder, 'demo-thumb-img');
-    }
-
-    queryRow.appendChild(card);
-  });
-
-  const query = state.files[state.currentQueryIndex];
-  const others = state.files
-    .map((entry, idx) => ({ entry, idx }))
-    .filter(x => x.entry.status === 'done' && x.idx !== state.currentQueryIndex)
-    .map(x => ({ entry: x.entry, sim: similarity(query, x.entry) }))
-    .sort((a, b) => b.sim - a.sim);
-
-  others.forEach((r, i) => {
-    const li = document.createElement('li');
-    li.className = 'demo-ranked-item';
-
-    const rank = document.createElement('span');
-    rank.className = 'demo-ranked-rank';
-    rank.textContent = (i + 1) + '.';
-    li.appendChild(rank);
-
-    const thumbPlaceholder = document.createElement('div');
-    thumbPlaceholder.className = 'demo-ranked-thumb-fallback';
-    li.appendChild(thumbPlaceholder);
-    attachThumb(r.entry, thumbPlaceholder, 'demo-ranked-thumb');
-
-    const nameEl = document.createElement('span');
-    nameEl.className = 'demo-ranked-name';
-    nameEl.textContent = r.entry.name;
-    li.appendChild(nameEl);
-
-    if (i < 3 && r.sim >= NEAR_THRESHOLD) {
-      const badge = document.createElement('span');
-      badge.className = 'demo-badge-near';
-      badge.textContent = '近い';
-      li.appendChild(badge);
-    }
-
-    rankedList.appendChild(li);
-  });
-
-  section.hidden = false;
-
-  if (!state.resultsShown) {
-    state.resultsShown = true;
-    try { history.pushState({}, '', '/drawing/demo/results/'); } catch (e) { /* ignore */ }
-  }
-
-  section.scrollIntoView({ behavior: prefersReducedMotion ? 'auto' : 'smooth', block: 'start' });
-}
-
-/* ------------------------------------------------------------------ */
-/* restart                                                              */
-/* ------------------------------------------------------------------ */
-(function initRestart() {
-  const btn = $('restart-btn');
-  if (!btn) return;
-  btn.addEventListener('click', () => {
-    state.objectUrls.forEach(url => { try { URL.revokeObjectURL(url); } catch (e) { /* ignore */ } });
-    state.objectUrls = [];
-    state.files = [];
-    state.currentQueryIndex = 0;
-    state.resultsShown = false;
-
-    hideResultsSection();
-    hideProgress();
-    setDropzoneMessage('');
-
-    try { history.pushState({}, '', '/drawing/demo/'); } catch (e) { /* ignore */ }
-
-    const dropzone = $('dropzone');
-    if (dropzone) dropzone.scrollIntoView({ behavior: prefersReducedMotion ? 'auto' : 'smooth', block: 'start' });
-  });
-})();
 
 /* ------------------------------------------------------------------ */
 /* sample drawings                                                      */
@@ -596,63 +507,304 @@ function renderSamplesGrid(items) {
     img.onerror = () => { img.style.visibility = 'hidden'; };
     btn.appendChild(img);
 
-    btn.addEventListener('click', () => openSamplePanel(idx));
+    btn.addEventListener('click', () => openSampleResultsModal(idx));
     grid.appendChild(btn);
   });
 }
 
-function openSamplePanel(idx) {
+/* ==================================================================== */
+/* 結果モーダル — 本番kintoneプラグインの openSimilarModal 相当。          */
+/* サンプル図面クリック・自分の図面アップロードの両方でこれ1つを共有する。 */
+/* ==================================================================== */
+
+let activeModal = null;
+
+function buildKintoneLookBlock() {
+  const wrap = document.createElement('div');
+  wrap.className = 'demo-modal-kintone-look';
+  wrap.id = 'kintone-look';
+
+  const heading = document.createElement('p');
+  heading.className = 'demo-modal-kintone-look-heading';
+  heading.textContent = 'kintone の中ではこう見えます';
+  wrap.appendChild(heading);
+
+  const img = document.createElement('img');
+  img.className = 'demo-modal-kintone-look-img';
+  img.src = KINTONE_LOOK_IMAGE_SRC;
+  img.alt = KINTONE_LOOK_IMAGE_ALT;
+  img.width = KINTONE_LOOK_IMAGE_WIDTH;
+  img.height = KINTONE_LOOK_IMAGE_HEIGHT;
+  img.loading = 'lazy';
+  wrap.appendChild(img);
+
+  const caption = document.createElement('p');
+  caption.className = 'demo-modal-kintone-look-caption';
+  caption.appendChild(document.createTextNode('kintoneの中では、図面を開いてボタンを1つ押すと、この画面が出ます。'));
+  caption.appendChild(document.createElement('br'));
+  caption.appendChild(document.createTextNode('左がいま開いている図面、右が似ている順の候補です。'));
+  wrap.appendChild(caption);
+
+  const note = document.createElement('p');
+  note.className = 'demo-modal-kintone-look-note';
+  note.textContent = 'プラグインが動いている実際のkintone画面です。データはデモ用に作成したものです。';
+  wrap.appendChild(note);
+
+  return wrap;
+}
+
+// plugin.js の createModalShell(L310-360) 相当: overlay・×・Esc・オーバーレイ
+// クリックで閉じる。本番はShadow DOMを使うが、デモは単一ページのスタイルを
+// そのままかぶせたいので通常DOM + name-spaced class(demo-modal-*)で代用する。
+function createResultsModal() {
+  const overlay = document.createElement('div');
+  overlay.className = 'demo-modal-overlay';
+
+  const modal = document.createElement('div');
+  modal.className = 'demo-modal';
+  modal.setAttribute('role', 'dialog');
+  modal.setAttribute('aria-modal', 'true');
+  modal.setAttribute('aria-labelledby', 'demo-modal-title');
+  modal.tabIndex = -1;
+
+  const closeBtn = document.createElement('button');
+  closeBtn.type = 'button';
+  closeBtn.className = 'demo-modal-close';
+  closeBtn.setAttribute('aria-label', '閉じる');
+  closeBtn.textContent = '×';
+
+  const header = document.createElement('div');
+  header.className = 'demo-modal-header';
+  const title = document.createElement('h2');
+  title.id = 'demo-modal-title';
+  header.appendChild(title);
+  const actions = document.createElement('div');
+  actions.className = 'demo-modal-header-actions';
+  header.appendChild(actions);
+
+  const layout = document.createElement('div');
+  layout.className = 'demo-modal-layout';
+
+  const preview = document.createElement('div');
+  preview.className = 'demo-modal-preview';
+  const previewLabel = document.createElement('div');
+  previewLabel.className = 'demo-modal-preview-label';
+  const previewBody = document.createElement('div');
+  previewBody.className = 'demo-modal-preview-body';
+  const previewActions = document.createElement('div');
+  previewActions.className = 'demo-modal-preview-actions';
+  const resetBtn = document.createElement('button');
+  resetBtn.type = 'button';
+  resetBtn.className = 'demo-modal-preview-reset';
+  resetBtn.textContent = '元の図面に戻す';
+  resetBtn.hidden = true;
+  const rerankBtn = document.createElement('button');
+  rerankBtn.type = 'button';
+  rerankBtn.className = 'demo-modal-preview-reset demo-modal-preview-rerank';
+  rerankBtn.textContent = 'この図面を元に並べ直す';
+  rerankBtn.hidden = true;
+  previewActions.append(resetBtn, rerankBtn);
+  preview.append(previewLabel, previewBody, previewActions);
+
+  const list = document.createElement('div');
+  list.className = 'demo-modal-list';
+
+  layout.append(preview, list);
+  modal.append(closeBtn, header, layout);
+  overlay.appendChild(modal);
+  document.body.appendChild(overlay);
+
+  let onCloseCb = null;
+  const onKeydown = (e) => { if (e.key === 'Escape') close(); };
+  function close() {
+    document.removeEventListener('keydown', onKeydown, true);
+    overlay.remove();
+    if (activeModal === handle) activeModal = null;
+    if (onCloseCb) onCloseCb();
+  }
+  document.addEventListener('keydown', onKeydown, true);
+  closeBtn.addEventListener('click', close);
+  overlay.addEventListener('click', (e) => { if (e.target === overlay) close(); });
+  setTimeout(() => modal.focus(), 0);
+
+  const handle = {
+    title, actions, previewLabel, previewBody, resetBtn, rerankBtn, list, close,
+    currentEntry: null,
+    setOnClose: (cb) => { onCloseCb = cb; },
+  };
+  activeModal = handle;
+  return handle;
+}
+
+// 左ペインの大きいプレビューを差し替える。entry.getImageUrl() は文字列 or
+// Promise<string|null> のどちらでもよい(サンプルは同期パス、アップロード
+// ファイルは getThumbUrl の非同期解決)。
+let previewToken = 0;
+async function setModalPreview(handle, entry, isOriginal) {
+  const token = ++previewToken;
+  handle.currentEntry = entry;
+  handle.previewLabel.textContent = entry.name || '';
+  handle.resetBtn.hidden = !!isOriginal;
+  handle.rerankBtn.hidden = !!isOriginal;
+  handle.previewBody.innerHTML = '';
+
+  const placeholder = document.createElement('div');
+  placeholder.className = 'demo-modal-preview-placeholder';
+  placeholder.textContent = 'プレビューを読み込み中...';
+  handle.previewBody.appendChild(placeholder);
+
+  const url = await Promise.resolve(entry.getImageUrl());
+  if (token !== previewToken) return; // 別の候補がその間にクリックされた
+
+  handle.previewBody.innerHTML = '';
+  if (url) {
+    const img = document.createElement('img');
+    img.className = 'demo-modal-preview-img';
+    img.src = url;
+    img.alt = entry.name || '';
+    handle.previewBody.appendChild(img);
+  } else {
+    const msg = document.createElement('div');
+    msg.className = 'demo-modal-preview-placeholder';
+    msg.textContent = 'プレビューを表示できません';
+    handle.previewBody.appendChild(msg);
+  }
+}
+
+function highlightCurrentRow(handle, rowEl) {
+  Array.prototype.forEach.call(handle.list.querySelectorAll('.demo-modal-item'), el => {
+    el.classList.remove('is-current');
+  });
+  if (rowEl) rowEl.classList.add('is-current');
+}
+
+async function resolveRowThumb(thumbBox, entry) {
+  const url = await Promise.resolve(entry.getImageUrl());
+  if (!thumbBox.isConnected || !url) return;
+  const img = document.createElement('img');
+  img.src = url;
+  img.alt = '';
+  img.loading = 'lazy';
+  thumbBox.appendChild(img);
+}
+
+// candidates: [{ name, meta, sim, unreadable, getImageUrl }]
+// plugin.js の .sim-item 行(L4683〜)を1つの見た目に統一して移植したもの
+// (本番は上位3件だけ .sim-hero-card に拡大するが、デモは全件この行サイズで
+// 統一し、代わりにサムネイルそのものを68px=本番の一覧サムネイルサイズにした)。
+function renderModalList(handle, candidates, onSelect) {
+  handle.list.innerHTML = '';
+  let readableRank = 0;
+
+  candidates.forEach((c) => {
+    const row = document.createElement('button');
+    row.type = 'button';
+    row.className = 'demo-modal-item' + (c.unreadable ? ' is-unreadable' : '');
+    if (c.unreadable) row.disabled = true;
+
+    const thumbBox = document.createElement('div');
+    thumbBox.className = 'demo-modal-item-thumb';
+    row.appendChild(thumbBox);
+
+    let rankNum = null;
+    if (!c.unreadable) {
+      readableRank += 1;
+      rankNum = readableRank;
+      resolveRowThumb(thumbBox, c);
+      const rankBadge = document.createElement('span');
+      rankBadge.className = 'demo-modal-item-rank';
+      rankBadge.textContent = rankNum + '位';
+      thumbBox.appendChild(rankBadge);
+    } else {
+      thumbBox.textContent = '×';
+    }
+
+    const info = document.createElement('div');
+    info.className = 'demo-modal-item-info';
+    const nameEl = document.createElement('div');
+    nameEl.className = 'demo-modal-item-name';
+    nameEl.textContent = c.name;
+    info.appendChild(nameEl);
+    const metaEl = document.createElement('div');
+    metaEl.className = 'demo-modal-item-meta';
+    metaEl.textContent = c.unreadable ? '読み取れませんでした' : (c.meta || '');
+    if (metaEl.textContent) info.appendChild(metaEl);
+    row.appendChild(info);
+
+    // 「近い」バッジ: 数値は出さず、上位3件かつ類似度0.87以上だけ、本番の
+    // scoreBandClass 最上位バンド(sim-score.band-high)の見た目で出す。
+    if (!c.unreadable && rankNum <= 3 && c.sim >= NEAR_THRESHOLD) {
+      const badge = document.createElement('span');
+      badge.className = 'demo-modal-badge-near';
+      badge.textContent = '近い';
+      row.appendChild(badge);
+    }
+
+    if (!c.unreadable) {
+      row.addEventListener('click', () => {
+        setModalPreview(handle, c, false);
+        highlightCurrentRow(handle, row);
+        onSelect && onSelect(c);
+      });
+    }
+
+    handle.list.appendChild(row);
+  });
+}
+
+function openSampleResultsModal(idx) {
   if (!state.samples) return;
   const items = state.samples.items;
-  const query = items[idx];
-  if (!query) return;
+  const original = items[idx];
+  if (!original) return;
 
-  const ranked = items
-    .map((it, i) => ({ item: it, idx: i, sim: dot(query.vector, it.vector) }))
-    .filter(r => r.idx !== idx)
+  const toEntry = (item) => ({
+    name: item.title || item.id,
+    meta: formatSampleMeta(item),
+    getImageUrl: () => SAMPLES_BASE + item.thumb,
+    raw: item,
+  });
+
+  const handle = createResultsModal();
+  handle.title.textContent = 'この図面に似ている順';
+
+  const backBtn = document.createElement('button');
+  backBtn.type = 'button';
+  backBtn.className = 'demo-modal-btn-secondary';
+  backBtn.textContent = '別の図面で試す';
+  backBtn.addEventListener('click', handle.close);
+  handle.actions.appendChild(backBtn);
+
+  // baseline = 候補リストが現在誰を基準にランキングされているか。
+  // スワップ(プレビュー切替)はこれを変えない。「並べ直す」だけがこれを進める。
+  let baseline = original;
+
+  const buildCandidates = (sourceItem) => items
+    .map((it, i) => ({ item: it, i, sim: dot(sourceItem.vector, it.vector) }))
+    .filter(r => r.item !== sourceItem)
     .sort((a, b) => b.sim - a.sim)
-    .slice(0, 10);
+    .slice(0, 10)
+    .map(r => Object.assign(toEntry(r.item), { sim: r.sim }));
 
-  const list = $('samples-panel-list');
-  if (list) {
-    list.innerHTML = '';
-    ranked.forEach((r, i) => {
-      const li = document.createElement('li');
-      li.className = 'demo-ranked-item';
+  const showBaseline = () => {
+    setModalPreview(handle, toEntry(baseline), true);
+    highlightCurrentRow(handle, null);
+  };
 
-      const rank = document.createElement('span');
-      rank.className = 'demo-ranked-rank';
-      rank.textContent = (i + 1) + '.';
-      li.appendChild(rank);
+  const renderListFor = (sourceItem) => {
+    renderModalList(handle, buildCandidates(sourceItem));
+    handle.list.appendChild(buildKintoneLookBlock());
+  };
 
-      const img = document.createElement('img');
-      img.className = 'demo-ranked-thumb';
-      img.src = SAMPLES_BASE + r.item.thumb;
-      img.alt = '';
-      img.loading = 'lazy';
-      li.appendChild(img);
+  renderListFor(baseline);
+  showBaseline();
 
-      const nameEl = document.createElement('span');
-      nameEl.className = 'demo-ranked-name';
-      nameEl.textContent = r.item.title || r.item.id || ('サンプル ' + (r.idx + 1));
-      li.appendChild(nameEl);
-
-      if (i < 3 && r.sim >= NEAR_THRESHOLD) {
-        const badge = document.createElement('span');
-        badge.className = 'demo-badge-near';
-        badge.textContent = '近い';
-        li.appendChild(badge);
-      }
-
-      list.appendChild(li);
-    });
-  }
-
-  const titleEl = $('samples-panel-title');
-  if (titleEl) titleEl.textContent = 'この図面に似ている順';
-
-  const panel = $('samples-panel');
-  if (panel) panel.hidden = false;
+  handle.resetBtn.addEventListener('click', showBaseline);
+  handle.rerankBtn.addEventListener('click', () => {
+    baseline = handle.currentEntry.raw;
+    renderListFor(baseline);
+    showBaseline();
+  });
 
   if (!state.sampleClickShown) {
     state.sampleClickShown = true;
@@ -660,26 +812,74 @@ function openSamplePanel(idx) {
   }
 }
 
-function closeSamplePanel() {
-  const panel = $('samples-panel');
-  if (panel) panel.hidden = true;
-}
+function openUploadResultsModal() {
+  const doneFiles = state.files.filter(f => f.status === 'done');
+  const original = doneFiles[0];
+  if (!original) return;
 
-(function initSamplePanel() {
-  const closeBtn = $('samples-panel-close');
-  const backBtn = $('samples-panel-back');
-  const overlay = $('samples-panel');
-  if (closeBtn) closeBtn.addEventListener('click', closeSamplePanel);
-  if (backBtn) backBtn.addEventListener('click', closeSamplePanel);
-  if (overlay) {
-    overlay.addEventListener('click', (e) => {
-      if (e.target === overlay) closeSamplePanel();
-    });
-  }
-  document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') closeSamplePanel();
+  const toEntry = (entry) => ({
+    name: entry.name,
+    meta: fileTypeLabel(entry.file),
+    getImageUrl: () => getThumbUrl(entry),
+    raw: entry,
   });
-})();
+
+  const handle = createResultsModal();
+  handle.title.textContent = 'この図面に似ている順';
+
+  const restartBtn = document.createElement('button');
+  restartBtn.type = 'button';
+  restartBtn.className = 'demo-modal-btn-secondary';
+  restartBtn.textContent = 'やり直す';
+  restartBtn.addEventListener('click', () => {
+    handle.close();
+    performRestart();
+  });
+  handle.actions.appendChild(restartBtn);
+
+  // baseline = 候補リストが現在誰を基準にランキングされているか。
+  // スワップ(プレビュー切替)はこれを変えない。「並べ直す」だけがこれを進める。
+  let baseline = original;
+
+  // 元は「クエリ行」として別枠に出していた読み取り失敗ファイルも、ここでは
+  // 同じ候補リストの中に(読み取れませんでした・クリック不可)で混ぜて出す
+  // (要件5: クエリ行を候補リストへ統合)。並び替えは類似度降順、失敗分は末尾。
+  const buildCandidates = (sourceEntry) => state.files
+    .filter(f => f !== sourceEntry)
+    .map(f => (f.status === 'done'
+      ? Object.assign(toEntry(f), { sim: similarity(sourceEntry, f) })
+      : { name: f.name, unreadable: true }))
+    .sort((a, b) => {
+      if (!!a.unreadable !== !!b.unreadable) return a.unreadable ? 1 : -1;
+      if (a.unreadable) return 0;
+      return b.sim - a.sim;
+    });
+
+  const showBaseline = () => {
+    setModalPreview(handle, toEntry(baseline), true);
+    highlightCurrentRow(handle, null);
+  };
+
+  const renderListFor = (sourceEntry) => {
+    renderModalList(handle, buildCandidates(sourceEntry));
+    handle.list.appendChild(buildKintoneLookBlock());
+  };
+
+  renderListFor(baseline);
+  showBaseline();
+
+  handle.resetBtn.addEventListener('click', showBaseline);
+  handle.rerankBtn.addEventListener('click', () => {
+    baseline = handle.currentEntry.raw;
+    renderListFor(baseline);
+    showBaseline();
+  });
+
+  if (!state.resultsShown) {
+    state.resultsShown = true;
+    try { history.pushState({}, '', '/drawing/demo/results/'); } catch (e) { /* ignore */ }
+  }
+}
 
 /* ------------------------------------------------------------------ */
 /* init                                                                 */
