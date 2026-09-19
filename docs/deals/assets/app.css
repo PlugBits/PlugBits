@@ -1,5 +1,8 @@
-/* PlugBits お得(/deals/)公開サイト。tiny-pulse の消費者向け画面(deals-home.css)と
-   同じ明るい・余白の多いトーンを踏襲する。ダークトークンは使わない。 */
+/* PlugBits お得/カード。tiny-pulse(司令室, mode=local)と公開サイト(plugbits.app/deals/,
+   mode=public)が共有する唯一のスタイルシート。ダークトークンは使わない(オーナーの指示:
+   「UIは実際に合わせてほしい」=この明るいトーンを正としてダーク版を廃止する)。
+   タイポグラフィ: 本文18px・見出し22px以上・補助テキスト15px以上・14px未満は使わない・
+   行間1.7・タップ領域48px以上・390px/320pxで横スクロールなし、を全モード共通で守る。 */
 :root {
   --bg: #ffffff;
   --text: #1b1b1f;
@@ -18,7 +21,7 @@ html { overflow-x: hidden; }
 html, body {
   margin: 0; padding: 0; background: var(--bg); color: var(--text);
   font-family: -apple-system, "Hiragino Sans", "Noto Sans JP", sans-serif;
-  font-size: 17px; line-height: 1.7; -webkit-text-size-adjust: 100%;
+  font-size: 18px; line-height: 1.7; -webkit-text-size-adjust: 100%;
 }
 body { padding-bottom: 56px; }
 a { color: var(--accent); }
@@ -42,9 +45,10 @@ a { color: var(--accent); }
 }
 .pb-brand { display: flex; align-items: baseline; gap: 6px; text-decoration: none; color: var(--text); }
 .pb-brand-name { font-weight: 800; font-size: 18px; }
-.pb-brand-sub { font-size: 13px; color: var(--text-sub); }
+.pb-brand-sub { font-size: 14px; color: var(--text-sub); }
+.pb-back { font-size: 16px; font-weight: 700; color: var(--accent); text-decoration: none; min-height: 48px; display: flex; align-items: center; }
 .pb-nav { display: flex; gap: 14px; overflow-x: auto; -webkit-overflow-scrolling: touch; }
-.pb-nav-link { font-size: 14px; font-weight: 600; color: var(--text-sub); text-decoration: none; white-space: nowrap; padding: 6px 0; }
+.pb-nav-link { font-size: 14px; font-weight: 600; color: var(--text-sub); text-decoration: none; white-space: nowrap; padding: 6px 0; min-height: 48px; display: flex; align-items: center; }
 .pb-nav-link.active { color: var(--accent); border-bottom: 2px solid var(--accent); }
 
 .deals-top { padding: 14px 0 4px; }
@@ -128,7 +132,7 @@ details.other-section > summary.other-toggle::-webkit-details-marker { display: 
 .legal-section { margin: 0 0 26px; }
 .legal-section h2 { font-size: 18px; font-weight: 800; margin: 0 0 10px; }
 .legal-section p { margin: 0 0 10px; }
-.legal-note { margin-top: 32px; color: var(--text-sub); font-size: 13px; }
+.legal-note { margin-top: 32px; color: var(--text-sub); font-size: 14px; }
 
 .concept-card { background: var(--band); border-radius: 14px; padding: 16px; margin: 0 0 24px; }
 .concept-card h2 { font-size: 18px; font-weight: 800; margin: 0 0 10px; }
@@ -152,8 +156,86 @@ table.catalog-table th { background: var(--band); font-weight: 800; white-space:
 .pb-deals-footer-inner { max-width: 640px; margin: 0 auto; }
 .pb-footer-note { font-size: 14px; color: var(--text-sub); margin: 0 0 10px; }
 .pb-footer-links { display: flex; flex-wrap: wrap; gap: 12px; margin: 0 0 10px; }
-.pb-footer-links a { font-size: 13px; color: var(--text-sub); text-decoration: underline; }
-.pb-deals-footer small { color: var(--text-sub); font-size: 12px; }
+.pb-footer-links a { font-size: 14px; color: var(--text-sub); text-decoration: underline; }
+.pb-deals-footer small { color: var(--text-sub); font-size: 13px; }
+.pb-back-foot { font-size: 15px; font-weight: 700; color: var(--accent); text-decoration: none; }
+
+/* ================= 個人利用の断片(mode=local のみ。/web/personal.js が使う) ================= */
+.personal-section { margin-top: 8px; }
+.p-card { border: 1px solid var(--border); border-radius: 16px; padding: 14px 16px; background: #fff; margin-bottom: 10px; }
+.p-subtitle { font-size: 16px; font-weight: 800; margin: 0 0 8px; }
+.p-note { font-size: 14px; color: var(--text-sub); margin: 0 0 10px; }
+.personal-section textarea {
+  width: 100%; box-sizing: border-box; min-height: 80px; background: #fff; color: var(--text);
+  border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; font-family: inherit;
+  font-size: 16px; line-height: 1.7; resize: vertical;
+}
+.personal-section input[type=text], .personal-section input[type=date], .personal-section input:not([type]) {
+  box-sizing: border-box; background: #fff; color: var(--text); border: 1px solid var(--border);
+  border-radius: 10px; padding: 10px 12px; font-family: inherit; font-size: 16px; min-height: 48px; width: 100%;
+}
+.personal-section input[type=checkbox] { width: 22px; height: 22px; }
+.p-btn {
+  min-height: 48px; background: var(--accent); color: #fff; border: 0; border-radius: 10px;
+  padding: 10px 18px; font-size: 15px; font-family: inherit; font-weight: 700; cursor: pointer;
+}
+.p-btn:disabled { opacity: .5; }
+.p-btn.ghost { background: transparent; border: 1px solid var(--border); color: var(--text); font-weight: 600; }
+.p-btn.small { padding: 6px 14px; font-size: 14px; min-height: 40px; }
+.p-actions { display: flex; gap: 8px; margin-top: 10px; align-items: center; flex-wrap: wrap; }
+.p-status { font-size: 14px; color: var(--text-sub); margin-top: 10px; line-height: 1.5; }
+.p-status.busy { color: #8a6100; }
+.p-status.ok { color: #1e7a34; }
+.p-status.warn { color: #b3261e; }
+.p-attach { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+.p-attach .chip { display: inline-flex; align-items: center; gap: 6px; background: var(--band); border-radius: 999px; padding: 6px 10px; font-size: 14px; }
+.p-attach .chip b { cursor: pointer; font-weight: 700; color: var(--text-sub); }
+.p-draft { white-space: pre-wrap; font-size: 15px; line-height: 1.7; background: var(--band); border: 1px solid var(--border); border-radius: 10px; padding: 12px; margin-top: 10px; }
+.p-none { color: var(--text-sub); font-size: 15px; padding: 10px 2px; line-height: 1.7; }
+.p-form { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 4px; }
+.p-form input { flex: 1 1 45%; min-width: 0; }
+.p-form input.wide { flex: 1 1 100%; }
+.p-field-label { font-size: 14px; color: var(--text-sub); margin: 10px 0 4px; }
+.disclaimer { font-size: 14px; color: var(--text-sub); line-height: 1.7; text-align: center; margin: 24px 0 4px; padding: 12px; border: 1px solid var(--border); border-radius: 12px; background: var(--band); }
+
+.p-row { display: flex; align-items: flex-start; gap: 10px; border-bottom: 1px solid var(--border); padding: 10px 0; min-height: 48px; box-sizing: border-box; }
+.p-row:last-child { border-bottom: 0; }
+.p-row .p-chk { flex: none; padding-top: 2px; }
+.p-row .p-body { flex: 1; min-width: 0; }
+.p-row .p-t { font-size: 16px; color: var(--text); }
+.p-row .p-m { font-size: 14px; color: var(--text-sub); margin-top: 2px; }
+.p-row .p-amt { font-size: 16px; color: var(--text); flex: none; text-align: right; white-space: nowrap; }
+.p-row .p-days { font-size: 14px; flex: none; text-align: right; white-space: nowrap; color: var(--text-sub); }
+.p-row .p-days.soon { color: #b3261e; font-weight: 700; }
+.p-tag-unofficial { display: inline-block; font-size: 12px; border-radius: 999px; padding: 1px 7px; background: transparent; border: 1px solid var(--border); color: var(--text-sub); flex: none; line-height: 1.6; margin-left: 6px; }
+
+.p-holding-actions { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
+.p-close-form { display: none; gap: 8px; margin-top: 8px; align-items: center; flex-wrap: wrap; }
+.p-close-form.open { display: flex; }
+.p-close-form input { flex: 1 1 160px; }
+#cd-addForm { display: none; margin-top: 12px; border-top: 1px solid var(--border); padding-top: 12px; }
+#cd-addForm.open { display: block; }
+.p-catalog-pick { max-height: 260px; overflow: auto; margin-top: 8px; border: 1px solid var(--border); border-radius: 10px; }
+.p-catalog-group-head { font-size: 14px; color: var(--text-sub); font-weight: 700; padding: 8px 12px; background: var(--band); border-bottom: 1px solid var(--border); }
+.p-catalog-pick-row { padding: 10px 12px; min-height: 48px; box-sizing: border-box; display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; border-bottom: 1px solid var(--border); cursor: pointer; }
+.p-catalog-pick-row:last-child { border-bottom: 0; }
+.p-catalog-pick-row:active { background: var(--band); }
+.p-catalog-pick-row.selected { background: var(--accent-soft); }
+.p-catalog-pick-row .cp-main { flex: 1 1 auto; min-width: 0; overflow-wrap: anywhere; word-break: break-word; }
+.p-catalog-pick-row .cp-ja { font-size: 16px; color: var(--text); }
+.p-catalog-pick-row .cp-en { font-size: 14px; color: var(--text-sub); overflow-wrap: anywhere; word-break: break-word; }
+.p-catalog-pick-row .cp-fee { flex: none; white-space: nowrap; font-size: 14px; color: var(--text-sub); }
+.p-selected-card { margin-top: 10px; font-size: 16px; padding: 8px 0; }
+.p-month-only-label { display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--text-sub); margin-top: 8px; }
+.p-opened-inline { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 6px; }
+.p-opened-inline .p-m { flex: none; }
+.p-opened-inline input[type=date] { flex: 1 1 150px; min-width: 150px; width: auto; }
+.p-opened-inline button { flex: none; }
+.holding-row .hd-head { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: baseline; }
+.holding-row .hd-name { flex: 1 1 auto; min-width: 0; overflow-wrap: anywhere; word-break: break-word; font-size: 16px; color: var(--text); }
+.holding-row .hd-fee { flex: none; white-space: nowrap; font-size: 14px; color: var(--text-sub); }
+.holding-row .hd-note { color: var(--text-sub); overflow-wrap: anywhere; word-break: break-word; }
+[hidden] { display: none !important; }
 
 @media (max-width: 380px) {
   .card-headline { font-size: 22px; }
