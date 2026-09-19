@@ -18,7 +18,7 @@ const SUPPORT_MAIL = 'support@plugbits.app';
 const SITE_COPYRIGHT = `© ${new Date().getFullYear()} PlugBits. All rights reserved.`;
 const SITE_ORIGIN = 'https://plugbits.app';
 const DEFAULT_BLOG_OG_IMAGE = 'assets/blog/note_eyecatch_v2.png';
-const DOCS_INDEXABLE_PAGES = ['/drawing/', '/drawing/demo/', '/factory-tools/', '/launcher/'];
+const DOCS_INDEXABLE_PAGES = ['/drawing/', '/drawing/demo/', '/factory-tools/', '/launcher/', '/deals/', '/deals/cards/', '/deals/ranking.html', '/deals/about.html', '/deals/privacy.html'];
 
 function esc(s) {
   return String(s ?? '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
