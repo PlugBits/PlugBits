@@ -83,8 +83,19 @@ a { color: var(--accent); }
 
 .section-title { font-size: 22px; font-weight: 800; margin: 18px 0 10px; background: var(--band); padding: 10px 14px; border-radius: 12px; }
 .cards { display: flex; flex-direction: column; gap: 10px; }
-.card { border: 1px solid var(--border); border-radius: 16px; padding: 10px 14px; background: #fff; }
+.card, .bundle-item { border: 1px solid var(--border); border-radius: 16px; padding: 10px 14px; background: #fff; }
 .card.due-soon { border-left: 4px solid var(--due-soon); padding-left: 11px; }
+
+/* 店バンドル(v2, 2026-09-19): 同じ店に2件以上あるとき店名を1回だけ見出しにして中にまとめる */
+.store-bundle { padding: 12px 14px 6px; }
+.bundle-store-head { display: flex; align-items: center; gap: 8px; margin: 0 0 2px; font-size: 20px; font-weight: 800; line-height: 1.25; }
+.bundle-count { flex: none; font-size: 12px; font-weight: 700; color: var(--text-sub); background: var(--band); padding: 2px 9px; border-radius: 999px; }
+.bundle-list { display: flex; flex-direction: column; }
+.store-bundle .bundle-item { border: 0; border-radius: 0; padding: 10px 0 6px; margin: 4px 0 0; border-top: 1px dashed var(--border); }
+.store-bundle .bundle-item:first-child { border-top: 0; margin-top: 0; padding-top: 2px; }
+/* バンドル内では店名を隠す(重複表示防止)。「気になる」に複製されバンドルの外に出た時だけ
+   この規則が効かなくなり、標準のカードと同じ見た目(店名あり)に自然に戻る */
+.store-bundle .bundle-item-store { display: none; }
 .card-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .card-top-left { display: flex; align-items: center; gap: 6px; min-width: 0; flex: 1 1 auto; overflow: hidden; }
 .card-store { font-size: 20px; font-weight: 800; margin: 0; line-height: 1.25; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -116,13 +127,19 @@ a { color: var(--accent); }
 .card-detail a.official { display: inline-block; font-size: 15px; font-weight: 700; color: var(--accent); min-height: 48px; line-height: 48px; }
 .empty-note { font-size: 15px; color: var(--text-sub); padding: 4px 0 8px; }
 
-details.other-section { margin: 26px 0 8px; }
-details.other-section > summary.other-toggle {
-  width: 100%; font-size: 15px; font-weight: 700; color: var(--accent); background: var(--accent-soft);
-  border: 1px solid var(--accent); border-radius: 12px; padding: 12px 16px; min-height: 48px; cursor: pointer;
-  list-style: none;
+/* 単品特価(既定で畳む。v2, 2026-09-19): オーナーの指摘「単品の値引きが延々続いて埋もれる」への対応 */
+.singles-section {
+  margin: 28px 0 8px; border: 1px solid var(--accent); border-radius: 14px; background: var(--accent-soft);
+  overflow: hidden;
 }
-details.other-section > summary.other-toggle::-webkit-details-marker { display: none; }
+.singles-section > summary.singles-toggle {
+  list-style: none; cursor: pointer; padding: 14px 16px; min-height: 48px; display: flex; align-items: center;
+  font-size: 16px; font-weight: 700; color: var(--accent);
+}
+.singles-section > summary.singles-toggle::-webkit-details-marker { display: none; }
+.singles-section .cards { padding: 0 14px; margin-top: 4px; }
+.singles-always { display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--text-sub); padding: 10px 16px 14px; min-height: 40px; }
+.singles-always input[type=checkbox] { width: 20px; height: 20px; }
 
 .saved-section { margin-top: 40px; border-top: 1px solid var(--border); padding-top: 24px; }
 .saved-note { font-size: 14px; color: var(--text-sub); margin: 0 0 12px; }
@@ -301,3 +318,19 @@ body.has-fab { padding-bottom: calc(96px + env(safe-area-inset-bottom)); }
 .p-row .p-meta-line .p-days { font-size: 14px; }
 /* カタログのシート: 検索欄を横いっぱいに */
 .sheet .sheet-body input[type=text], .sheet .sheet-body input:not([type]) { width: 100%; box-sizing: border-box; min-height: 48px; font-size: 16px; }
+
+/* ================= カードv2(2026-09-19): 1カード=1タイル ================= */
+/* カード名は必ず単独の行(金額・残り日数と同じ行を共有しない=右端に押されて潰れない)。
+   2行までは折り返してよい(390px/320pxでの2行以内という制約はここで満たす)。*/
+.card-tile { border: 1px solid var(--border); border-radius: 16px; background: #fff; margin-bottom: 10px; overflow: hidden; }
+.card-tile.urgent { border-left: 4px solid var(--due-soon); }
+.card-tile-summary {
+  list-style: none; cursor: pointer; padding: 14px 16px; min-height: 48px;
+  display: flex; flex-direction: column; gap: 8px; -webkit-tap-highlight-color: transparent;
+}
+.card-tile-summary::-webkit-details-marker { display: none; }
+.card-tile-name { font-size: 18px; font-weight: 800; line-height: 1.3; overflow-wrap: anywhere; word-break: break-word; }
+.card-tile-meta { display: flex; flex-wrap: wrap; gap: 6px 12px; font-size: 14px; color: var(--text-sub); }
+.card-tile-meta .soon { color: #b3261e; font-weight: 700; }
+.card-tile-body { padding: 4px 16px 16px; border-top: 1px solid var(--border); }
+.card-tile-body .p-opened-inline { margin-bottom: 4px; }
