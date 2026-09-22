@@ -1,0 +1,53 @@
+<meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&display=swap" rel="stylesheet">
+<style>body{margin:0;background:#0f1730;font-family:"Noto Sans JP","Noto Sans CJK JP","Yu Gothic UI","Meiryo",sans-serif}
+text{fill:#eef2ff}
+.eye{font-size:17px;font-weight:700;letter-spacing:6px;fill:#7fb0ff}
+.h1{font-size:34px;font-weight:500;fill:#c6d2f0}
+.h2{font-size:60px;font-weight:900;fill:#ffffff;letter-spacing:-1px}
+.card{font-size:23px;font-weight:700;fill:#c6d2f0}
+.cs{font-size:18px;fill:#8e9bc0}
+.num{font-size:19px;font-weight:700;fill:#7fe0d8}
+</style>
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+<defs>
+<linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#0d1430"/><stop offset="1" stop-color="#1a2a55"/></linearGradient>
+<radialGradient id="glow" cx="0.85" cy="0.15" r="0.6"><stop offset="0" stop-color="#2f6fdb" stop-opacity="0.45"/><stop offset="1" stop-color="#2f6fdb" stop-opacity="0"/></radialGradient>
+<linearGradient id="acc" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#5aa0ff"/><stop offset="1" stop-color="#7fe0d8"/></linearGradient>
+<pattern id="dots" width="28" height="28" patternUnits="userSpaceOnUse"><circle cx="1.5" cy="1.5" r="1.5" fill="#ffffff" fill-opacity="0.06"/></pattern>
+</defs>
+
+<rect width="1200" height="630" fill="url(#bg)"/>
+<rect width="1200" height="630" fill="url(#dots)"/>
+<rect width="1200" height="630" fill="url(#glow)"/>
+
+<text x="80" y="92" class="eye">PLUGBITS DRAWING</text>
+<text x="80" y="152" class="h1">類似図面検索を、無料で試す。</text>
+<text x="80" y="228" class="h2">3つの入口を比べました。</text>
+
+<!-- 3つの入口 -->
+<g transform="translate(80,300)">
+  <g>
+    <rect x="0" y="0" width="330" height="150" rx="20" fill="#ffffff" fill-opacity="0.05" stroke="#ffffff" stroke-opacity="0.12" stroke-width="1.5"/>
+    <text x="28" y="56" class="card">フリーソフト・自作</text>
+    <text x="28" y="96" class="cs">手は動くが、図面の形では</text>
+    <text x="28" y="122" class="cs">探せないことが多い</text>
+  </g>
+  <g transform="translate(355,0)">
+    <rect x="0" y="0" width="330" height="150" rx="20" fill="#ffffff" fill-opacity="0.05" stroke="#ffffff" stroke-opacity="0.12" stroke-width="1.5"/>
+    <text x="28" y="56" class="card">専用システム</text>
+    <text x="28" y="96" class="cs">精度は出るが、導入と</text>
+    <text x="28" y="122" class="cs">費用の壁がある</text>
+  </g>
+  <g transform="translate(710,0)">
+    <rect x="0" y="0" width="330" height="150" rx="20" fill="#ffffff" fill-opacity="0.07" stroke="url(#acc)" stroke-width="3"/>
+    <text x="28" y="56" class="card" style="fill:#ffffff">kintone プラグイン</text>
+    <text x="28" y="96" class="cs">いま使っている画面の中で</text>
+    <text x="28" y="122" class="cs">試せる</text>
+  </g>
+</g>
+
+<line x1="80" y1="512" x2="1120" y2="512" stroke="#ffffff" stroke-opacity="0.10" stroke-width="1.5"/>
+<text x="80" y="556" class="num">実図面 4,616枚 で検証</text>
+<text x="1120" y="556" text-anchor="end" class="cs" style="fill:#5f6f9d">plugbits.app</text>
+</svg>
