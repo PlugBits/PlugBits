@@ -17,7 +17,14 @@ const BLOG_DIST = path.join(DIST, 'blog');
 const SUPPORT_MAIL = 'support@plugbits.app';
 const SITE_COPYRIGHT = `© ${new Date().getFullYear()} PlugBits. All rights reserved.`;
 const SITE_ORIGIN = 'https://plugbits.app';
-const DEFAULT_BLOG_OG_IMAGE = 'assets/blog/note_eyecatch_v2.png';
+// ブログ記事の既定 og:image(2026-09-22 差し替え)。
+// 以前は note_eyecatch_v2.png だったが、中身が PlugBits Launcher の宣伝画像で、
+// og_image を指定していない記事(6本すべて)がこれに落ちていた。図面や kintone の記事を
+// note に貼ると Launcher の広告がサムネイルに出ていたため、中立の1枚に替えた。
+// note_eyecatch_v2.png は Launcher の宣伝物としては有効なのでファイルは残してある。
+// 記事ごとの上書きは data/posts.json の og_image が効く(後から1本ずつ足せる)。
+// 画像の元は tools/og/og_blog_default.html(HTML→スクショ。assets/ に置くと公開されるので tools/ 側)。
+const DEFAULT_BLOG_OG_IMAGE = 'assets/blog/og_blog_default.png';
 // /deals/ 以下は 2026-09-20 に dorutoku.com へ移した。旧 URL は案内ページだけ残して
 // noindex にしてあるので、sitemap には載せない。
 const DOCS_INDEXABLE_PAGES = ['/drawing/', '/drawing/demo/', '/factory-tools/', '/launcher/'];

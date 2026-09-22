@@ -1,0 +1,64 @@
+<meta charset="utf-8">
+<!--
+  ブログ記事の既定 og:image(2026-09-22)。
+  これまでの既定は assets/blog/note_eyecatch_v2.png で、中身が PlugBits Launcher の
+  宣伝画像だった。og_image を指定していない記事(6本すべて)がこれに落ちていたため、
+  図面や kintone の記事を note に貼ると Launcher の広告がサムネイルに出ていた。
+
+  差し替え用のこれは**中立**であることが条件:
+   - PlugBits 以外の製品名(Launcher / Drawing / Factory Tools)を主役にしない
+   - 文言はサイト自身のブログ説明から採る(数字や売り文句を新しく作らない)
+     出典: https://plugbits.app/blog/ の meta description
+     「kintoneの業務改善や3Dデータ活用など、現場で役立つ情報をお届けするPlugBitsのブログです。」
+  体裁は og_similar-drawing-search-free.html と同じダークネイビー系に揃えてある。
+  記事ごとの上書きは data/posts.json の og_image で効くので、後から1本ずつ足せる。
+-->
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&display=swap" rel="stylesheet">
+<style>body{margin:0;background:#0f1730;font-family:"Noto Sans JP","Noto Sans CJK JP","Yu Gothic UI","Meiryo",sans-serif}
+text{fill:#eef2ff}
+.eye{font-size:17px;font-weight:700;letter-spacing:6px;fill:#7fb0ff}
+.h1{font-size:34px;font-weight:500;fill:#c6d2f0}
+.h2{font-size:60px;font-weight:900;fill:#ffffff;letter-spacing:-1px}
+.cs{font-size:18px;fill:#8e9bc0}
+.tag{font-size:22px;font-weight:700;fill:#c6d2f0}
+</style>
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+<defs>
+<linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#0d1430"/><stop offset="1" stop-color="#1a2a55"/></linearGradient>
+<radialGradient id="glow" cx="0.85" cy="0.15" r="0.6"><stop offset="0" stop-color="#2f6fdb" stop-opacity="0.45"/><stop offset="1" stop-color="#2f6fdb" stop-opacity="0"/></radialGradient>
+<linearGradient id="acc" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#5aa0ff"/><stop offset="1" stop-color="#7fe0d8"/></linearGradient>
+<pattern id="dots" width="28" height="28" patternUnits="userSpaceOnUse"><circle cx="1.5" cy="1.5" r="1.5" fill="#ffffff" fill-opacity="0.06"/></pattern>
+</defs>
+
+<rect width="1200" height="630" fill="url(#bg)"/>
+<rect width="1200" height="630" fill="url(#dots)"/>
+<rect width="1200" height="630" fill="url(#glow)"/>
+
+<text x="80" y="92" class="eye">PLUGBITS BLOG</text>
+<text x="80" y="164" class="h1">kintone の業務改善と、3Dデータ活用。</text>
+<text x="80" y="248" class="h2">現場で役立つ話を書いています。</text>
+
+<!-- 記事の題材。製品名ではなく扱っている領域を並べる(中立であることが条件) -->
+<g transform="translate(80,336)">
+  <g>
+    <rect x="0" y="0" width="238" height="72" rx="16" fill="#ffffff" fill-opacity="0.05" stroke="#ffffff" stroke-opacity="0.12" stroke-width="1.5"/>
+    <text x="28" y="46" class="tag">kintone</text>
+  </g>
+  <g transform="translate(262,0)">
+    <rect x="0" y="0" width="238" height="72" rx="16" fill="#ffffff" fill-opacity="0.05" stroke="#ffffff" stroke-opacity="0.12" stroke-width="1.5"/>
+    <text x="28" y="46" class="tag">図面・3D</text>
+  </g>
+  <g transform="translate(524,0)">
+    <rect x="0" y="0" width="238" height="72" rx="16" fill="#ffffff" fill-opacity="0.05" stroke="#ffffff" stroke-opacity="0.12" stroke-width="1.5"/>
+    <text x="28" y="46" class="tag">製造業の現場</text>
+  </g>
+  <g transform="translate(786,0)">
+    <rect x="0" y="0" width="238" height="72" rx="16" fill="#ffffff" fill-opacity="0.05" stroke="#ffffff" stroke-opacity="0.12" stroke-width="1.5"/>
+    <text x="28" y="46" class="tag">業務の自動化</text>
+  </g>
+</g>
+
+<line x1="80" y1="512" x2="1120" y2="512" stroke="url(#acc)" stroke-opacity="0.55" stroke-width="2"/>
+<text x="80" y="556" class="cs" style="fill:#7fb0ff">PlugBits</text>
+<text x="1120" y="556" text-anchor="end" class="cs" style="fill:#5f6f9d">plugbits.app</text>
+</svg>
