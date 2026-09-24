@@ -2,7 +2,7 @@
    /drawing/style.css のトークン (--paper, --ink, --sub, --line, --blue 等) を
    そのまま使い、このファイルにはデモページ固有のパーツだけを書く。 */
 
-.demo-hero { padding-top: 40px; }
+.demo-hero { padding-top: 20px; }
 
 .demo-h1 {
   margin: 0 0 14px;
@@ -29,7 +29,7 @@
   border: 2px dashed var(--line-strong);
   border-radius: 8px;
   background: var(--surface);
-  padding: 40px 24px;
+  padding: 22px 24px;
   text-align: center;
   cursor: pointer;
   transition: border-color 0.15s ease, background-color 0.15s ease;
@@ -168,12 +168,16 @@
 
 /* ---------- 図面の扱い ---------- */
 
+/* このセクション以降は縦の余白を詰める(電話幅で「実際のkintoneで使うには」
+   まで届かせるための調整。dw-section 標準の 56px は使わない)。 */
+.demo-handling { padding: 22px 0; }
+
 .demo-handling-list {
   list-style: none;
-  margin: 16px 0 0;
+  margin: 12px 0 0;
   padding: 0;
   display: grid;
-  gap: 10px;
+  gap: 8px;
   max-width: 40em;
 }
 
@@ -194,11 +198,13 @@
 
 /* ---------- samples grid ---------- */
 
+.demo-samples { padding: 22px 0; }
+
 .demo-samples-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 8px;
-  margin-top: 24px;
+  margin-top: 10px;
 }
 
 @media (min-width: 720px) {
@@ -230,6 +236,25 @@
 .demo-sample-item:hover,
 .demo-sample-item:focus-visible {
   border-color: var(--blue);
+}
+
+.demo-gallery-toggle {
+  display: block;
+  margin: 8px auto 0;
+  padding: 10px 22px;
+  border-radius: var(--radius);
+  border: 1px solid var(--line-strong);
+  background: transparent;
+  color: var(--ink);
+  font-weight: 700;
+  font-size: 14px;
+}
+
+.demo-gallery-toggle[hidden] { display: none; }
+
+.demo-gallery-toggle:hover {
+  border-color: var(--blue);
+  color: var(--blue);
 }
 
 /* ==========================================================================
@@ -644,6 +669,8 @@
 }
 
 /* ---------- kintone CTA ---------- */
+
+.demo-cta { padding: 22px 0; }
 
 .demo-cta-lead { margin: 8px 0 24px; }
 

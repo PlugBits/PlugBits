@@ -43,6 +43,7 @@ const state = {
   objectUrls: [],
   samples: null,
   apiDisabled: false,    // /demo/warmup が 404 or ネットワークエラー → 自分の図面アップロードを封じる
+  gallery: { order: null, expanded: false }, // order: [{item, idx}, ...] 家系(family)分散済みの表示順
 };
 
 let pdfjsLibPromise = null;
@@ -481,19 +482,83 @@ async function loadSamples() {
     const data = await res.json();
     if (!data || !Array.isArray(data.items) || data.items.length === 0) return;
     state.samples = data;
-    renderSamplesGrid(data.items);
+    state.gallery.order = buildFamilySpanningOrder(data.items);
+    state.gallery.expanded = false;
     const section = $('samples-section');
     if (section) section.hidden = false;
+    renderGallery();
   } catch (e) {
     // samples.json が無い/壊れている場合はセクションを出さないだけ
   }
 }
 
-function renderSamplesGrid(items) {
-  const grid = $('samples-grid');
-  if (!grid) return;
-  grid.innerHTML = '';
+// タイトル末尾の図番(例:「ガイドレール PB-3014-F」→ PB-3014)を家系キーとして
+// 使う。改訂サフィックス(末尾の英字1文字)は同じ家系とみなして落とす。
+// サフィックスが無い図番(単発部品)はそのままキーになり、自然に1件だけの
+// 家系になる。パターンに一致しない場合はタイトル全体をキーにする(孤立扱い)。
+function familyKeyForItem(item) {
+  const title = (item && (item.title || item.id)) || '';
+  const m = title.match(/(PB-\d+)(?:-[A-Za-z])?\s*$/);
+  return m ? m[1] : title;
+}
+
+// 初期表示(折りたたみ時)が特定の家系(例:フランジ)だけで埋まらないよう、
+// 「各家系から1枚ずつ→まだ残っている家系から2枚目ずつ→…」の順に並べ替えた
+// 表示順を作る。ファイル内の初出順を家系順として使うので、結果は毎回同じ
+// (決定的)になる。折りたたみ数(9/18)は常にこの並びの先頭からのスライスな
+// ので、展開してもすでに見えているカードの位置は動かない。
+function buildFamilySpanningOrder(items) {
+  const byFamily = new Map();
   items.forEach((item, idx) => {
+    const key = familyKeyForItem(item);
+    if (!byFamily.has(key)) byFamily.set(key, []);
+    byFamily.get(key).push({ item, idx });
+  });
+  const families = Array.from(byFamily.values());
+  const order = [];
+  let round = 0;
+  while (order.length < items.length) {
+    let addedAny = false;
+    for (let i = 0; i < families.length; i++) {
+      const arr = families[i];
+      if (arr.length > round) {
+        order.push(arr[round]);
+        addedAny = true;
+      }
+    }
+    if (!addedAny) break;
+    round++;
+  }
+  return order;
+}
+
+// グリッドの実際の列数を「CSSが今どう解決しているか」から読む
+// (ブレークポイントを変えてもここは追従する)。
+function getGalleryColumnCount() {
+  const grid = $('samples-grid');
+  if (!grid) return 3;
+  try {
+    const value = window.getComputedStyle(grid).gridTemplateColumns;
+    const count = value.split(' ').map(s => s.trim()).filter(Boolean).length;
+    return count > 0 ? count : 3;
+  } catch (e) {
+    return 3;
+  }
+}
+
+function renderGallery() {
+  const grid = $('samples-grid');
+  const toggleBtn = $('samples-toggle-btn');
+  const order = state.gallery.order;
+  if (!grid || !order) return;
+
+  const total = order.length;
+  const collapsedCount = getGalleryColumnCount() * 3;
+  const showCount = state.gallery.expanded ? total : Math.min(collapsedCount, total);
+  const slice = order.slice(0, showCount);
+
+  grid.innerHTML = '';
+  slice.forEach(({ item, idx }) => {
     const btn = document.createElement('button');
     btn.type = 'button';
     btn.className = 'demo-sample-item';
@@ -510,7 +575,43 @@ function renderSamplesGrid(items) {
     btn.addEventListener('click', () => openSampleResultsModal(idx));
     grid.appendChild(btn);
   });
+
+  if (toggleBtn) {
+    if (total <= collapsedCount) {
+      toggleBtn.hidden = true;
+    } else {
+      toggleBtn.hidden = false;
+      toggleBtn.textContent = state.gallery.expanded
+        ? '3行に戻す'
+        : '残りの' + (total - showCount) + '枚を見る';
+    }
+  }
 }
+
+(function initGalleryToggle() {
+  const toggleBtn = $('samples-toggle-btn');
+  if (!toggleBtn) return;
+
+  toggleBtn.addEventListener('click', () => {
+    const wasExpanded = state.gallery.expanded;
+    state.gallery.expanded = !wasExpanded;
+    renderGallery();
+    if (wasExpanded) {
+      // 展開→折りたたみ: ページが大きく縮むので、見出しが画面内に残るよう
+      // その場でスクロール位置を合わせ直す(スムーズスクロールだと縮んだ
+      // 先を追いかけて変な動きになるため instant)。
+      const section = $('samples-section');
+      if (section) section.scrollIntoView({ behavior: 'auto', block: 'start' });
+    }
+  });
+
+  let resizeTimer = null;
+  window.addEventListener('resize', () => {
+    if (!state.samples || state.gallery.expanded) return;
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(renderGallery, 150);
+  });
+})();
 
 /* ==================================================================== */
 /* 結果モーダル — 本番kintoneプラグインの openSimilarModal 相当。          */
