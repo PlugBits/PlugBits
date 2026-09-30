@@ -27,7 +27,9 @@ const SITE_ORIGIN = 'https://plugbits.app';
 const DEFAULT_BLOG_OG_IMAGE = 'assets/blog/og_blog_default.png';
 // /deals/ 以下は 2026-09-20 に dorutoku.com へ移した。旧 URL は案内ページだけ残して
 // noindex にしてあるので、sitemap には載せない。
-const DOCS_INDEXABLE_PAGES = ['/drawing/', '/drawing/demo/', '/factory-tools/', '/launcher/'];
+// Drawing(図面の類似検索)は2026年9月30日に提供を終了したため、案内ページのみ残し
+// sitemap からは外している(/drawing/, /drawing/demo/)。
+const DOCS_INDEXABLE_PAGES = ['/factory-tools/', '/launcher/'];
 
 function esc(s) {
   return String(s ?? '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
