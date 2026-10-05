@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PlugBits Launcher for kintone|Chrome ウェブストアへ移動します</title>
+<link rel="canonical" href="https://plugbits.app/launcher/">
+<meta name="robots" content="noindex, follow">
+<!-- Cloudflare Web Analytics --><script defer src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon='{"token": "86511d1154774394986239de33d21882"}'></script><!-- End Cloudflare Web Analytics -->
+<noscript><meta http-equiv="refresh" content="0; url=https://chromewebstore.google.com/detail/plugbits-launcher-for-kin/bmnijafgcjnpbgbdijjfidiaodphjjpd?utm_source=note&amp;utm_medium=article&amp;utm_campaign=app-list"></noscript>
+<script>
+// 記事からの入口を数えるページ(/launcher/go/app-list/)。数えるのは Cloudflare の beacon(上の defer の script)。
+// 読み込み(load)を待ってからストアへ移る。beacon は移るとき(pagehide)に送る。load が来なくても 1.5 秒で必ず移る
+(function () {
+  var done = false;
+  function go() { if (done) return; done = true; location.replace("https://chromewebstore.google.com/detail/plugbits-launcher-for-kin/bmnijafgcjnpbgbdijjfidiaodphjjpd?utm_source=note&utm_medium=article&utm_campaign=app-list"); }
+  window.addEventListener("load", function () { setTimeout(go, 0); });
+  setTimeout(go, 1500);
+})();
+</script>
+</head>
+<body>
+<p><a href="https://chromewebstore.google.com/detail/plugbits-launcher-for-kin/bmnijafgcjnpbgbdijjfidiaodphjjpd?utm_source=note&amp;utm_medium=article&amp;utm_campaign=app-list">Chrome ウェブストアの PlugBits Launcher for kintone へ</a></p>
+</body>
+</html>
