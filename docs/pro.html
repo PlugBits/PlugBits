@@ -408,6 +408,21 @@
       font-size: 12px;
       color: var(--muted);
     }
+    /* 拡張機能の設定画面から来た人向け: trial-btn の代わりに表示するテキスト行 */
+    .ext-trial-note {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 52px;
+      padding: 0 20px;
+      margin: 0;
+      border-radius: 16px;
+      background: var(--accent-soft);
+      color: var(--text);
+      font-size: 16px;
+      font-weight: 600;
+      text-align: center;
+    }
 
     /* ── FAQ ─────────────────────────────────────────────────── */
     .faq-section {
@@ -775,7 +790,7 @@
         <h2>今日から Pro を試す</h2>
         <p>14日間無料・クレジットカード不要。続けて使う場合は ¥1,980 の買い切りです(一度の支払いで、ずっと使えます)。</p>
         <div class="hero-actions" style="justify-content:center;">
-          <a class="button button-primary" href="https://chromewebstore.google.com/detail/plugbits-launcher-for-kin/bmnijafgcjnpbgbdijjfidiaodphjjpd" target="_blank" rel="noopener"
+          <a class="button button-primary" id="footer-trial-btn" href="https://chromewebstore.google.com/detail/plugbits-launcher-for-kin/bmnijafgcjnpbgbdijjfidiaodphjjpd" target="_blank" rel="noopener"
              style="font-size:16px;min-height:52px;padding:0 28px;">
             無料トライアルを始める
           </a>
@@ -804,6 +819,47 @@
       v.removeAttribute('autoplay'); v.pause(); v.controls = true;
     });
   }
+  </script>
+  <script>
+  // 拡張機能の設定画面(オプションページ)から来た人向けの表示切り替え。
+  // ?from=ext / #from=ext / #pricing&from=ext / ?from=ext#pricing のいずれでも判定する。
+  (function () {
+    try {
+      var hashTokens = location.hash.replace(/^#/, '').split('&').filter(Boolean);
+      var fromExt =
+        new URLSearchParams(location.search).get('from') === 'ext' ||
+        hashTokens.indexOf('from=ext') !== -1;
+      var wantsPricingScroll = hashTokens.indexOf('pricing') !== -1;
+
+      // ハッシュに他のトークンが混ざっている場合(例: #pricing&from=ext)は
+      // ブラウザ標準のアンカー遷移が効かないため、手動でスクロールする。
+      if (wantsPricingScroll) {
+        var pricingSection = document.getElementById('pricing');
+        if (pricingSection) {
+          window.requestAnimationFrame(function () {
+            pricingSection.scrollIntoView();
+          });
+        }
+      }
+
+      if (fromExt) {
+        var trialBtn = document.getElementById('trial-btn');
+        if (trialBtn) {
+          var note = document.createElement('p');
+          note.className = 'ext-trial-note';
+          note.textContent = '拡張の設定画面でメールを入力すると始まります';
+          trialBtn.replaceWith(note);
+        }
+
+        var footerTrialBtn = document.getElementById('footer-trial-btn');
+        if (footerTrialBtn) {
+          footerTrialBtn.remove();
+        }
+      }
+    } catch (e) {
+      // 何か失敗しても既定の表示(ボタンあり)のままにする
+    }
+  })();
   </script>
 <!-- Cloudflare Web Analytics --><script defer src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon='{"token": "86511d1154774394986239de33d21882"}'></script><!-- End Cloudflare Web Analytics -->
 </body>
