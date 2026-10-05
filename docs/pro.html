@@ -410,17 +410,15 @@
     }
     /* 拡張機能の設定画面から来た人向け: trial-btn の代わりに表示するテキスト行 */
     .ext-trial-note {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      min-height: 52px;
-      padding: 0 20px;
-      margin: 0;
-      border-radius: 16px;
-      background: var(--accent-soft);
-      color: var(--text);
-      font-size: 16px;
-      font-weight: 600;
+      /* ボタンに見せない(押せるものと思わせない)。ふつうの説明文として出す */
+      margin: 4px 0 12px;
+      padding: 0;
+      background: none;
+      border: none;
+      color: var(--muted);
+      font-size: 15px;
+      font-weight: 400;
+      line-height: 1.6;
       text-align: center;
     }
 
