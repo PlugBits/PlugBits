@@ -108,6 +108,25 @@
         </div>
       </section>
 
+      <section class="section video-demo" id="demo" data-yt-id="YOUTUBE_ID_TBD" hidden>
+        <div class="section-heading narrow">
+          <p class="eyebrow">Demo</p>
+          <h2>実際の画面で、動きを見る。</h2>
+          <p>
+            コマンドパレット・クイック入力・一括編集を、実際の操作でまとめて紹介します。
+          </p>
+        </div>
+
+        <div class="video-lite">
+          <button type="button" class="video-lite-play" aria-label="デモ動画を再生（YouTube）">
+            <img class="video-lite-thumb" src="" alt="" width="1280" height="720" loading="lazy" decoding="async" />
+            <span class="video-lite-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" width="28" height="28" fill="currentColor"><path d="M8 5v14l11-7z"></path></svg>
+            </span>
+          </button>
+        </div>
+      </section>
+
       <section class="section features" id="features">
         <div class="section-heading">
           <p class="eyebrow">Free Features</p>
@@ -298,6 +317,38 @@
       v.removeAttribute('autoplay'); v.pause(); v.controls = true;
     });
   }
+  </script>
+  <script>
+  // デモ動画: YouTubeのJS/iframeはクリックまで読み込まない(lite embed)。
+  // IDが未設定(placeholder)のままなら、ブロックは hidden のまま表示しない。
+  (function () {
+    var demo = document.getElementById('demo');
+    if (!demo) return;
+    var id = demo.getAttribute('data-yt-id');
+    if (!id || id === 'YOUTUBE_ID_TBD' || !/^[A-Za-z0-9_-]{10,12}$/.test(id)) return;
+
+    var wrap = demo.querySelector('.video-lite');
+    var thumb = demo.querySelector('.video-lite-thumb');
+    var btn = demo.querySelector('.video-lite-play');
+    if (!wrap || !thumb || !btn) return;
+
+    thumb.src = 'https://i.ytimg.com/vi/' + id + '/hqdefault.jpg';
+    thumb.alt = 'デモ動画のサムネイル';
+
+    btn.addEventListener('click', function () {
+      var iframe = document.createElement('iframe');
+      iframe.src = 'https://www.youtube-nocookie.com/embed/' + id + '?autoplay=1&rel=0&playsinline=1';
+      iframe.setAttribute('allow', 'autoplay; encrypted-media; picture-in-picture');
+      iframe.setAttribute('allowfullscreen', '');
+      iframe.setAttribute('loading', 'lazy');
+      iframe.setAttribute('title', 'PlugBits Launcher デモ動画');
+      iframe.setAttribute('frameborder', '0');
+      wrap.innerHTML = '';
+      wrap.appendChild(iframe);
+    });
+
+    demo.hidden = false;
+  })();
   </script>
 <!-- Cloudflare Web Analytics --><script defer src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon='{"token": "86511d1154774394986239de33d21882"}'></script><!-- End Cloudflare Web Analytics -->
 </body>
