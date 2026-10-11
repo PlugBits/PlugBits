@@ -77,8 +77,10 @@
 // 拡張のアンインストール時に開くページ(chrome.runtime.setUninstallURL, 3.2.1〜)。
 // URL は /launcher/bye/?v=<版>&lang=<ja|en>。数えるのは Cloudflare の beacon(このページの表示=アンインストール数の目安)とフォームの回答数だけ。
 (function () {
-  // フォーム B(Google フォーム)の URL。届いたら viewform の URL をここに入れる(末尾の ?usp=… は付けたままでよい)
-  var FORM_B_URL = "";
+  // フォーム B(Google フォーム)。version と lang は事前入力(entry 番号は vault/PlugBits/launcher/survey-2026-10-10.md 末尾)
+  var FORM_B_URL = "https://docs.google.com/forms/d/e/1FAIpQLSdpIS8LlMLkHdaPpR4puM8SBtr3mnh--23pf62nqcqJtLNtNQ/viewform";
+  var ENTRY_VERSION = "entry.1020764965";
+  var ENTRY_LANG = "entry.195272257";
 
   var params = new URLSearchParams(location.search);
   var lang = params.get("lang");
@@ -93,14 +95,19 @@
   }
 
   if (!FORM_B_URL) return;
+  var version = (params.get("v") || "").slice(0, 32);
   var url = new URL(FORM_B_URL);
+  url.searchParams.set("usp", "pp_url");
+  if (version) url.searchParams.set(ENTRY_VERSION, version);
+  url.searchParams.set(ENTRY_LANG, lang);
+  var linkUrl = url.toString();
   url.searchParams.set("embedded", "true");
   var frame = document.getElementById("form-frame");
   frame.src = url.toString();
   frame.hidden = false;
   document.getElementById("form-pending").hidden = true;
-  document.getElementById("form-link-ja").href = FORM_B_URL;
-  document.getElementById("form-link-en").href = FORM_B_URL;
+  document.getElementById("form-link-ja").href = linkUrl;
+  document.getElementById("form-link-en").href = linkUrl;
   document.getElementById("form-fallback").hidden = false;
 })();
 </script>
