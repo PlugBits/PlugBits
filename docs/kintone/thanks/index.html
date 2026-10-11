@@ -98,13 +98,14 @@
 </main>
 <script>
 // Stripe の Payment Link(kintone プラグイン有料版)の支払い後に開くページ。
-// URL は /kintone/thanks/?product=<kintone-gallery|kintone-listkit|kintone-rule-builder>&lang=<ja|en>(どちらも省略可)。
+// URL は /kintone/thanks/?product=<kintone-gallery|kintone-listkit|kintone-rule-builder|kintone-excel-report>&lang=<ja|en>(どちらも省略可)。
 // 数えるのは Cloudflare の beacon だけ(このページの表示=購入数の目安)。
 (function () {
   var NAMES = {
     "kintone-gallery": { ja: "サブテーブルギャラリー化", en: "Subtable Gallery" },
     "kintone-listkit": { ja: "PlugBits ListKit", en: "PlugBits ListKit" },
-    "kintone-rule-builder": { ja: "文字列条件分岐ビルダー", en: "Text Rule Builder" }
+    "kintone-rule-builder": { ja: "文字列条件分岐ビルダー", en: "Text Rule Builder" },
+    "kintone-excel-report": { ja: "Excel帳票一括生成", en: "Excel Report Generator" }
   };
   var params = new URLSearchParams(location.search);
   var lang = params.get("lang");
