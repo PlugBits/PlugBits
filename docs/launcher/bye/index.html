@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PlugBits Launcher|ご利用ありがとうございました</title>
+<link rel="canonical" href="https://plugbits.app/launcher/">
+<meta name="robots" content="noindex, follow">
+<meta name="theme-color" content="#0f1115">
+<!-- Cloudflare Web Analytics --><script defer src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon='{"token": "86511d1154774394986239de33d21882"}'></script><!-- End Cloudflare Web Analytics -->
+<style>
+  :root {
+    --bg: #0f1115;
+    --panel: rgba(255, 255, 255, 0.04);
+    --line: rgba(255, 255, 255, 0.09);
+    --text: #ffffff;
+    --muted: #9aa0a6;
+    --accent: #5f8cff;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Helvetica Neue", "Hiragino Sans", "Noto Sans JP", sans-serif;
+    background:
+      radial-gradient(circle at top, rgba(95, 140, 255, 0.10), transparent 32%),
+      linear-gradient(180deg, #0f1115 0%, #0c0e12 100%);
+    background-color: var(--bg);
+    color: var(--text);
+    line-height: 1.7;
+    min-height: 100vh;
+  }
+  main { width: min(calc(100% - 32px), 680px); margin: 0 auto; padding: 48px 0 64px; }
+  .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; color: var(--muted); font-size: 14px; }
+  .brand img { width: 28px; height: 28px; border-radius: 6px; }
+  h1 { font-size: clamp(20px, 5.6vw, 26px); line-height: 1.4; margin: 28px 0 8px; }
+  .lead { color: var(--muted); margin: 0 0 28px; }
+  .form-box { background: var(--panel); border: 1px solid var(--line); border-radius: 16px; overflow: hidden; }
+  .form-box iframe { display: block; width: 100%; height: 760px; border: 0; background: #fff; }
+  .form-pending { padding: 40px 20px; text-align: center; color: var(--muted); }
+  .form-fallback { margin: 12px 0 0; font-size: 14px; color: var(--muted); }
+  .form-fallback a, .back a { color: var(--accent); }
+  .back { margin-top: 32px; font-size: 14px; color: var(--muted); }
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<main>
+  <div class="brand"><img src="../assets/icon128.png" alt=""><span>PlugBits Launcher for kintone</span></div>
+
+  <div data-lang="ja">
+    <h1>ご利用ありがとうございました。<br>1つだけ教えてください。</h1>
+    <p class="lead">やめた理由を1つ選ぶだけです(10秒・匿名)。今後の改善にだけ使います。</p>
+  </div>
+  <div data-lang="en" hidden>
+    <h1>Thanks for trying PlugBits Launcher.<br>One quick question.</h1>
+    <p class="lead">Just pick the main reason you uninstalled (10 seconds, anonymous). We only use it to improve the extension.</p>
+  </div>
+
+  <div class="form-box">
+    <iframe id="form-frame" title="PlugBits Launcher アンケート / survey" loading="lazy" hidden></iframe>
+    <div id="form-pending" class="form-pending">
+      <span data-lang="ja">アンケートは準備中です。</span>
+      <span data-lang="en" hidden>The survey is being prepared.</span>
+    </div>
+  </div>
+  <p id="form-fallback" class="form-fallback" hidden>
+    <span data-lang="ja">表示されないときは <a id="form-link-ja" href="#" target="_blank" rel="noopener">こちらから回答</a></span>
+    <span data-lang="en" hidden>If the form doesn't load, <a id="form-link-en" href="#" target="_blank" rel="noopener">open it here</a></span>
+  </p>
+
+  <p class="back">
+    <span data-lang="ja">また使いたくなったら <a href="../">PlugBits Launcher</a> からいつでも戻れます。</span>
+    <span data-lang="en" hidden>You can come back anytime from <a href="../">PlugBits Launcher</a>.</span>
+  </p>
+</main>
+<script>
+// 拡張のアンインストール時に開くページ(chrome.runtime.setUninstallURL, 3.2.1〜)。
+// URL は /launcher/bye/?v=<版>&lang=<ja|en>。数えるのは Cloudflare の beacon(このページの表示=アンインストール数の目安)とフォームの回答数だけ。
+(function () {
+  // フォーム B(Google フォーム)の URL。届いたら viewform の URL をここに入れる(末尾の ?usp=… は付けたままでよい)
+  var FORM_B_URL = "";
+
+  var params = new URLSearchParams(location.search);
+  var lang = params.get("lang");
+  if (lang !== "ja" && lang !== "en") {
+    lang = /^ja\b/i.test(navigator.language || "") ? "ja" : "en";
+  }
+  document.documentElement.lang = lang;
+  if (lang === "en") document.title = "PlugBits Launcher | Thanks for trying it";
+  var nodes = document.querySelectorAll("[data-lang]");
+  for (var i = 0; i < nodes.length; i++) {
+    nodes[i].hidden = nodes[i].getAttribute("data-lang") !== lang;
+  }
+
+  if (!FORM_B_URL) return;
+  var url = new URL(FORM_B_URL);
+  url.searchParams.set("embedded", "true");
+  var frame = document.getElementById("form-frame");
+  frame.src = url.toString();
+  frame.hidden = false;
+  document.getElementById("form-pending").hidden = true;
+  document.getElementById("form-link-ja").href = FORM_B_URL;
+  document.getElementById("form-link-en").href = FORM_B_URL;
+  document.getElementById("form-fallback").hidden = false;
+})();
+</script>
+</body>
+</html>
