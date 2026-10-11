@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PlugBits kintone プラグイン|ご購入ありがとうございます</title>
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#f6f8fb">
+<!-- Cloudflare Web Analytics --><script defer src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon='{"token": "86511d1154774394986239de33d21882"}'></script><!-- End Cloudflare Web Analytics -->
+<style>
+  :root {
+    --bg: #f6f8fb;
+    --panel: #ffffff;
+    --line: #e4e9f0;
+    --text: #101828;
+    --muted: #5c6b84;
+    --accent: #2f6fed;
+    --ok: #2f7d32;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Helvetica Neue", "Hiragino Sans", "Noto Sans JP", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.75;
+    min-height: 100vh;
+  }
+  main { width: min(calc(100% - 32px), 640px); margin: 0 auto; padding: 48px 0 64px; }
+  .brand { font-weight: 700; color: var(--muted); font-size: 14px; }
+  .check { width: 44px; height: 44px; border-radius: 50%; background: #e7f4e8; color: var(--ok); display: grid; place-items: center; font-size: 24px; margin-top: 28px; }
+  h1 { font-size: clamp(20px, 5.6vw, 26px); line-height: 1.4; margin: 14px 0 8px; }
+  .lead { color: var(--muted); margin: 0 0 28px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 22px 24px; margin-bottom: 16px; }
+  .card h2 { font-size: 16px; margin: 0 0 10px; }
+  ol, ul { margin: 0; padding-left: 1.4em; }
+  li + li { margin-top: 6px; }
+  code { background: #eef2f7; border-radius: 4px; padding: 1px 6px; font-size: 0.92em; }
+  a { color: var(--accent); }
+  .foot { margin-top: 28px; font-size: 13px; color: var(--muted); }
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<main>
+  <div class="brand">PlugBits for kintone</div>
+  <div class="check" aria-hidden="true">✓</div>
+
+  <div data-lang="ja">
+    <h1>ご購入ありがとうございます。</h1>
+    <p class="lead"><span class="product-name"></span>ライセンスキーを、お支払い時のメールアドレスにお送りしました。数分以内に届きます。</p>
+
+    <section class="card">
+      <h2>キーの入れ方</h2>
+      <ol>
+        <li>kintone でプラグインを入れたアプリを開き、<b>アプリの設定 → プラグイン</b>からこのプラグインの設定画面を開きます。</li>
+        <li>いちばん上の<b>「ライセンス」欄</b>にキーを貼り付けて<b>「確認」</b>を押します。「有効です」と出れば完了です。</li>
+        <li>設定を<b>保存</b>し、<b>アプリを更新</b>してください。</li>
+      </ol>
+      <p class="foot" style="margin-top:12px">キーは会社の kintone ドメイン(例: <code>example.cybozu.com</code>)単位で 1 つです。同じドメインのほかのアプリにも同じキーを入れられます。</p>
+    </section>
+
+    <section class="card">
+      <h2>メールが届かないとき</h2>
+      <ul>
+        <li>迷惑メールフォルダを確かめてください。件名は「(プラグイン名) ライセンスキーのご案内」です。</li>
+        <li>10 分たっても届かない場合は、<b>お支払いに使ったメールアドレス</b>を書いて <a href="mailto:support@plugbits.app?subject=%E3%83%A9%E3%82%A4%E3%82%BB%E3%83%B3%E3%82%B9%E3%82%AD%E3%83%BC%E3%81%8C%E5%B1%8A%E3%81%8B%E3%81%AA%E3%81%84">support@plugbits.app</a> までご連絡ください。キーをお送りし直します。</li>
+      </ul>
+    </section>
+
+    <p class="foot"><a href="../../tokushoho.html">特定商取引法に基づく表記</a></p>
+  </div>
+
+  <div data-lang="en" hidden>
+    <h1>Thank you for your purchase.</h1>
+    <p class="lead"><span class="product-name"></span>We've emailed your license key to the address you used at checkout. It should arrive within a few minutes.</p>
+
+    <section class="card">
+      <h2>How to enter the key</h2>
+      <ol>
+        <li>In kintone, open the app that uses the plugin and go to <b>App Settings → Plug-ins</b>, then open this plugin's settings.</li>
+        <li>Paste the key into the <b>License</b> section at the top and press <b>Verify</b>. When it says "Active", you're done.</li>
+        <li><b>Save</b> the settings and <b>Update App</b>.</li>
+      </ol>
+      <p class="foot" style="margin-top:12px">One key covers your company's kintone domain (e.g. <code>example.cybozu.com</code>). You can use the same key in other apps on that domain.</p>
+    </section>
+
+    <section class="card">
+      <h2>Didn't get the email?</h2>
+      <ul>
+        <li>Check your spam folder. The subject ends with "ライセンスキーのご案内" (license key).</li>
+        <li>If it hasn't arrived after 10 minutes, email <a href="mailto:support@plugbits.app?subject=License%20key%20not%20received">support@plugbits.app</a> with <b>the email address you paid with</b>, and we'll resend it.</li>
+      </ul>
+    </section>
+
+    <p class="foot"><a href="../../tokushoho.html">Legal notice (Japanese)</a></p>
+  </div>
+</main>
+<script>
+// Stripe の Payment Link(kintone プラグイン有料版)の支払い後に開くページ。
+// URL は /kintone/thanks/?product=<kintone-gallery|kintone-listkit|kintone-rule-builder>&lang=<ja|en>(どちらも省略可)。
+// 数えるのは Cloudflare の beacon だけ(このページの表示=購入数の目安)。
+(function () {
+  var NAMES = {
+    "kintone-gallery": { ja: "サブテーブルギャラリー化", en: "Subtable Gallery" },
+    "kintone-listkit": { ja: "PlugBits ListKit", en: "PlugBits ListKit" },
+    "kintone-rule-builder": { ja: "文字列条件分岐ビルダー", en: "Text Rule Builder" }
+  };
+  var params = new URLSearchParams(location.search);
+  var lang = params.get("lang");
+  if (lang !== "ja" && lang !== "en") {
+    lang = /^ja\b/i.test(navigator.language || "") ? "ja" : "en";
+  }
+  document.documentElement.lang = lang;
+  if (lang === "en") document.title = "PlugBits kintone plugins | Thank you for your purchase";
+  var nodes = document.querySelectorAll("[data-lang]");
+  for (var i = 0; i < nodes.length; i++) {
+    nodes[i].hidden = nodes[i].getAttribute("data-lang") !== lang;
+  }
+  var product = NAMES[params.get("product") || ""];
+  if (product) {
+    var label = lang === "ja" ? "「" + product.ja + "」の" : product.en + ": ";
+    var spots = document.querySelectorAll(".product-name");
+    for (var j = 0; j < spots.length; j++) spots[j].textContent = label;
+  }
+})();
+</script>
+</body>
+</html>
