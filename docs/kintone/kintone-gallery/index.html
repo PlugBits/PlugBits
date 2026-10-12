@@ -20,14 +20,24 @@
 <main>
   <a class="brand" href="https://plugbits.app/">PlugBits for kintone</a>
 
-  <p class="eyebrow">kintone プラグイン</p>
-  <h1>サブテーブルギャラリー化</h1>
-  <p class="lead">詳細画面に貼った写真が、保存した瞬間にギャラリーのカードへ変わります。</p>
+  <p class="eyebrow">サブテーブルギャラリー化 ― kintone プラグイン</p>
+  <h1 class="hook">現場の写真、まだサブテーブルの小さなサムネで探していますか。</h1>
+  <p class="sub">詳細画面に写真や PDF をドロップすると、そのままギャラリーのカードになります。拡大して見る、メモを書く、いらない物を消す。全部その画面の中で。</p>
 
-  <figure class="shot">
-    <img src="img/main.webp" width="837" height="302" loading="lazy" decoding="async" alt="kintone詳細画面のサブテーブルギャラリー化プラグインの画面。進捗ファイルのサムネイルカードが3枚並んで表示されている">
-    <figcaption>詳細画面ではサムネイルがカード形式で並び、ファイル名・メモ・投稿者が一目で分かります。</figcaption>
-  </figure>
+  <section class="hero-media">
+    <figure class="hero-media__item">
+      <video class="hero-media__video" autoplay loop muted playsinline preload="metadata" poster="media/hero-poster.webp" width="1180" height="620">
+        <source src="media/hero.mp4" type="video/mp4">
+      </video>
+      <figcaption>写真を3枚ドラッグするとカードが増え、1枚を拡大して閉じるまでの一連の流れ。</figcaption>
+    </figure>
+    <figure class="hero-media__item hero-media__item--optional" data-optional-media>
+      <video class="hero-media__video" autoplay loop muted playsinline preload="metadata" poster="media/zoom-poster.webp" width="1180" height="620">
+        <source src="media/zoom.mp4" type="video/mp4">
+      </video>
+      <figcaption>カードを押すと拡大し、閉じるともとのギャラリーに戻る。</figcaption>
+    </figure>
+  </section>
 
   <div class="buy-panel">
     <p class="price">¥3,980 <span class="unit">税込・買い切り・kintoneドメイン単位で1ライセンス</span></p>
@@ -38,34 +48,62 @@
     <p class="trial-note">まずは14日間、無料で試す ― プラグインの設定画面から試用を始められます(下の「入れ方」参照)。</p>
   </div>
 
-  <section class="card">
-    <h2>できること</h2>
-    <ul>
-      <li>詳細画面でファイルを追加(ファイル選択・ドラッグ&ドロップ・画像の貼り付けの3方法)</li>
-      <li>投稿したファイルをカード形式のギャラリーで一覧表示(サムネイル・ファイル名・メモ・投稿者・投稿日時)</li>
-      <li>画像・PDFは画面内でそのままプレビュー、画像は拡大・縮小もできる</li>
-      <li>カードのメモをその場で編集、不要な投稿は確認のうえ削除</li>
-      <li>投稿者・投稿日時はフィールド設定しておけば自動入力</li>
-    </ul>
+  <section class="scenes">
+    <h2 class="scenes__title">こんな場面で</h2>
+    <div class="scenes__grid">
+      <article class="scene">
+        <h3>現場の進捗報告</h3>
+        <p>朝礼の前に、昨日の現場写真を1画面で見る。足場・配線・仕上げが並んでいれば、口頭の説明が要らない。</p>
+        <img src="media/scene-progress.webp" width="1100" height="550" loading="lazy" decoding="async" alt="現場の進捗報告の場面。足場や配線の写真がギャラリーのカードで並んでいる画面" data-zoom>
+      </article>
+      <article class="scene">
+        <h3>検査・納品前の記録</h3>
+        <p>出荷前の写真を品番ごとに残す。問い合わせが来たら、そのレコードを開くだけ。</p>
+        <img src="media/scene-inspection.webp" width="1100" height="550" loading="lazy" decoding="async" alt="検査・納品前の記録の場面。出荷前の検品写真がカードで並んでいる画面" data-zoom>
+      </article>
+      <article class="scene">
+        <h3>図面と写真の突き合わせ</h3>
+        <p>PDFの図面と現物の写真を同じカード列に。拡大して見比べる。</p>
+        <img src="media/scene-drawing.webp" width="1100" height="550" loading="lazy" decoding="async" alt="図面と写真の突き合わせの場面。図面PDFと現場写真が同じカード列に並んでいる画面" data-zoom>
+      </article>
+    </div>
   </section>
 
-  <section class="card">
-    <h2>画面</h2>
-    <div class="shots">
-      <figure>
-        <img src="img/settings.webp" width="1000" height="591" loading="lazy" decoding="async" alt="プラグインの設定画面。サブテーブル・添付ファイルフィールド・メモフィールドなどのフィールド設定一覧">
-        <figcaption>設定はフィールドを選ぶだけ。サブテーブル・添付ファイル・メモなどを指定します。</figcaption>
+  <section class="screens">
+    <h2 class="screens__title">画面</h2>
+    <div class="screens__grid">
+      <figure class="screen">
+        <img src="media/screen-gallery.webp" width="1140" height="424" loading="lazy" decoding="async" alt="ギャラリー画面。写真とPDFがカードで並び、サムネイル・ファイル名・メモ・投稿者・日時が表示されている" data-zoom>
+        <figcaption>ギャラリー: 写真とPDFがカードで並ぶ。サムネ・ファイル名・メモ・投稿者・日時。</figcaption>
       </figure>
-      <figure>
-        <img src="img/before-after.webp" width="1216" height="258" loading="lazy" decoding="async" alt="標準のサブテーブルの表形式表示と、サブテーブルギャラリー化後のカード形式表示を並べた比較画像">
-        <figcaption>標準の表形式(左)が、保存するだけでギャラリー表示(右)に変わります。</figcaption>
+      <figure class="screen">
+        <img src="media/screen-zoom.webp" width="1204" height="902" loading="lazy" decoding="async" alt="拡大画面。カードを押した写真がその場で拡大表示されている" data-zoom>
+        <figcaption>拡大: カードを押すとその場で拡大。PDFもページを送れる。</figcaption>
+      </figure>
+      <figure class="screen">
+        <img src="media/screen-input.webp" width="600" height="411" loading="lazy" decoding="async" alt="入れ方の画面。ファイル選択・ドラッグ&amp;ドロップ・貼り付けの3つの入力方法が示されている" data-zoom>
+        <figcaption>入れ方3つ: ファイル選択・ドラッグ&amp;ドロップ・貼り付け(Ctrl+V)。</figcaption>
+      </figure>
+      <figure class="screen">
+        <img src="media/screen-memo.webp" width="950" height="320" loading="lazy" decoding="async" alt="メモ編集画面。カードのメモをその場で書き換えている画面" data-zoom>
+        <figcaption>メモ: カードのメモをその場で書き換える。削除は確認つき。</figcaption>
       </figure>
     </div>
   </section>
 
-  <section class="card">
-    <h2>標準機能ではできない理由</h2>
-    <p>標準のサブテーブルは行形式の表の表示のみで、添付ファイルを画像ギャラリーのように並べて見ることができません。</p>
+  <section class="compare">
+    <h2 class="compare__title">データは同じ。見え方だけ変わる。</h2>
+    <img src="media/compare.webp" width="1236" height="380" loading="lazy" decoding="async" alt="標準のサブテーブルの表形式表示(左)と、サブテーブルギャラリー化後のカード形式表示(右)を並べた比較画像" data-zoom>
+    <p class="compare__caption">左=標準のサブテーブル(小さなサムネと行)、右=同じデータのギャラリー。</p>
+  </section>
+
+  <section class="how">
+    <h2 class="how__title">仕組み</h2>
+    <ol class="how__list">
+      <li>保存先は今までどおりサブテーブル。プラグインを外しても、写真もメモもkintoneに残ります。</li>
+      <li>業務データは外に送りません。ライセンス確認で送るのはkintoneドメイン名とキーだけ。</li>
+      <li>kintoneの内部構造に触らず、公式のAPIとイベントだけで動きます。</li>
+    </ol>
   </section>
 
   <section class="card">
@@ -106,5 +144,28 @@
     </ul>
   </div>
 </main>
+
+<script>
+(function () {
+  // prefers-reduced-motion の人には動画を自動再生しない
+  var reduceMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  var videos = document.querySelectorAll(".hero-media__video");
+  videos.forEach(function (video) {
+    if (reduceMotion) {
+      video.removeAttribute("autoplay");
+      video.removeAttribute("loop");
+      video.pause();
+    }
+    // 任意メディア(未着でも崩れない): 読み込みに失敗したら枠ごと隠す
+    var optionalWrap = video.closest("[data-optional-media]");
+    if (optionalWrap) {
+      video.addEventListener("error", function () {
+        optionalWrap.hidden = true;
+      }, true);
+    }
+  });
+})();
+</script>
+<script src="../lightbox.js"></script>
 </body>
 </html>

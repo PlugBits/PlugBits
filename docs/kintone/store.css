@@ -90,3 +90,150 @@ a { color: var(--accent); }
 .shot figcaption, .shots figcaption { font-size: 13px; color: var(--muted); margin-top: 6px; }
 .shots { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; margin: 18px 0; }
 .shots figure { margin: 0; }
+
+/* v2 商品ページの節の型(残り4本でも同じ class で組む) */
+
+/* フック・サブ */
+.hook { margin: 28px 0 10px; }
+.sub { color: var(--muted); font-size: 16px; margin: 0 0 24px; }
+
+/* 主役の動画(hero-media) */
+.hero-media { margin: 0 0 28px; display: flex; flex-direction: column; gap: 14px; }
+.hero-media__item { margin: 0; }
+.hero-media__video {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 16 / 10;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--panel);
+  box-shadow: 0 6px 18px rgba(16, 24, 40, .06);
+  object-fit: cover;
+}
+.hero-media__item figcaption { font-size: 13px; color: var(--muted); margin-top: 6px; }
+.hero-media__item--optional[hidden] { display: none; }
+
+/* こんな場面で(scenes) */
+.scenes { margin: 8px 0 28px; }
+.scenes__title, .screens__title, .compare__title, .how__title { font-size: 16px; margin: 0 0 14px; }
+.scenes__grid { display: grid; grid-template-columns: 1fr; gap: 16px; }
+.scene { margin: 0; }
+.scene h3 { font-size: 15px; margin: 0 0 6px; }
+.scene p { margin: 0 0 10px; color: var(--muted); font-size: 14px; }
+.scene img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--panel);
+  box-shadow: 0 6px 18px rgba(16, 24, 40, .06);
+  cursor: zoom-in;
+}
+@media (min-width: 640px) {
+  .scenes__grid { grid-template-columns: repeat(3, 1fr); }
+}
+
+/* 画面(screens) */
+.screens { margin: 8px 0 28px; }
+.screens__grid { display: grid; grid-template-columns: 1fr; gap: 16px; }
+.screen { margin: 0; }
+.screen img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--panel);
+  box-shadow: 0 6px 18px rgba(16, 24, 40, .06);
+  cursor: zoom-in;
+}
+.screen figcaption { font-size: 13px; color: var(--muted); margin-top: 6px; }
+@media (min-width: 640px) {
+  .screens__grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+/* 標準の表との比較(compare) */
+.compare { margin: 8px 0 28px; }
+.compare img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--panel);
+  box-shadow: 0 6px 18px rgba(16, 24, 40, .06);
+  cursor: zoom-in;
+}
+.compare__caption { font-size: 13px; color: var(--muted); margin-top: 6px; }
+
+/* 仕組み(how) */
+.how { margin: 8px 0 28px; }
+.how__list { padding-left: 1.4em; }
+.how__list li { color: var(--text); }
+.how__list li + li { margin-top: 10px; }
+
+/* lightbox */
+.lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: none;
+}
+.lightbox.is-open { display: block; }
+.lightbox__backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(16, 24, 40, .82);
+  border: none;
+  padding: 0;
+  cursor: zoom-out;
+}
+.lightbox__figure {
+  position: relative;
+  z-index: 1;
+  margin: 0;
+  width: min(calc(100% - 48px), 1100px);
+  max-height: calc(100% - 48px);
+  margin: 24px auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+.lightbox__img {
+  display: block;
+  max-width: 100%;
+  max-height: calc(100vh - 140px);
+  width: auto;
+  height: auto;
+  border-radius: 10px;
+  background: var(--panel);
+}
+.lightbox__caption { color: #fff; font-size: 14px; text-align: center; margin: 0; }
+.lightbox__close {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  z-index: 2;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: none;
+  background: #fff;
+  color: var(--text);
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+}
+.zoom-trigger {
+  display: block;
+  width: 100%;
+  border: none;
+  background: none;
+  padding: 0;
+  margin: 0;
+  cursor: zoom-in;
+}
+.zoom-trigger img { pointer-events: none; }
