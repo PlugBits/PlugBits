@@ -37,49 +37,51 @@
     "slug": "gallery-plugin",
     "type": "plugin",
     "status": "public",
-    "page_url": null,
-    "install_url": "https://github.com/PlugBits/plugbits-plugins/releases/download/subtable-gallery-v1.0.0/subtable-gallery-plugin.zip",
+    "page_url": "/kintone/kintone-gallery/",
+    "redirect_to": "/kintone/kintone-gallery/",
+    "install_url": "/kintone/dl/kintone-gallery-2.0.0.zip",
     "hero_image": "assets/gallery/hero.webp",
-    "file_size": "190KB",
-    "updated_at": "2024/04",
-    "title_ja": "サブテーブルギャラリー化プラグイン",
-    "title_en": "subtable-gallery-plugin",
-    "short_summary_ja": "詳細画面に写真・PDFをドロップするだけ。テーブルをギャラリー表示で管理できます",
-    "short_summary_en": "Drop photos and PDFs on the detail screen. Manage work progress as a gallery.",
-    "summary_ja": "kintoneのレコード詳細画面で、写真・PDFなどの進捗ファイルをギャラリー形式で管理するプラグインです。ドラッグ＆ドロップ・貼り付けで投稿でき、テーブルに自動保存します。",
-    "summary_en": "A kintone plugin that manages progress files (photos, PDFs, etc.) as a gallery on the record detail screen. Supports drag-and-drop and paste upload, with automatic subtable storage.",
+    "file_size": "189KB",
+    "updated_at": "2026/10",
+    "title_ja": "サブテーブルギャラリー化",
+    "title_en": "Subtable Gallery",
+    "short_summary_ja": "詳細画面に貼った写真が、保存した瞬間にギャラリーのカードへ変わります",
+    "short_summary_en": "Photos dropped on the detail screen turn into gallery cards the moment you save.",
+    "summary_ja": "kintoneのレコード詳細画面に貼った写真・PDFを、サムネイル付きのギャラリーカードで一覧表示するプラグインです。ファイル選択・ドラッグ&ドロップ・画像の貼り付けの3方法で投稿でき、メモの編集や不要な投稿の削除もその場で行えます。¥3,980(税込・買い切り・ドメイン単位)、14日間の無料試用があります。",
+    "summary_en": "A kintone plugin that turns photos and PDFs attached on the record detail screen into gallery cards with thumbnails. Add files by file picker, drag-and-drop, or image paste, and edit memos or delete posts right on the screen. JPY 3,980 (one-time, tax incl., per domain), with a 14-day free trial.",
     "category_ja": "UI改善",
     "category_en": "UI Enhancement",
     "tags_ja": "ギャラリー, 添付ファイル, 進捗管理, 写真, テーブル",
     "tags_en": "gallery, attachment, progress, photo, subtable",
     "supported_screens_ja": "PC / 詳細",
     "supported_screens_en": "PC / Detail",
-    "features_ja": "ドラッグ＆ドロップ・ファイル選択・コピー貼り付けで投稿;画像・PDFをその場でプレビュー;メモのインライン編集;投稿者・投稿日時の自動記録;画像圧縮（JPEG変換）対応;グリッド／横スクロール切替",
+    "features_ja": "ドラッグ&ドロップ・ファイル選択・コピー貼り付けで投稿;画像・PDFをその場でプレビュー;メモのインライン編集;投稿者・投稿日時の自動記録;画像圧縮(JPEG変換)対応;グリッド/横スクロール切替",
     "features_en": "Drag-and-drop, file picker, and paste upload;In-screen preview for images and PDFs;Inline memo editing;Auto-fill of author and timestamp;Image compression (JPEG conversion);Grid or horizontal scroll layout",
-    "limitations_ja": "モバイル非対応;コピー貼り付けは画像のみ対応",
-    "limitations_en": "PC only;Paste upload supports images only",
+    "limitations_ja": "PC専用(モバイル非対応);コピー貼り付けは画像のみ対応",
+    "limitations_en": "PC only (not supported on mobile);Paste upload supports images only",
     "steps_ja": [
-      "1|テーブルを作成|アプリに「添付ファイル」「メモ」フィールドを含むテーブルを追加します",
-      "2|スペースフィールドを配置してフィールドコードを設定します",
-      "3|プラグインをインストール|管理画面からZIPをアップロードしてアプリに追加します",
-      "4|フィールドを設定|プラグイン設定でテーブル・各フィールド・表示スペースを選択します",
-      "5|完了|詳細画面にアップロード欄とギャラリーが表示されます"
+      "1|zipをダウンロード|購入後(または試用)のプラグインzipファイルをダウンロードします",
+      "2|プラグイン管理にアップロード|kintoneのプラグイン管理画面でzipファイルをアップロードします",
+      "3|アプリに追加|対象アプリの設定でプラグインを追加します",
+      "4|ライセンスを設定|設定画面の「ライセンス」欄にキーを入力(または14日間の無料試用)して保存します"
     ],
     "steps_en": [
-      "1|Create subtable|Add a subtable with attachment, memo, and space fields to your app",
-      "2|Install plugin|Upload the ZIP and add the plugin via the admin panel",
-      "3|Configure fields|Select the subtable, fields, and display space in the plugin settings",
-      "4|Done|The upload area and gallery appear on the record detail screen"
+      "1|Download the zip|Download the plugin zip file after purchase (or for the trial)",
+      "2|Upload to plugin management|Upload the zip file from kintone's plugin management screen",
+      "3|Add to the app|Add the plugin to your app in the app settings",
+      "4|Set up your license|Enter your key in the settings screen's License field (or start the 14-day free trial), then save"
     ],
     "faq_ja": [
       "投稿したのに表示されません|設定のテーブル・添付ファイルフィールド・スペースフィールドが正しいか、アプリを更新済みかを確認してください",
       "貼り付けができません|画像のコピーになっているか確認してください。PDF等は貼り付け非対応です",
-      "投稿者・日時が入りません|プラグイン設定で対象フィールドを設定してください"
+      "投稿者・日時が入りません|プラグイン設定で対象フィールドを設定してください",
+      "試用期間が終わったら?|試用(14日間・ドメインごとに1回)が終わってキーが未登録の場合、機能が停止します。購入後、設定画面の「ライセンス」欄にキーを登録してください"
     ],
     "faq_en": [
       "Nothing appears after upload|Check that the subtable, attachment field, and space field are correctly configured, and that the app has been updated.",
       "Paste does not work|Make sure you have copied an image. PDF and other file types are not supported via paste.",
-      "Author or timestamp is missing|Configure the corresponding fields in the plugin settings."
+      "Author or timestamp is missing|Configure the corresponding fields in the plugin settings.",
+      "What happens after the trial ends?|If the 14-day trial (once per domain) ends without a registered key, the plugin's features stop working. After purchase, enter your key in the settings screen's License field."
     ],
     "screenshots": [
       {
@@ -118,9 +120,10 @@
         "caption_en": ""
       }
     ],
-    "brevo_form_id": "https://dca617a2.sibforms.com/serve/MUIFAPk-0SA3-DlRbY_F5fvZ1x1S0ZC7Os4Sl09qB61UXSsqelYH19wbmrdYPi4jywTdGnqIv3t3437aJTESE6r4exxamWEIlQKIIxw69gO2llP9HibDERUeodVNNbxdTtKeJq9tMXo6C4uMX5TuV93Y4PgfrmjdrjgaZc8rlvPFcZ0zgcqm5Oc1xKXFJunN5LpWbRDltINy8Uez9A==",
     "og_image": "assets/gallery/hero.png",
-    "pricing": "free"
+    "pricing": "paid",
+    "price_ja": "¥3,980(税込・買い切り)",
+    "price_en": "¥3,980 (one-time, tax incl.)"
   },
   {
     "slug": "launcher",
@@ -147,17 +150,18 @@
     "slug": "listkit",
     "type": "plugin",
     "status": "public",
-    "page_url": null,
-    "install_url": "https://github.com/PlugBits/plugbits-plugins/releases/download/listkit-v1.0.0/view-tab-date-filter.zip",
+    "page_url": "/kintone/kintone-listkit/",
+    "redirect_to": "/kintone/kintone-listkit/",
+    "install_url": "/kintone/dl/kintone-listkit-2.0.0.zip",
     "hero_image": "assets/listkit/hero.webp",
-    "file_size": "36KB",
-    "updated_at": "2026/04",
+    "file_size": "76KB",
+    "updated_at": "2026/10",
     "title_ja": "PlugBits ListKit",
     "title_en": "PlugBits ListKit",
-    "short_summary_ja": "一覧のタブ切替・日付絞り込み・集計表示をまとめて追加します",
-    "short_summary_en": "Adds view tabs, date filters, and aggregates to kintone list views",
-    "summary_ja": "kintone の一覧画面にビュータブ、日付フィルター、集計表示を追加するプラグインです。よく使う一覧への移動、期間での絞り込み、件数や数値の確認を一覧上部に集約し、日々の操作効率を高めます",
-    "summary_en": "A kintone plugin that adds view tabs, date filters, and aggregate summaries to list views. It helps users switch views faster, filter by period with one click, and check counts or key numbers directly from the list header.",
+    "short_summary_ja": "一覧の切り替えと期間の絞り込みを、一覧の上の1か所にまとめます",
+    "short_summary_en": "Brings view switching and date filtering together in one place above your list.",
+    "summary_ja": "kintoneの一覧画面にビュー切替タブ、日付フィルター、集計表示を追加するプラグインです。よく使う一覧への切替、期間での絞り込み、件数や数値の確認を一覧上部にまとめ、日々の操作効率を高めます。¥3,980(税込・買い切り・ドメイン単位)、14日間の無料試用があります。",
+    "summary_en": "A kintone plugin that adds view-switching tabs, date filters, and aggregate summaries to the list screen header. Switch views, filter by period, and check totals or key numbers without leaving the list. JPY 3,980 (one-time, tax incl., per domain), with a 14-day free trial.",
     "category_ja": "UI改善",
     "category_en": "UI Enhancement",
     "tags_ja": "一覧, タブ, 日付フィルター, 集計, 業務改善",
@@ -166,33 +170,33 @@
     "supported_screens_en": "PC / List",
     "features_ja": "一覧上部にビュー切替タブを表示;表示するビューと順番を設定可能;日付・日時フィールドを期間プリセットで絞り込み;今週・今月・四半期・半期・年単位のプリセットに対応;数値フィールドと計算フィールドの集計を表示;合計・平均・最小・最大・件数に対応;ビューごとに日付フィルターと集計の表示対象を制御可能;接頭文字・接尾文字・小数桁を設定可能",
     "features_en": "Show view-switching tabs in the list header;Choose which views to show and in what order;Filter date or datetime fields with quick presets;Supports week, month, quarter, half-year, and year presets;Display aggregates for number and calculation fields;Supports sum, average, minimum, maximum, and count;Limit date filters and aggregates by view;Customize prefixes, suffixes, and decimal digits",
-    "limitations_ja": "PC版一覧画面向け;日付フィルターには日付または日時フィールドが必要;集計には数値または計算フィールドが必要;レコード件数や集計対象が多い場合は表示に時間がかかることがある",
-    "limitations_en": "Designed for PC list view;Date filter requires a date or datetime field;Aggregates require number or calculation fields;Large datasets or many aggregate rules may slow rendering",
+    "limitations_ja": "PC専用(モバイル非対応);日付フィルターには日付または日時フィールドが必要;集計には数値または計算フィールドが必要;レコード件数や集計対象が多い場合は表示に時間がかかることがある",
+    "limitations_en": "PC only (not supported on mobile);Date filter requires a date or datetime field;Aggregates require number or calculation fields;Large datasets or many aggregate rules may slow rendering",
     "steps_ja": [
-      "1|プラグインをインストール|kintone 管理画面からプラグインをアップロードして追加します",
-      "2|設定を開く|対象アプリのプラグイン設定で PlugBits ListKit を開きます",
-      "3|ビュータブを設定|表示するビュー、順番、横並びタブ数、アイコン表示を設定します",
-      "4|日付フィルターと集計を設定|対象日付フィールド、プリセット、対象ビュー、集計ルールを設定します",
-      "5|完了|保存後にアプリを更新すると、一覧上部にタブ・日付フィルター・集計が表示されます"
+      "1|zipをダウンロード|購入後(または試用)のプラグインzipファイルをダウンロードします",
+      "2|プラグイン管理にアップロード|kintoneのプラグイン管理画面でzipファイルをアップロードします",
+      "3|アプリに追加|対象アプリの設定でプラグインを追加します",
+      "4|ライセンスを設定|設定画面の「ライセンス」欄にキーを入力(または14日間の無料試用)して保存します"
     ],
     "steps_en": [
-      "1|Install the plugin|Upload and add the plugin from the kintone admin panel",
-      "2|Open settings|Open PlugBits ListKit from the app's plugin settings",
-      "3|Configure view tabs|Choose visible views, order, inline tab count, and icon display",
-      "4|Configure date filter and aggregates|Set the target date field, presets, target views, and aggregate rules",
-      "5|Done|Save the settings and update the app to show tabs, date filters, and aggregates in the list header"
+      "1|Download the zip|Download the plugin zip file after purchase (or for the trial)",
+      "2|Upload to plugin management|Upload the zip file from kintone's plugin management screen",
+      "3|Add to the app|Add the plugin to your app in the app settings",
+      "4|Set up your license|Enter your key in the settings screen's License field (or start the 14-day free trial), then save"
     ],
     "faq_ja": [
       "日付フィルターが表示されません|プラグイン設定で日付フィルターが有効か、対象ビューに含まれているか、日付または日時フィールドが設定されているかを確認してください",
       "集計が表示されません|集計が有効か、集計ルールが1件以上あるか、数値または計算フィールドを選んでいるかを確認してください",
       "タブが多すぎて見切れます|横並びタブ数を超えた分は「その他」に入ります。設定画面で表示順や横並びタブ数を調整してください",
-      "設定を変えたのに反映されません|保存後にアプリを更新しているか確認してください"
+      "設定を変えたのに反映されません|保存後にアプリを更新しているか確認してください",
+      "試用期間が終わったら?|試用(14日間・ドメインごとに1回)が終わってキーが未登録の場合、機能が停止します。購入後、設定画面の「ライセンス」欄にキーを登録してください"
     ],
     "faq_en": [
       "Why is the date filter not shown?|Check whether the date filter is enabled, included for the current view, and configured with a date or datetime field.",
       "Why are aggregates not shown?|Check whether aggregates are enabled, at least one aggregate rule exists, and the selected field is numeric or calculated.",
       "There are too many tabs to fit.|Tabs over the inline limit are grouped under \"Other\". Adjust the display order or inline count in the settings.",
-      "Why do my setting changes not appear?|Make sure you saved the plugin settings and updated the app."
+      "Why do my setting changes not appear?|Make sure you saved the plugin settings and updated the app.",
+      "What happens after the trial ends?|If the 14-day trial (once per domain) ends without a registered key, the plugin's features stop working. After purchase, enter your key in the settings screen's License field."
     ],
     "screenshots": [
       {
@@ -222,23 +226,26 @@
       }
     ],
     "og_image": "assets/listkit/hero.png",
-    "pricing": "free"
+    "pricing": "paid",
+    "price_ja": "¥3,980(税込・買い切り)",
+    "price_en": "¥3,980 (one-time, tax incl.)"
   },
   {
     "slug": "text-rule-builder",
     "type": "plugin",
     "status": "public",
-    "page_url": null,
-    "install_url": "https://github.com/PlugBits/plugbits-plugins/releases/download/text-rule-builder-v1.0.0/text-rule-builder.zip",
+    "page_url": "/kintone/kintone-rule-builder/",
+    "redirect_to": "/kintone/kintone-rule-builder/",
+    "install_url": "/kintone/dl/kintone-rule-builder-2.0.0.zip",
     "hero_image": "assets/text-rule-builder/hero.webp",
-    "file_size": "~30KB",
-    "updated_at": "2025-05",
-    "title_ja": "文字列条件分岐ビルダープラグイン",
-    "title_en": "Text Rule Builder Plugin",
-    "short_summary_ja": "条件ルールをGUIで組み立て、文字列フィールドへ自動入力します",
-    "short_summary_en": "Build conditional rules in a GUI and auto-fill text fields",
-    "summary_ja": "kintoneのレコード画面で、複数の条件ルールをGUIで設定し、一致した結果を文字列フィールドへ自動で出力するプラグインです。AND/OR条件・フィールド参照・数式比較に対応し、判定テスト機能も備えています。",
-    "summary_en": "A kintone plugin that lets you define conditional output rules in a visual GUI and automatically writes the result into a single-line text field. Supports AND/OR logic, field references, numeric expressions, and a built-in test panel.",
+    "file_size": "231KB",
+    "updated_at": "2026-10",
+    "title_ja": "文字列条件分岐ビルダー",
+    "title_en": "Text Rule Builder",
+    "short_summary_ja": "計算式のIFの入れ子を、画面の操作だけで組み立てられます",
+    "short_summary_en": "Build nested IF logic for kintone fields with clicks, not formulas.",
+    "summary_ja": "kintoneのレコード画面で、複数の条件ルールをGUIで設定し、一致した結果を文字列(1行)フィールドへ自動で出力するプラグインです。AND/OR条件・他フィールドの参照・数式比較に対応し、保存前に判定テストで動作を確認できます。¥1,980(税込・買い切り・ドメイン単位)、14日間の無料試用があります。",
+    "summary_en": "A kintone plugin that lets you configure multiple conditional rules in a GUI and automatically writes the matching result into a single-line text field. Supports AND/OR logic, references to other fields, and numeric expressions, with a built-in test panel to check results before saving. JPY 1,980 (one-time, tax incl., per domain), with a 14-day free trial.",
     "category_ja": "自動化",
     "category_en": "Automation",
     "tags_ja": "条件分岐, 自動入力, テキスト, ルール, 計算",
@@ -247,33 +254,35 @@
     "supported_screens_en": "PC / Create & Edit",
     "features_ja": "条件ルールをGUI画面で直感的に組み立て;AND/OR条件のまとまり方を選択可能;数値・テキスト・選択肢・日付など複数フィールド種別に対応;他フィールドの値や数式との比較が可能;複数の出力フィールドに別々のルールセットを割り当て;判定テストパネルで保存前に動作確認できる;出力フィールドを入力画面でロックするオプション付き",
     "features_en": "Build condition rules visually in the config UI;Choose AND or OR logic per rule;Supports number, text, dropdown, radio, date, and datetime fields;Compare against other field values or numeric expressions;Assign different rule sets to multiple output fields;Test panel lets you verify results before saving;Option to lock the output field from manual edits",
-    "limitations_ja": "モバイル非対応;出力先は文字列（1行）フィールドのみ",
-    "limitations_en": "PC only;Output field must be a single-line text field",
+    "limitations_ja": "PC専用(モバイル非対応。出力フィールドの自動入力はモバイルでは動作しません);出力先は文字列(1行)フィールドのみ",
+    "limitations_en": "PC only (not supported on mobile; auto-fill does not run on mobile);Output field must be a single-line text field",
     "steps_ja": [
-      "1|プラグインをインストール|管理画面からZIPをアップロードしてアプリにプラグインを追加します",
-      "2|出力先フィールドを準備|自動入力したい「文字列（1行）」フィールドをアプリに追加します",
-      "3|プラグインを設定|「文字を入れる場所」で出力フィールドを選び、判定ルールを組み立てます",
-      "4|保存して完了|保存後、レコードの作成・編集画面で条件に応じた文字が自動で入力されます"
+      "1|zipをダウンロード|購入後(または試用)のプラグインzipファイルをダウンロードします",
+      "2|プラグイン管理にアップロード|kintoneのプラグイン管理画面でzipファイルをアップロードします",
+      "3|アプリに追加|対象アプリの設定でプラグインを追加します",
+      "4|ライセンスを設定|設定画面の「ライセンス」欄にキーを入力(または14日間の無料試用)して保存します"
     ],
     "steps_en": [
-      "1|Install the plugin|Upload the ZIP and add the plugin via the kintone admin panel",
-      "2|Prepare output field|Add a single-line text field to your app as the output target",
-      "3|Configure rules|Select the output field and build your conditional rules in the plugin settings",
-      "4|Done|After saving, the matched text is automatically filled in on create and edit screens"
+      "1|Download the zip|Download the plugin zip file after purchase (or for the trial)",
+      "2|Upload to plugin management|Upload the zip file from kintone's plugin management screen",
+      "3|Add to the app|Add the plugin to your app in the app settings",
+      "4|Set up your license|Enter your key in the settings screen's License field (or start the 14-day free trial), then save"
     ],
     "faq_ja": [
       "条件に使えるフィールド種別は？|数値・計算・文字列（1行）・ラジオボタン・ドロップダウン・日付・日時フィールドが使えます",
       "出力先はどのフィールドですか？|文字列（1行）フィールドのみ対応しています",
       "モバイルでも動きますか？|現在はPC専用です",
       "1つのルールセットを複数フィールドに使えますか？|はい、同じ判定ルールセットを複数の出力フィールドに割り当てることができます",
-      "手動入力できないようにしたい|設定画面の「入力画面で直接変更できないようにする」オプションをオンにしてください"
+      "手動入力できないようにしたい|設定画面の「入力画面で直接変更できないようにする」オプションをオンにしてください",
+      "試用期間が終わったら?|試用(14日間・ドメインごとに1回)が終わってキーが未登録の場合、機能が停止します。購入後、設定画面の「ライセンス」欄にキーを登録してください"
     ],
     "faq_en": [
       "Which field types can I use in conditions?|Number, calculated, single-line text, radio button, dropdown, date, and datetime fields are supported",
       "What can be used as the output field?|Only single-line text fields are supported as output targets",
       "Does it work on mobile?|PC only at this time",
       "Can one rule set apply to multiple fields?|Yes, the same rule set can be assigned to multiple output fields",
-      "How do I prevent manual edits to the output field?|Enable the 'prevent direct changes on input screen' option in the plugin settings"
+      "How do I prevent manual edits to the output field?|Enable the 'prevent direct changes on input screen' option in the plugin settings",
+      "What happens after the trial ends?|If the 14-day trial (once per domain) ends without a registered key, the plugin's features stop working. After purchase, enter your key in the settings screen's License field."
     ],
     "screenshots": [
       {
@@ -298,7 +307,121 @@
       }
     ],
     "og_image": "assets/text-rule-builder/hero.png",
-    "pricing": "free"
+    "pricing": "paid",
+    "price_ja": "¥1,980(税込・買い切り)",
+    "price_en": "¥1,980 (one-time, tax incl.)"
+  },
+  {
+    "slug": "excel-report",
+    "type": "plugin",
+    "status": "public",
+    "page_url": "/kintone/kintone-excel-report/",
+    "redirect_to": "/kintone/kintone-excel-report/",
+    "install_url": "/kintone/dl/kintone-excel-report-2.0.0.zip",
+    "hero_image": "assets/placeholder.svg",
+    "file_size": "333KB",
+    "updated_at": "2026-10",
+    "title_ja": "Excel帳票一括生成",
+    "title_en": "Excel Report Batch Generator",
+    "short_summary_ja": "一覧で選んだレコードを、Ctrl+P 1回で全部印刷できる帳票にします",
+    "short_summary_en": "Turn selected records into print-ready Excel reports — print them all with a single Ctrl+P.",
+    "summary_ja": "kintoneの一覧で選んだレコードを、Excelテンプレートへ差し込んでxlsx帳票を一括生成するプラグインです。`{フィールドコード}`の差し込みとサブテーブル明細行の繰り返し出力、QR・バーコード出力に対応し、選んだレコードを1枚のシートに縦に並べてCtrl+P1回で全部印刷できます。¥9,800(税込・買い切り・ドメイン単位)、14日間の無料試用があります。",
+    "summary_en": "A kintone plugin that merges selected records into an Excel template and batch-generates xlsx reports. It fills in `{fieldCode}` tags, repeats subtable detail rows automatically, and outputs QR codes and barcodes; records are laid out on one sheet with automatic page breaks so you can print everything with a single Ctrl+P. JPY 9,800 (one-time, tax incl., per domain), with a 14-day free trial.",
+    "category_ja": "帳票出力",
+    "category_en": "Report Generation",
+    "tags_ja": "Excel, 帳票, QRコード, バーコード, 一括出力",
+    "tags_en": "Excel, report, QR code, barcode, batch export",
+    "supported_screens_ja": "PC / 一覧",
+    "supported_screens_en": "PC / List",
+    "features_ja": "`{フィールドコード}`でExcelテンプレートに差し込み(旧`{{タグ}}`形式も読み込み可能);`{サブテーブル.フィールド}`の明細行をサブテーブルの行数だけ自動で繰り返し出力;選んだレコードを1枚のシートに縦に並べてCtrl+P1回で全部印刷(1レコード1シートにも切替可能);QRコード・バーコードの画像出力(`{{QR:タグ}}` `{{BC:タグ}}`);出力後に印刷ステータス・印刷日時・印刷者を自動更新(設定時);ラベルモードで数量に応じた枚数分割に対応",
+    "features_en": "Merge `{fieldCode}` tags into an Excel template (legacy `{{tag}}` format also supported);Automatically repeat `{subtable.field}` detail rows for each subtable row;Lay out selected records on one sheet with automatic page breaks — print everything with a single Ctrl+P (or switch to one sheet per record);QR code and barcode image output (`{{QR:tag}}` `{{BC:tag}}`);Optionally auto-update print status, timestamp, and printer name after output;Label mode splits output into multiple sheets based on quantity",
+    "limitations_ja": "PC専用(モバイル非対応);最大シート数(既定100)を超える選択は出力されません;選んだExcelファイルの読み込みはブラウザ内だけで行われます(外部送信なし)",
+    "limitations_en": "PC only (not supported on mobile);Selections beyond the max sheet count (default 100) are not exported;Selected Excel files are read entirely in the browser (nothing is sent externally)",
+    "steps_ja": [
+      "1|zipをダウンロード|購入後(または試用)のプラグインzipファイルをダウンロードします",
+      "2|プラグイン管理にアップロード|kintoneのプラグイン管理画面でzipファイルをアップロードします",
+      "3|アプリに追加|対象アプリの設定でプラグインを追加します",
+      "4|ライセンスを設定|設定画面の「ライセンス」欄にキーを入力(または14日間の無料試用)して保存します"
+    ],
+    "steps_en": [
+      "1|Download the zip|Download the plugin zip file after purchase (or for the trial)",
+      "2|Upload to plugin management|Upload the zip file from kintone's plugin management screen",
+      "3|Add to the app|Add the plugin to your app in the app settings",
+      "4|Set up your license|Enter your key in the settings screen's License field (or start the 14-day free trial), then save"
+    ],
+    "faq_ja": [
+      "一覧にボタンが表示されません|プラグインの設定が保存・アプリ更新済みか、「ボタンを表示する一覧」でその一覧が除外されていないかを確認してください",
+      "QR・バーコードが出ません|二重波括弧`{{QR:タグ}}` `{{BC:タグ}}`で書いているか、QR画像設定がオンかを確認してください",
+      "差し込みされず文字がそのまま残ります|設定画面の「テンプレートと項目の対応を確認」で⚠が出ていないか確認してください",
+      "試用期間が終わったら?|試用(14日間・ドメインごとに1回)が終わってキーが未登録の場合、機能が停止します。購入後、設定画面の「ライセンス」欄にキーを登録してください"
+    ],
+    "faq_en": [
+      "The button doesn't show up on the list screen|Check that the plugin settings are saved and the app updated, and that the current list isn't excluded in \"Lists to show the button on\".",
+      "QR codes or barcodes don't appear|Make sure you used double curly braces (`{{QR:tag}}` `{{BC:tag}}`) and that QR output is enabled.",
+      "Tags are not replaced and show up as plain text|Check \"Verify template and field mapping\" in the settings screen for any warning marks.",
+      "What happens after the trial ends?|If the 14-day trial (once per domain) ends without a registered key, the plugin's features stop working. After purchase, enter your key in the settings screen's License field."
+    ],
+    "screenshots": [],
+    "og_image": "/kintone/og-kintone.png",
+    "pricing": "paid",
+    "price_ja": "¥9,800(税込・買い切り)",
+    "price_en": "¥9,800 (one-time, tax incl.)"
+  },
+  {
+    "slug": "signage",
+    "type": "plugin",
+    "status": "public",
+    "page_url": "/kintone/kintone-signage/",
+    "redirect_to": "/kintone/kintone-signage/",
+    "install_url": "/kintone/dl/kintone-signage-2.0.0.zip",
+    "hero_image": "assets/placeholder.svg",
+    "file_size": "39KB",
+    "updated_at": "2026-10",
+    "title_ja": "AutoSignage",
+    "title_en": "AutoSignage",
+    "short_summary_ja": "キーボードの無い壁掛けTVでも、画面の隅をタップするだけで一覧の速さとテーマを変えられます",
+    "short_summary_en": "Change scroll speed and theme on a keyboard-less wall display just by tapping a corner of the screen.",
+    "summary_ja": "kintoneの一覧画面をサイネージ(壁掛けディスプレイ・キオスク端末)用に最適化するプラグインです。ヘッダー・メニューを非表示にして自動スクロール・自動リロードで表示し続け、画面右下の操作帯から停止・速さ・テーマ・全画面を切り替えられます。¥4,980(税込・買い切り・ドメイン単位)、14日間の無料試用があります。",
+    "summary_en": "A kintone plugin that optimizes the list screen for signage displays and kiosk terminals. It hides the header and menus, keeps the screen auto-scrolling and auto-reloading, and lets you pause, change speed, switch themes, or go full screen from an on-screen control strip in the bottom right. JPY 4,980 (one-time, tax incl., per domain), with a 14-day free trial.",
+    "category_ja": "サイネージ",
+    "category_en": "Signage",
+    "tags_ja": "サイネージ, キオスク, 自動スクロール, 壁掛けディスプレイ, 自動リロード",
+    "tags_en": "signage, kiosk, auto-scroll, wall display, auto-reload",
+    "supported_screens_ja": "PC / 一覧",
+    "supported_screens_en": "PC / List",
+    "features_ja": "一覧をサイネージ表示に(ヘッダー・メニュー・スクロールバーを非表示);自動スクロールと自動リロード(間隔・回数を設定可能);画面右下の操作帯で停止/再開・速さ(3段階)・テーマ・全画面を切替;テーマはライト/ダーク/端末設定に自動追従から選べる;画面がスリープしないようWake Lockをリクエスト(対応ブラウザのみ);適用ビューを限定可能(未指定なら全ビューに適用)",
+    "features_en": "Switches the list view into signage mode (hides header, menus, and scrollbars);Auto-scroll and auto-reload with configurable interval and loop count;On-screen control strip (bottom right) to pause/resume, change speed (3 levels), switch theme, or go full screen;Choose light, dark, or auto (follows the device setting) theme;Requests a Wake Lock to keep the screen from sleeping (supported browsers only);Optionally limit signage to specific views (applies to all views if none selected)",
+    "limitations_ja": "PC専用(モバイル非対応);配色の自動追従は表形式の一覧のみ対応(カレンダー・カスタムビューは対象外);Wake Lockは対応ブラウザのみ有効",
+    "limitations_en": "PC only (not supported on mobile);Theme auto-follow only applies to table-style lists (not calendar or custom views);Wake Lock only works in supported browsers",
+    "steps_ja": [
+      "1|zipをダウンロード|購入後(または試用)のプラグインzipファイルをダウンロードします",
+      "2|プラグイン管理にアップロード|kintoneのプラグイン管理画面でzipファイルをアップロードします",
+      "3|アプリに追加|対象アプリの設定でプラグインを追加します",
+      "4|ライセンスを設定|設定画面の「ライセンス」欄にキーを入力(または14日間の無料試用)して保存します"
+    ],
+    "steps_en": [
+      "1|Download the zip|Download the plugin zip file after purchase (or for the trial)",
+      "2|Upload to plugin management|Upload the zip file from kintone's plugin management screen",
+      "3|Add to the app|Add the plugin to your app in the app settings",
+      "4|Set up your license|Enter your key in the settings screen's License field (or start the 14-day free trial), then save"
+    ],
+    "faq_ja": [
+      "フルスクリーンになりません|ブラウザの仕様でユーザー操作(タップ/クリック)が必須です。案内が出た後、画面を一度タップしてください",
+      "サイネージが動かず通常の一覧表示のままです|ライセンスが未登録または期限切れの可能性があります。画面右下の案内から設定画面でキーを登録するか試用を開始してください",
+      "この端末で変えた速さ・テーマが他の端末に反映されません|速さ・テーマの端末設定はその端末のブラウザだけに保存されます。他の端末にも反映したい場合は管理者側のプラグイン設定を変更してください",
+      "試用期間が終わったら?|試用(14日間・ドメインごとに1回)が終わってキーが未登録の場合、機能が停止します。購入後、設定画面の「ライセンス」欄にキーを登録してください"
+    ],
+    "faq_en": [
+      "The screen won't go full screen|Browsers require a tap or click before switching to full screen. Tap the screen once after the prompt appears.",
+      "Signage mode doesn't start and the list looks normal|The license may be unregistered or expired. Check the notice in the bottom right and register a key or start the trial from the settings screen.",
+      "Speed or theme changes on one device don't show on others|Per-device speed and theme settings are saved only in that device's browser. Change the admin plugin settings to apply the same setting everywhere.",
+      "What happens after the trial ends?|If the 14-day trial (once per domain) ends without a registered key, the plugin's features stop working. After purchase, enter your key in the settings screen's License field."
+    ],
+    "screenshots": [],
+    "og_image": "/kintone/og-kintone.png",
+    "pricing": "paid",
+    "price_ja": "¥4,980(税込・買い切り)",
+    "price_en": "¥4,980 (one-time, tax incl.)"
   },
   {
     "slug": "factory-tools",

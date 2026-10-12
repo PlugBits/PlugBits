@@ -139,13 +139,20 @@ try {
   }
 
   // 価格バッジ：pricing (free / freemium / paid) で出し分け。未設定は free 扱い
+  // paid (kintone プラグインの買い切り) は price_ja/price_en +「 / kintoneプラグイン」で出す。
+  // 「無料」の固定札は paid/freemium では出さない。
   function priceBadge(p, isJa) {
     if (p.status === 'coming-soon') {
       return '<div class="kb-price-badge kb-price-coming">COMING SOON</div>';
     }
     const pricing = p.pricing || 'free';
-    if (pricing === 'paid' || pricing === 'freemium') {
-      const fallback = pricing === 'freemium' ? (isJa ? '無料+Pro' : 'Free+Pro') : (isJa ? '有料' : 'Paid');
+    if (pricing === 'paid') {
+      const price = (isJa ? p.price_ja : p.price_en) || (isJa ? p.price_label_ja : p.price_label_en) || (isJa ? '有料' : 'Paid');
+      const suffix = isJa ? ' / kintoneプラグイン' : ' / kintone plugin';
+      return `<div class="kb-price-badge kb-price-paid">${esc(price + suffix)}</div>`;
+    }
+    if (pricing === 'freemium') {
+      const fallback = isJa ? '無料+Pro' : 'Free+Pro';
       const label = (isJa ? p.price_label_ja : p.price_label_en) || fallback;
       return `<div class="kb-price-badge kb-price-paid">${esc(label)}</div>`;
     }
@@ -214,6 +221,31 @@ try {
     return out;
   }
 
+  /* manuals/<slug>.<lang>.md 内の画像の相対パスを、別担当が置く
+     assets/manuals/<slug>/<basename> を指すように出力時に書き換える。
+     md 側が images/manual/xxx.png のような旧式の相対パスで書いていても、
+     すでに assets/manuals/<slug>/xxx.png を直接指していても、最後は
+     basename だけを取り出して同じ場所に組み直すので、どちらでも壊れない。
+     http(s): や / 始まりの絶対パス、data: はそのまま触らない。 */
+  function rewriteManualImagePaths(markdown, slug, imgPrefix) {
+    const isAbsolute = src => /^([a-z][a-z0-9+.-]*:|\/)/i.test(src);
+    const target = basename => `${imgPrefix}assets/manuals/${slug}/${basename}`;
+    let out = String(markdown || '');
+    // Markdown image syntax: ![alt](src "title")
+    out = out.replace(/!\[([^\]]*)\]\(([^)\s]+)((?:\s+"[^"]*")?)\)/g, (m, alt, src, title) => {
+      if (isAbsolute(src)) return m;
+      const basename = src.split('/').pop();
+      return `![${alt}](${target(basename)}${title})`;
+    });
+    // Raw <img src="..."> tags embedded in markdown
+    out = out.replace(/(<img\b[^>]*\bsrc=["'])([^"']+)(["'])/gi, (m, pre, src, post) => {
+      if (isAbsolute(src)) return m;
+      const basename = src.split('/').pop();
+      return `${pre}${target(basename)}${post}`;
+    });
+    return out;
+  }
+
   /* redirect_to を持つ製品は専用LPが正のページなので、詳細ページの
      代わりにリダイレクトスタブを置く(数字・文言の二重管理を避ける)。 */
   function redirectStub(target) {
@@ -229,20 +261,28 @@ try {
   // プラグイン詳細ページ生成
   for (const p of plugins) {
     if (p.redirect_to) {
+      // redirect_to がある製品は専用LPが正のページなので詳細ページの代わりに
+      // スタブを置くが、マニュアル(ja/en)の生成はスキップせず続ける。
       fs.writeFileSync(path.join(PRODUCTS_DIR, `${p.slug}.html`),    redirectStub(p.redirect_to));
       fs.writeFileSync(path.join(PRODUCTS_EN_DIR, `${p.slug}.html`), redirectStub(p.redirect_to));
-      continue;
+    } else {
+      fs.writeFileSync(path.join(PRODUCTS_DIR, `${p.slug}.html`),    fillProduct(p, 'ja'));
+      fs.writeFileSync(path.join(PRODUCTS_EN_DIR, `${p.slug}.html`), fillProduct(p, 'en'));
     }
-    fs.writeFileSync(path.join(PRODUCTS_DIR, `${p.slug}.html`),    fillProduct(p, 'ja'));
-    fs.writeFileSync(path.join(PRODUCTS_EN_DIR, `${p.slug}.html`), fillProduct(p, 'en'));
 
     // マニュアルページ生成
+    // 戻る導線(購入・商品ページへの導線)は、専用LPがあれば products/ のリダイレクト
+    // スタブを経由させず page_url(redirect_to) へ直接送る。無ければ元の詳細ページへ。
+    const backTarget = p.page_url || p.redirect_to || null;
     const manualJaPath = path.join(MANUALS_SRC, `${p.slug}.ja.md`);
     const manualEnPath = path.join(MANUALS_SRC, `${p.slug}.en.md`);
 
     if (fileExists(manualJaPath)) {
-      const content = marked.parse(readText(manualJaPath));
+      const imgPrefix = '../';
+      const md = rewriteManualImagePaths(readText(manualJaPath), p.slug, imgPrefix);
+      const content = marked.parse(md);
       let out = tpl.manualJa
+        .replaceAll('%%SLUG%%.html',      backTarget || `${p.slug}.html`)
         .replaceAll('%%TITLE%%',          esc(p.title_ja))
         .replaceAll('%%SLUG%%',           p.slug)
         .replaceAll('%%MANUAL_CONTENT%%', content)
@@ -254,8 +294,11 @@ try {
     }
 
     if (fileExists(manualEnPath)) {
-      const content = marked.parse(readText(manualEnPath));
+      const imgPrefix = '../../';
+      const md = rewriteManualImagePaths(readText(manualEnPath), p.slug, imgPrefix);
+      const content = marked.parse(md);
       let out = tpl.manualEn
+        .replaceAll('%%SLUG%%.html',      backTarget || `${p.slug}.html`)
         .replaceAll('%%TITLE%%',          esc(p.title_en))
         .replaceAll('%%SLUG%%',           p.slug)
         .replaceAll('%%MANUAL_CONTENT%%', content)
