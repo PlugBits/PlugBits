@@ -36,6 +36,31 @@
   var caption = overlay.querySelector(".lightbox__caption");
   var lastTrigger = null;
 
+  // 開いている間は後ろのページを動かさない。iOS Safari は overflow:hidden だけでは止まらないので
+  // body を fixed にして今の位置で止め、閉じたら元の位置へ戻す。touchmove も暗幕の上では止める
+  var savedScrollY = 0;
+  function preventTouch(e) { e.preventDefault(); }
+  function lockScroll() {
+    savedScrollY = window.scrollY || window.pageYOffset || 0;
+    var b = document.body.style;
+    b.position = "fixed";
+    b.top = -savedScrollY + "px";
+    b.left = "0";
+    b.right = "0";
+    b.overflow = "hidden";
+    overlay.addEventListener("touchmove", preventTouch, { passive: false });
+  }
+  function unlockScroll() {
+    var b = document.body.style;
+    b.position = "";
+    b.top = "";
+    b.left = "";
+    b.right = "";
+    b.overflow = "";
+    window.scrollTo(0, savedScrollY);
+    overlay.removeEventListener("touchmove", preventTouch);
+  }
+
   function openLightbox(img, trigger) {
     lastTrigger = trigger;
     bigImg.src = img.currentSrc || img.src;
@@ -43,7 +68,7 @@
     caption.textContent = img.alt || "";
     overlay.classList.add("is-open");
     overlay.setAttribute("aria-hidden", "false");
-    document.body.style.overflow = "hidden";
+    lockScroll();
     closeBtn.focus();
     document.addEventListener("keydown", onKeydown, true);
   }
@@ -51,7 +76,7 @@
   function closeLightbox() {
     overlay.classList.remove("is-open");
     overlay.setAttribute("aria-hidden", "true");
-    document.body.style.overflow = "";
+    unlockScroll();
     bigImg.src = "";
     document.removeEventListener("keydown", onKeydown, true);
     if (lastTrigger) lastTrigger.focus();
