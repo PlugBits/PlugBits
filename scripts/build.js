@@ -147,9 +147,9 @@ try {
     }
     const pricing = p.pricing || 'free';
     if (pricing === 'paid') {
-      const price = (isJa ? p.price_ja : p.price_en) || (isJa ? p.price_label_ja : p.price_label_en) || (isJa ? '有料' : 'Paid');
-      const suffix = isJa ? ' / kintoneプラグイン' : ' / kintone plugin';
-      return `<div class="kb-price-badge kb-price-paid">${esc(price + suffix)}</div>`;
+      // カードの札は短い形(例「¥3,980 買い切り」)。税込などの詳細は商品ページ側に書く
+      const price = (isJa ? p.price_short_ja : p.price_short_en) || (isJa ? p.price_ja : p.price_en) || (isJa ? '有料' : 'Paid');
+      return `<div class="kb-price-badge kb-price-paid">${esc(price)}</div>`;
     }
     if (pricing === 'freemium') {
       const fallback = isJa ? '無料+Pro' : 'Free+Pro';

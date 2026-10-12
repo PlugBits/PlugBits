@@ -123,7 +123,9 @@
     "og_image": "assets/gallery/hero.png",
     "pricing": "paid",
     "price_ja": "¥3,980(税込・買い切り)",
-    "price_en": "¥3,980 (one-time, tax incl.)"
+    "price_en": "¥3,980 (one-time, tax incl.)",
+    "price_short_ja": "¥3,980 買い切り",
+    "price_short_en": "¥3,980 one-time"
   },
   {
     "slug": "launcher",
@@ -228,7 +230,9 @@
     "og_image": "assets/listkit/hero.png",
     "pricing": "paid",
     "price_ja": "¥3,980(税込・買い切り)",
-    "price_en": "¥3,980 (one-time, tax incl.)"
+    "price_en": "¥3,980 (one-time, tax incl.)",
+    "price_short_ja": "¥3,980 買い切り",
+    "price_short_en": "¥3,980 one-time"
   },
   {
     "slug": "text-rule-builder",
@@ -309,7 +313,9 @@
     "og_image": "assets/text-rule-builder/hero.png",
     "pricing": "paid",
     "price_ja": "¥1,980(税込・買い切り)",
-    "price_en": "¥1,980 (one-time, tax incl.)"
+    "price_en": "¥1,980 (one-time, tax incl.)",
+    "price_short_ja": "¥1,980 買い切り",
+    "price_short_en": "¥1,980 one-time"
   },
   {
     "slug": "excel-report",
@@ -318,7 +324,7 @@
     "page_url": "/kintone/kintone-excel-report/",
     "redirect_to": "/kintone/kintone-excel-report/",
     "install_url": "/kintone/dl/kintone-excel-report-2.0.0.zip",
-    "hero_image": "assets/placeholder.svg",
+    "hero_image": "assets/excel-report/hero.webp",
     "file_size": "333KB",
     "updated_at": "2026-10",
     "title_ja": "Excel帳票一括生成",
@@ -362,10 +368,12 @@
       "What happens after the trial ends?|If the 14-day trial (once per domain) ends without a registered key, the plugin's features stop working. After purchase, enter your key in the settings screen's License field."
     ],
     "screenshots": [],
-    "og_image": "/kintone/og-kintone.png",
+    "og_image": "assets/excel-report/hero.png",
     "pricing": "paid",
     "price_ja": "¥9,800(税込・買い切り)",
-    "price_en": "¥9,800 (one-time, tax incl.)"
+    "price_en": "¥9,800 (one-time, tax incl.)",
+    "price_short_ja": "¥9,800 買い切り",
+    "price_short_en": "¥9,800 one-time"
   },
   {
     "slug": "signage",
@@ -374,7 +382,7 @@
     "page_url": "/kintone/kintone-signage/",
     "redirect_to": "/kintone/kintone-signage/",
     "install_url": "/kintone/dl/kintone-signage-2.0.0.zip",
-    "hero_image": "assets/placeholder.svg",
+    "hero_image": "assets/signage/hero.webp",
     "file_size": "39KB",
     "updated_at": "2026-10",
     "title_ja": "AutoSignage",
@@ -418,10 +426,12 @@
       "What happens after the trial ends?|If the 14-day trial (once per domain) ends without a registered key, the plugin's features stop working. After purchase, enter your key in the settings screen's License field."
     ],
     "screenshots": [],
-    "og_image": "/kintone/og-kintone.png",
+    "og_image": "assets/signage/hero.png",
     "pricing": "paid",
     "price_ja": "¥4,980(税込・買い切り)",
-    "price_en": "¥4,980 (one-time, tax incl.)"
+    "price_en": "¥4,980 (one-time, tax incl.)",
+    "price_short_ja": "¥4,980 買い切り",
+    "price_short_en": "¥4,980 one-time"
   },
   {
     "slug": "factory-tools",
