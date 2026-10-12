@@ -75,3 +75,18 @@ a { color: var(--accent); }
 .footer-links { margin-top: 36px; font-size: 13px; color: var(--muted); }
 .footer-links ul { list-style: none; padding-left: 0; display: flex; flex-wrap: wrap; gap: 6px 18px; }
 .footer-links li { margin: 0; }
+
+/* 商品ページのスクリーンショット */
+.shot { margin: 18px 0; }
+.shot img, .shots img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--panel);
+  box-shadow: 0 6px 18px rgba(16, 24, 40, .06);
+}
+.shot figcaption, .shots figcaption { font-size: 13px; color: var(--muted); margin-top: 6px; }
+.shots { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; margin: 18px 0; }
+.shots figure { margin: 0; }
