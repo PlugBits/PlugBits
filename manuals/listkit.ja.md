@@ -145,5 +145,5 @@
 - 有料プラグインです。設定画面の `ライセンス(有料版)` 欄にキーを入力して保存すると使用できます。
 - キー未入力の状態でも、同じ kintone ドメインにつき 1 回・14 日間の試用ができます。試用開始後は設定画面に残り日数が表示されます。
 - 試用期限が切れている、またはキーが未登録・無効な場合は、ビュータブ・日付フィルター・集計のすべての機能が停止します。このとき一覧画面の右下に案内が表示されます。
-- 購入ページ: https://plugbits.app/kintone/kintone-listkit/
+- 購入ページ: https://plugbits.app/kintone/kintone-listkit/(購入の手続き: https://buy.stripe.com/7sY3cxb2fbV8eBi8Zf8so07)
 - 利用規約: https://plugbits.app/kintone/terms/

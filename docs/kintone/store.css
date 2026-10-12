@@ -51,6 +51,15 @@ a { color: var(--accent); }
   border-radius: 10px;
   cursor: not-allowed;
 }
+.buy-button.is-live {
+  display: inline-block;
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+  text-decoration: none;
+  cursor: pointer;
+}
+.buy-button.is-live:hover { filter: brightness(1.08); }
 .prep-badge {
   display: inline-block;
   background: var(--prep-bg);

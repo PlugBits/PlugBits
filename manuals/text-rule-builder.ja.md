@@ -145,7 +145,7 @@ PC のブラウザ（Chrome/Edge 最新版）。kintone モバイル（スマホ
 - 試用は kintone ドメイン（会社）ごとに **14日間・1回だけ**利用できます。`14日間 無料で試す` を押すとキーが自動で入ります。
 - 購入したキーをお持ちの場合は、キーを入力して `確認` を押し、保存してください。
 - 試用期間が終わる、またはキーが未登録・無効な場合、機能が停止し、画面右下に案内が表示されます。管理者はこの設定画面からキーを登録してください。
-- 購入ページ: https://plugbits.app/kintone/kintone-rule-builder/
+- 購入ページ: https://plugbits.app/kintone/kintone-rule-builder/(購入の手続き: https://buy.stripe.com/aFadRb1rF3oCcta4IZ8so06)
 - 利用規約: https://plugbits.app/kintone/terms/
 
 ## 12. 注意
