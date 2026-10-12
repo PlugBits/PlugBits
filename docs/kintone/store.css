@@ -1,0 +1,68 @@
+/* PlugBits kintone 商品ページ 共通スタイル */
+:root {
+  --bg: #f6f8fb;
+  --panel: #ffffff;
+  --line: #e4e9f0;
+  --text: #101828;
+  --muted: #5c6b84;
+  --accent: #2f6fed;
+  --ok: #2f7d32;
+  --prep-bg: #fff4e5;
+  --prep-text: #8a5a00;
+  --prep-line: #f3dcae;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Helvetica Neue", "Hiragino Sans", "Noto Sans JP", sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.75;
+  min-height: 100vh;
+}
+main { width: min(calc(100% - 32px), 680px); margin: 0 auto; padding: 40px 0 72px; }
+.brand { font-weight: 700; color: var(--muted); font-size: 14px; text-decoration: none; display: inline-block; }
+.eyebrow { color: var(--accent); font-weight: 600; font-size: 13px; letter-spacing: .02em; margin: 28px 0 6px; }
+h1 { font-size: clamp(24px, 6vw, 32px); line-height: 1.4; margin: 0 0 12px; }
+.lead { color: var(--muted); font-size: 16px; margin: 0 0 24px; }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 22px 24px; margin-bottom: 16px; }
+.card h2 { font-size: 16px; margin: 0 0 10px; }
+.card p { margin: 0; }
+.card p + p { margin-top: 10px; }
+ol, ul { margin: 0; padding-left: 1.4em; }
+li + li { margin-top: 6px; }
+code { background: #eef2f7; border-radius: 4px; padding: 1px 6px; font-size: 0.92em; }
+a { color: var(--accent); }
+.foot { margin-top: 28px; font-size: 13px; color: var(--muted); }
+
+/* 購入・試用パネル */
+.buy-panel { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 24px; margin-bottom: 28px; }
+.price { font-size: 26px; font-weight: 700; margin: 0 0 14px; }
+.price .unit { font-size: 14px; font-weight: 500; color: var(--muted); margin-left: 6px; }
+.buy-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
+.buy-button {
+  appearance: none;
+  border: 1px solid var(--line);
+  background: #e9edf3;
+  color: #8a94a6;
+  font-size: 15px;
+  font-weight: 600;
+  padding: 12px 20px;
+  border-radius: 10px;
+  cursor: not-allowed;
+}
+.prep-badge {
+  display: inline-block;
+  background: var(--prep-bg);
+  color: var(--prep-text);
+  border: 1px solid var(--prep-line);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 999px;
+}
+.trial-note { font-size: 14px; color: var(--muted); margin: 0; }
+
+.footer-links { margin-top: 36px; font-size: 13px; color: var(--muted); }
+.footer-links ul { list-style: none; padding-left: 0; display: flex; flex-wrap: wrap; gap: 6px 18px; }
+.footer-links li { margin: 0; }

@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Excel帳票一括生成 for kintone | PlugBits</title>
+<meta name="description" content="一覧で選んだレコードを、Ctrl+P 1回で全部印刷できる帳票にします。¥9,800(税込・買い切り)・kintoneドメイン単位で1ライセンス。14日間無料で試せます。">
+<link rel="canonical" href="https://plugbits.app/kintone/kintone-excel-report/">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Excel帳票一括生成 for kintone | PlugBits">
+<meta property="og:description" content="一覧で選んだレコードを、Ctrl+P 1回で全部印刷できる帳票にします。¥9,800(税込・買い切り)・kintoneドメイン単位で1ライセンス。14日間無料で試せます。">
+<meta property="og:image" content="https://plugbits.app/kintone/og-kintone.png">
+<meta property="og:url" content="https://plugbits.app/kintone/kintone-excel-report/">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="theme-color" content="#f6f8fb">
+<!-- Cloudflare Web Analytics --><script defer src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon='{"token": "86511d1154774394986239de33d21882"}'></script><!-- End Cloudflare Web Analytics -->
+<link rel="stylesheet" href="../store.css">
+</head>
+<body>
+<main>
+  <a class="brand" href="https://plugbits.app/">PlugBits for kintone</a>
+
+  <p class="eyebrow">kintone プラグイン</p>
+  <h1>Excel帳票一括生成</h1>
+  <p class="lead">一覧で選んだレコードを、Ctrl+P 1回で全部印刷できる帳票にします。</p>
+
+  <div class="buy-panel">
+    <p class="price">¥9,800 <span class="unit">税込・買い切り・kintoneドメイン単位で1ライセンス</span></p>
+    <div class="buy-row">
+      <!-- Stripe Payment Link 準備中。data-stripe-url に URL を入れ、disabled を外す -->
+      <button type="button" class="buy-button" disabled data-stripe-url="">Excel帳票一括生成を購入する(¥9,800)</button>
+      <span class="prep-badge">準備中</span>
+    </div>
+    <p class="trial-note">まずは14日間、無料で試す ― プラグインの設定画面から試用を始められます(下の「入れ方」参照)。</p>
+  </div>
+
+  <section class="card">
+    <h2>できること</h2>
+    <ul>
+      <li>Excelテンプレートの <code>{フィールドコード}</code> にレコードの値を直接差し込み(旧来の <code>{{タグ}}</code> 形式も読み込み可能)</li>
+      <li><code>{サブテーブル.フィールド}</code> と書いた行は、サブテーブルの行数だけ自動で繰り返して出力(明細行)</li>
+      <li>選んだレコードを1つのシートに縦に並べ、レコードの境目で改ページ。Ctrl+P 1回で全部印刷できます(1レコード1シートに切り替えることもできます)</li>
+      <li>QRコード・バーコードの画像出力(<code>{{QR:タグ}}</code> <code>{{BC:タグ}}</code>)</li>
+      <li>出力後にレコードの印刷ステータス・印刷日時・印刷者を自動更新(設定時)</li>
+    </ul>
+  </section>
+
+  <section class="card">
+    <h2>標準機能ではできない理由</h2>
+    <p>標準のkintoneには、レコードの値をExcelテンプレートへ差し込んで帳票やラベルを一括生成する機能がありません。CSV書き出し後にExcelへ手作業で差し込む必要があります。</p>
+  </section>
+
+  <section class="card">
+    <h2>会社で使える条件</h2>
+    <ul>
+      <li>価格: ¥9,800(税込・買い切り・kintoneドメイン単位で1キー。同じドメインの全アプリで使えます)</li>
+      <li>14日間の無料試用(ドメインごとに1回)</li>
+      <li>動作環境: kintoneスタンダード以上のプラン・PCブラウザ。<b>モバイル(kintoneモバイルアプリ・スマートフォン/タブレットのブラウザ)には対応していません</b></li>
+      <li>動作確認: 2026-10-12(kintone 開発者向け環境・Chrome 最新版)</li>
+      <li>業務データの外部送信なし。ライセンス確認で送るのは kintone ドメイン名とキーだけ(通信先は api.plugbits.app のみ)</li>
+      <li>継続: 公開停止を告知しても、その日から1年はライセンスの有効化と配布を続け、kintone の仕様変更への対応に努めます(<a href="../terms/">利用規約</a> 第6条)</li>
+      <li>サポート: <a href="mailto:support@plugbits.app">support@plugbits.app</a>(返答目安2営業日)</li>
+    </ul>
+  </section>
+
+  <section class="card">
+    <h2>入れ方</h2>
+    <ol>
+      <li>プラグインのzipファイルをkintoneのプラグイン管理にアップロードします</li>
+      <li>対象アプリの設定で、追加したプラグインをアプリに追加します</li>
+      <li>プラグインの設定画面を開き、「ライセンス」欄にキーを入れて保存します(未購入なら「14日間 無料で試す」から試用を開始できます)</li>
+    </ol>
+  </section>
+
+  <section class="card">
+    <h2>SIGNPOSTの対応パターン</h2>
+    <ol>
+      <li><b>標準機能を置き換えない</b>(3-29 ほどほどのUIカスタマイズ)に沿って設計。帳票出力は標準に無い機能を補う位置づけで、既存の一覧・レコードの使い方は変えません。</li>
+      <li><b>性能への気遣い</b>(3-31)に沿って設計。1回の出力で作成できる最大シート数の上限と、上限に達した場合の案内があります。</li>
+    </ol>
+  </section>
+
+  <section class="card">
+    <h2>無料版との違い</h2>
+    <p>GitHubで公開している旧版(ラベル向けの出力のみ)は無料のまま変わります。有料版は、帳票向けに作り直した版で、<code>{フィールドコード}</code> による直接差し込み・明細の繰り返し行・1レコード1シートの改ページ出力に加え、ドメイン単位のライセンス認証(14日試用付き)・継続保証(公開停止から1年)・サポート窓口(support@plugbits.app)が付きます。</p>
+  </section>
+
+  <div class="footer-links">
+    <ul>
+      <li><a href="../terms/">利用規約</a></li>
+      <li><a href="../../tokushoho.html">特定商取引法に基づく表記</a></li>
+      <li><a href="mailto:support@plugbits.app">サポートに問い合わせる</a></li>
+    </ul>
+  </div>
+</main>
+</body>
+</html>
