@@ -599,8 +599,8 @@ try {
   // ファビコン: テンプレート・docs/・404 など出どころが散っているので、
   // 書き出し後の dist/ の全 HTML の </head> の前に一括で入れる(自前で icon を持つページは触らない)
   const FAVICON_TAGS =
-    '<link rel="icon" href="/favicon.ico" sizes="32x32">' +
-    '<link rel="icon" href="/favicon.svg" type="image/svg+xml">' +
+    '<link rel="icon" href="/favicon.ico" sizes="any">' +
+    '<link rel="icon" href="/favicon-32.png" type="image/png" sizes="32x32">' +
     '<link rel="apple-touch-icon" href="/apple-touch-icon.png">' +
     '<link rel="manifest" href="/site.webmanifest">';
   let faviconPages = 0;
