@@ -149,7 +149,11 @@ try {
     if (pricing === 'paid') {
       // カードの札は短い形(例「¥3,980 買い切り」)。税込などの詳細は商品ページ側に書く
       const price = (isJa ? p.price_short_ja : p.price_short_en) || (isJa ? p.price_ja : p.price_en) || (isJa ? '有料' : 'Paid');
-      return `<div class="kb-price-badge kb-price-paid">${esc(price)}</div>`;
+      // 価格は文字だけ(塗り・枠なし): 「¥3,980」を太字、続く「買い切り/one-time」を小さく灰色で
+      const sp = String(price).indexOf(' ');
+      const amount = sp > 0 ? String(price).slice(0, sp) : String(price);
+      const unit = sp > 0 ? String(price).slice(sp + 1) : '';
+      return `<div class="kb-price-plain"><span class="kb-price-amount">${esc(amount)}</span>${unit ? ` <span class="kb-price-unit">${esc(unit)}</span>` : ''}</div>`;
     }
     if (pricing === 'freemium') {
       const fallback = isJa ? '無料+Pro' : 'Free+Pro';
