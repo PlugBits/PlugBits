@@ -12,11 +12,15 @@
     "ja": "詳細画面に貼った写真が、保存した瞬間にギャラリーのカードへ変わります。",
     "en": "Photos dropped on a record turn into gallery cards the moment you save."
    },
-   "image": "https://plugbits.app/kintone/kintone-gallery/media/hero-poster.webp",
+   "image": "https://plugbits.app/kintone/promo/img/kintone-gallery.webp",
    "link": "https://plugbits.app/kintone/kintone-gallery/",
    "price": {
     "ja": "¥3,980 買い切り",
     "en": "¥3,980 one-time"
+   },
+   "headline": {
+    "ja": "貼った写真が、そのままギャラリーに。",
+    "en": "Photos become a gallery, instantly."
    }
   },
   {
@@ -29,11 +33,15 @@
     "ja": "一覧の切り替えと期間の絞り込みを、一覧の上の1か所にまとめます。",
     "en": "View switching and date filters, together in one bar above the list."
    },
-   "image": "https://plugbits.app/kintone/kintone-listkit/media/scene-order.webp",
+   "image": "https://plugbits.app/kintone/promo/img/kintone-listkit.webp",
    "link": "https://plugbits.app/kintone/kintone-listkit/",
    "price": {
     "ja": "¥3,980 買い切り",
     "en": "¥3,980 one-time"
+   },
+   "headline": {
+    "ja": "一覧の切り替えと絞り込みを、1か所に。",
+    "en": "Views and filters, in one bar."
    }
   },
   {
@@ -46,11 +54,15 @@
     "ja": "計算式のIFの入れ子を、画面で組めます。",
     "en": "Build nested IF logic on screen instead of in formulas."
    },
-   "image": "https://plugbits.app/kintone/kintone-rule-builder/media/screen-rulebuild.webp",
+   "image": "https://plugbits.app/kintone/promo/img/kintone-rule-builder.webp",
    "link": "https://plugbits.app/kintone/kintone-rule-builder/",
    "price": {
     "ja": "¥1,980 買い切り",
     "en": "¥1,980 one-time"
+   },
+   "headline": {
+    "ja": "IF の入れ子を、画面で組む。",
+    "en": "Build nested IFs on screen."
    }
   },
   {
@@ -63,11 +75,15 @@
     "ja": "一覧で選んだレコードを、Ctrl+P 1回で全部印刷できる帳票にします。",
     "en": "Turn selected records into one printable Excel report: Ctrl+P once."
    },
-   "image": "https://plugbits.app/kintone/kintone-excel-report/media/scene-quote.webp",
+   "image": "https://plugbits.app/kintone/promo/img/kintone-excel-report.webp",
    "link": "https://plugbits.app/kintone/kintone-excel-report/",
    "price": {
     "ja": "¥9,800 買い切り",
     "en": "¥9,800 one-time"
+   },
+   "headline": {
+    "ja": "選んだレコードを、Ctrl+P 1回で印刷。",
+    "en": "Selected records, printed with one Ctrl+P."
    }
   },
   {
@@ -80,11 +96,15 @@
     "ja": "一覧をサイネージ表示にして、自動でスクロールと更新を続けます。",
     "en": "Show a list as signage that scrolls and refreshes by itself."
    },
-   "image": "https://plugbits.app/kintone/kintone-signage/media/scene-board.webp",
+   "image": "https://plugbits.app/kintone/promo/img/kintone-signage.webp",
    "link": "https://plugbits.app/kintone/kintone-signage/",
    "price": {
     "ja": "¥4,980 買い切り",
     "en": "¥4,980 one-time"
+   },
+   "headline": {
+    "ja": "一覧を、そのままサイネージに。",
+    "en": "Turn a list into signage."
    }
   }
  ]
