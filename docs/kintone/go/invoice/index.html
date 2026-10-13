@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>請求書払いのご相談 | PlugBits</title>
+<link rel="canonical" href="https://plugbits.app/kintone/">
+<meta name="robots" content="noindex, follow">
+<meta name="theme-color" content="#f6f8fb">
+<!-- Cloudflare Web Analytics --><script defer src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon='{"token": "86511d1154774394986239de33d21882"}'></script><!-- End Cloudflare Web Analytics -->
+<link rel="stylesheet" href="../../store.css">
+<script>
+// 「請求書払い」のクリックを数えるページ(/kintone/go/invoice/)。数えるのは Cloudflare の beacon(上の defer の script)。
+// 読み込み(load)を待ってからメール作成を開く。メールアプリが無い人のために、宛先と書くことはこのページに残す
+(function () {
+  var done = false;
+  var to = "mailto:support@plugbits.app?subject=" + encodeURIComponent("請求書払いの相談(kintone プラグイン)") +
+    "&body=" + encodeURIComponent("会社名:\nご担当者名:\nプラグイン名と本数:\nkintone のドメイン(xxx.cybozu.com):\n請求書の宛名:\n");
+  function go() { if (done) return; done = true; location.href = to; }
+  window.addEventListener("load", function () { setTimeout(go, 0); });
+  setTimeout(go, 1500);
+})();
+</script>
+</head>
+<body>
+<main>
+  <a class="brand" href="https://plugbits.app/kintone/">PlugBits for kintone</a>
+  <p class="eyebrow">請求書払い(会社向け)</p>
+  <h1 class="hook">請求書払いのご相談</h1>
+  <p class="sub">メールの作成画面が開かない場合は、下の宛先に直接お送りください。返答の目安は2営業日以内です。</p>
+  <section class="card">
+    <h2>宛先</h2>
+    <p><a id="invoice-mail" href="mailto:support@plugbits.app?subject=%E8%AB%8B%E6%B1%82%E6%9B%B8%E6%89%95%E3%81%84%E3%81%AE%E7%9B%B8%E8%AB%87">support@plugbits.app</a></p>
+  </section>
+  <section class="card">
+    <h2>書いていただくこと</h2>
+    <ul>
+      <li>会社名・ご担当者名</li>
+      <li>プラグイン名と本数</li>
+      <li>kintone のドメイン(xxx.cybozu.com)</li>
+      <li>請求書の宛名</li>
+    </ul>
+  </section>
+  <div class="footer-links">
+    <ul>
+      <li><a href="../../">プラグイン一覧へ戻る</a></li>
+      <li><a href="../../terms/">利用規約</a></li>
+    </ul>
+  </div>
+</main>
+</body>
+</html>

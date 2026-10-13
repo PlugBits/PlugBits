@@ -304,3 +304,23 @@ a { color: var(--accent); }
 .setup__prep { font-size: 13px; color: var(--muted); margin: 4px 0 10px; }
 .setup__more { font-size: 14px; margin: 6px 0 0; }
 @media (max-width: 640px) { .setup__body { grid-template-columns: 1fr; } }
+
+/* 一覧ページ(/kintone/) */
+.product-list { list-style: none; padding: 0; margin: 0 0 20px; display: grid; gap: 16px; }
+.product-list li + li { margin-top: 0; }
+.product-row { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }
+.product-row__thumb { display: block; border-bottom: 1px solid var(--line); background: var(--bg); }
+.product-row__thumb img { display: block; width: 100%; height: auto; aspect-ratio: 16 / 7; object-fit: contain; }
+.product-row__body { padding: 16px 20px 18px; }
+.product-row__name { font-size: 18px; margin: 0 0 4px; }
+.product-row__name a { color: var(--text); text-decoration: none; }
+.product-row__line { color: var(--muted); font-size: 15px; margin: 0 0 12px; }
+.product-row__foot { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 0; }
+.product-row__price { font-size: 18px; font-weight: 700; }
+.product-row__price .unit { font-size: 13px; font-weight: 500; color: var(--muted); margin-left: 4px; }
+.product-row__more { display: inline-block; background: var(--accent); color: #fff; text-decoration: none; font-size: 14px; font-weight: 600; padding: 8px 18px; border-radius: 10px; white-space: nowrap; }
+.product-row__more:hover { filter: brightness(1.08); }
+
+/* 請求書払いの 1 行(一覧・商品ページ) */
+.invoice-line { font-size: 14px; color: var(--muted); margin: 0 0 20px; }
+.buy-panel .invoice-line { margin: 8px 0 0; }
