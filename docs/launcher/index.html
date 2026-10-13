@@ -52,14 +52,14 @@
 
         <div class="hero-panel">
           <div style="width:100%;">
-            <video poster="../images/videos/palette-poster.jpg"
-                   autoplay muted loop playsinline
-                   aria-label="コマンドパレットのデモ：ビュー切替、別アプリへの移動、ポータルへの移動を実行"
+            <video poster="../images/videos/promo-poster.jpg"
+                   autoplay muted loop playsinline preload="metadata" width="1280" height="720"
+                   aria-label="PlugBits Launcher の紹介動画(36秒・音なし)：コマンドパレット・クイック入力・一括編集の流れ"
                    style="display:block;width:100%;height:auto;border-radius:16px;border:1px solid rgba(255,255,255,.10);box-shadow:0 30px 60px rgba(0,0,0,.45);">
-              <source src="../images/videos/palette.webm" type="video/webm">
-              <source src="../images/videos/palette.mp4" type="video/mp4">
+              <source src="../images/videos/promo.webm" type="video/webm">
+              <source src="../images/videos/promo.mp4" type="video/mp4">
             </video>
-            <p style="margin:12px 4px 0;font-size:12.5px;color:var(--muted);text-align:center;">実際の画面：Ctrl+/ で、マウスに触れずにkintoneを操作。</p>
+            <p style="margin:12px 4px 0;font-size:12.5px;color:var(--muted);text-align:center;">36 秒でわかる PlugBits Launcher。音ありは <a href="./go/promo-video/" style="color:inherit;text-decoration:underline;">YouTube で</a></p>
           </div>
         </div>
       </section>
@@ -108,7 +108,7 @@
         </div>
       </section>
 
-      <section class="section video-demo" id="demo" data-yt-id="6s38ZE78aqk" hidden>
+      <section class="section video-demo" id="demo">
         <div class="section-heading narrow">
           <p class="eyebrow">Demo</p>
           <h2>実際の画面で、動きを見る。</h2>
@@ -117,13 +117,27 @@
           </p>
         </div>
 
-        <div class="video-lite">
-          <button type="button" class="video-lite-play" aria-label="デモ動画を再生（YouTube）">
-            <img class="video-lite-thumb" src="" alt="" width="1280" height="720" loading="lazy" decoding="async" />
-            <span class="video-lite-icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24" width="28" height="28" fill="currentColor"><path d="M8 5v14l11-7z"></path></svg>
-            </span>
-          </button>
+        <div class="demo-videos" style="display:flex;flex-direction:column;gap:24px;max-width:880px;margin:0 auto;">
+          <figure style="margin:0;">
+            <video poster="../images/videos/palette-poster.jpg"
+                   autoplay muted loop playsinline preload="metadata"
+                   aria-label="コマンドパレットのデモ：ビュー切替、別アプリへの移動、ポータルへの移動を実行"
+                   style="display:block;width:100%;height:auto;border-radius:12px;border:1px solid rgba(255,255,255,.10);">
+              <source src="../images/videos/palette.webm" type="video/webm">
+              <source src="../images/videos/palette.mp4" type="video/mp4">
+            </video>
+            <figcaption style="margin:10px 4px 0;font-size:12.5px;color:var(--muted);text-align:center;">実際の画面：Ctrl+/ で、マウスに触れずにkintoneを操作。</figcaption>
+          </figure>
+          <figure style="margin:0;">
+            <video poster="../images/videos/quicknew-poster.jpg"
+                   autoplay muted loop playsinline preload="metadata"
+                   aria-label="クイック新規レコードのデモ：一覧画面から入力モーダルを開き、必要なフィールドだけを入力して保存"
+                   style="display:block;width:100%;height:auto;border-radius:12px;border:1px solid rgba(255,255,255,.10);">
+              <source src="../images/videos/quicknew.webm" type="video/webm">
+              <source src="../images/videos/quicknew.mp4" type="video/mp4">
+            </video>
+            <figcaption style="margin:10px 4px 0;font-size:12.5px;color:var(--muted);text-align:center;">実際の画面：一覧から必要な欄だけ入力して保存</figcaption>
+          </figure>
         </div>
       </section>
 
@@ -317,38 +331,6 @@
       v.removeAttribute('autoplay'); v.pause(); v.controls = true;
     });
   }
-  </script>
-  <script>
-  // デモ動画: YouTubeのJS/iframeはクリックまで読み込まない(lite embed)。
-  // IDが未設定(placeholder)のままなら、ブロックは hidden のまま表示しない。
-  (function () {
-    var demo = document.getElementById('demo');
-    if (!demo) return;
-    var id = demo.getAttribute('data-yt-id');
-    if (!id || !/^[A-Za-z0-9_-]{10,12}$/.test(id)) return;
-
-    var wrap = demo.querySelector('.video-lite');
-    var thumb = demo.querySelector('.video-lite-thumb');
-    var btn = demo.querySelector('.video-lite-play');
-    if (!wrap || !thumb || !btn) return;
-
-    thumb.src = 'https://i.ytimg.com/vi/' + id + '/hqdefault.jpg';
-    thumb.alt = 'デモ動画のサムネイル';
-
-    btn.addEventListener('click', function () {
-      var iframe = document.createElement('iframe');
-      iframe.src = 'https://www.youtube-nocookie.com/embed/' + id + '?autoplay=1&rel=0&playsinline=1';
-      iframe.setAttribute('allow', 'autoplay; encrypted-media; picture-in-picture');
-      iframe.setAttribute('allowfullscreen', '');
-      iframe.setAttribute('loading', 'lazy');
-      iframe.setAttribute('title', 'PlugBits Launcher デモ動画');
-      iframe.setAttribute('frameborder', '0');
-      wrap.innerHTML = '';
-      wrap.appendChild(iframe);
-    });
-
-    demo.hidden = false;
-  })();
   </script>
 <!-- Cloudflare Web Analytics --><script defer src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon='{"token": "86511d1154774394986239de33d21882"}'></script><!-- End Cloudflare Web Analytics -->
 </body>
