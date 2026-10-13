@@ -1,0 +1,91 @@
+{
+ "updated": "2026-10-13",
+ "store_url": "https://plugbits.app/kintone/",
+ "items": [
+  {
+   "product": "kintone-gallery",
+   "title": {
+    "ja": "サブテーブルギャラリー化",
+    "en": "Subtable Gallery"
+   },
+   "line": {
+    "ja": "詳細画面に貼った写真が、保存した瞬間にギャラリーのカードへ変わります。",
+    "en": "Photos dropped on a record turn into gallery cards the moment you save."
+   },
+   "image": "https://plugbits.app/kintone/kintone-gallery/media/hero-poster.webp",
+   "link": "https://plugbits.app/kintone/kintone-gallery/",
+   "price": {
+    "ja": "¥3,980 買い切り",
+    "en": "¥3,980 one-time"
+   }
+  },
+  {
+   "product": "kintone-listkit",
+   "title": {
+    "ja": "PlugBits ListKit",
+    "en": "PlugBits ListKit"
+   },
+   "line": {
+    "ja": "一覧の切り替えと期間の絞り込みを、一覧の上の1か所にまとめます。",
+    "en": "View switching and date filters, together in one bar above the list."
+   },
+   "image": "https://plugbits.app/kintone/kintone-listkit/media/scene-order.webp",
+   "link": "https://plugbits.app/kintone/kintone-listkit/",
+   "price": {
+    "ja": "¥3,980 買い切り",
+    "en": "¥3,980 one-time"
+   }
+  },
+  {
+   "product": "kintone-rule-builder",
+   "title": {
+    "ja": "文字列条件分岐ビルダー",
+    "en": "Text Rule Builder"
+   },
+   "line": {
+    "ja": "計算式のIFの入れ子を、画面で組めます。",
+    "en": "Build nested IF logic on screen instead of in formulas."
+   },
+   "image": "https://plugbits.app/kintone/kintone-rule-builder/media/screen-rulebuild.webp",
+   "link": "https://plugbits.app/kintone/kintone-rule-builder/",
+   "price": {
+    "ja": "¥1,980 買い切り",
+    "en": "¥1,980 one-time"
+   }
+  },
+  {
+   "product": "kintone-excel-report",
+   "title": {
+    "ja": "Excel帳票一括生成",
+    "en": "Excel Report Batch"
+   },
+   "line": {
+    "ja": "一覧で選んだレコードを、Ctrl+P 1回で全部印刷できる帳票にします。",
+    "en": "Turn selected records into one printable Excel report: Ctrl+P once."
+   },
+   "image": "https://plugbits.app/kintone/kintone-excel-report/media/scene-quote.webp",
+   "link": "https://plugbits.app/kintone/kintone-excel-report/",
+   "price": {
+    "ja": "¥9,800 買い切り",
+    "en": "¥9,800 one-time"
+   }
+  },
+  {
+   "product": "kintone-signage",
+   "title": {
+    "ja": "AutoSignage",
+    "en": "AutoSignage"
+   },
+   "line": {
+    "ja": "一覧をサイネージ表示にして、自動でスクロールと更新を続けます。",
+    "en": "Show a list as signage that scrolls and refreshes by itself."
+   },
+   "image": "https://plugbits.app/kintone/kintone-signage/media/scene-board.webp",
+   "link": "https://plugbits.app/kintone/kintone-signage/",
+   "price": {
+    "ja": "¥4,980 買い切り",
+    "en": "¥4,980 one-time"
+   }
+  }
+ ]
+}
