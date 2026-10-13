@@ -164,27 +164,7 @@
   </div>
 </main>
 
-<script>
-(function () {
-  // prefers-reduced-motion の人には動画を自動再生しない
-  var reduceMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-  var videos = document.querySelectorAll(".hero-media__video");
-  videos.forEach(function (video) {
-    if (reduceMotion) {
-      video.removeAttribute("autoplay");
-      video.removeAttribute("loop");
-      video.pause();
-    }
-    // 任意メディア(未着でも崩れない): 読み込みに失敗したら枠ごと隠す
-    var optionalWrap = video.closest("[data-optional-media]");
-    if (optionalWrap) {
-      video.addEventListener("error", function () {
-        optionalWrap.hidden = true;
-      }, true);
-    }
-  });
-})();
-</script>
+<script src="../video.js"></script>
 <script src="../lightbox.js"></script>
 </body>
 </html>
