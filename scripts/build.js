@@ -596,6 +596,29 @@ try {
   );
   fs.writeFileSync(path.join(DIST, 'sitemap.xml'), xml);
 
+  // ファビコン: テンプレート・docs/・404 など出どころが散っているので、
+  // 書き出し後の dist/ の全 HTML の </head> の前に一括で入れる(自前で icon を持つページは触らない)
+  const FAVICON_TAGS =
+    '<link rel="icon" href="/favicon.ico" sizes="32x32">' +
+    '<link rel="icon" href="/favicon.svg" type="image/svg+xml">' +
+    '<link rel="apple-touch-icon" href="/apple-touch-icon.png">' +
+    '<link rel="manifest" href="/site.webmanifest">';
+  let faviconPages = 0;
+  (function walk(dir) {
+    for (const entry of fs.readdirSync(dir, {withFileTypes: true})) {
+      const p = path.join(dir, entry.name);
+      if (entry.isDirectory()) { walk(p); continue; }
+      if (!entry.name.endsWith('.html')) continue;
+      const html = readText(p);
+      if (/rel=["']?(?:shortcut )?icon["'\s>]/i.test(html)) continue;
+      const heads = html.match(/<\/head>/gi);
+      if (!heads || heads.length !== 1) continue;
+      fs.writeFileSync(p, html.replace(/<\/head>/i, FAVICON_TAGS + '</head>'));
+      faviconPages++;
+    }
+  })(DIST);
+  console.log(`favicon tags: ${faviconPages} page(s)`);
+
   fs.writeFileSync(path.join(DIST, '.nojekyll'), '');
   console.log(`Build completed. ${plugins.length} plugin(s), ${products.filter(p=>p.type==='extension').length} extension(s).`);
 } catch (e) {
