@@ -20,11 +20,18 @@
 <main>
   <a class="brand" href="https://plugbits.app/">PlugBits for kintone</a>
 
-  <p class="eyebrow">kintone プラグイン</p>
-  <h1>Excel帳票一括生成</h1>
-  <p class="lead">一覧で選んだレコードを、Ctrl+P 1回で全部印刷できる帳票にします。</p>
+  <p class="eyebrow">Excel帳票一括生成 ― kintone プラグイン</p>
+  <h1 class="hook">見積書20件、まだ1件ずつExcelに貼っていますか。</h1>
+  <p class="sub">一覧でレコードを選んで、ボタン1つ。Excelテンプレートの{フィールドコード}に値が入り、1シートに縦に並ぶので、Ctrl+P 1回で全部印刷できます。</p>
 
-  <figure class="shot"><img src="img/main.webp" width="1100" height="1188" loading="lazy" decoding="async" alt="レコードを差し込んで生成したExcel帳票を表計算ソフトで開いた画面。1件目の見積書の後、改ページの点線を挟んで2件目の見積書が続く"><figcaption>選んだレコードを1つのシートに縦に並べて出力。レコードの境目で改ページします。</figcaption></figure>
+  <section class="hero-media">
+    <figure class="hero-media__item">
+      <video class="hero-media__video" autoplay loop muted playsinline preload="metadata" poster="media/hero-poster.webp" width="1280" height="720">
+        <source src="media/hero.mp4" type="video/mp4">
+      </video>
+      <figcaption>一覧でレコードを選んで生成。開いた帳票をスクロールすると、改ページを挟んで次の見積書が続く(帳票の見た目は表計算の再現)。</figcaption>
+    </figure>
+  </section>
 
   <div class="buy-panel">
     <p class="price">¥9,800 <span class="unit">税込・買い切り・kintoneドメイン単位で1ライセンス</span></p>
@@ -32,31 +39,65 @@
       <!-- Stripe Payment Link(kintone-excel-report) -->
       <a class="buy-button is-live" href="https://buy.stripe.com/7sY9AV2vJgbofFm5N38so04" data-stripe-url="https://buy.stripe.com/7sY9AV2vJgbofFm5N38so04">Excel帳票一括生成を購入する(¥9,800)</a>
     </div>
-    <p class="trial-note">まずは14日間、無料で試す ― プラグインの設定画面から試用を始められます(下の「入れ方」参照)。</p>
+    <p class="trial-note">14日間の無料試用は、入れたあとの設定画面から</p>
   </div>
 
-  <section class="card">
-    <h2>できること</h2>
-    <ul>
-      <li>Excelテンプレートの <code>{フィールドコード}</code> にレコードの値を直接差し込み(旧来の <code>{{タグ}}</code> 形式も読み込み可能)</li>
-      <li><code>{サブテーブル.フィールド}</code> と書いた行は、サブテーブルの行数だけ自動で繰り返して出力(明細行)</li>
-      <li>選んだレコードを1つのシートに縦に並べ、レコードの境目で改ページ。Ctrl+P 1回で全部印刷できます(1レコード1シートに切り替えることもできます)</li>
-      <li>QRコード・バーコードの画像出力(<code>{{QR:タグ}}</code> <code>{{BC:タグ}}</code>)</li>
-      <li>出力後にレコードの印刷ステータス・印刷日時・印刷者を自動更新(設定時)</li>
-    </ul>
-  </section>
-
-  <section class="card">
-    <h2>画面</h2>
-    <div class="shots">
-      <figure><img src="img/modal.webp" width="1000" height="800" loading="lazy" decoding="async" alt="一覧の生成ボタンから開く、Excelへ出力するレコードを選択するモーダル。一覧に表示中のレコードにチェックを入れてxlsx生成を押す"><figcaption>一覧の「生成」ボタンから、出力するレコードを選びます。</figcaption></figure>
-      <figure><img src="img/config.webp" width="654" height="833" loading="lazy" decoding="async" alt="プラグインの設定画面。出力モード(帳票/ラベル)とテンプレートの置き場(テンプレートアプリ)を選ぶ"><figcaption>設定画面で、出力モードとテンプレートの置き場を選びます。</figcaption></figure>
+  <section class="scenes">
+    <h2 class="scenes__title">こんな場面で</h2>
+    <div class="scenes__grid">
+      <article class="scene">
+        <h3>見積書・請求書</h3>
+        <p>月末にまとめて。テンプレートは今使っているExcelをそのまま。</p>
+        <img src="media/scene-quote.webp" width="1100" height="480" loading="lazy" decoding="async" alt="見積書・請求書の場面。生成された御見積書を表計算ソフトで開いた画面の上部" data-zoom>
+      </article>
+      <article class="scene">
+        <h3>納品書と明細</h3>
+        <p>サブテーブルの明細は{明細.品名}の行を書いておけば、行数だけ繰り返す。</p>
+        <img src="media/scene-delivery.webp" width="1100" height="480" loading="lazy" decoding="async" alt="納品書と明細の場面。配線資材の納品書に明細行が並んでいる画面" data-zoom>
+      </article>
+      <article class="scene">
+        <h3>現品票・ラベル</h3>
+        <p>ラベルモードで数量ぶんの枚数を出す。QRとバーコードも入る。</p>
+        <img src="media/scene-label.webp" width="1100" height="480" loading="lazy" decoding="async" alt="現品票・ラベルの場面。品番ごとのラベルがQRコード付きで並んでいる画面" data-zoom>
+      </article>
     </div>
   </section>
 
-  <section class="card">
-    <h2>標準機能ではできない理由</h2>
-    <p>標準のkintoneには、レコードの値をExcelテンプレートへ差し込んで帳票やラベルを一括生成する機能がありません。CSV書き出し後にExcelへ手作業で差し込む必要があります。</p>
+  <section class="screens">
+    <h2 class="screens__title">画面</h2>
+    <div class="screens__grid">
+      <figure class="screen">
+        <img src="media/screen-select.webp" width="1000" height="720" loading="lazy" decoding="async" alt="Excelへ出力するレコードを選択するモーダル。一覧に表示中の5件がチェック済みで並んでいる" data-zoom>
+        <figcaption>レコード選択のモーダル: 一覧に表示中のレコードから出力する分を選ぶ。</figcaption>
+      </figure>
+      <figure class="screen">
+        <img src="media/screen-report.webp" width="1000" height="378" loading="lazy" decoding="async" alt="生成された帳票の画面。1件目の見積書の合計と結びのあと、改ページの点線を挟んで2件目の見積書が続く" data-zoom>
+        <figcaption>生成された帳票(改ページ): レコードの境目に自動で改ページが入る。</figcaption>
+      </figure>
+      <figure class="screen">
+        <img src="media/screen-template.webp" width="1000" height="450" loading="lazy" decoding="async" alt="Excelテンプレートの画面。{顧客名}や{明細.品名}などの差し込みタグが書かれている" data-zoom>
+        <figcaption>テンプレートの書き方: {フィールドコード}と{明細.項目}の行を書いておけば、行数だけ繰り返す。</figcaption>
+      </figure>
+      <figure class="screen">
+        <img src="media/screen-config.webp" width="960" height="859" loading="lazy" decoding="async" alt="プラグインの設定画面。出力モードとテンプレートの置き場を選ぶ欄" data-zoom>
+        <figcaption>設定画面: 出力モードとテンプレートの置き場を選ぶ。</figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <section class="compare">
+    <h2 class="compare__title">貼る作業が、消える。</h2>
+    <img src="media/compare.webp" width="1200" height="318" loading="lazy" decoding="async" alt="CSVを書き出して手で貼る3工程(左)と、一覧で選んで1回生成する流れ(右)を並べた比較図" data-zoom>
+    <p class="compare__caption">左=CSVを書き出してExcelに手で貼る流れ、右=一覧で選んで1回。</p>
+  </section>
+
+  <section class="how">
+    <h2 class="how__title">仕組み</h2>
+    <ol class="how__list">
+      <li>生成はブラウザの中で行います。テンプレートもレコードも、外のサーバーには送りません。</li>
+      <li>業務データは外に送りません。ライセンス確認で送るのはkintoneドメイン名とキーだけ。</li>
+      <li>kintoneの内部構造に触らず、公式のAPIとイベントだけで動きます。</li>
+    </ol>
   </section>
 
   <section class="card">
@@ -81,11 +122,29 @@
     </ol>
   </section>
 
-  <section class="card">
-    <h2>SIGNPOSTの対応パターン</h2>
+  <section class="card setup">
+    <h2>設定は 5 か所だけ</h2>
+    <div class="setup__body">
+      <figure class="setup__shot"><img src="media/setup.webp" width="1000" height="1233" loading="lazy" decoding="async" data-zoom alt="Excel帳票一括生成の設定画面。番号の欄で、出力モード・テンプレートの置き場・テンプレートアプリID・テンプレートコード・テンプレート添付ファイルのフィールドコードを選ぶ"></figure>
+      <div>
+        <p class="setup__prep">テンプレートのExcelに、差し込みたい所へ{フィールドコード}を書いておきます。</p>
+        <ol class="setup__steps">
+          <li>出力モード(帳票かラベル)を選ぶ</li>
+          <li>テンプレートの置き場(添付ファイルかテンプレートアプリ)を選ぶ</li>
+          <li>テンプレートアプリIDを入れる</li>
+          <li>使用するテンプレートコードを入れる</li>
+          <li>テンプレート添付ファイルのフィールドコードを入れる</li>
+        </ol>
+        <p class="setup__more">詳しい手順は <a href="/products/excel-report-manual.html">マニュアル</a> へ。</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="card signpost">
+    <h2><span class="signpost-badge">SIGNPOST 対応</span>SIGNPOSTの対応パターン</h2>
     <ol>
-      <li><b>標準機能を置き換えない</b>(3-29 ほどほどのUIカスタマイズ)に沿って設計。帳票出力は標準に無い機能を補う位置づけで、既存の一覧・レコードの使い方は変えません。</li>
-      <li><b>性能への気遣い</b>(3-31)に沿って設計。1回の出力で作成できる最大シート数の上限と、上限に達した場合の案内があります。</li>
+      <li><b>標準機能を置き換えない</b>(<span class="sp-num">3-29</span> ほどほどのUIカスタマイズ)に沿って設計。帳票出力は標準に無い機能を補う位置づけで、既存の一覧・レコードの使い方は変えません。</li>
+      <li><b>性能への気遣い</b>(<span class="sp-num">3-31</span>)に沿って設計。1回の出力で作成できる最大シート数の上限と、上限に達した場合の案内があります。</li>
     </ol>
   </section>
 
@@ -98,5 +157,21 @@
     </ul>
   </div>
 </main>
+
+<script>
+(function () {
+  // prefers-reduced-motion の人には動画を自動再生しない
+  var reduceMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  var videos = document.querySelectorAll(".hero-media__video");
+  videos.forEach(function (video) {
+    if (reduceMotion) {
+      video.removeAttribute("autoplay");
+      video.removeAttribute("loop");
+      video.pause();
+    }
+  });
+})();
+</script>
+<script src="../lightbox.js"></script>
 </body>
 </html>

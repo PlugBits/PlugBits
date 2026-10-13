@@ -4,11 +4,11 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>AutoSignage for kintone | PlugBits</title>
-<meta name="description" content="キーボードの無い壁掛けTVでも、画面の隅をタップするだけで一覧の速さとテーマを変えられます。¥4,980(税込・買い切り)・kintoneドメイン単位で1ライセンス。14日間無料で試せます。">
+<meta name="description" content="一覧をサイネージ表示にして、自動でスクロールと更新を続けます。画面の右下をタップすれば止める・速さ・テーマ・全画面を変えられます。¥4,980(税込・買い切り)・kintoneドメイン単位で1ライセンス。14日間無料で試せます。">
 <link rel="canonical" href="https://plugbits.app/kintone/kintone-signage/">
 <meta property="og:type" content="website">
 <meta property="og:title" content="AutoSignage for kintone | PlugBits">
-<meta property="og:description" content="キーボードの無い壁掛けTVでも、画面の隅をタップするだけで一覧の速さとテーマを変えられます。¥4,980(税込・買い切り)・kintoneドメイン単位で1ライセンス。14日間無料で試せます。">
+<meta property="og:description" content="一覧をサイネージ表示にして、自動でスクロールと更新を続けます。画面の右下をタップすれば止める・速さ・テーマ・全画面を変えられます。¥4,980(税込・買い切り)・kintoneドメイン単位で1ライセンス。14日間無料で試せます。">
 <meta property="og:image" content="https://plugbits.app/kintone/og-kintone.png">
 <meta property="og:url" content="https://plugbits.app/kintone/kintone-signage/">
 <meta name="twitter:card" content="summary_large_image">
@@ -20,11 +20,18 @@
 <main>
   <a class="brand" href="https://plugbits.app/">PlugBits for kintone</a>
 
-  <p class="eyebrow">kintone プラグイン</p>
-  <h1>AutoSignage</h1>
-  <p class="lead">キーボードの無い壁掛けTVでも、画面の隅をタップするだけで一覧の速さとテーマを変えられます。</p>
+  <p class="eyebrow">AutoSignage ― kintone プラグイン</p>
+  <h1 class="hook">壁掛け TV の kintone、誰かが毎朝 F5 を押していませんか。</h1>
+  <p class="sub">一覧をサイネージ表示にして、自動でスクロールと更新を続けます。キーボードの無い端末でも、画面の右下をタップすれば止める・速さ・テーマ・全画面を変えられます。</p>
 
-  <figure class="shot"><img src="img/main.webp" width="1280" height="800" loading="lazy" decoding="async" alt="サイネージ表示中の出荷予定一覧。ヘッダーが隠れ大きく表示され、右下に停止・速さ・テーマ・全画面・設定への操作帯が出ている"><figcaption>ヘッダーを隠して大きく表示。画面右下に操作帯が出てくる。</figcaption></figure>
+  <section class="hero-media">
+    <figure class="hero-media__item">
+      <video class="hero-media__video" autoplay loop muted playsinline preload="metadata" poster="media/hero-poster.webp" width="1180" height="702">
+        <source src="media/hero.mp4" type="video/mp4">
+      </video>
+      <figcaption>ふつうの一覧からサイネージ表示に切り替わり、自動スクロール中に右下をタップして操作帯で速さを変える、一連の流れ。</figcaption>
+    </figure>
+  </section>
 
   <div class="buy-panel">
     <p class="price">¥4,980 <span class="unit">税込・買い切り・kintoneドメイン単位で1ライセンス</span></p>
@@ -32,31 +39,65 @@
       <!-- Stripe Payment Link(kintone-signage) -->
       <a class="buy-button is-live" href="https://buy.stripe.com/14A5kF8U77ES1Owb7n8so05" data-stripe-url="https://buy.stripe.com/14A5kF8U77ES1Owb7n8so05">AutoSignageを購入する(¥4,980)</a>
     </div>
-    <p class="trial-note">まずは14日間、無料で試す ― プラグインの設定画面から試用を始められます(下の「入れ方」参照)。</p>
+    <p class="trial-note">14日間の無料試用は、入れたあとの設定画面から</p>
   </div>
 
-  <section class="card">
-    <h2>できること</h2>
-    <ul>
-      <li>一覧をサイネージ表示に(ヘッダー・メニュー・スクロールバーを非表示)</li>
-      <li>自動スクロールと自動リロード(間隔・回数を設定可能)</li>
-      <li>画面右下をタップ、またはマウスを意味のある距離動かすと操作帯が表示(5秒操作がなければ自動で隠れる)。停止/再開・速さ(3段階)・テーマ・全画面を切り替え可能</li>
-      <li>テーマはライト/ダーク/端末の設定に自動追従から選べる</li>
-      <li>画面がスリープしないようWake Lockをリクエスト(対応ブラウザのみ)</li>
-    </ul>
-  </section>
-
-  <section class="card">
-    <h2>画面</h2>
-    <div class="shots">
-      <figure><img src="img/compare.webp" width="1264" height="447" loading="lazy" decoding="async" alt="通常のkintone一覧とサイネージ表示を左右に並べた比較。左は通常のヘッダー付き一覧、右はヘッダーを隠した大きな表示"><figcaption>通常の一覧 → サイネージ表示。ヘッダーを隠して大きく見せる。</figcaption></figure>
-      <figure><img src="img/panel.webp" width="370" height="402" loading="lazy" decoding="async" alt="操作帯の「設定へ」を長押しして開くこの端末の設定パネル。速さ・テーマの切替と一時停止ボタンがある"><figcaption>「設定へ」長押しで端末ごとの設定パネルが開く。</figcaption></figure>
+  <section class="scenes">
+    <h2 class="scenes__title">こんな場面で</h2>
+    <div class="scenes__grid">
+      <article class="scene">
+        <h3>出荷予定の掲示</h3>
+        <p>倉庫のTVに今日の出荷を流しっぱなし。ListKitの「今日」タブと組み合わせる。</p>
+        <img src="media/scene-board.webp" width="1100" height="367" loading="lazy" decoding="async" alt="倉庫のTVに表示された出荷予定ボードのサイネージ表示。ダークテーマで時刻・出荷先・商品名が並ぶ" data-zoom>
+      </article>
+      <article class="scene">
+        <h3>工程の進み</h3>
+        <p>工場の各工程の状態を一覧で。更新はkintone側でするだけ。</p>
+        <img src="media/scene-process.webp" width="1100" height="367" loading="lazy" decoding="async" alt="工程の状況一覧のサイネージ表示。ライトテーマで時刻・担当・商品名が並ぶ" data-zoom>
+      </article>
+      <article class="scene">
+        <h3>来客と会議</h3>
+        <p>受付の端末に本日の予定。朝に誰かが触る必要がない。</p>
+        <img src="media/scene-reception.webp" width="1100" height="367" loading="lazy" decoding="async" alt="受付端末に表示された本日の予定のサイネージ表示。ダークテーマの一覧" data-zoom>
+      </article>
     </div>
   </section>
 
-  <section class="card">
-    <h2>標準機能ではできない理由</h2>
-    <p>標準の一覧には、ヘッダーやメニューを隠して自動スクロール・自動リロードで表示し続けるサイネージ(キオスク)モードがありません。</p>
+  <section class="screens">
+    <h2 class="screens__title">画面</h2>
+    <div class="screens__grid">
+      <figure class="screen">
+        <img src="media/screen-dark.webp" width="1180" height="313" loading="lazy" decoding="async" alt="サイネージ表示のダークテーマ。ヘッダーとメニューを隠し、出荷予定の一覧を大きな文字で表示している" data-zoom>
+        <figcaption>サイネージ表示(ダーク): ヘッダー・メニューを隠し、大きな文字で流し続ける。</figcaption>
+      </figure>
+      <figure class="screen">
+        <img src="media/screen-panel.webp" width="900" height="163" loading="lazy" decoding="async" alt="画面右下に出た操作帯。停止・速さ・テーマ・全画面・設定への5つのボタンが並ぶ" data-zoom>
+        <figcaption>操作帯の5ボタン: 右下をタップすると出てくる。停止・速さ・テーマ・全画面・設定へ。</figcaption>
+      </figure>
+      <figure class="screen">
+        <img src="media/screen-light.webp" width="1180" height="313" loading="lazy" decoding="async" alt="サイネージ表示のライトテーマ。白地に出荷予定の一覧が大きな文字で表示されている" data-zoom>
+        <figcaption>ライトテーマ: 端末や設置場所の明るさに合わせて切り替えられる。</figcaption>
+      </figure>
+      <figure class="screen">
+        <img src="media/setup.webp" width="900" height="1338" loading="lazy" decoding="async" alt="AutoSignageの設定画面。適用ビュー・自動スクロールの速度・自動リロードの更新間隔・テーマの欄が並ぶ" data-zoom>
+        <figcaption>設定画面: 速さ・更新間隔・テーマを管理画面でまとめて決める。</figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <section class="compare">
+    <h2 class="compare__title">見せたい行だけが、残る。</h2>
+    <img src="media/compare.webp" width="1266" height="167" loading="lazy" decoding="async" alt="標準の一覧表示(左、ヘッダー・メニュー・スクロールバーあり)と、サイネージ表示(右、ヘッダーなしで行数が増える)を並べた比較画像" data-zoom>
+    <p class="compare__caption">左=標準の一覧(ヘッダー・メニュー・スクロールバー)、右=同じ一覧のサイネージ表示。</p>
+  </section>
+
+  <section class="how">
+    <h2 class="how__title">仕組み</h2>
+    <ol class="how__list">
+      <li>一覧の表示だけを変えます。kintoneの設定もレコードも変えません。終了すれば元の画面に戻ります。</li>
+      <li>業務データは外に送りません。ライセンス確認で送るのはkintoneドメイン名とキーだけ。</li>
+      <li>kintoneの内部構造に触らず、公式のAPIとイベントだけで動きます。</li>
+    </ol>
   </section>
 
   <section class="card">
@@ -81,11 +122,28 @@
     </ol>
   </section>
 
-  <section class="card">
-    <h2>SIGNPOSTの対応パターン</h2>
+  <section class="card setup">
+    <h2>設定は 4 か所だけ</h2>
+    <div class="setup__body">
+      <figure class="setup__shot"><img src="media/setup.webp" width="900" height="1338" loading="lazy" decoding="async" data-zoom alt="AutoSignageの設定画面。番号の欄で、適用ビュー・自動スクロールの速度・自動リロードの更新間隔・テーマを選ぶ"></figure>
+      <div>
+        <p class="setup__prep">サイネージに出すビューを1つ作っておきます(列は少なめが見やすい)。</p>
+        <ol class="setup__steps">
+          <li>サイネージに表示するビューを選ぶ</li>
+          <li>自動スクロールの速さと、上下での停止時間を決める</li>
+          <li>自動リロードの更新間隔を決める</li>
+          <li>テーマ(ライト・ダーク・自動)を選ぶ</li>
+        </ol>
+        <p class="setup__more">詳しい手順は <a href="/products/signage-manual.html">マニュアル</a> へ。</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="card signpost">
+    <h2><span class="signpost-badge">SIGNPOST 対応</span>SIGNPOSTの対応パターン</h2>
     <ol>
-      <li><b>開かれた情報</b>(0-03)に沿って設計。現場の数字を壁掛けTVに出し続け、誰でも見える状態にします。</li>
-      <li><b>利用率の把握を助ける</b>(4-36)に沿って設計。一覧を常時表示する運用を、プラグイン側の操作帯だけで続けられるようにしています。</li>
+      <li><b>開かれた情報</b>(<span class="sp-num">0-03</span>)に沿って設計。現場の数字を壁掛けTVに出し続け、誰でも見える状態にします。</li>
+      <li><b>利用率の把握を助ける</b>(<span class="sp-num">4-36</span>)に沿って設計。一覧を常時表示する運用を、プラグイン側の操作帯だけで続けられるようにしています。</li>
     </ol>
   </section>
 
@@ -98,5 +156,21 @@
     </ul>
   </div>
 </main>
+
+<script>
+(function () {
+  // prefers-reduced-motion の人には動画を自動再生しない
+  var reduceMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  var videos = document.querySelectorAll(".hero-media__video");
+  videos.forEach(function (video) {
+    if (reduceMotion) {
+      video.removeAttribute("autoplay");
+      video.removeAttribute("loop");
+      video.pause();
+    }
+  });
+})();
+</script>
+<script src="../lightbox.js"></script>
 </body>
 </html>

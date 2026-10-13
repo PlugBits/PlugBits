@@ -20,11 +20,18 @@
 <main>
   <a class="brand" href="https://plugbits.app/">PlugBits for kintone</a>
 
-  <p class="eyebrow">kintone プラグイン</p>
-  <h1>文字列条件分岐ビルダー</h1>
-  <p class="lead">計算式のIFの入れ子を、画面で組める。</p>
+  <p class="eyebrow">文字列条件分岐ビルダー ― kintone プラグイン</p>
+  <h1 class="hook">「種別が A で金額が 30 万以上なら最優先」を、IF の入れ子で書いていませんか。</h1>
+  <p class="sub">条件を上から並べて、最初に当たった値を文字列フィールドに入れます。保存の前に、実際の値で判定テストができます。</p>
 
-  <figure class="shot"><img src="img/main.webp" width="942" height="620" loading="lazy" decoding="async" alt="文字列条件分岐ビルダーの設定画面。左に出力項目、右に判定ルールの条件行と「この条件に合ったら」の欄が並ぶ"><figcaption>条件を上から順に並べて判定ルールを組み立てる</figcaption></figure>
+  <section class="hero-media">
+    <figure class="hero-media__item">
+      <video class="hero-media__video" autoplay loop muted playsinline preload="metadata" poster="media/hero-poster.webp" width="1180" height="920">
+        <source src="media/hero.mp4" type="video/mp4">
+      </video>
+      <figcaption>ルールを1つ足して判定テスト → 保存 → 新規レコードで対応区分が自動で入るまでの一連の流れ。</figcaption>
+    </figure>
+  </section>
 
   <div class="buy-panel">
     <p class="price">¥1,980 <span class="unit">税込・買い切り・kintoneドメイン単位で1ライセンス</span></p>
@@ -32,30 +39,65 @@
       <!-- Stripe Payment Link(kintone-rule-builder) -->
       <a class="buy-button is-live" href="https://buy.stripe.com/aFadRb1rF3oCcta4IZ8so06" data-stripe-url="https://buy.stripe.com/aFadRb1rF3oCcta4IZ8so06">文字列条件分岐ビルダーを購入する(¥1,980)</a>
     </div>
-    <p class="trial-note">まずは14日間、無料で試す ― プラグインの設定画面から試用を始められます(下の「入れ方」参照)。</p>
+    <p class="trial-note">14日間の無料試用は、入れたあとの設定画面から</p>
   </div>
 
-  <section class="card">
-    <h2>できること</h2>
-    <ul>
-      <li>条件ルールを上から順に評価し、最初に一致した結果を指定した文字列フィールドへ自動で出力</li>
-      <li>比較条件は「次と同じ」「次を含む」「この範囲」「次のどれか」など多数の演算子から選べる</li>
-      <li>比較する値は固定値・他の項目・数式のいずれかを選べる</li>
-      <li>保存前に「判定テスト」で実際の値を入れ、結果を確認できる</li>
-    </ul>
-  </section>
-
-  <section class="card">
-    <h2>画面</h2>
-    <div class="shots">
-      <figure><img src="img/result.webp" width="1280" height="800" loading="lazy" decoding="async" alt="対応区分の列に「通常対応」「未分類」が自動で入ったレコード一覧"><figcaption>保存すると対応区分の列に結果が自動で入る</figcaption></figure>
-      <figure><img src="img/test.webp" width="532" height="405" loading="lazy" decoding="async" alt="判定テストで種別・金額・会社名を入力し、「結果: 通常対応」と表示された画面"><figcaption>保存前に実際の値で判定結果を確認できる</figcaption></figure>
+  <section class="scenes">
+    <h2 class="scenes__title">こんな場面で</h2>
+    <div class="scenes__grid">
+      <article class="scene">
+        <h3>問い合わせの振り分け</h3>
+        <p>種別と金額で「最優先・通常・後回し」を自動で付ける。担当が迷わない。</p>
+        <img src="media/screen-list.webp" width="1280" height="749" loading="lazy" decoding="async" alt="問い合わせの振り分けの場面。レコード一覧の対応区分の列に最優先・通常・後回しが自動で入っている画面" data-zoom>
+      </article>
+      <article class="scene">
+        <h3>見積の承認ルート</h3>
+        <p>金額の範囲で承認者の名前を入れる。ルートの変更は画面でルールを直すだけ。</p>
+        <img src="media/screen-rulebuild.webp" width="1064" height="636" loading="lazy" decoding="async" alt="見積の承認ルートの場面。判定ルールの条件と出す値を画面で組み立てている画面" data-zoom>
+      </article>
+      <article class="scene">
+        <h3>出荷方法</h3>
+        <p>地域と重量で「宅配・チャーター・引取」を決める。ルールは誰でも読める。</p>
+        <img src="media/screen-test.webp" width="1064" height="634" loading="lazy" decoding="async" alt="出荷方法の場面。判定テストに値を入れて結果を確認している画面" data-zoom>
+      </article>
     </div>
   </section>
 
-  <section class="card">
-    <h2>標準機能ではできない理由</h2>
-    <p>標準の計算フィールドでもIFの入れ子で条件分岐を書くことはできますが、数式を組み立てる作業はプログラミングに近く、現場の管理者が自分で作るのは難しいものです。</p>
+  <section class="screens">
+    <h2 class="screens__title">画面</h2>
+    <div class="screens__grid">
+      <figure class="screen">
+        <img src="media/screen-rulebuild.webp" width="1064" height="636" loading="lazy" decoding="async" alt="判定ルールの組み立て画面。条件が2つ入った判定ルール1(種別が不具合報告 と 金額が300000以上のとき→最優先)が表示されている" data-zoom>
+        <figcaption>ルールの組み立て: 条件を2つ重ねて「この条件に合ったら」入れる値を決める。</figcaption>
+      </figure>
+      <figure class="screen">
+        <img src="media/screen-test.webp" width="1064" height="634" loading="lazy" decoding="async" alt="判定テスト画面。種別に不具合報告、金額に450000を入れて判定すると結果が最優先と表示されている" data-zoom>
+        <figcaption>判定テスト: 保存前に実際の値で結果・一致したルール・理由を確認できる。</figcaption>
+      </figure>
+      <figure class="screen">
+        <img src="media/screen-list.webp" width="1280" height="749" loading="lazy" decoding="async" alt="レコード一覧画面。対応区分の列に最優先・通常・後回しが自動で入っている" data-zoom>
+        <figcaption>自動で値が入ったレコード一覧: 対応区分の列に判定結果がそのまま並ぶ。</figcaption>
+      </figure>
+      <figure class="screen">
+        <img src="media/screen-operators.webp" width="860" height="554" loading="lazy" decoding="async" alt="比較のしかたの一覧。金額(数値)項目では次と同じ・次より大きい・この範囲など多数の演算子が選べる" data-zoom>
+        <figcaption>演算子の一覧: 項目の型に合わせて、次と同じ・次より大きい・この範囲などから選べる。</figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <section class="compare">
+    <h2 class="compare__title">同じ条件。読めるのは右。</h2>
+    <img src="media/compare.webp" width="880" height="244" loading="lazy" decoding="async" alt="左は計算フィールドに書いた3段のIFの入れ子の数式、右は同じ条件を判定ルール画面の読み上げ文3行で表した比較画像" data-zoom>
+    <p class="compare__caption">左=計算フィールドのIFの入れ子(3段)、右=同じ条件を画面のルール3行で。</p>
+  </section>
+
+  <section class="how">
+    <h2 class="how__title">仕組み</h2>
+    <ol class="how__list">
+      <li>値はふつうの文字列フィールドに入ります。プラグインを外しても、入った値はそのまま残ります。</li>
+      <li>業務データは外に送りません。ライセンス確認で送るのはkintoneドメイン名とキーだけ。</li>
+      <li>kintoneの内部構造に触らず、公式のAPIとイベントだけで動きます。</li>
+    </ol>
   </section>
 
   <section class="card">
@@ -80,8 +122,24 @@
     </ol>
   </section>
 
-  <section class="card">
-    <h2>SIGNPOSTの対応パターン</h2>
+  <section class="card setup">
+    <h2>設定は 3 か所だけ</h2>
+    <div class="setup__body">
+      <figure class="setup__shot"><img src="media/setup.webp" width="1000" height="860" loading="lazy" decoding="async" data-zoom alt="文字列条件分岐ビルダーの設定画面。番号の欄で、文字を入れる項目・判定ルール・判定テストの位置を示している"></figure>
+      <div>
+        <p class="setup__prep">出力先に文字列(1行)フィールドを1つ置いておきます。</p>
+        <ol class="setup__steps">
+          <li>出力先の文字列フィールドを選ぶ</li>
+          <li>ルール(条件と出す値)を上から並べる</li>
+          <li>判定テストで実際の値を試す</li>
+        </ol>
+        <p class="setup__more">詳しい手順は <a href="/products/text-rule-builder-manual.html">マニュアル</a> へ。</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="card signpost">
+    <h2><span class="signpost-badge">SIGNPOST 対応</span>SIGNPOSTの対応パターン</h2>
     <ol>
       <li><b>現場主体の業務改善</b>(0-01)に沿って設計。IFの入れ子を画面操作で組めるようにし、管理者自身で設定できる形にしています。</li>
       <li><b>標準機能を置き換えない</b>(3-29 基本機能で対応→難しければプラグインの順)に沿って設計。標準の計算フィールドでできる範囲を壊さず、組み立てづらい部分だけを補います。</li>
@@ -97,5 +155,27 @@
     </ul>
   </div>
 </main>
+
+<script>
+(function () {
+  // prefers-reduced-motion の人には動画を自動再生しない
+  var reduceMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  var videos = document.querySelectorAll(".hero-media__video");
+  videos.forEach(function (video) {
+    if (reduceMotion) {
+      video.removeAttribute("autoplay");
+      video.removeAttribute("loop");
+      video.pause();
+    }
+    var optionalWrap = video.closest("[data-optional-media]");
+    if (optionalWrap) {
+      video.addEventListener("error", function () {
+        optionalWrap.hidden = true;
+      }, true);
+    }
+  });
+})();
+</script>
+<script src="../lightbox.js"></script>
 </body>
 </html>
