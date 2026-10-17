@@ -4,6 +4,7 @@ console.log('BUILD.JS REV', new Date().toISOString(), process.env.GITHUB_SHA || 
 const fs = require('fs');
 const path = require('path');
 const { marked } = require('marked');
+const blogLib = require('./blog-lib');
 
 const ROOT = path.join(__dirname, '..');
 const DIST = path.join(ROOT, 'dist');
@@ -314,18 +315,96 @@ try {
     }
   }
 
-  // ブログ記事生成（data/posts.json + content/blog/*.html）
+  // ブログ記事生成（data/posts.json + content/blog/*.html・*.md）
+  // テーマ・製品の定義(G1 新規)。無ければ空オブジェクトで動く(テーマ無し＝「すべて」のみ)。
+  const BLOG_THEMES_PATH = path.join(ROOT, 'data', 'blog-themes.json');
+  const BLOG_PRODUCTS_PATH = path.join(ROOT, 'data', 'blog-products.json');
+  const BLOG_THEMES = fileExists(BLOG_THEMES_PATH) ? readJSON(BLOG_THEMES_PATH) : {};
+  const BLOG_PRODUCTS = fileExists(BLOG_PRODUCTS_PATH) ? readJSON(BLOG_PRODUCTS_PATH) : {};
+  const BLOG_PAGE_SIZE = Number(process.env.BLOG_PAGE_SIZE) > 0 ? Number(process.env.BLOG_PAGE_SIZE) : 20;
+
+  // 今日(Asia/Tokyo)。確認用に BLOG_TODAY=YYYY-MM-DD で上書きできる。日本に夏時間は無いので固定+9時間で足りる。
+  function todayJST() {
+    if (process.env.BLOG_TODAY) return process.env.BLOG_TODAY;
+    const jst = new Date(Date.now() + 9 * 60 * 60 * 1000);
+    return jst.toISOString().slice(0, 10);
+  }
+  const BLOG_TODAY = todayJST();
+
   const postsJsonPath = path.join(ROOT, 'data', 'posts.json');
   const posts = fileExists(postsJsonPath) ? readJSON(postsJsonPath) : [];
-  const visiblePosts = posts.filter(post => (post.status || 'public') === 'public');
+  const visibleJsonPosts = posts.filter(post => (post.status || 'public') === 'public');
 
-  for (const post of visiblePosts) {
+  // content/blog/*.md: frontmatter(js-yaml)を読み、approved && date<=今日 のものだけ対象にする。
+  // _ で始まるファイル名は確認用の試し記事として常に飛ばす。
+  const blogDirEntries = fs.existsSync(BLOG_CONTENT_SRC) ? fs.readdirSync(BLOG_CONTENT_SRC) : [];
+  const mdFiles = blogDirEntries.filter(name => name.endsWith('.md') && !blogLib.isSampleFile(name));
+  const mdParsed = mdFiles.map(name => {
+    const raw = readText(path.join(BLOG_CONTENT_SRC, name));
+    const { data, body } = blogLib.parseFrontmatter(raw);
+    return { file: name, data, body };
+  });
+
+  // md の slug と posts.json の slug が重なったら build を止める(md 同士の重複も検査)。
+  const mdSlugs = mdParsed.map(m => m.data && m.data.slug).filter(Boolean);
+  const jsonSlugs = visibleJsonPosts.map(p => p.slug);
+  const slugConflicts = blogLib.findSlugConflicts(mdSlugs, jsonSlugs);
+  if (slugConflicts.length > 0) {
+    throw new Error(`blog slug conflict: ${slugConflicts.join(', ')}`);
+  }
+
+  const publishableMd = mdParsed.filter(m => blogLib.isPublishable(m.data, BLOG_TODAY));
+
+  const mdPosts = publishableMd.map(({ data, body }) => {
+    const rawHtml = marked.parse(body || '');
+    // 表は .pb-table-wrap で包む(溢れた時に表だけ横スクロール。blog.css)
+    const contentHtml = blogLib.stripHtmlComments(rawHtml)
+      .replace(/<table>/g, '<div class="pb-table-wrap"><table>')
+      .replace(/<\/table>/g, '</table></div>');
+    const ogAssetExists = fileExists(path.join(ROOT, 'assets', 'blog', 'og', `${data.slug}.png`));
+    const post = blogLib.frontmatterToPost(data, body, contentHtml, {
+      ogAssetExists,
+      defaultOgImage: DEFAULT_BLOG_OG_IMAGE,
+    });
+    return post;
+  });
+
+  // posts.json の既存記事を同じ内部形に揃える(theme は任意。product は無い＝tool_url/tool_name で案内枠を作る)。
+  const jsonPosts = visibleJsonPosts.map(post => {
     const contentPath = path.join(BLOG_CONTENT_SRC, post.content_file);
-    const contentHtml = fileExists(contentPath) ? readText(contentPath) : '';
-    const ogUrl = `${SITE_ORIGIN}/blog/${post.slug}/`;
-    const ogImagePath = (post.og_image || DEFAULT_BLOG_OG_IMAGE).replace(/^\.?\/+/, '');
+    const rawHtml = fileExists(contentPath) ? readText(contentPath) : '';
+    return {
+      slug: post.slug,
+      title: post.title,
+      h1: post.h1 || post.title,
+      description: post.description,
+      keywords: post.keywords,
+      theme: post.theme || null,
+      product: 'none',
+      published_at: post.published_at,
+      updated_at: post.updated_at || post.published_at,
+      read_time: post.read_time,
+      card_summary: post.card_summary || post.description,
+      content_html: blogLib.stripHtmlComments(rawHtml),
+      og_image: post.og_image || DEFAULT_BLOG_OG_IMAGE,
+      hero_label: post.hero_label,
+      tool_url: post.tool_url || null,
+      tool_name: post.tool_name || null,
+      cta_intro: post.cta_intro || null,
+    };
+  });
+
+  const allBlogPosts = [...jsonPosts, ...mdPosts];
+
+  for (const post of allBlogPosts) {
+    const { html: taggedHtml, headings } = blogLib.addHeadingIds(post.content_html);
+    const contentHtmlWrapped = `<div class="pb-prose">${taggedHtml}</div>`;
+
+    const canonical = `${SITE_ORIGIN}/blog/${post.slug}/`;
+    const ogImagePath = String(post.og_image || DEFAULT_BLOG_OG_IMAGE).replace(/^\.?\/+/, '');
     const ogImageTag = `<meta property="og:image" content="${SITE_ORIGIN}/${ogImagePath}">`;
-    const jsonLd = JSON.stringify({
+
+    const articleObj = {
       '@context': 'https://schema.org',
       '@type': 'Article',
       headline: post.title,
@@ -334,19 +413,30 @@ try {
       dateModified: post.updated_at || post.published_at,
       author: { '@type': 'Organization', name: 'PlugBits' },
       publisher: { '@type': 'Organization', name: 'PlugBits' },
-      mainEntityOfPage: ogUrl,
-    });
+      mainEntityOfPage: canonical,
+    };
+    const breadcrumbItems = [
+      { name: 'ホーム', url: `${SITE_ORIGIN}/` },
+      { name: 'ブログ', url: `${SITE_ORIGIN}/blog/` },
+    ];
+    const theme = post.theme && BLOG_THEMES[post.theme] ? BLOG_THEMES[post.theme] : null;
+    if (theme) breadcrumbItems.push({ name: theme.label, url: `${SITE_ORIGIN}/blog/${theme.slug}/` });
+    breadcrumbItems.push({ name: post.title, url: canonical });
+    const jsonLd = blogLib.buildJsonLd(articleObj, breadcrumbItems);
 
     const metaLine = (post.updated_at && post.updated_at !== post.published_at)
       ? `${formatDateJa(post.published_at)}公開（${formatDateJa(post.updated_at)}更新）・ ${post.read_time}`
       : `${formatDateJa(post.published_at)}公開 ・ ${post.read_time}`;
 
+    const related = blogLib.selectRelatedPosts(post, allBlogPosts, 3);
+
     const map = {
+      // 既存の差し込み(そのまま残す)
       '%%TITLE%%':                 esc(post.title),
       '%%H1%%':                    esc(post.h1 || post.title),
       '%%DESCRIPTION%%':           esc(post.description),
       '%%KEYWORDS%%':              esc(post.keywords),
-      '%%OG_URL%%':                ogUrl,
+      '%%OG_URL%%':                canonical,
       '%%OG_IMAGE_TAG%%':          ogImageTag,
       '%%HERO_LABEL%%':            esc(post.hero_label),
       '%%READ_TIME%%':             esc(post.read_time),
@@ -354,14 +444,27 @@ try {
       '%%UPDATED_AT_DISPLAY%%':    esc(formatDateJa(post.updated_at || post.published_at)),
       '%%META_LINE%%':             esc(metaLine),
       '%%CTA_INTRO%%':             esc(post.cta_intro),
-      '%%TOOL_URL%%':              post.tool_url,
+      '%%TOOL_URL%%':              post.tool_url || '',
       '%%TOOL_NAME%%':             esc(post.tool_name),
-      '%%CONTENT_HTML%%':          contentHtml,
+      '%%CONTENT_HTML%%':          contentHtmlWrapped,
       '%%LAUNCHER_STORE_URL%%':    LAUNCHER_STORE_URL,
       '%%LAUNCHER_STORE_URL_BANNER%%': bannerStoreUrl('blog'),
       '%%SUPPORT_MAIL%%':          SUPPORT_MAIL,
       '%%SITE_COPYRIGHT%%':        SITE_COPYRIGHT,
       '%%JSONLD%%':                jsonLd,
+      // 2026-10-17 blog-seo で新規に足した差し込み(契約: CONTRACT.md 参照)
+      '%%CANONICAL%%':             canonical,
+      '%%BREADCRUMB_HTML%%':       blogLib.buildBreadcrumbHtml(post.theme, BLOG_THEMES),
+      '%%TOC_HTML%%':              blogLib.buildToc(headings),
+      '%%META_HTML%%':             blogLib.buildMetaHtml(post.published_at, post.updated_at, post.read_time),
+      '%%THEME_BADGE%%':           blogLib.buildThemeBadgeHtml(post.theme, BLOG_THEMES),
+      '%%PRODUCT_BOX_HTML%%':      blogLib.buildProductBoxHtml(post.product, BLOG_PRODUCTS, post.slug, {
+        toolUrl: post.tool_url,
+        toolName: post.tool_name,
+        ctaIntro: post.cta_intro,
+      }),
+      '%%RELATED_HTML%%':          blogLib.buildRelatedHtml(related, BLOG_THEMES),
+      '%%AUTHOR_HTML%%':           blogLib.buildAuthorHtml(),
     };
 
     let out = tpl.blogPost;
@@ -372,29 +475,68 @@ try {
     fs.writeFileSync(path.join(postDir, 'index.html'), out);
   }
 
-  // ブログ一覧ページ生成
-  const postCardsHtml = visiblePosts
-    .slice()
-    .sort((a, b) => (a.published_at < b.published_at ? 1 : -1))
-    .map(post => [
-      `<a class="kb-blog-card" href="/blog/${post.slug}/">`,
-      `  <h3>${esc(post.title)}</h3>`,
-      `  <p>${esc(post.card_summary || post.description)}</p>`,
-      '  <div class="kb-blog-card-foot">',
-      `    <span>${esc(formatDateJa(post.published_at))}</span>`,
-      '    <span class="kb-btn">読む</span>',
-      '  </div>',
-      '</a>',
-    ].join('\n'))
-    .join('\n');
+  // ブログ一覧ページ生成: /blog/(すべて)・/blog/<theme.slug>/。20件ごとにページ送り。
+  const BLOG_LIST_LEAD_ALL = 'kintoneの業務改善や3Dデータ活用など、現場で役立つ情報をお届けするPlugBitsのブログです。';
+
+  function writeBlogListScope(themeKey) {
+    const theme = themeKey ? BLOG_THEMES[themeKey] : null;
+    const baseUrl = theme ? `/blog/${theme.slug}/` : '/blog/';
+    const activeSlug = theme ? theme.slug : 'all';
+    const listTitle = theme ? theme.label : 'ブログ';
+    const listLead = theme ? theme.lead : BLOG_LIST_LEAD_ALL;
+
+    const scoped = allBlogPosts
+      .filter(post => (theme ? post.theme === themeKey : true))
+      .slice()
+      .sort((a, b) => (a.published_at < b.published_at ? 1 : -1));
+
+    const pages = blogLib.paginate(scoped, BLOG_PAGE_SIZE);
+    const totalPages = pages.length || 1;
+    const pageLists = pages.length > 0 ? pages : [[]];
+
+    pageLists.forEach((pagePosts, idx) => {
+      const pageNum = idx + 1;
+      const postCardsHtml = pagePosts.map(post => {
+        const theme2 = post.theme && BLOG_THEMES[post.theme] ? BLOG_THEMES[post.theme] : null;
+        return [
+          `<a class="pb-card" href="/blog/${post.slug}/">`,
+          `  <span class="pb-card-theme">${esc(theme2 ? theme2.label : '')}</span>`,
+          `  <h3 class="pb-card-title">${esc(post.title)}</h3>`,
+          `  <p class="pb-card-desc">${esc(post.card_summary || post.description)}</p>`,
+          `  <time class="pb-card-date">${esc(formatDateJa(post.published_at))}</time>`,
+          '</a>',
+        ].join('\n');
+      }).join('\n');
+
+      const pagerHtml = blogLib.buildPagerHtml(pageNum, totalPages, baseUrl);
+      const prevNextLinks = blogLib.buildPrevNextLinkTags(pageNum, totalPages, baseUrl);
+      const pageCanonical = `${SITE_ORIGIN}${pageNum <= 1 ? baseUrl : `${baseUrl}page/${pageNum}/`}`;
+
+      const html = tpl.blogIndex
+        .replaceAll('%%POST_CARDS%%',       postCardsHtml)
+        .replaceAll('%%LIST_TITLE%%',       esc(listTitle))
+        .replaceAll('%%LIST_LEAD%%',        esc(listLead))
+        .replaceAll('%%CANONICAL%%',        pageCanonical)
+        .replaceAll('%%TABS_HTML%%',        blogLib.buildTabsHtml(activeSlug, BLOG_THEMES))
+        .replaceAll('%%PAGER_HTML%%',       pagerHtml)
+        .replaceAll('%%PREV_NEXT_LINKS%%',  prevNextLinks)
+        .replaceAll('%%SUPPORT_MAIL%%',     SUPPORT_MAIL)
+        .replaceAll('%%SITE_COPYRIGHT%%',   SITE_COPYRIGHT);
+
+      const outDir = pageNum <= 1
+        ? path.join(BLOG_DIST, theme ? theme.slug : '')
+        : path.join(BLOG_DIST, theme ? theme.slug : '', 'page', String(pageNum));
+      fs.mkdirSync(outDir, { recursive: true });
+      fs.writeFileSync(path.join(outDir, 'index.html'), html);
+    });
+  }
 
   fs.mkdirSync(BLOG_DIST, { recursive: true });
-  fs.writeFileSync(path.join(BLOG_DIST, 'index.html'),
-    tpl.blogIndex
-      .replaceAll('%%POST_CARDS%%',     postCardsHtml)
-      .replaceAll('%%SUPPORT_MAIL%%',   SUPPORT_MAIL)
-      .replaceAll('%%SITE_COPYRIGHT%%', SITE_COPYRIGHT)
-  );
+  writeBlogListScope(null); // /blog/ すべて
+  for (const key of Object.keys(BLOG_THEMES)) writeBlogListScope(key); // /blog/a/ /blog/b/
+
+  // RSS(/blog/feed.xml・新しい順20件)
+  fs.writeFileSync(path.join(BLOG_DIST, 'feed.xml'), blogLib.buildFeedXml(allBlogPosts, SITE_ORIGIN, 20));
 
   // インデックスページ用カード生成
   function buildCards(lang) {
@@ -573,6 +715,39 @@ try {
     }
   }
 
+  // 計測用の go スタブ(gep・mfg・launcher)。
+  // docs/ 側に投稿slug専用のスタブが手で置かれていれば(=既存の go 入口)それを優先し、
+  // 無ければ docs/launcher/go/x/index.html と同じ作りの noindex スタブを自動で作る。
+  // gep(Launcher Pro=Excel Overlay)・mfg(Factory Tools)には専用の docs/ フォルダがまだ無いため、
+  // 既存の docs/launcher/go/ の作りを踏まえ、pro_url(/pro.html)・factory-tools の page_url(/factory-tools/)
+  // に合わせて /pro/go/<slug>/・/factory-tools/go/<slug>/ を新設すると決めた(報告対象)。
+  function goStubPaths(hrefPattern, slug) {
+    const rel = hrefPattern.replace('{slug}', slug).replace(/^\/+|\/+$/g, '');
+    return {
+      docsPath: path.join(ROOT, 'docs', rel, 'index.html'),
+      distPath: path.join(DIST, rel, 'index.html'),
+    };
+  }
+  let goStubsCreated = 0;
+  for (const post of allBlogPosts) {
+    const prodDef = post.product && post.product !== 'none' ? BLOG_PRODUCTS[post.product] : null;
+    if (!prodDef) continue;
+    const { docsPath, distPath } = goStubPaths(prodDef.href, post.slug);
+    if (fileExists(docsPath)) continue; // 手で置かれた専用スタブはそのまま(docs マージ済み)
+    const canonicalUrl = `${SITE_ORIGIN}${prodDef.stub_canonical}`;
+    const redirectUrl = prodDef.stub_target.replace('{slug}', encodeURIComponent(post.slug));
+    const html = blogLib.buildGoStub({
+      canonicalUrl,
+      redirectUrl,
+      pageTitle: prodDef.stub_title,
+      ogDescription: prodDef.stub_description,
+    });
+    fs.mkdirSync(path.dirname(distPath), { recursive: true });
+    fs.writeFileSync(distPath, html);
+    goStubsCreated++;
+  }
+  console.log(`blog go stubs created: ${goStubsCreated}`);
+
   // sitemap 生成
   const basePath = path.join(DIST, 'sitemap-base.xml');
   const base = fileExists(basePath)
@@ -590,7 +765,8 @@ try {
   // 明示的に列挙する（/drawing/setup.html のような申込後ページは載せない）。
   urls.push(...DOCS_INDEXABLE_PAGES);
   urls.push('/blog/');
-  for (const post of visiblePosts) urls.push(`/blog/${post.slug}/`);
+  for (const key of Object.keys(BLOG_THEMES)) urls.push(`/blog/${BLOG_THEMES[key].slug}/`);
+  for (const post of allBlogPosts) urls.push(`/blog/${post.slug}/`); // 一覧のページ送りは入れない
   const xml = base.replace('</urlset>',
     urls.map(u => `<url><loc>${SITE_ORIGIN}${u}</loc></url>`).join('') + '</urlset>'
   );

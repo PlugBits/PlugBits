@@ -6,7 +6,8 @@
   <title>%%TITLE%%</title>
   <meta name="description" content="%%DESCRIPTION%%">
   <meta name="keywords" content="%%KEYWORDS%%">
-  <link rel="canonical" href="%%OG_URL%%">
+  <link rel="canonical" href="%%CANONICAL%%">
+  <link rel="alternate" type="application/rss+xml" title="PlugBits Blog" href="/blog/feed.xml">
   <meta property="og:type" content="article">
   <meta property="og:title" content="%%TITLE%%">
   <meta property="og:description" content="%%DESCRIPTION%%">
@@ -15,23 +16,15 @@
   %%OG_IMAGE_TAG%%
   <meta name="twitter:card" content="summary_large_image">
   <link rel="stylesheet" href="/style.css">
+  <link rel="stylesheet" href="/assets/blog/blog.css">
   <style>
-    .kb-article-intro-cta{margin:0 56px 8px;padding:20px 24px;background:linear-gradient(140deg,#eef4ff,#f7faff);border:1px solid rgba(47,100,226,.18);border-radius:18px;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:16px}
-    .kb-article-intro-cta p{margin:0;color:var(--kb-text);font-size:14.5px;line-height:1.6;flex:1;min-width:200px}
-    .kb-article-intro-cta .kb-cta-primary{flex-shrink:0;white-space:nowrap}
-    @media (max-width:720px){
-      .kb-article-intro-cta{margin:0 24px 8px;padding:16px 18px}
-    }
-
-    /* ===== 記事レイアウト調整（このテンプレート限定・2026-07） ===== */
+    /* ===== 記事レイアウト調整（このテンプレート限定・2026-07。既存6本の見た目はここで保っている） ===== */
     /* 本文の可読性：コンテンツ幅780px・17px・行間1.9・段落下1.6em */
     .kb-article-body{max-width:828px;margin:0 auto;padding:0 24px}
     .kb-article-paragraph{font-size:17px;line-height:1.9;margin:0 0 1.6em}
     .kb-article-section{margin-top:52px}
     .kb-article-section h2{font-size:27px;line-height:1.5;margin:0 0 .8em}
     .kb-article-subheading{font-size:20px;margin:2em 0 .6em}
-    /* 導入CTAも本文幅に揃える */
-    .kb-article-intro-cta{margin:0 auto 8px;max-width:828px;width:calc(100% - 48px)}
     /* 中間層（セクションごとの枠）を廃止：見出しと本文を背景に直置き */
     .kb-section-card{background:none;border:none;box-shadow:none;border-radius:0;padding:0;margin-top:0}
     .kb-section-card--stack{display:block}
@@ -41,12 +34,6 @@
     /* チェックリスト：箱を外す（✔は残す） */
     .kb-article-check li{background:none;border:none;box-shadow:none;border-radius:0;padding:2px 0 2px 28px}
     .kb-article-check li::before{left:0;top:2px}
-    /* モバイル：導入CTAボタンのはみ出し防止 */
-    @media (max-width:720px){
-      .kb-article-intro-cta .kb-cta-primary{white-space:normal;flex-shrink:1}
-    }
-    /* 記事メタ：1行表示 */
-    .kb-article-meta-line{margin:16px 0 0;font-size:13.5px;color:var(--kb-sub)}
     /* 本文中の画像（figure） */
     .kb-article-figure{margin:24px 0;max-width:100%}
     .kb-article-figure img{display:block;width:100%;height:auto;max-width:100%;border-radius:12px;border:1px solid var(--kb-line)}
@@ -76,43 +63,33 @@
 
   <!-- Breadcrumb -->
   <div class="kb-container kb-breadcrumb">
-    <a class="kb-back" href="/blog/">← ブログ一覧に戻る</a>
+    %%BREADCRUMB_HTML%%
   </div>
 
   <main class="kb-container">
     <article class="kb-article">
       <header class="kb-article-header">
         <p class="kb-article-label">%%HERO_LABEL%%</p>
+        %%THEME_BADGE%%
         <h1>%%H1%%</h1>
-        <p class="kb-article-meta-line">%%META_LINE%%</p>
+        %%META_HTML%%
       </header>
 
-      <div class="kb-article-intro-cta">
-        <p>%%CTA_INTRO%%</p>
-        <a class="kb-cta-primary" href="%%TOOL_URL%%" target="_blank" rel="noopener">%%TOOL_NAME%%を開く →</a>
-      </div>
+      %%TOC_HTML%%
 
       <div class="kb-article-body">
         %%CONTENT_HTML%%
 
+        %%PRODUCT_BOX_HTML%%
+
+        %%AUTHOR_HTML%%
+
         <p class="kb-article-footer">%%SITE_COPYRIGHT%%</p>
       </div>
     </article>
-  </main>
 
-  <!-- Launcher cross-sell -->
-  <section class="kb-crosssell kb-container">
-    <div class="kb-crosssell-inner">
-      <div class="kb-crosssell-text">
-        <p class="kb-crosssell-label">kintoneをひとりで回していませんか？</p>
-        <p class="kb-crosssell-sub">PlugBits Launcher — 設定画面への移動もフィールドコードのコピーも、Ctrl+/ のコマンドパレットから。ブラウザに追加するだけで使えます。</p>
-      </div>
-      <div class="kb-crosssell-actions">
-        <a class="kb-cta-primary" href="%%LAUNCHER_STORE_URL_BANNER%%" target="_blank" rel="noopener">Chromeに追加（無料）</a>
-        <a class="kb-cta-secondary" href="/launcher/">詳しく見る →</a>
-      </div>
-    </div>
-  </section>
+    %%RELATED_HTML%%
+  </main>
 
   <!-- Footer -->
   <footer class="kb-footer kb-container">

@@ -1,0 +1,330 @@
+/* =========================================================
+   PlugBits Blog — 記事/一覧の追加見た目 (2026-10-17)
+   対象: templates/blog-post.html, templates/blog-index.html のみ
+   色・字は style.css のトークン(--kb-*)を使う。ここでは新規トークンを作らない。
+   既存 content/blog/*.html(6本)は kb-article-* クラスだけで組まれていて
+   このファイルの .pb- セレクタとは一切重ならない設計。pb-prose で
+   既存記事を包むと見た目が壊れるので、新規(md由来)記事の本文だけを包むこと。
+   ========================================================= */
+
+/* ---------- パンくず ---------- */
+.pb-crumbs{
+  display:flex;flex-wrap:wrap;align-items:center;gap:6px;
+  font-size:13px;color:var(--kb-muted);
+}
+.pb-crumbs a{color:var(--kb-sub);text-decoration:none}
+.pb-crumbs a:hover{color:var(--kb-primary);text-decoration:underline}
+.pb-crumbs span{color:var(--kb-muted)}
+
+/* ---------- テーマ札 ---------- */
+a.pb-theme-badge{
+  display:inline-block;margin-top:14px;
+  font-size:12.5px;font-weight:700;letter-spacing:.03em;
+  color:var(--kb-primary);background:var(--kb-primary-050);
+  border:1px solid var(--kb-primary-200);border-radius:999px;
+  padding:5px 14px;text-decoration:none;
+}
+a.pb-theme-badge:hover{background:var(--kb-primary-100);text-decoration:none}
+
+/* ---------- メタ行(公開日・更新日・読了目安) ---------- */
+.pb-post-meta{
+  margin:14px 0 0;font-size:13.5px;color:var(--kb-sub);
+  display:flex;flex-wrap:wrap;gap:4px 10px;align-items:center;
+}
+.pb-post-meta time{color:var(--kb-sub)}
+
+/* ---------- 目次 ---------- */
+.pb-toc{
+  max-width:720px;margin:28px 24px 0;
+  background:var(--kb-primary-050);
+  border:1px solid var(--kb-primary-200);
+  border-radius:16px;padding:20px 24px;
+}
+@media (min-width:800px){
+  .pb-toc{margin:28px auto 0}
+}
+.pb-toc-title{
+  margin:0 0 10px;font-size:14px;font-weight:700;
+  color:var(--kb-ink);letter-spacing:.02em;
+}
+.pb-toc ol{
+  list-style:none;margin:0;padding:0;counter-reset:pb-toc;
+  display:grid;gap:8px;
+}
+.pb-toc li{counter-increment:pb-toc;font-size:14px;line-height:1.6}
+.pb-toc li::before{
+  content:counter(pb-toc)".";margin-right:8px;
+  color:var(--kb-primary);font-weight:700;
+}
+.pb-toc a{color:var(--kb-text);text-decoration:none}
+.pb-toc a:hover{color:var(--kb-primary);text-decoration:underline}
+
+@media (max-width:720px){
+  .pb-toc{padding:16px 18px;border-radius:14px}
+}
+
+/* ---------- 本文(pb-prose): 17px/1.9・幅680-720px ---------- */
+/* 設計メモ(重要): build.js は新規記事(md由来・marked の素の出力)も既存6本
+   (content/blog/*.html・kb-article-section で組まれた入れ子構造)も、同じ
+   .pb-prose 1枚で包む。marked の出力は見出し・段落・表・引用などが pb-prose の
+   “直下の子”として並ぶフラットな構造になるのに対し、既存6本は全要素が
+   section.kb-article-section > div.kb-section-card の中に入れ子になっていて
+   pb-prose の直下には来ない(H2だけは section の直下=pb-proseの孫)。
+   この違いを使って、p/ul/ol/table/blockquote/pre/hr は「.pb-prose の直下の子」
+   だけに当てることで、既存6本(既存の kb-article-* の見た目)を一切変えずに
+   新規記事だけを飾る。H2 は新旧ともに裸タグで区別できないため、新しい見た目
+   (25px・下線)に統一している(目次のid付与も新旧共通の設計のため)。 */
+.pb-prose{
+  max-width:720px;margin:0 auto;
+  font-size:17px;line-height:1.9;color:var(--kb-text);
+}
+.pb-prose > :first-child{margin-top:0}
+
+.pb-prose h2{
+  font-size:25px;font-weight:800;line-height:1.5;
+  margin:52px 0 20px;color:var(--kb-ink);
+  padding-bottom:12px;border-bottom:1px solid var(--kb-line);
+  scroll-margin-top:24px;
+}
+.pb-prose > h2:first-child{margin-top:0}
+.pb-prose > h3{
+  font-size:19px;font-weight:700;line-height:1.5;
+  margin:36px 0 14px;color:var(--kb-text);
+  scroll-margin-top:24px;
+}
+.pb-prose > h4{
+  font-size:16.5px;font-weight:700;margin:28px 0 10px;color:var(--kb-text);
+}
+.pb-prose > p{margin:0 0 1.5em}
+/* strong/a はサイト全体の .kb-root a(下線はホバー時だけ)に揃える。
+   既存6本の本文中リンクにも及ぶが、色・下線挙動はサイト標準と同じなので崩れない */
+.pb-prose strong{color:var(--kb-ink);font-weight:700}
+.pb-prose a{color:var(--kb-primary)}
+
+.pb-prose > ul,.pb-prose > ol{margin:0 0 1.5em;padding-left:0;display:grid;gap:10px}
+.pb-prose > ul{list-style:none}
+.pb-prose > ul > li{position:relative;padding-left:22px}
+.pb-prose > ul > li::before{
+  content:"";position:absolute;left:4px;top:11px;
+  width:6px;height:6px;border-radius:50%;background:var(--kb-primary);
+}
+.pb-prose > ol{list-style:none;counter-reset:pb-ol}
+.pb-prose > ol > li{position:relative;padding-left:30px;counter-increment:pb-ol}
+.pb-prose > ol > li::before{
+  content:counter(pb-ol)".";position:absolute;left:0;top:0;
+  color:var(--kb-primary);font-weight:700;
+}
+.pb-prose > ul li > ul,.pb-prose > ul li > ol,
+.pb-prose > ol li > ul,.pb-prose > ol li > ol{margin:10px 0 0}
+.pb-prose > ul li p,.pb-prose > ol li p{margin:0 0 .6em}
+
+/* 画像(markedは画像を<p>の中に裸imgで出す。figureを使う場合にも対応) */
+.pb-prose > figure{margin:28px 0}
+.pb-prose > p > img,
+.pb-prose > figure img{
+  display:block;width:100%;height:auto;max-width:100%;
+  border-radius:12px;border:1px solid var(--kb-line);
+  margin:4px 0;
+}
+.pb-prose > figure figcaption{
+  margin-top:8px;font-size:13px;line-height:1.6;
+  color:var(--kb-sub);text-align:center;
+}
+
+/* 引用 */
+.pb-prose > blockquote{
+  margin:24px 0;padding:14px 20px;
+  background:var(--kb-primary-050);
+  border-left:4px solid var(--kb-primary);
+  border-radius:0 10px 10px 0;
+  color:var(--kb-sub);font-size:15.5px;line-height:1.8;
+}
+.pb-prose > blockquote p{margin:0 0 .6em}
+.pb-prose > blockquote p:last-child{margin-bottom:0}
+
+/* インラインコード */
+.pb-prose code{
+  font-family:ui-monospace,"SFMono-Regular",Consolas,monospace;
+  font-size:13.5px;background:var(--kb-primary-050);color:var(--kb-primary-700);
+  padding:2px 6px;border-radius:5px;border:1px solid var(--kb-primary-200);
+  word-break:break-word;
+}
+
+/* コードブロック(言語を問わず、長い行は中だけ横スクロール) */
+.pb-prose > pre{
+  margin:24px 0;padding:18px 20px;
+  background:var(--kb-ink);color:#e7edf7;
+  border-radius:14px;overflow-x:auto;
+  font-size:13.5px;line-height:1.7;
+  -webkit-overflow-scrolling:touch;
+}
+.pb-prose > pre code{
+  background:none;border:none;padding:0;color:inherit;
+  font-size:inherit;white-space:pre;
+}
+
+/* 表(溢れたら表だけ横スクロール。G1がmarkedのtable出力を
+   .pb-table-wrap で包めばそちら優先・包まなくても .pb-prose table 単体で
+   display:block によるフォールバックの横スクロールが効く) */
+.pb-table-wrap{
+  margin:28px 0;overflow-x:auto;-webkit-overflow-scrolling:touch;
+  border:1px solid var(--kb-line);border-radius:12px;
+}
+.pb-prose > table{
+  width:100%;border-collapse:collapse;font-size:15px;
+  display:block;overflow-x:auto;-webkit-overflow-scrolling:touch;
+  margin:28px 0;border:1px solid var(--kb-line);border-radius:12px;
+}
+.pb-table-wrap > table{margin:0;border:none;border-radius:0}
+.pb-prose > table th,.pb-prose > table td,
+.pb-table-wrap > table th,.pb-table-wrap > table td{
+  padding:11px 16px;border:1px solid var(--kb-line);
+  text-align:left;vertical-align:top;color:var(--kb-text);
+}
+.pb-prose > table thead th,.pb-table-wrap > table thead th{
+  background:var(--kb-primary-050);color:var(--kb-ink);font-weight:700;white-space:nowrap;
+}
+.pb-prose > hr{margin:40px 0;border:none;border-top:1px solid var(--kb-line)}
+
+@media (max-width:720px){
+  .pb-prose h2{font-size:21px;margin:40px 0 16px}
+  .pb-prose > h3{font-size:17.5px;margin:28px 0 12px}
+  .pb-prose > pre{padding:14px 16px}
+}
+
+/* ---------- 製品の案内(1枠) ---------- */
+.pb-product-box{
+  max-width:720px;margin:48px auto 0;
+  background:linear-gradient(140deg,#fff,var(--kb-primary-050));
+  border:1px solid var(--kb-primary-200);border-radius:18px;
+  padding:22px 26px;
+}
+.pb-product-label{
+  margin:0 0 6px;font-size:12px;font-weight:700;letter-spacing:.06em;
+  text-transform:uppercase;color:var(--kb-primary);
+}
+.pb-product-name{margin:0 0 4px;font-size:16.5px;font-weight:800;color:var(--kb-ink)}
+.pb-product-line{margin:0 0 14px;font-size:14px;line-height:1.7;color:var(--kb-sub)}
+a.pb-product-link{
+  display:inline-flex;align-items:center;justify-content:center;
+  min-height:42px;padding:10px 20px;border-radius:10px;
+  background:var(--kb-primary);color:#fff;font-weight:700;font-size:14px;
+  text-decoration:none;
+}
+a.pb-product-link:hover{filter:brightness(1.07);text-decoration:none}
+
+@media (max-width:720px){
+  .pb-product-box{padding:18px 20px}
+}
+
+/* ---------- 著者の1行 ---------- */
+.pb-author{
+  max-width:720px;margin:32px auto 0;padding-top:20px;
+  border-top:1px solid var(--kb-line);
+  font-size:13.5px;color:var(--kb-muted);
+}
+
+/* ---------- 関連する記事 ---------- */
+.pb-related{max-width:940px;margin:56px auto 0}
+.pb-related-title{
+  font-size:20px;font-weight:800;color:var(--kb-text);
+  margin:0 0 18px;text-align:left;
+}
+.pb-related-list{
+  list-style:none;margin:0;padding:0;
+  display:grid;grid-template-columns:repeat(3,1fr);gap:18px;
+}
+a.pb-related-card{
+  display:flex;flex-direction:column;gap:6px;
+  background:var(--kb-surface);border:1px solid var(--kb-line);
+  border-radius:14px;padding:18px 20px;text-decoration:none;color:inherit;
+  transition:transform .16s,box-shadow .16s,border-color .16s;
+}
+a.pb-related-card:hover{
+  transform:translateY(-2px);box-shadow:0 10px 24px rgba(16,24,40,.08);
+  border-color:var(--kb-line-strong);text-decoration:none;
+}
+.pb-related-theme{font-size:12px;font-weight:700;color:var(--kb-primary)}
+.pb-related-name{font-size:15px;font-weight:700;line-height:1.5;color:var(--kb-text)}
+.pb-related-date{font-size:12.5px;color:var(--kb-muted);margin-top:auto}
+
+@media (max-width:840px){
+  .pb-related-list{grid-template-columns:repeat(2,1fr)}
+}
+@media (max-width:560px){
+  .pb-related-list{grid-template-columns:1fr}
+}
+
+/* =========================================================
+   一覧ページ(blog-index.html)
+   ========================================================= */
+
+/* タブ(すべて/テーマA/テーマB) */
+.pb-tabs{
+  display:flex;flex-wrap:wrap;gap:10px;
+  margin:0 0 28px;
+}
+a.pb-tab{
+  display:inline-flex;align-items:center;
+  padding:9px 18px;border-radius:999px;
+  font-size:14px;font-weight:700;text-decoration:none;
+  color:var(--kb-sub);background:var(--kb-surface);
+  border:1px solid var(--kb-line);
+}
+a.pb-tab:hover{color:var(--kb-text);text-decoration:none;border-color:var(--kb-line-strong)}
+a.pb-tab.is-active{
+  color:#fff;background:var(--kb-primary);border-color:var(--kb-primary);
+}
+
+/* カード格子: PC 2列以上・390pxで1列 */
+.pb-card-grid{
+  display:grid;grid-template-columns:repeat(2,1fr);gap:20px;
+  align-items:stretch;
+}
+@media (min-width:980px){
+  .pb-card-grid{grid-template-columns:repeat(3,1fr)}
+}
+@media (max-width:640px){
+  .pb-card-grid{grid-template-columns:1fr}
+}
+
+a.pb-card{
+  height:100%;box-sizing:border-box;
+  display:flex;flex-direction:column;gap:8px;
+  background:var(--kb-surface);border:1px solid var(--kb-line);
+  border-radius:16px;padding:22px 24px;text-decoration:none;color:inherit;
+  box-shadow:0 1px 2px rgba(16,24,40,.04);
+  transition:transform .18s,box-shadow .18s,border-color .18s;
+}
+a.pb-card:hover{
+  transform:translateY(-3px);box-shadow:0 10px 26px rgba(16,24,40,.10);
+  border-color:var(--kb-line-strong);text-decoration:none;
+}
+.pb-card-theme{font-size:12px;font-weight:700;color:var(--kb-primary)}
+.pb-card-title{
+  font-size:17px;line-height:1.45;font-weight:800;margin:2px 0 0;color:var(--kb-text);
+}
+.pb-card-desc{
+  font-size:14px;line-height:1.65;color:var(--kb-sub);margin:0;
+  flex:1;
+}
+.pb-card-date{font-size:12.5px;color:var(--kb-muted);margin-top:auto}
+
+/* ページ送り */
+.pb-pager{
+  display:flex;align-items:center;justify-content:center;gap:16px;
+  margin-top:40px;font-size:14px;color:var(--kb-sub);
+}
+.pb-pager a{
+  display:inline-flex;align-items:center;justify-content:center;
+  min-height:40px;padding:8px 18px;border-radius:10px;
+  border:1px solid var(--kb-line);color:var(--kb-text);
+  font-weight:700;text-decoration:none;
+}
+.pb-pager a:hover{border-color:var(--kb-line-strong);background:var(--kb-primary-050);text-decoration:none}
+.pb-pager span{color:var(--kb-muted)}
+
+@media (max-width:480px){
+  .pb-tabs{gap:8px}
+  .pb-tab{padding:8px 14px;font-size:13.5px}
+}

@@ -3,23 +3,17 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>ブログ | PlugBits — kintone向けプラグイン＆ブラウザ拡張機能</title>
-  <meta name="description" content="kintoneの業務改善や3Dデータ活用など、現場で役立つ情報をお届けするPlugBitsのブログです。">
-  <link rel="canonical" href="https://plugbits.app/blog/">
+  <title>%%LIST_TITLE%% | PlugBits Blog</title>
+  <meta name="description" content="%%LIST_LEAD%%">
+  <link rel="canonical" href="%%CANONICAL%%">
+  <link rel="alternate" type="application/rss+xml" title="PlugBits Blog" href="/blog/feed.xml">
+  %%PREV_NEXT_LINKS%%
   <link rel="stylesheet" href="/style.css">
+  <link rel="stylesheet" href="/assets/blog/blog.css">
   <style>
-    .kb-blog-card{display:flex;flex-direction:column;background:var(--kb-surface);border:1px solid var(--kb-line);border-radius:16px;padding:20px 22px;text-decoration:none;color:inherit;box-shadow:0 1px 2px rgba(16,24,40,.04);transition:transform .18s,box-shadow .18s,border-color .18s}
-    .kb-blog-card:hover{transform:translateY(-3px);box-shadow:0 10px 26px rgba(16,24,40,.10);border-color:var(--kb-line-strong)}
-    .kb-blog-card h3{font-size:17px;line-height:1.4;font-weight:700;margin:0 0 8px;color:var(--kb-text)}
-    .kb-blog-card p{color:var(--kb-sub);font-size:14px;line-height:1.6;margin:0 0 16px}
-    .kb-blog-card-foot{margin-top:auto;display:flex;align-items:center;justify-content:space-between;font-size:13px;color:var(--kb-muted)}
-
     /* ===== ファーストビュー調整（このページ限定・2026-07） ===== */
     .kb-hero .kb-container{padding:36px 0 24px}
     .kb-index-main .kb-section{padding:16px 0 48px}
-    /* カード高さを揃える */
-    #kb-blog-grid{align-items:stretch}
-    .kb-blog-card{height:100%;box-sizing:border-box}
   </style>
 </head>
 <body class="kb-root">
@@ -45,20 +39,22 @@
   <header class="kb-hero">
     <div class="kb-container">
       <p class="kb-eyebrow">PlugBits Blog</p>
-      <h1 class="kb-hero-title">現場で役立つ情報を、<br>ちょっとずつ。</h1>
-      <p class="kb-hero-sub">kintoneの業務改善や3Dデータ活用など、実務で困りがちなポイントをまとめています。</p>
+      <h1 class="kb-hero-title">%%LIST_TITLE%%</h1>
+      <p class="kb-hero-sub">%%LIST_LEAD%%</p>
     </div>
   </header>
 
   <main class="kb-index-main">
     <div class="kb-container">
       <section class="kb-section">
-        <section class="kb-card-grid" id="kb-blog-grid">
+        %%TABS_HTML%%
+        <section class="pb-card-grid" id="kb-blog-grid">
           %%POST_CARDS%%
         </section>
         <div class="kb-coming-notice" id="kb-blog-empty" style="display:none">
           <p>記事は準備中です。もうしばらくお待ちください。</p>
         </div>
+        %%PAGER_HTML%%
       </section>
     </div>
   </main>

@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<!--
+  ブログ記事ごとの og:image テンプレ(2026-10-17、担当H)。
+  tools/og/og_blog_default.html(既定画像)と同じ色・雰囲気(ダークネイビー系グラデー
+  ション+ドット柄+グロー)に合わせつつ、こちらは「題名が主役」のレイアウト。
+  題名はこの HTML を直接編集せず、tools/og/make-blog-og.mjs が playwright で開いた後に
+  #eyebrow / #theme-label / #title の textContent を書き換えて使う(値はプレースホルダ)。
+  題名の自動縮小・…での省略は make-blog-og.mjs 側のロジック(このファイルは見た目だけ)。
+
+  単体で file:// で開いてもプレースホルダのまま見た目の確認ができる。
+-->
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0;
+    width: 1200px; height: 630px;
+    overflow: hidden;
+    background: #0d1430;
+    font-family: "Noto Sans JP", "Noto Sans CJK JP", "Yu Gothic UI", "Meiryo", sans-serif;
+  }
+  .stage { position: relative; width: 1200px; height: 630px; }
+  .stage svg.bg { position: absolute; inset: 0; display: block; }
+
+  .eyebrow {
+    position: absolute; left: 80px; top: 54px;
+    font-size: 17px; font-weight: 700; letter-spacing: 6px;
+    color: #7fb0ff;
+  }
+
+  .theme-badge {
+    position: absolute; right: 80px; top: 44px;
+    padding: 10px 20px;
+    border-radius: 999px;
+    background: rgba(255,255,255,0.06);
+    border: 1.5px solid rgba(255,255,255,0.16);
+    color: #c6d2f0;
+    font-size: 18px; font-weight: 700;
+  }
+  .theme-badge.is-hidden { display: none; }
+
+  .title-wrap {
+    position: absolute;
+    left: 80px; right: 80px;
+    top: 140px; height: 330px;
+    display: flex;
+    align-items: center;
+  }
+  .title {
+    width: 100%;
+    margin: 0;
+    color: #ffffff;
+    font-weight: 900;
+    letter-spacing: -1px;
+    line-height: 1.32;
+    font-size: 64px;
+    word-break: normal;
+    overflow-wrap: break-word;
+  }
+
+  .footer-line {
+    position: absolute; left: 80px; right: 80px; top: 512px;
+    height: 2px;
+    background: linear-gradient(90deg, #5aa0ff, #7fe0d8);
+    opacity: 0.55;
+  }
+  .brand {
+    position: absolute; left: 80px; top: 540px;
+    font-size: 18px; color: #7fb0ff;
+  }
+  .domain {
+    position: absolute; right: 80px; top: 540px;
+    font-size: 18px; color: #5f6f9d;
+  }
+</style>
+</head>
+<body>
+  <div class="stage" id="stage">
+    <svg class="bg" width="1200" height="630" viewBox="0 0 1200 630" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#0d1430"/><stop offset="1" stop-color="#1a2a55"/></linearGradient>
+        <radialGradient id="glow" cx="0.85" cy="0.15" r="0.6"><stop offset="0" stop-color="#2f6fdb" stop-opacity="0.45"/><stop offset="1" stop-color="#2f6fdb" stop-opacity="0"/></radialGradient>
+        <pattern id="dots" width="28" height="28" patternUnits="userSpaceOnUse"><circle cx="1.5" cy="1.5" r="1.5" fill="#ffffff" fill-opacity="0.06"/></pattern>
+      </defs>
+      <rect width="1200" height="630" fill="url(#bg)"/>
+      <rect width="1200" height="630" fill="url(#dots)"/>
+      <rect width="1200" height="630" fill="url(#glow)"/>
+    </svg>
+
+    <div class="eyebrow" id="eyebrow">PLUGBITS BLOG</div>
+    <div class="theme-badge is-hidden" id="theme-badge"><span id="theme-label">テーマ名</span></div>
+
+    <div class="title-wrap" id="title-wrap">
+      <h1 class="title" id="title">ここに記事の題名が入ります(置き換え用のダミーです)</h1>
+    </div>
+
+    <div class="footer-line"></div>
+    <div class="brand">PlugBits</div>
+    <div class="domain">plugbits.app</div>
+  </div>
+</body>
+</html>
