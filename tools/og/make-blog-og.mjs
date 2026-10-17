@@ -1,17 +1,15 @@
 #!/usr/bin/env node
-// ブログ記事の og:image(1200x630)を記事ごとに作る(2026-10-17、担当H)。
+// ブログ記事の og:image(1200x630)を記事ごとに作る(2026-10-17)。
 //
 // 題材: tools/og/blog-og.html(見た目のテンプレ)を playwright で開き、
 // #eyebrow / #theme-label / #title の中身を記事の frontmatter で書き換えてから撮る。
 // 題名は最大3行。はみ出す時は文字を詰め(フォントサイズを下げ)、それでも収まらない
 // 最後の手段として末尾を … で切る(blog-og.html 側のコメント参照)。
 //
-// playwright の在りか(install はしていない。探して見つけた既存のものを使う):
-//   playwright-core 本体: ~/tiny-pulse-next/tools/pdf/node_modules/playwright-core (v1.63.0)
-//     (tools/shot.mjs と同じ createRequire の手口で、そのディレクトリから解決する)
-//   Chromium 実行体    : ~/.cache/ms-playwright/chromium-1243/chrome-linux64/chrome
-//   不足する共有ライブラリ: ~/tiny-pulse-next/tools/native-libs (LD_LIBRARY_PATH に足す。
-//     shot.mjs と同じ。これが無いと headless chromium が libnss3.so 等で起動に失敗する)
+// playwright の在りか(このリポには入れない。環境変数で渡す):
+//   PW_CORE_DIR   : playwright-core が入っている node_modules を持つディレクトリ(無ければ普通に require)
+//   PW_CHROME     : Chromium の実行体(無ければ playwright-core の既定)
+//   PW_NATIVE_LIBS: 足りない共有ライブラリの置き場(LD_LIBRARY_PATH の先頭に足す。任意)
 //
 // 使い方:
 //   node tools/og/make-blog-og.mjs
@@ -23,7 +21,7 @@
 //       (content/blog/ にまだ記事が無いうちの確認用。--out を省くと
 //        /tmp 配下の一時ファイルに書き、assets/ には何も残さない)
 //   node tools/og/make-blog-og.mjs --posts-json [--force] [<slug> ...]
-//     → content/blog/*.md ではなく data/posts.json を見るモード(担当K 2026-10-17)。
+//     → content/blog/*.md ではなく data/posts.json を見るモード(2026-10-17)。
 //       status=public かつ og_image を明示していない記事だけを対象にする。題名は
 //       posts.json の title(長い時は h1 の方が短ければそちら)。既にある
 //       assets/blog/og/<slug>.jpg は --force を付けない限り作り直さない。
@@ -48,19 +46,20 @@ const REPO_ROOT = path.join(HERE, '..', '..'); // tools/og -> リポジトリ直
 const nodeRequire = createRequire(import.meta.url);
 const yaml = nodeRequire('js-yaml');
 
-// playwright-core は tiny-pulse-next 側の node_modules から借りる(install しない)
-const PW_ANCHOR = path.join(os.homedir(), 'tiny-pulse-next', 'tools', 'pdf', 'x.js');
-const pwRequire = createRequire(PW_ANCHOR);
+const pwRequire = process.env.PW_CORE_DIR
+  ? createRequire(path.join(process.env.PW_CORE_DIR, 'x.js'))
+  : nodeRequire;
 const { chromium } = pwRequire('playwright-core');
 
-const CHROME_EXEC = path.join(os.homedir(), '.cache', 'ms-playwright', 'chromium-1243', 'chrome-linux64', 'chrome');
-const NATIVE_LIBS = path.join(os.homedir(), 'tiny-pulse-next', 'tools', 'native-libs');
-process.env.LD_LIBRARY_PATH = NATIVE_LIBS + ':' + (process.env.LD_LIBRARY_PATH || '');
+const CHROME_EXEC = process.env.PW_CHROME || undefined;
+if (process.env.PW_NATIVE_LIBS) {
+  process.env.LD_LIBRARY_PATH = process.env.PW_NATIVE_LIBS + ':' + (process.env.LD_LIBRARY_PATH || '');
+}
 
 const TEMPLATE_PATH = path.join(HERE, 'blog-og.html');
 
 // 既定のテーマ名(data/blog-themes.json が無い/足りない時のフォールバック。
-// 値は CONTRACT.md §OGP画像 の例と揃えてある。G1 が data/blog-themes.json を
+//  data/blog-themes.json を
 // 作ったら、そちらにある値を優先して使う)
 const FALLBACK_THEMES = {
   A: { label: 'kintone の一覧・入力・設定' },
@@ -98,7 +97,7 @@ function readArticle(mdPath) {
 }
 
 // data/posts.json から、公開済み(status=public)で og_image を明示していない記事を拾う
-// (--posts-json 用、担当K 2026-10-17)。題名は posts.json の title を基本にし、
+// (--posts-json 用、2026-10-17)。題名は posts.json の title を基本にし、
 // h1 の方が短ければ h1 を使う(はみ出しにくい方を選ぶ)。
 function readArticlesFromPostsJson() {
   const postsPath = path.join(REPO_ROOT, 'data', 'posts.json');
@@ -167,7 +166,7 @@ async function renderOne({ browser, slug, title, theme, themeLabels, outPath }) 
   const ctx = await browser.newContext({
     viewport: { width: 1200, height: 630 },
     // deviceScaleFactor: 2 だと screenshot の実ピクセルが 2400x1260 になり、og:image の
-    // 規定(1200x630)とずれる(担当K 2026-10-17、--posts-json 対応時に確認して修正)。
+    // 規定(1200x630)とずれる(2026-10-17)。
     deviceScaleFactor: 1,
   });
   const page = await ctx.newPage();
@@ -202,7 +201,7 @@ async function renderOne({ browser, slug, title, theme, themeLabels, outPath }) 
   const fit = await fitTitle(page, title);
 
   fs.mkdirSync(path.dirname(outPath), { recursive: true });
-  // JPEG(品質 85)。PNG だと 1 枚 1.2MB あり、公開リポに毎日積むと重い(rc 10/17)
+  // JPEG(品質 85)。PNG だと 1 枚 1.2MB あり、公開リポに毎日積むと重い(2026-10-17)
   await page.screenshot({ path: outPath, type: 'jpeg', quality: 85 });
   await ctx.close();
 
@@ -219,7 +218,7 @@ async function main() {
   const mdOverride = opt('md');
   const contentDir = path.resolve(REPO_ROOT, opt('content-dir') || path.join('content', 'blog'));
   const ogDir = path.resolve(REPO_ROOT, opt('og-dir') || path.join('assets', 'blog', 'og'));
-  // data/posts.json の記事から og_image 未指定のものをまとめて作るモード(担当K 2026-10-17)
+  // data/posts.json の記事から og_image 未指定のものをまとめて作るモード(2026-10-17)
   const postsJsonMode = argv.includes('--posts-json');
   // 既にある jpg も作り直す(現状は --posts-json でだけ意味を持つ)
   const forceFlag = argv.includes('--force');
@@ -249,7 +248,7 @@ async function main() {
       : path.join(os.tmpdir(), `blog-og-test-${art.slug}.jpg`);
     targets.push({ ...art, outPath });
   } else if (postsJsonMode) {
-    // data/posts.json 側のモード(担当K 2026-10-17): 公開済みで og_image 未指定の記事を
+    // data/posts.json 側のモード(2026-10-17): 公開済みで og_image 未指定の記事を
     // まとめて作る。slug を一緒に渡した時はその中だけに絞る。既にある jpg は --force
     // が無い限り作り直さない。
     if (outOverride) {

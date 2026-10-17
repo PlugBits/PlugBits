@@ -350,7 +350,7 @@ function protectBareUrls(md) {
 
 /* 売っている kintone プラグイン(data/products.json の type=plugin・public・page_url=/kintone/<店の slug>/)を
    ブログの製品の定義に足す。キーは products.json の短い slug(excel-report)と店の slug(kintone-excel-report)の
-   両方。枠は掲載名と1行、計測は /kintone/go/<記事の slug>/(10/17 Main)。既存のキー(launcher 等)は上書きしない */
+   両方。枠は掲載名と1行、計測は /kintone/go/<記事の slug>/(2026-10-17)。既存のキー(launcher 等)は上書きしない */
 function withKintonePlugins(blogProducts, products) {
   const out = Object.assign({}, blogProducts || {});
   (products || []).forEach(p => {

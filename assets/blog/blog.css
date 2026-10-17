@@ -6,8 +6,7 @@
    このファイルの .pb- セレクタとは一切重ならない設計。pb-prose で
    既存記事を包むと見た目が壊れるので、新規(md由来)記事の本文だけを包むこと。
 
-   第2段(reference/policy.md 1〜12): 寸法は reference/measure.md、約束は
-   ../CONTRACT.md。手本の CSS・画像・文言はコピーせず、寸法と構成だけを踏襲。
+   第2段(reference/policy.md 1〜12): 寸法は reference/measure.md、約束は 手本の CSS・画像・文言はコピーせず、寸法と構成だけを踏襲。
    このファイルは blog-post.html / blog-index.html にしか読み込まれないため、
    .kb-root / .kb-container / .kb-article* のような「サイト全体」のクラスを
    ここで上書きしても、ブログ以外のページの出力は変わらない(dist 非差分の前提)。
@@ -18,7 +17,7 @@
 
 /* ---------- 2: 390px の左右余白を 20px に(ブログページのみ) ---------- */
 /* body にブラウザ既定の margin:8px が残っている(style.css は未リセット。ブログ以外は触らない)。
-   blog.css はブログのページだけが読むので、ここで 0 にして端から文字までを kb-container の 20px で持つ(rc 10/17) */
+   blog.css はブログのページだけが読むので、ここで 0 にして端から文字までを kb-container の 20px で持つ(2026-10-17) */
 body{margin:0}
 @media (max-width:640px){
   .kb-container{padding-left:20px;padding-right:20px}
@@ -200,7 +199,7 @@ a.pb-theme-badge:hover{background:var(--kb-primary-100);text-decoration:none}
 }
 
 /* 7: 表(罫線1px・見出しの行は薄灰・字15px。溢れたら表だけ横スクロール。
-   G1がmarkedのtable出力を .pb-table-wrap で包めばそちら優先・包まなくても
+   markedのtable出力を .pb-table-wrap で包めばそちら優先・包まなくても
    .pb-prose table 単体で display:block によるフォールバックの横スクロールが効く) */
 .pb-table-wrap{
   margin:28px 0;overflow-x:auto;-webkit-overflow-scrolling:touch;

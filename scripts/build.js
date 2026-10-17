@@ -316,11 +316,11 @@ try {
   }
 
   // ブログ記事生成（data/posts.json + content/blog/*.html・*.md）
-  // テーマ・製品の定義(G1 新規)。無ければ空オブジェクトで動く(テーマ無し＝「すべて」のみ)。
+  // テーマ・製品の定義。無ければ空オブジェクトで動く(テーマ無し＝「すべて」のみ)。
   const BLOG_THEMES_PATH = path.join(ROOT, 'data', 'blog-themes.json');
   const BLOG_PRODUCTS_PATH = path.join(ROOT, 'data', 'blog-products.json');
   const BLOG_THEMES = fileExists(BLOG_THEMES_PATH) ? readJSON(BLOG_THEMES_PATH) : {};
-  // 売っている kintone プラグインも product に書ける(excel-report / kintone-excel-report 等。10/17 Main)
+  // 売っている kintone プラグインも product に書ける(excel-report / kintone-excel-report 等。2026-10-17)
   const BLOG_PRODUCTS = blogLib.withKintonePlugins(fileExists(BLOG_PRODUCTS_PATH) ? readJSON(BLOG_PRODUCTS_PATH) : {}, products);
   const BLOG_PAGE_SIZE = Number(process.env.BLOG_PAGE_SIZE) > 0 ? Number(process.env.BLOG_PAGE_SIZE) : 20;
 
@@ -463,7 +463,7 @@ try {
       '%%SUPPORT_MAIL%%':          SUPPORT_MAIL,
       '%%SITE_COPYRIGHT%%':        SITE_COPYRIGHT,
       '%%JSONLD%%':                jsonLd,
-      // 2026-10-17 blog-seo で新規に足した差し込み(契約: CONTRACT.md 参照)
+      // 2026-10-17 blog-seo で新規に足した差し込み
       '%%CANONICAL%%':             canonical,
       '%%BREADCRUMB_HTML%%':       blogLib.buildBreadcrumbHtml(post.theme, BLOG_THEMES),
       '%%TOC_HTML%%':              blogLib.buildToc(headings),
@@ -732,7 +732,7 @@ try {
   // docs/ 側に投稿slug専用のスタブが手で置かれていれば(=既存の go 入口)それを優先し、
   // 無ければ docs/launcher/go/x/index.html と同じ作りの noindex スタブを自動で作る。
   // gep(Launcher Pro)は /pro/go/<slug>/、kintone プラグインは /kintone/go/<slug>/。
-  // mfg(製造のプラグイン)は発売前なので定義しない=知らない値と同じく枠なし+BLOG_WARN(10/17 Main)。
+  // mfg(製造のプラグイン)は発売前なので定義しない=知らない値と同じく枠なし+BLOG_WARN(2026-10-17)。
   // 発売して店に置かれたら products.json の slug でそのまま受ける
   function goStubPaths(hrefPattern, slug) {
     const rel = hrefPattern.replace('{slug}', slug).replace(/^\/+|\/+$/g, '');
