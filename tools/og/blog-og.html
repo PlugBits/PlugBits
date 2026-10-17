@@ -3,17 +3,72 @@
 <head>
 <meta charset="utf-8">
 <!--
-  ブログ記事ごとの og:image テンプレ(2026-10-17)。
+  ブログ記事ごとの og:image テンプレ(2026-10-17、v2 で変形パターンを追加)。
   tools/og/og_blog_default.html(既定画像)と同じ色・雰囲気(ダークネイビー系グラデー
   ション+ドット柄+グロー)に合わせつつ、こちらは「題名が主役」のレイアウト。
   題名はこの HTML を直接編集せず、tools/og/make-blog-og.mjs が playwright で開いた後に
-  #eyebrow / #theme-label / #title の textContent を書き換えて使う(値はプレースホルダ)。
+  #eyebrow / #theme-label / #title / #keyword の textContent を書き換えて使う(値はプレースホルダ)。
   題名の自動縮小・…での省略は make-blog-og.mjs 側のロジック(このファイルは見た目だけ)。
 
   単体で file:// で開いてもプレースホルダのまま見た目の確認ができる。
+
+  == v2(2026-10-17): 3つの見た目パターン ==
+  make-blog-og.mjs が <body> に data-variant="1|2|3" を付けた時だけ、下の
+  「variant 1/2/3」の CSS が効く。data-variant が無い(今まで通りの呼び方)なら
+  何も変わらず、元の見た目(濃紺グラデ+白文字)のまま描画される(既定は壊さない)。
+
+  同時に <body data-theme="A|B"> で地の色の濃さ・寄せ方を変える(テーマA/Bの
+  区別。新しい色相は足さず、style.css の --kb-* の範囲内で濃淡・位置をずらすだけ)。
+
+  色はすべて style.css の --kb-* をこの HTML にコピーした値(:root 参照。
+  file:// で開くため ../../style.css への link は使わず、値だけハードコードしている)。
+    --kb-ink        #0B1F33
+    --kb-primary    #3B7BD6
+    --kb-primary-600 #2D6AC0
+    --kb-primary-700 #2459A8
+    --kb-accent     #78AFFF
+    --kb-primary-050 #F4F9FF
+    --kb-primary-100 #EAF4FF
+    --kb-primary-200 #D5E8FF
+    --kb-primary-300 #BCDAFF
+    --kb-bg         #F7FBFF
+    --kb-surface    #FFFFFF
+
+  P1(濃い地+明るい文字): 地は --kb-ink → --kb-primary-700/600 のグラデ。
+    飾りは右上の薄い斜線(線)。テーマAは --kb-accent のグロー・テーマBは
+    --kb-primary-300 のグロー(位置も変え、地の濃さの寄せ方を変える)。
+  P2(明るい地+濃い文字): 地は --kb-bg(A)/--kb-primary-100(B、より青寄り)。
+    飾りは右下の薄い円の輪郭(円)。文字は --kb-ink、強調語は
+    --kb-primary(A)/--kb-primary-700(B、より濃い)。
+  P3(片側に色の帯): 左 320px を帯にし、帯色は --kb-primary(A)/--kb-primary-700
+    (B、より濃い)。帯の中は薄い格子(格子)。本文は帯の右側(白地)に寄せる。
+
+  強調語(#keyword)は P1/P2/P3 共通で、題の下に大きく出す。どの語を選ぶかは
+  make-blog-og.mjs 側で決める(コメント参照)。
+
+  == 10-17 改修: 強調語を題より大きく ==
+  強調語は題の1.5〜2倍を狙う。make-blog-og.mjs 側で題の最大フォントを
+  variant 時 64→50px に下げ(縮小の仕組みは変えていない)、強調語は
+  P1/P2 で 最大100px(題の約2倍)・P3 は帯で本文幅が狭いため最大60px
+  (題よりは大きいが P1/P2 より控えめ)。箱の位置もその分ずらした
+  (body[data-variant] .title-wrap / .keyword-wrap 参照)。
 -->
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&display=swap" rel="stylesheet">
 <style>
+  :root {
+    /* style.css の --kb-* をそのまま(新しい色相は足さない) */
+    --kb-bg: #F7FBFF;
+    --kb-surface: #FFFFFF;
+    --kb-ink: #0B1F33;
+    --kb-primary: #3B7BD6;
+    --kb-primary-050: #F4F9FF;
+    --kb-primary-100: #EAF4FF;
+    --kb-primary-200: #D5E8FF;
+    --kb-primary-300: #BCDAFF;
+    --kb-primary-600: #2D6AC0;
+    --kb-primary-700: #2459A8;
+    --kb-accent: #78AFFF;
+  }
   * { box-sizing: border-box; }
   html, body {
     margin: 0; padding: 0;
@@ -61,6 +116,25 @@
     overflow-wrap: break-word;
   }
 
+  /* 強調語(題の下)。既定(data-variant なし)では出さない */
+  .keyword-wrap {
+    position: absolute;
+    left: 80px; right: 80px;
+    top: 480px; height: 0;
+    display: none;
+    align-items: center;
+    overflow: hidden;
+  }
+  .keyword {
+    margin: 0;
+    font-weight: 800;
+    letter-spacing: 0;
+    line-height: 1.1;
+    white-space: nowrap;
+    font-size: 44px;
+    color: #7fb0ff;
+  }
+
   .footer-line {
     position: absolute; left: 80px; right: 80px; top: 512px;
     height: 2px;
@@ -74,6 +148,96 @@
   .domain {
     position: absolute; right: 80px; top: 540px;
     font-size: 18px; color: #5f6f9d;
+  }
+
+  /* 飾り(薄い幾何)。既定では全部非表示 */
+  .deco-lines, .deco-circle, .deco-band { display: none; }
+
+  /* ============================================================
+     variant 1〜3 が付いた時だけ効く(既定の見た目には影響しない)
+     ============================================================ */
+  /* 2026-10-17 改修: 強調語を題より大きく出すため、題の箱を少し下げて小さくし
+     (make-blog-og.mjs 側で題の最大フォントも 64→50 に下げる)、強調語の箱を
+     広く取る。題は50px*1.32*3行=198px<=205pxで3行まで収まる計算 */
+  body[data-variant] .title-wrap {
+    top: 86px; height: 205px;
+  }
+  body[data-variant] .keyword-wrap {
+    display: flex;
+    top: 306px; height: 150px;
+  }
+  body[data-variant] svg.bg { display: none; }
+
+  /* ---- P1: 濃い地+明るい文字(線の飾り) ---- */
+  body[data-variant="1"] .stage { background: linear-gradient(135deg, var(--kb-ink) 0%, var(--kb-primary-700) 100%); }
+  body[data-variant="1"][data-theme="B"] .stage { background: linear-gradient(135deg, var(--kb-ink) 0%, var(--kb-primary-600) 55%, var(--kb-ink) 100%); }
+  body[data-variant="1"] .title { color: #ffffff; }
+  body[data-variant="1"] .keyword { color: var(--kb-accent); }
+  body[data-variant="1"][data-theme="B"] .keyword { color: var(--kb-primary-300); }
+  body[data-variant="1"] .eyebrow { color: var(--kb-accent); }
+  body[data-variant="1"] .domain { color: rgba(255,255,255,0.45); }
+  body[data-variant="1"] .brand { color: var(--kb-accent); }
+  body[data-variant="1"] .theme-badge { background: rgba(255,255,255,0.08); border-color: rgba(255,255,255,0.2); color: #dbe8ff; }
+  body[data-variant="1"] .deco-lines {
+    display: block;
+    position: absolute; right: 0; top: 0; width: 460px; height: 460px;
+    background-image: repeating-linear-gradient(-45deg, rgba(255,255,255,0.14) 0 2px, transparent 2px 46px);
+    -webkit-mask-image: radial-gradient(circle at 100% 0%, rgba(0,0,0,1) 0%, rgba(0,0,0,1) 55%, transparent 80%);
+            mask-image: radial-gradient(circle at 100% 0%, rgba(0,0,0,1) 0%, rgba(0,0,0,1) 55%, transparent 80%);
+  }
+  body[data-variant="1"][data-theme="B"] .deco-lines { opacity: 0.7; }
+
+  /* ---- P2: 明るい地+濃い文字(円の飾り) ---- */
+  body[data-variant="2"] .stage { background: linear-gradient(160deg, var(--kb-bg) 0%, var(--kb-primary-050) 100%); }
+  body[data-variant="2"][data-theme="B"] .stage { background: linear-gradient(160deg, var(--kb-primary-100) 0%, var(--kb-primary-050) 100%); }
+  body[data-variant="2"] .title { color: var(--kb-ink); }
+  body[data-variant="2"] .keyword { color: var(--kb-primary); }
+  body[data-variant="2"][data-theme="B"] .keyword { color: var(--kb-primary-700); }
+  body[data-variant="2"] .eyebrow { color: var(--kb-primary-600); }
+  body[data-variant="2"] .brand { color: var(--kb-primary-600); }
+  body[data-variant="2"] .domain { color: #7b8794; }
+  body[data-variant="2"] .footer-line { background: linear-gradient(90deg, var(--kb-primary), var(--kb-accent)); opacity: 0.6; }
+  body[data-variant="2"] .theme-badge {
+    background: var(--kb-primary-050); border: 1.5px solid var(--kb-primary-200); color: var(--kb-primary-700);
+  }
+  body[data-variant="2"] .deco-circle {
+    display: block;
+    position: absolute; right: -60px; bottom: -80px; width: 340px; height: 340px;
+    border-radius: 50%;
+    border: 1.5px solid var(--kb-primary-200);
+    opacity: 0.6;
+  }
+  body[data-variant="2"][data-theme="B"] .deco-circle { border-color: var(--kb-primary-300); }
+
+  /* ---- P3: 片側に色の帯(格子の飾り) ---- */
+  body[data-variant="3"] .stage { background: var(--kb-surface); }
+  body[data-variant="3"] .title-wrap,
+  body[data-variant="3"] .keyword-wrap,
+  body[data-variant="3"] .brand {
+    left: 380px;
+  }
+  body[data-variant="3"] .title { color: var(--kb-ink); }
+  body[data-variant="3"] .keyword { color: var(--kb-primary); }
+  body[data-variant="3"][data-theme="B"] .keyword { color: var(--kb-primary-700); }
+  body[data-variant="3"] .brand { color: var(--kb-primary-600); }
+  body[data-variant="3"] .domain { color: #7b8794; }
+  body[data-variant="3"] .footer-line { display: none; }
+  body[data-variant="3"] .eyebrow { left: 40px; color: rgba(255,255,255,0.85); }
+  body[data-variant="3"] .theme-badge {
+    background: var(--kb-primary-050); border: 1.5px solid var(--kb-primary-200); color: var(--kb-primary-700);
+  }
+  body[data-variant="3"] .deco-band {
+    display: block;
+    position: absolute; left: 0; top: 0; width: 320px; height: 630px;
+    background: var(--kb-primary);
+  }
+  body[data-variant="3"][data-theme="B"] .deco-band { background: var(--kb-primary-700); }
+  body[data-variant="3"] .deco-band::after {
+    content: "";
+    position: absolute; inset: 0;
+    background-image:
+      repeating-linear-gradient(0deg, rgba(255,255,255,0.1) 0 1px, transparent 1px 44px),
+      repeating-linear-gradient(90deg, rgba(255,255,255,0.1) 0 1px, transparent 1px 44px);
   }
 </style>
 </head>
@@ -90,11 +254,19 @@
       <rect width="1200" height="630" fill="url(#glow)"/>
     </svg>
 
+    <div class="deco-band" id="deco-band"></div>
+    <div class="deco-lines" id="deco-lines"></div>
+    <div class="deco-circle" id="deco-circle"></div>
+
     <div class="eyebrow" id="eyebrow">PLUGBITS BLOG</div>
     <div class="theme-badge is-hidden" id="theme-badge"><span id="theme-label">テーマ名</span></div>
 
     <div class="title-wrap" id="title-wrap">
       <h1 class="title" id="title">ここに記事の題名が入ります(置き換え用のダミーです)</h1>
+    </div>
+
+    <div class="keyword-wrap" id="keyword-wrap">
+      <p class="keyword" id="keyword">強調語</p>
     </div>
 
     <div class="footer-line"></div>

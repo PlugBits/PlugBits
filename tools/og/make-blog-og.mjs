@@ -33,6 +33,18 @@
 //   --content-dir <dir>  content/blog の代わりに読むディレクトリ(既定: content/blog)
 //   --og-dir <dir>       assets/blog/og の代わりに書くディレクトリ(既定: assets/blog/og)
 //   --force              (--posts-json 用)既にある jpg も作り直す
+//   --variant 1|2|3      見た目のパターン(2026-10-17、v2)。省略時は今まで通りの
+//                        見た目(濃紺+白文字、強調語は出さない)。
+//                          1: 濃い地+明るい文字(右上に薄い斜線)
+//                          2: 明るい地+濃い文字(右下に薄い円の輪郭)
+//                          3: 片側に色の帯(帯の中に薄い格子)
+//                        テーマA/Bで地の色の濃淡・寄せ方を変える(blog-og.html の
+//                        コメント参照。新しい色相は足さず style.css の --kb-* の範囲)。
+//                        強調語(keyword の1語)は題より大きく出す(題50px台に対し
+//                        P1/P2は最大100px・P3は帯で本文幅が狭いため最大60px。
+//                        pickKeywordHighlight のコメントに語の決め方の詳細)。
+//                        --posts-json のみは keyword を持たないため、強調語は
+//                        空のまま(見た目のパターンだけ効く)。
 
 import fs from 'node:fs';
 import path from 'node:path';
@@ -93,7 +105,37 @@ function readArticle(mdPath) {
   const fm = parseFrontmatter(raw);
   const slug = fm.slug || path.basename(mdPath, '.md');
   if (!fm.title) throw new Error(`${mdPath}: frontmatter に title が無い`);
-  return { slug, title: String(fm.title), theme: fm.theme || null };
+  return { slug, title: String(fm.title), theme: fm.theme || null, keyword: fm.keyword ? String(fm.keyword) : null };
+}
+
+// 強調語(題の下に大きく出す1語)の決め方(2026-10-17、v2。10-17 改修: 1語が
+// 題より大きく見える前提で、長すぎる語は避けるルールを追加)。
+// frontmatter の keyword は「kintone 発注書 作成」のような空白区切りの語の並び
+// (基本は kintone + 絞り込みたい語)。ここでは:
+//   1. 空白で分け、"kintone"(大小無視)に一致するものを全部取り除く
+//   2. 残りの先頭の語を使う(例: 「kintone 発注書 作成」→「発注書」)
+//   3. 残りが無ければ(keyword が "kintone" だけ等)元の keyword をそのまま使う
+//   4. その語が8字を超える場合(例:「kintone 連続でデータを入力したい」の
+//      「連続でデータを入力したい」12字)は、大きなフォントで1行に収めにくいため、
+//      keyword 内の残りの語(2.の rest)を先頭から見て、2〜6字の語があればそれに
+//      差し替える。見つからなければ(今回の例のように他に語が無い等)元の語の
+//      ままにして、フォントを縮める fitKeyword の1行収めに任せる
+//   5. 取った語が英数字だけ(例: "chrome" "excel")なら大文字にする
+//      (見出し語として小文字の英単語だけだと目立たないため)
+// 単純なルールにしているため、2語目以降が本当は目立たせたい語でも1語目を取る
+// ことがある(例:「kintone chrome 拡張機能」→ "CHROME")。今回は3パターンの
+// 見た目比較が目的のため、この簡易ルールで決め、個別の語の選び直しはしない。
+function pickKeywordHighlight(keyword) {
+  if (!keyword) return '';
+  const tokens = String(keyword).trim().split(/\s+/).filter((t) => t.length > 0);
+  const rest = tokens.filter((t) => t.toLowerCase() !== 'kintone');
+  let picked = rest.length > 0 ? rest[0] : keyword.trim();
+  if (picked.length > 8) {
+    const shortCandidate = rest.find((t) => t.length >= 2 && t.length <= 6);
+    if (shortCandidate) picked = shortCandidate; // 無ければ picked は長い語のまま(fitKeyword 任せ)
+  }
+  if (/^[A-Za-z0-9]+$/.test(picked)) picked = picked.toUpperCase();
+  return picked;
 }
 
 // data/posts.json から、公開済み(status=public)で og_image を明示していない記事を拾う
@@ -111,17 +153,22 @@ function readArticlesFromPostsJson() {
     if (p.status !== 'public') continue;
     if (p.og_image && String(p.og_image).trim() !== '') continue; // og_image 明示済みは対象外
     const title = p.h1 && p.h1.length < p.title.length ? p.h1 : p.title;
-    out.push({ slug: p.slug, title: String(title), theme: p.theme || null });
+    // posts.json には theme/keyword が無い(キーワードは複数まとめの keywords)ので
+    // null のまま。--variant を付けた時も強調語は出ない(見た目のパターンだけ効く)。
+    out.push({ slug: p.slug, title: String(title), theme: p.theme || null, keyword: null });
   }
   return out;
 }
 
-async function fitTitle(page, text) {
-  return page.evaluate((text) => {
+// maxFont/minFont は既定(64/34、今まで通り)。--variant を使う時だけ呼び出し側が
+// 小さめの値(50/30)を渡し、題の下に強調語(大きい1語)を置く余白を確保する
+// (2026-10-17 改修。縮小の仕組み自体は変えていない)。
+async function fitTitle(page, text, maxFont = 64, minFont = 34) {
+  return page.evaluate(({ text, maxFont, minFont }) => {
     const el = document.getElementById('title');
     const wrap = document.getElementById('title-wrap');
-    const MAX_FONT = 64;
-    const MIN_FONT = 34;
+    const MAX_FONT = maxFont;
+    const MIN_FONT = minFont;
     const MAX_LINES = 3;
     const LINE_HEIGHT_RATIO = 1.32;
     const maxBoxHeight = wrap.clientHeight;
@@ -159,10 +206,39 @@ async function fitTitle(page, text) {
       lines: currentLines(),
       truncated,
     };
-  }, text);
+  }, { text, maxFont, minFont });
 }
 
-async function renderOne({ browser, slug, title, theme, themeLabels, outPath }) {
+// 強調語(1行・改行しない)を、keyword-wrap の幅に収まるまで縮める(2026-10-17)。
+// fitTitle と同じ考え方の簡易版(複数行対応は不要なので1行だけ)。
+// maxFont/minFont は呼び出し側が渡す(P1/P2 は 100/48、P3 は本文幅が狭いので
+// 60/32 と控えめ。2026-10-17 改修: 既定は「題より大きく」目立つ値にした)。
+async function fitKeyword(page, text, maxFont = 100, minFont = 48) {
+  if (!text) return { fontSize: maxFont, finalText: '' };
+  return page.evaluate(({ text, maxFont, minFont }) => {
+    const el = document.getElementById('keyword');
+    const wrap = document.getElementById('keyword-wrap');
+    const MAX_FONT = maxFont;
+    const MIN_FONT = minFont;
+    el.textContent = text;
+    let fontSize = MAX_FONT;
+    const setSize = (px) => { el.style.fontSize = px + 'px'; fontSize = px; };
+    const fits = () => el.scrollWidth <= wrap.clientWidth;
+    setSize(MAX_FONT);
+    while (fontSize > MIN_FONT && !fits()) setSize(fontSize - 1);
+    if (!fits()) {
+      // 最後の手段: 末尾から1文字ずつ削って … を付ける(フォントは最小のまま)
+      let t = text;
+      while (t.length > 1 && !fits()) {
+        t = t.slice(0, -1);
+        el.textContent = t + '…';
+      }
+    }
+    return { fontSize, finalText: el.textContent };
+  }, { text, maxFont, minFont });
+}
+
+async function renderOne({ browser, slug, title, theme, keyword, variant, themeLabels, outPath }) {
   const ctx = await browser.newContext({
     viewport: { width: 1200, height: 630 },
     // deviceScaleFactor: 2 だと screenshot の実ピクセルが 2400x1260 になり、og:image の
@@ -178,6 +254,7 @@ async function renderOne({ browser, slug, title, theme, themeLabels, outPath }) 
   await page.evaluate(async () => {
     const specs = [
       '900 64px "Noto Sans JP"',
+      '800 44px "Noto Sans JP"',
       '700 17px "Noto Sans JP"',
       '700 18px "Noto Sans JP"',
       '400 18px "Noto Sans JP"',
@@ -198,14 +275,30 @@ async function renderOne({ browser, slug, title, theme, themeLabels, outPath }) 
     }
   }, { themeLabel: themeInfo ? themeInfo.label : null });
 
-  const fit = await fitTitle(page, title);
+  // variant/theme を body に付ける(付けなければ CSS 側で何も変わらず元の見た目のまま)
+  if (variant) {
+    await page.evaluate(({ variant, theme }) => {
+      document.body.dataset.variant = String(variant);
+      if (theme) document.body.dataset.theme = theme;
+    }, { variant, theme });
+  }
+
+  // --variant の時だけ題の最大サイズを下げて(50/30)、強調語(題より大きい1語)の
+  // 置き場所を確保する。既定(variant なし)は今まで通り 64/34(2026-10-17 改修)
+  const [titleMaxFont, titleMinFont] = variant ? [50, 30] : [64, 34];
+  const fit = await fitTitle(page, title, titleMaxFont, titleMinFont);
+
+  const keywordHighlight = variant ? pickKeywordHighlight(keyword) : '';
+  // 強調語は題の1.5〜2倍を狙う(P1/P2は100/48、P3は帯で本文幅が狭いので60/32と控えめ)
+  const [keywordMaxFont, keywordMinFont] = variant === '3' ? [60, 32] : [100, 48];
+  const keywordFit = await fitKeyword(page, keywordHighlight, keywordMaxFont, keywordMinFont);
 
   fs.mkdirSync(path.dirname(outPath), { recursive: true });
   // JPEG(品質 85)。PNG だと 1 枚 1.2MB あり、公開リポに毎日積むと重い(2026-10-17)
   await page.screenshot({ path: outPath, type: 'jpeg', quality: 85 });
   await ctx.close();
 
-  return fit;
+  return { ...fit, keyword: keywordHighlight, keywordFontSize: keywordFit.fontSize };
 }
 
 async function main() {
@@ -222,9 +315,16 @@ async function main() {
   const postsJsonMode = argv.includes('--posts-json');
   // 既にある jpg も作り直す(現状は --posts-json でだけ意味を持つ)
   const forceFlag = argv.includes('--force');
+  // 見た目のパターン(2026-10-17、v2)。省略時は undefined=今まで通りの見た目
+  const variantRaw = opt('variant');
+  if (variantRaw !== undefined && !['1', '2', '3'].includes(variantRaw)) {
+    console.error(`!! --variant は 1|2|3 のどれか(渡されたのは "${variantRaw}")`);
+    process.exit(2);
+  }
+  const variant = variantRaw;
 
   // --xxx とその値を除いた残りを slug 引数として扱う(--posts-json / --force は値を取らないブール)
-  const valueFlags = new Set(['out', 'md', 'content-dir', 'og-dir']);
+  const valueFlags = new Set(['out', 'md', 'content-dir', 'og-dir', 'variant']);
   const slugArgs = [];
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
@@ -304,15 +404,17 @@ async function main() {
   const browser = await chromium.launch({ executablePath: CHROME_EXEC, args: ['--no-sandbox'] });
   try {
     for (const t of targets) {
-      const fit = await renderOne({ browser, slug: t.slug, title: t.title, theme: t.theme, themeLabels, outPath: t.outPath });
+      const fit = await renderOne({ browser, slug: t.slug, title: t.title, theme: t.theme, keyword: t.keyword, variant, themeLabels, outPath: t.outPath });
       console.log(JSON.stringify({
         slug: t.slug,
         out: t.outPath,
+        variant: variant || '(default)',
         文字数: t.title.length,
         フォントサイズ: fit.fontSize,
         行数: fit.lines,
         省略: fit.truncated,
         表示文字列: fit.finalText,
+        強調語: fit.keyword,
       }));
     }
   } finally {
