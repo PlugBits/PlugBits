@@ -720,12 +720,12 @@ try {
     }
   }
 
-  // 計測用の go スタブ(gep・mfg・launcher)。
+  // 計測用の go スタブ(launcher・gep・売っている kintone プラグイン)。
   // docs/ 側に投稿slug専用のスタブが手で置かれていれば(=既存の go 入口)それを優先し、
   // 無ければ docs/launcher/go/x/index.html と同じ作りの noindex スタブを自動で作る。
-  // gep(Launcher Pro=Excel Overlay)・mfg(Factory Tools)には専用の docs/ フォルダがまだ無いため、
-  // 既存の docs/launcher/go/ の作りを踏まえ、pro_url(/pro.html)・factory-tools の page_url(/factory-tools/)
-  // に合わせて /pro/go/<slug>/・/factory-tools/go/<slug>/ を新設すると決めた(報告対象)。
+  // gep(Launcher Pro)は /pro/go/<slug>/、kintone プラグインは /kintone/go/<slug>/。
+  // mfg(製造のプラグイン)は発売前なので定義しない=知らない値と同じく枠なし+BLOG_WARN(10/17 Main)。
+  // 発売して店に置かれたら products.json の slug でそのまま受ける
   function goStubPaths(hrefPattern, slug) {
     const rel = hrefPattern.replace('{slug}', slug).replace(/^\/+|\/+$/g, '');
     return {

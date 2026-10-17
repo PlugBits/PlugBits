@@ -16,14 +16,5 @@
     "stub_target": "https://plugbits.app/pro.html?utm_source=blog&utm_medium=article&utm_campaign={slug}",
     "stub_title": "PlugBits Launcher Pro|詳細ページへ移動します",
     "stub_description": "一覧をExcelのように編集。Launcher のPro機能(¥980/月、14日間無料)の詳細です。"
-  },
-  "mfg": {
-    "name": "Factory Tools",
-    "line": "レイアウト・標準時間など、製造現場向けの無料ブラウザツール集です。",
-    "href": "/factory-tools/go/{slug}/",
-    "stub_canonical": "/factory-tools/",
-    "stub_target": "https://plugbits.app/factory-tools/?utm_source=blog&utm_medium=article&utm_campaign={slug}",
-    "stub_title": "Factory Tools — 工場管理ツール集|移動します",
-    "stub_description": "レイアウト設計・検査図面・標準時間などの製造現場向けブラウザツール集です。"
   }
 }
