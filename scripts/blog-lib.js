@@ -347,7 +347,40 @@ function protectBareUrls(md) {
   }).join('');
 }
 
+/* 売っている kintone プラグイン(data/products.json の type=plugin・public・page_url=/kintone/<店の slug>/)を
+   ブログの製品の定義に足す。キーは products.json の短い slug(excel-report)と店の slug(kintone-excel-report)の
+   両方。枠は掲載名と1行、計測は /kintone/go/<記事の slug>/(10/17 Main)。既存のキー(launcher 等)は上書きしない */
+function withKintonePlugins(blogProducts, products) {
+  const out = Object.assign({}, blogProducts || {});
+  (products || []).forEach(p => {
+    if (!p || p.type !== 'plugin' || (p.status || 'public') !== 'public') return;
+    const m = /^\/kintone\/([^/]+)\/$/.exec(p.page_url || '');
+    if (!m) return;
+    const def = {
+      name: p.title_ja || p.slug,
+      line: p.short_summary_ja || '',
+      href: '/kintone/go/{slug}/',
+      stub_canonical: p.page_url,
+      stub_target: `https://plugbits.app${p.page_url}?utm_source=blog&utm_medium=article&utm_campaign={slug}`,
+      stub_title: `${p.title_ja || p.slug}|移動します`,
+      stub_description: p.short_summary_ja || '',
+    };
+    [p.slug, m[1]].forEach(k => { if (k && !out[k]) out[k] = def; });
+  });
+  return out;
+}
+
+/* frontmatter の product を正規化。知らない値は none にして warning を返す(build は止めない) */
+function resolveProduct(value, blogProducts) {
+  const v = String(value || 'none').trim();
+  if (v === 'none' || v === '') return { product: 'none', warning: null };
+  if (blogProducts && blogProducts[v]) return { product: v, warning: null };
+  return { product: 'none', warning: `unknown product "${v}"` };
+}
+
 module.exports = {
+  withKintonePlugins,
+  resolveProduct,
   protectBareUrls,
   esc,
   formatDateJa,

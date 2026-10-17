@@ -16,6 +16,8 @@ const {
   addHeadingIds,
   buildToc,
   protectBareUrls,
+  withKintonePlugins,
+  resolveProduct,
   buildBreadcrumbHtml,
   buildMetaHtml,
   buildThemeBadgeHtml,
@@ -150,6 +152,29 @@ test('findSlugConflicts finds duplicate slugs within md itself', () => {
 });
 test('findSlugConflicts returns empty array when no overlap', () => {
   assert.deepEqual(findSlugConflicts(['foo'], ['bar']), []);
+});
+
+// --- withKintonePlugins / resolveProduct ---
+const PRODUCTS_FIXTURE = [
+  { slug: 'excel-report', type: 'plugin', status: 'public', page_url: '/kintone/kintone-excel-report/', title_ja: 'Excel帳票一括生成', short_summary_ja: '一覧から帳票' },
+  { slug: 'drawing-similarity', type: 'plugin', status: 'unlisted', page_url: '/drawing/' },
+  { slug: 'launcher', type: 'extension', status: 'public', page_url: '/launcher/' },
+];
+test('withKintonePlugins adds short and store slugs for public kintone plugins', () => {
+  const m = withKintonePlugins({ launcher: { name: 'L' } }, PRODUCTS_FIXTURE);
+  assert.equal(m['excel-report'].name, 'Excel帳票一括生成');
+  assert.equal(m['kintone-excel-report'], m['excel-report']);
+  assert.equal(m['excel-report'].href, '/kintone/go/{slug}/');
+  assert.equal(m['excel-report'].stub_canonical, '/kintone/kintone-excel-report/');
+  assert.equal(m['drawing-similarity'], undefined);
+  assert.equal(m.launcher.name, 'L');
+});
+test('resolveProduct: known / none / unknown', () => {
+  const m = withKintonePlugins({}, PRODUCTS_FIXTURE);
+  assert.deepEqual(resolveProduct('kintone-excel-report', m), { product: 'kintone-excel-report', warning: null });
+  assert.deepEqual(resolveProduct(undefined, m), { product: 'none', warning: null });
+  assert.equal(resolveProduct('zzz', m).product, 'none');
+  assert.ok(resolveProduct('zzz', m).warning);
 });
 
 // --- protectBareUrls ---

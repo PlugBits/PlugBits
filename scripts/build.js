@@ -320,7 +320,8 @@ try {
   const BLOG_THEMES_PATH = path.join(ROOT, 'data', 'blog-themes.json');
   const BLOG_PRODUCTS_PATH = path.join(ROOT, 'data', 'blog-products.json');
   const BLOG_THEMES = fileExists(BLOG_THEMES_PATH) ? readJSON(BLOG_THEMES_PATH) : {};
-  const BLOG_PRODUCTS = fileExists(BLOG_PRODUCTS_PATH) ? readJSON(BLOG_PRODUCTS_PATH) : {};
+  // 売っている kintone プラグインも product に書ける(excel-report / kintone-excel-report 等。10/17 Main)
+  const BLOG_PRODUCTS = blogLib.withKintonePlugins(fileExists(BLOG_PRODUCTS_PATH) ? readJSON(BLOG_PRODUCTS_PATH) : {}, products);
   const BLOG_PAGE_SIZE = Number(process.env.BLOG_PAGE_SIZE) > 0 ? Number(process.env.BLOG_PAGE_SIZE) : 20;
 
   // 今日(Asia/Tokyo)。確認用に BLOG_TODAY=YYYY-MM-DD で上書きできる。日本に夏時間は無いので固定+9時間で足りる。
@@ -366,6 +367,10 @@ try {
       ogAssetExists,
       defaultOgImage: DEFAULT_BLOG_OG_IMAGE,
     });
+    // 知らない product は止めずに none 扱い。BLOG_WARN の行は自動公開(publish.py)が拾って通知する
+    const resolved = blogLib.resolveProduct(post.product, BLOG_PRODUCTS);
+    if (resolved.warning) console.warn(`BLOG_WARN ${post.slug}: ${resolved.warning} → none`);
+    post.product = resolved.product;
     return post;
   });
 
