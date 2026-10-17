@@ -74,7 +74,7 @@ a.pb-theme-badge:hover{background:var(--kb-primary-100);text-decoration:none}
 
 /* ---------- 6: 目次(本文の前だけ・箱をやめ左に2pxの線+小さい見出し) ---------- */
 .pb-toc{
-  max-width:720px;margin:28px auto 0;
+  max-width:720px;margin:28px auto 36px;
   padding:0 0 0 16px;border-left:2px solid var(--kb-line-strong);
 }
 .pb-toc-title{
@@ -264,7 +264,7 @@ a.pb-product-link:hover{filter:brightness(1.07);text-decoration:none}
 /* ---------- カードの共通パーツ: 一覧(pb-card)・関連(pb-related-card)の両方で使う
    OGP画像(1200×630 を 16:9 に収める)。読み込み前は --kb-line を薄い地に。 ---------- */
 .pb-card-img{
-  grid-area:img;width:100%;aspect-ratio:1200/630;object-fit:cover; /* OGP と同じ比率=焼き込んだ題が切れない(10/17 rc) */
+  grid-area:img;width:100%;height:auto;aspect-ratio:1200/630;object-fit:cover; /* OGP と同じ比率=焼き込んだ題が切れない(10/17 rc) */
   display:block;background:var(--kb-line);
 }
 
