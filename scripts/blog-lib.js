@@ -331,7 +331,24 @@ function frontmatterToPost(data, bodyRawText, contentHtmlRaw, opts) {
   };
 }
 
+/* 裸の URL を <URL> で囲む(marked の自動リンクは全角の句点や後ろの日本語までリンクに取り込むため。
+   10/17 実機: 「(経緯: https://note.com/...)。項目が…」の href が文末まで伸びた)。URL は ASCII の
+   URL 文字だけ(括弧は含めない)・末尾の . , は外す。Markdown リンク (…)・<…>・属性値の中・
+   コードブロックの中は触らない。 */
+function protectBareUrls(md) {
+  const parts = String(md || '').split(/(^```[\s\S]*?^```)/m);
+  return parts.map((part, i) => {
+    if (i % 2 === 1) return part; // フェンスの中
+    return part.replace(/(^|[^(<"'=\w/])(https?:\/\/[A-Za-z0-9\-._~:\/?#@!$&*+;=%]+)/gm, (m, pre, url) => {
+      const trail = (url.match(/[.,;:!?]+$/) || [''])[0];
+      const core = trail ? url.slice(0, -trail.length) : url;
+      return `${pre}<${core}>${trail}`;
+    });
+  }).join('');
+}
+
 module.exports = {
+  protectBareUrls,
   esc,
   formatDateJa,
   parseFrontmatter,

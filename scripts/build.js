@@ -356,7 +356,7 @@ try {
   const publishableMd = mdParsed.filter(m => blogLib.isPublishable(m.data, BLOG_TODAY));
 
   const mdPosts = publishableMd.map(({ data, body }) => {
-    const rawHtml = marked.parse(body || '');
+    const rawHtml = marked.parse(blogLib.protectBareUrls(body || ''));
     // 表は .pb-table-wrap で包む(溢れた時に表だけ横スクロール。blog.css)
     const contentHtml = blogLib.stripHtmlComments(rawHtml)
       .replace(/<table>/g, '<div class="pb-table-wrap"><table>')

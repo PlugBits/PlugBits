@@ -15,6 +15,7 @@ const {
   findSlugConflicts,
   addHeadingIds,
   buildToc,
+  protectBareUrls,
   buildBreadcrumbHtml,
   buildMetaHtml,
   buildThemeBadgeHtml,
@@ -149,6 +150,19 @@ test('findSlugConflicts finds duplicate slugs within md itself', () => {
 });
 test('findSlugConflicts returns empty array when no overlap', () => {
   assert.deepEqual(findSlugConflicts(['foo'], ['bar']), []);
+});
+
+// --- protectBareUrls ---
+test('protectBareUrls stops a bare URL before 全角の句点と日本語', () => {
+  const out = protectBareUrls('(経緯: https://note.com/plugbits/n/nc648a8a99f2e)。項目が多い');
+  assert.equal(out, '(経緯: <https://note.com/plugbits/n/nc648a8a99f2e>)。項目が多い');
+});
+test('protectBareUrls leaves markdown links, <url> and code fences alone', () => {
+  const md = '[道具](https://plugbits.app/launcher/) と <https://a.example/> と\n```\nhttps://x.example/\n```';
+  assert.equal(protectBareUrls(md), md);
+});
+test('protectBareUrls drops a trailing period from the URL', () => {
+  assert.equal(protectBareUrls('see https://a.example/x.'), 'see <https://a.example/x>.');
 });
 
 // --- addHeadingIds / buildToc ---
