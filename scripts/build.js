@@ -391,7 +391,13 @@ try {
       read_time: post.read_time,
       card_summary: post.card_summary || post.description,
       content_html: blogLib.stripHtmlComments(rawHtml),
-      og_image: post.og_image || DEFAULT_BLOG_OG_IMAGE,
+      // md と同じ決め方: 明示の og_image → assets/blog/og/<slug>.jpg が在ればそれ → 既定画像
+      og_image: blogLib.resolveOgImage(
+        post.og_image,
+        post.slug,
+        fileExists(path.join(ROOT, 'assets', 'blog', 'og', `${post.slug}.jpg`)),
+        DEFAULT_BLOG_OG_IMAGE
+      ),
       hero_label: post.hero_label,
       tool_url: post.tool_url || null,
       tool_name: post.tool_name || null,
@@ -503,8 +509,10 @@ try {
       const pageNum = idx + 1;
       const postCardsHtml = pagePosts.map(post => {
         const theme2 = post.theme && BLOG_THEMES[post.theme] ? BLOG_THEMES[post.theme] : null;
+        const cardOgSrc = `/${String(post.og_image || DEFAULT_BLOG_OG_IMAGE).replace(/^\.?\/+/, '')}`;
         return [
           `<a class="pb-card" href="/blog/${post.slug}/">`,
+          `  <img class="pb-card-img" src="${esc(cardOgSrc)}" alt="" loading="lazy" width="1200" height="630">`,
           `  <span class="pb-card-theme">${esc(theme2 ? theme2.label : '')}</span>`,
           `  <h3 class="pb-card-title">${esc(post.title)}</h3>`,
           `  <p class="pb-card-desc">${esc(post.card_summary || post.description)}</p>`,

@@ -20,7 +20,9 @@
   <style>
     /* ===== 記事レイアウト調整（このテンプレート限定・2026-07。既存6本の見た目はここで保っている） ===== */
     /* 本文の可読性：コンテンツ幅780px・17px・行間1.9・段落下1.6em */
-    .kb-article-body{max-width:828px;margin:0 auto;padding:0 24px}
+    /* 2026-10-17 見た目の第2段: 左右の余白は kb-container 側(blog.css)だけで持つ。
+       ここで padding を足すと 390px の余白が 20px の約束から外れるため、ここでは付けない */
+    .kb-article-body{max-width:828px;margin:0 auto}
     .kb-article-paragraph{font-size:17px;line-height:1.9;margin:0 0 1.6em}
     .kb-article-section{margin-top:52px}
     .kb-article-section h2{font-size:27px;line-height:1.5;margin:0 0 .8em}
@@ -36,7 +38,7 @@
     .kb-article-check li::before{left:0;top:2px}
     /* 本文中の画像（figure） */
     .kb-article-figure{margin:24px 0;max-width:100%}
-    .kb-article-figure img{display:block;width:100%;height:auto;max-width:100%;border-radius:12px;border:1px solid var(--kb-line)}
+    .kb-article-figure img{display:block;width:100%;height:auto;max-width:100%;border-radius:6px;border:1px solid var(--kb-line)}
     .kb-article-figure figcaption{margin-top:8px;font-size:13px;line-height:1.6;color:var(--kb-sub)}
   </style>
   <script type="application/ld+json">%%JSONLD%%</script>

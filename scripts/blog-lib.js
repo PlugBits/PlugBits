@@ -162,14 +162,15 @@ function selectRelatedPosts(post, allPosts, count) {
   return [...sameTheme, ...rest].slice(0, n);
 }
 
-/* 関連記事セクション。0本なら ''。 */
+/* 関連記事セクション。0本なら ''。一覧の札(pb-card)と同じ作り(上にOGP画像)で出す。 */
 function buildRelatedHtml(related, themesData) {
   const arr = Array.isArray(related) ? related : [];
   if (arr.length === 0) return '';
   const items = arr.map(p => {
     const t = p.theme && themesData ? themesData[p.theme] : null;
     const themeLabel = t ? t.label : '';
-    return `<li><a class="pb-related-card" href="/blog/${esc(p.slug)}/"><span class="pb-related-theme">${esc(themeLabel)}</span><span class="pb-related-name">${esc(p.title)}</span><span class="pb-related-date">${esc(formatDateJa(p.published_at))}</span></a></li>`;
+    const imgSrc = `/${String(p.og_image || '').replace(/^\.?\/+/, '')}`;
+    return `<li><a class="pb-related-card" href="/blog/${esc(p.slug)}/"><img class="pb-card-img" src="${esc(imgSrc)}" alt="" loading="lazy" width="1200" height="630"><span class="pb-related-theme">${esc(themeLabel)}</span><span class="pb-related-name">${esc(p.title)}</span><span class="pb-related-date">${esc(formatDateJa(p.published_at))}</span></a></li>`;
   }).join('');
   return `<section class="pb-related"><h2 class="pb-related-title">関連する記事</h2><ul class="pb-related-list">${items}</ul></section>`;
 }

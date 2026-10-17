@@ -291,11 +291,15 @@ test('buildRelatedHtml returns "" for empty list', () => {
   assert.equal(buildRelatedHtml([], THEMES), '');
 });
 test('buildRelatedHtml renders cards with theme label, title, date', () => {
-  const html = buildRelatedHtml([{ slug: 'a1', title: 'A1', theme: 'A', published_at: '2026-10-01' }], THEMES);
+  const html = buildRelatedHtml([{ slug: 'a1', title: 'A1', theme: 'A', published_at: '2026-10-01', og_image: 'assets/blog/og/a1.jpg' }], THEMES);
   assert.ok(html.startsWith('<section class="pb-related"><h2 class="pb-related-title">関連する記事</h2>'));
   assert.ok(html.includes('<span class="pb-related-theme">kintone の一覧・入力・設定</span>'));
   assert.ok(html.includes('<span class="pb-related-name">A1</span>'));
   assert.ok(html.includes('href="/blog/a1/"'));
+});
+test('buildRelatedHtml puts an OGP image at the top of each card, same as the list card', () => {
+  const html = buildRelatedHtml([{ slug: 'a1', title: 'A1', theme: 'A', published_at: '2026-10-01', og_image: 'assets/blog/og/a1.jpg' }], THEMES);
+  assert.ok(html.includes('<img class="pb-card-img" src="/assets/blog/og/a1.jpg" alt="" loading="lazy" width="1200" height="630">'));
 });
 
 // --- buildAuthorHtml ---

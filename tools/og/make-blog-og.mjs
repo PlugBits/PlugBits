@@ -22,12 +22,19 @@
 //     → content/blog/ を見ない単体テストモード。frontmatter は js-yaml で読む。
 //       (content/blog/ にまだ記事が無いうちの確認用。--out を省くと
 //        /tmp 配下の一時ファイルに書き、assets/ には何も残さない)
+//   node tools/og/make-blog-og.mjs --posts-json [--force] [<slug> ...]
+//     → content/blog/*.md ではなく data/posts.json を見るモード(担当K 2026-10-17)。
+//       status=public かつ og_image を明示していない記事だけを対象にする。題名は
+//       posts.json の title(長い時は h1 の方が短ければそちら)。既にある
+//       assets/blog/og/<slug>.jpg は --force を付けない限り作り直さない。
+//       slug を続けて渡すとその中だけに絞る。
 //
 // 共通オプション:
 //   --out <path>   出力先を1枚だけ差し替える(対象が1本のときだけ有効。本番の
-//                  assets/blog/og/ を汚さずに試すため)
+//                  assets/blog/og/ を汚さずに試すため。--posts-json とは併用不可)
 //   --content-dir <dir>  content/blog の代わりに読むディレクトリ(既定: content/blog)
 //   --og-dir <dir>       assets/blog/og の代わりに書くディレクトリ(既定: assets/blog/og)
+//   --force              (--posts-json 用)既にある jpg も作り直す
 
 import fs from 'node:fs';
 import path from 'node:path';
@@ -90,6 +97,26 @@ function readArticle(mdPath) {
   return { slug, title: String(fm.title), theme: fm.theme || null };
 }
 
+// data/posts.json から、公開済み(status=public)で og_image を明示していない記事を拾う
+// (--posts-json 用、担当K 2026-10-17)。題名は posts.json の title を基本にし、
+// h1 の方が短ければ h1 を使う(はみ出しにくい方を選ぶ)。
+function readArticlesFromPostsJson() {
+  const postsPath = path.join(REPO_ROOT, 'data', 'posts.json');
+  if (!fs.existsSync(postsPath)) {
+    console.error(`!! ${postsPath} が無い`);
+    process.exit(2);
+  }
+  const posts = JSON.parse(fs.readFileSync(postsPath, 'utf-8'));
+  const out = [];
+  for (const p of posts) {
+    if (p.status !== 'public') continue;
+    if (p.og_image && String(p.og_image).trim() !== '') continue; // og_image 明示済みは対象外
+    const title = p.h1 && p.h1.length < p.title.length ? p.h1 : p.title;
+    out.push({ slug: p.slug, title: String(title), theme: p.theme || null });
+  }
+  return out;
+}
+
 async function fitTitle(page, text) {
   return page.evaluate((text) => {
     const el = document.getElementById('title');
@@ -139,7 +166,9 @@ async function fitTitle(page, text) {
 async function renderOne({ browser, slug, title, theme, themeLabels, outPath }) {
   const ctx = await browser.newContext({
     viewport: { width: 1200, height: 630 },
-    deviceScaleFactor: 2,
+    // deviceScaleFactor: 2 だと screenshot の実ピクセルが 2400x1260 になり、og:image の
+    // 規定(1200x630)とずれる(担当K 2026-10-17、--posts-json 対応時に確認して修正)。
+    deviceScaleFactor: 1,
   });
   const page = await ctx.newPage();
   const fileUrl = 'file://' + TEMPLATE_PATH;
@@ -190,14 +219,18 @@ async function main() {
   const mdOverride = opt('md');
   const contentDir = path.resolve(REPO_ROOT, opt('content-dir') || path.join('content', 'blog'));
   const ogDir = path.resolve(REPO_ROOT, opt('og-dir') || path.join('assets', 'blog', 'og'));
+  // data/posts.json の記事から og_image 未指定のものをまとめて作るモード(担当K 2026-10-17)
+  const postsJsonMode = argv.includes('--posts-json');
+  // 既にある jpg も作り直す(現状は --posts-json でだけ意味を持つ)
+  const forceFlag = argv.includes('--force');
 
-  // --xxx とその値を除いた残りを slug 引数として扱う
-  const flags = new Set(['out', 'md', 'content-dir', 'og-dir']);
+  // --xxx とその値を除いた残りを slug 引数として扱う(--posts-json / --force は値を取らないブール)
+  const valueFlags = new Set(['out', 'md', 'content-dir', 'og-dir']);
   const slugArgs = [];
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     if (a.startsWith('--')) {
-      if (flags.has(a.slice(2))) i++; // 値をスキップ
+      if (valueFlags.has(a.slice(2))) i++; // 値をスキップ
       continue;
     }
     slugArgs.push(a);
@@ -215,6 +248,21 @@ async function main() {
       ? path.resolve(outOverride)
       : path.join(os.tmpdir(), `blog-og-test-${art.slug}.jpg`);
     targets.push({ ...art, outPath });
+  } else if (postsJsonMode) {
+    // data/posts.json 側のモード(担当K 2026-10-17): 公開済みで og_image 未指定の記事を
+    // まとめて作る。slug を一緒に渡した時はその中だけに絞る。既にある jpg は --force
+    // が無い限り作り直さない。
+    if (outOverride) {
+      console.error('!! --out は --posts-json とは併用不可(対象が複数件になりうる)');
+      process.exit(2);
+    }
+    const articles = readArticlesFromPostsJson();
+    const wanted = slugArgs.length > 0 ? articles.filter((a) => slugArgs.includes(a.slug)) : articles;
+    for (const art of wanted) {
+      const outPath = path.join(ogDir, `${art.slug}.jpg`);
+      if (fs.existsSync(outPath) && !forceFlag) continue; // 既にある jpg は作り直さない(--force で作り直す)
+      targets.push({ ...art, outPath });
+    }
   } else if (slugArgs.length > 0) {
     if (outOverride && slugArgs.length > 1) {
       console.error('!! --out は対象が1本のときだけ使える(slug を複数渡した)');
