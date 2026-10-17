@@ -33,8 +33,8 @@
 //   --content-dir <dir>  content/blog の代わりに読むディレクトリ(既定: content/blog)
 //   --og-dir <dir>       assets/blog/og の代わりに書くディレクトリ(既定: assets/blog/og)
 //   --force              (--posts-json 用)既にある jpg も作り直す
-//   --variant 1|2|3      見た目のパターン(2026-10-17、v2)。省略時は今まで通りの
-//                        見た目(濃紺+白文字、強調語は出さない)。
+//   --variant 1|2|3      見た目のパターン(2026-10-17、v2)。省略時はテーマで決める
+//                        (B=2・A とテーマ無し=1)。
 //                          1: 濃い地+明るい文字(右上に薄い斜線)
 //                          2: 明るい地+濃い文字(右下に薄い円の輪郭)
 //                          3: 片側に色の帯(帯の中に薄い格子)
@@ -43,8 +43,8 @@
 //                        強調語(keyword の1語)は題より大きく出す(題50px台に対し
 //                        P1/P2は最大100px・P3は帯で本文幅が狭いため最大60px。
 //                        pickKeywordHighlight のコメントに語の決め方の詳細)。
-//                        --posts-json のみは keyword を持たないため、強調語は
-//                        空のまま(見た目のパターンだけ効く)。
+//                        --posts-json は posts.json の keywords の先頭を keyword に使う。
+//                        大きく出す語を決め打ちしたい時は og_keyword(frontmatter・posts.json とも任意)。
 
 import fs from 'node:fs';
 import path from 'node:path';
@@ -105,7 +105,7 @@ function readArticle(mdPath) {
   const fm = parseFrontmatter(raw);
   const slug = fm.slug || path.basename(mdPath, '.md');
   if (!fm.title) throw new Error(`${mdPath}: frontmatter に title が無い`);
-  return { slug, title: String(fm.title), theme: fm.theme || null, keyword: fm.keyword ? String(fm.keyword) : null };
+  return { slug, title: String(fm.title), theme: fm.theme || null, keyword: fm.og_keyword ? String(fm.og_keyword) : (fm.keyword ? String(fm.keyword) : null) };
 }
 
 // 強調語(題の下に大きく出す1語)の決め方(2026-10-17、v2。10-17 改修: 1語が
@@ -155,7 +155,9 @@ function readArticlesFromPostsJson() {
     const title = p.h1 && p.h1.length < p.title.length ? p.h1 : p.title;
     // posts.json には theme/keyword が無い(キーワードは複数まとめの keywords)ので
     // null のまま。--variant を付けた時も強調語は出ない(見た目のパターンだけ効く)。
-    out.push({ slug: p.slug, title: String(title), theme: p.theme || null, keyword: null });
+    // keyword は posts.json の keywords(カンマ区切り)の先頭を使う(2026-10-17 v2 を既定にした時)
+    const kw = p.og_keyword ? String(p.og_keyword) : (String(p.keywords || '').split(/[,、]/)[0].trim() || null);
+    out.push({ slug: p.slug, title: String(title), theme: p.theme || null, keyword: kw });
   }
   return out;
 }
@@ -236,6 +238,11 @@ async function fitKeyword(page, text, maxFont = 100, minFont = 48) {
     }
     return { fontSize, finalText: el.textContent };
   }, { text, maxFont, minFont });
+}
+
+// --variant を付けない時の既定(2026-10-17): テーマ B=2(明るい地)、それ以外(A・テーマ無し)=1(濃い地)
+function autoVariant(theme) {
+  return theme === 'B' ? '2' : '1';
 }
 
 async function renderOne({ browser, slug, title, theme, keyword, variant, themeLabels, outPath }) {
@@ -404,11 +411,11 @@ async function main() {
   const browser = await chromium.launch({ executablePath: CHROME_EXEC, args: ['--no-sandbox'] });
   try {
     for (const t of targets) {
-      const fit = await renderOne({ browser, slug: t.slug, title: t.title, theme: t.theme, keyword: t.keyword, variant, themeLabels, outPath: t.outPath });
+      const fit = await renderOne({ browser, slug: t.slug, title: t.title, theme: t.theme, keyword: t.keyword, variant: variant || autoVariant(t.theme), themeLabels, outPath: t.outPath });
       console.log(JSON.stringify({
         slug: t.slug,
         out: t.outPath,
-        variant: variant || '(default)',
+        variant: variant || autoVariant(t.theme),
         文字数: t.title.length,
         フォントサイズ: fit.fontSize,
         行数: fit.lines,

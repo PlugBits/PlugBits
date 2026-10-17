@@ -379,7 +379,17 @@ function resolveProduct(value, blogProducts) {
   return { product: 'none', warning: `unknown product "${v}"` };
 }
 
+/* 段落に画像が 1 枚だけの時(md の ![alt](src "キャプション"))を figure にする。title があれば figcaption に。
+   幅・高さの属性は付けない(画像ごとに違うため)。loading="lazy" を付ける(2026-10-17) */
+function figureizeImages(html) {
+  return String(html || '').replace(
+    /<p><img src="([^"]+)" alt="([^"]*)"(?: title="([^"]*)")?\s*\/?><\/p>/g,
+    (m, src, alt, title) => `<figure><img src="${src}" alt="${alt}" loading="lazy">${title ? `<figcaption>${title}</figcaption>` : ''}</figure>`
+  );
+}
+
 module.exports = {
+  figureizeImages,
   withKintonePlugins,
   resolveProduct,
   protectBareUrls,

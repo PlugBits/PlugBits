@@ -16,6 +16,7 @@ const {
   addHeadingIds,
   buildToc,
   protectBareUrls,
+  figureizeImages,
   withKintonePlugins,
   resolveProduct,
   buildBreadcrumbHtml,
@@ -175,6 +176,17 @@ test('resolveProduct: known / none / unknown', () => {
   assert.deepEqual(resolveProduct(undefined, m), { product: 'none', warning: null });
   assert.equal(resolveProduct('zzz', m).product, 'none');
   assert.ok(resolveProduct('zzz', m).warning);
+});
+
+// --- figureizeImages ---
+test('figureizeImages turns a lone image paragraph into figure with caption', () => {
+  const html = '<p>前</p>\n<p><img src="/assets/blog/img/a-1.png" alt="画面" title="説明です"></p>';
+  assert.equal(figureizeImages(html), '<p>前</p>\n<figure><img src="/assets/blog/img/a-1.png" alt="画面" loading="lazy"><figcaption>説明です</figcaption></figure>');
+});
+test('figureizeImages without title has no figcaption and leaves inline images alone', () => {
+  assert.equal(figureizeImages('<p><img src="x.png" alt="a"></p>'), '<figure><img src="x.png" alt="a" loading="lazy"></figure>');
+  const inline = '<p>文 <img src="x.png" alt="a"> 文</p>';
+  assert.equal(figureizeImages(inline), inline);
 });
 
 // --- protectBareUrls ---
