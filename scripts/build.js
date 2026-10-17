@@ -362,7 +362,7 @@ try {
     const contentHtml = blogLib.stripHtmlComments(rawHtml)
       .replace(/<table>/g, '<div class="pb-table-wrap"><table>')
       .replace(/<\/table>/g, '</table></div>');
-    const ogAssetExists = fileExists(path.join(ROOT, 'assets', 'blog', 'og', `${data.slug}.png`));
+    const ogAssetExists = fileExists(path.join(ROOT, 'assets', 'blog', 'og', `${data.slug}.jpg`));
     const post = blogLib.frontmatterToPost(data, body, contentHtml, {
       ogAssetExists,
       defaultOgImage: DEFAULT_BLOG_OG_IMAGE,

@@ -418,7 +418,7 @@ test('resolveOgImage prefers md og_image', () => {
   assert.equal(resolveOgImage('custom.png', 'slug', true, 'default.png'), 'custom.png');
 });
 test('resolveOgImage falls back to per-slug asset when it exists', () => {
-  assert.equal(resolveOgImage('', 'my-slug', true, 'default.png'), 'assets/blog/og/my-slug.png');
+  assert.equal(resolveOgImage('', 'my-slug', true, 'default.png'), 'assets/blog/og/my-slug.jpg');
 });
 test('resolveOgImage falls back to default image otherwise', () => {
   assert.equal(resolveOgImage('', 'my-slug', false, 'default.png'), 'default.png');

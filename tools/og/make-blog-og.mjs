@@ -15,7 +15,7 @@
 //
 // 使い方:
 //   node tools/og/make-blog-og.mjs
-//     → content/blog/*.md のうち assets/blog/og/<slug>.png が無いものを全部作る
+//     → content/blog/*.md のうち assets/blog/og/<slug>.jpg が無いものを全部作る
 //   node tools/og/make-blog-og.mjs <slug> [<slug>...]
 //     → 指定した記事だけ、既にあっても作り直す(content/blog/<slug>.md を読む)
 //   node tools/og/make-blog-og.mjs --md <path/to/試し.md> --out <path/to/出力.png>
@@ -173,7 +173,8 @@ async function renderOne({ browser, slug, title, theme, themeLabels, outPath }) 
   const fit = await fitTitle(page, title);
 
   fs.mkdirSync(path.dirname(outPath), { recursive: true });
-  await page.screenshot({ path: outPath });
+  // JPEG(品質 85)。PNG だと 1 枚 1.2MB あり、公開リポに毎日積むと重い(rc 10/17)
+  await page.screenshot({ path: outPath, type: 'jpeg', quality: 85 });
   await ctx.close();
 
   return fit;
@@ -212,7 +213,7 @@ async function main() {
     const art = readArticle(mdPath);
     const outPath = outOverride
       ? path.resolve(outOverride)
-      : path.join(os.tmpdir(), `blog-og-test-${art.slug}.png`);
+      : path.join(os.tmpdir(), `blog-og-test-${art.slug}.jpg`);
     targets.push({ ...art, outPath });
   } else if (slugArgs.length > 0) {
     if (outOverride && slugArgs.length > 1) {
@@ -226,7 +227,7 @@ async function main() {
         process.exit(2);
       }
       const art = readArticle(mdPath);
-      const outPath = outOverride ? path.resolve(outOverride) : path.join(ogDir, `${art.slug}.png`);
+      const outPath = outOverride ? path.resolve(outOverride) : path.join(ogDir, `${art.slug}.jpg`);
       targets.push({ ...art, outPath });
     }
   } else {
@@ -242,7 +243,7 @@ async function main() {
     for (const f of files) {
       const mdPath = path.join(contentDir, f);
       const art = readArticle(mdPath);
-      const outPath = path.join(ogDir, `${art.slug}.png`);
+      const outPath = path.join(ogDir, `${art.slug}.jpg`);
       if (fs.existsSync(outPath)) continue; // 既にあるものは作り直さない
       targets.push({ ...art, outPath });
     }

@@ -293,11 +293,11 @@ function buildGoStub({ canonicalUrl, redirectUrl, pageTitle, ogDescription }) {
 </html>`;
 }
 
-/* og_image の決め方: md の og_image → assets/blog/og/<slug>.png が在ればそれ → 既定画像。
+/* og_image の決め方: md の og_image → assets/blog/og/<slug>.jpg が在ればそれ → 既定画像。
    ファイル存在チェックは呼び側(build.js)の責務なので、ここでは ogAssetExists を bool で受け取る。 */
 function resolveOgImage(mdOgImage, slug, ogAssetExists, defaultImage) {
   if (mdOgImage) return mdOgImage;
-  if (ogAssetExists) return `assets/blog/og/${slug}.png`;
+  if (ogAssetExists) return `assets/blog/og/${slug}.jpg`;
   return defaultImage;
 }
 
