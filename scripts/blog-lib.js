@@ -366,7 +366,9 @@ function withKintonePlugins(blogProducts, products) {
       stub_title: `${p.title_ja || p.slug}|移動します`,
       stub_description: p.short_summary_ja || '',
     };
-    [p.slug, m[1]].forEach(k => { if (k && !out[k]) out[k] = def; });
+    // 下書きの決まり(_brief-common の product の値)は店の slug から kintone- を外した短い名前
+    // (gallery・rule-builder)。products.json の slug(gallery-plugin・text-rule-builder)と違うので、それも足す(2026-10-18)
+    [p.slug, m[1], m[1].replace(/^kintone-/, '')].forEach(k => { if (k && !out[k]) out[k] = def; });
   });
   return out;
 }
