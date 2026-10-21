@@ -324,3 +324,15 @@ a { color: var(--accent); }
 /* 請求書払いの 1 行(一覧・商品ページ) */
 .invoice-line { font-size: 14px; color: var(--muted); margin: 0 0 20px; }
 .buy-panel .invoice-line { margin: 8px 0 0; }
+
+/* キー紛失時の再送フォーム(商品ページ共通) */
+.license-recover-block { margin-top: 14px; }
+.license-recover-block p { margin: 0 0 10px; }
+.license-recover { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 10px; }
+.license-recover .license-recover-field { display: flex; flex-direction: column; gap: 4px; flex: 1 1 220px; min-width: 0; }
+.license-recover label { font-size: 12px; color: var(--muted); }
+.license-recover input[type="email"] { width: 100%; min-height: 42px; padding: 0 12px; border-radius: 10px; border: 1px solid var(--line); background: #fff; color: var(--text); font-size: 14px; }
+.license-recover input[type="email"]:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+.license-recover button { flex: 0 0 auto; min-height: 42px; padding: 0 16px; border-radius: 10px; border: 1px solid var(--line); background: var(--panel); color: var(--accent); font-weight: 600; font-size: 14px; cursor: pointer; }
+.license-recover button:disabled { opacity: 0.6; cursor: default; }
+.license-recover .license-recover-message { flex: 1 1 100%; margin: 4px 0 0; font-size: 13px; color: var(--muted); min-height: 1.4em; }

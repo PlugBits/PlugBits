@@ -127,6 +127,17 @@
       <li>対象アプリの設定で、追加したプラグインをアプリに追加します</li>
       <li>プラグインの設定画面を開き、「ライセンス」欄にキーを入れて保存します(同じドメインの 2 つ目以降のアプリでは不要です。未購入なら「14日間 無料で試す」から試用を開始できます)</li>
     </ol>
+    <div class="license-recover-block" id="recover">
+      <p>キーを紛失した場合: 購入時のメールアドレスを入れて送信すると、そのアドレスにキーをもう一度お送りします。</p>
+      <form data-license-recover data-product="kintone-gallery" class="license-recover">
+        <div class="license-recover-field">
+          <label for="recover-email-gallery">購入時のメールアドレス</label>
+          <input type="email" id="recover-email-gallery" name="email" autocomplete="email" required>
+        </div>
+        <button type="submit">キーを再送する</button>
+        <p class="license-recover-message" role="status" aria-live="polite"></p>
+      </form>
+    </div>
   </section>
 
   <section class="card setup">
@@ -166,5 +177,6 @@
 
 <script src="../video.js"></script>
 <script src="../lightbox.js"></script>
+<script src="/assets/license-recover.js" defer></script>
 </body>
 </html>

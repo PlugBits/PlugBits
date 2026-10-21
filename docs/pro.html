@@ -463,6 +463,62 @@
       text-decoration: underline;
       text-underline-offset: 3px;
     }
+    /* ── キー紛失時の再送フォーム ───────────────────────────── */
+    .license-recover {
+      margin-top: 14px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: flex-start;
+      gap: 10px;
+    }
+    .license-recover .license-recover-field {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      flex: 1 1 220px;
+      min-width: 0;
+    }
+    .license-recover label {
+      font-size: 12px;
+      color: var(--muted);
+    }
+    .license-recover input[type="email"] {
+      width: 100%;
+      min-height: 44px;
+      padding: 0 14px;
+      border-radius: 12px;
+      border: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.03);
+      color: var(--text);
+      font-size: 14px;
+    }
+    .license-recover input[type="email"]:focus {
+      outline: 2px solid var(--accent);
+      outline-offset: 1px;
+    }
+    .license-recover button {
+      flex: 0 0 auto;
+      min-height: 44px;
+      padding: 0 18px;
+      border-radius: 12px;
+      border: 1px solid var(--line);
+      background: var(--accent-soft);
+      color: var(--text);
+      font-weight: 600;
+      font-size: 14px;
+      cursor: pointer;
+    }
+    .license-recover button:disabled {
+      opacity: 0.6;
+      cursor: default;
+    }
+    .license-recover .license-recover-message {
+      flex: 1 1 100%;
+      margin: 4px 0 0;
+      font-size: 13px;
+      color: var(--muted);
+      min-height: 1.4em;
+    }
 
     /* ── Footer CTA ──────────────────────────────────────────── */
     .footer-cta {
@@ -751,6 +807,20 @@
               Chrome 拡張のアイコン → 設定 → Pro ライセンスタブに入力してください。
             </dd>
           </div>
+          <div class="faq-item" id="recover">
+            <dt>キーを紛失した場合は？</dt>
+            <dd>
+              購入時のメールアドレスを入れて送信すると、そのアドレスにキーをもう一度お送りします。
+              <form data-license-recover data-product="grid-edit-pro" class="license-recover">
+                <div class="license-recover-field">
+                  <label for="recover-email">購入時のメールアドレス</label>
+                  <input type="email" id="recover-email" name="email" autocomplete="email" required>
+                </div>
+                <button type="submit">キーを再送する</button>
+                <p class="license-recover-message" role="status" aria-live="polite"></p>
+              </form>
+            </dd>
+          </div>
           <div class="faq-item">
             <dt>解約はできますか？</dt>
             <dd>
@@ -859,6 +929,7 @@
     }
   })();
   </script>
+<script src="/assets/license-recover.js" defer></script>
 <!-- Cloudflare Web Analytics --><script defer src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon='{"token": "86511d1154774394986239de33d21882"}'></script><!-- End Cloudflare Web Analytics -->
 </body>
 </html>
