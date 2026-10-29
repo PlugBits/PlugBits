@@ -31,6 +31,8 @@ const DEFAULT_BLOG_OG_IMAGE = 'assets/blog/og_blog_default.png';
 // Drawing(図面の類似検索)は2026年9月30日に提供を終了したため、案内ページのみ残し
 // sitemap からは外している(/drawing/, /drawing/demo/)。
 const DOCS_INDEXABLE_PAGES = ['/factory-tools/', '/launcher/'];
+// 英語版 Launcher LP は docs/launcher/en/ が手書きで置かれたときだけ sitemap に載せる(存在しないページを載せない)
+const DOCS_INDEXABLE_EN_PAGES = ['/launcher/en/'];
 
 function esc(s) {
   return String(s ?? '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
@@ -777,6 +779,10 @@ try {
   // docs/ にそのまま置いている独立LP。products.json 由来ではないので
   // 明示的に列挙する（/drawing/setup.html のような申込後ページは載せない）。
   urls.push(...DOCS_INDEXABLE_PAGES);
+  for (const u of DOCS_INDEXABLE_EN_PAGES) {
+    const f = path.join(ROOT, 'docs', u.replace(/^\/+|\/+$/g, ''), 'index.html');
+    if (fileExists(f)) urls.push(u);
+  }
   urls.push('/blog/');
   for (const key of Object.keys(BLOG_THEMES)) urls.push(`/blog/${BLOG_THEMES[key].slug}/`);
   for (const post of allBlogPosts) urls.push(`/blog/${post.slug}/`); // 一覧のページ送りは入れない
@@ -784,6 +790,35 @@ try {
     urls.map(u => `<url><loc>${SITE_ORIGIN}${u}</loc></url>`).join('') + '</urlset>'
   );
   fs.writeFileSync(path.join(DIST, 'sitemap.xml'), xml);
+
+  // hreflang: ja/en が両方そろって dist/ にあるページだけに <link rel="alternate"> を入れる。
+  // x-default は ja。Launcher LP(docs/launcher/)は手書きなので対象外。
+  const hreflangPairs = [['/index.html', '/en/index.html', '/', '/en/']];
+  for (const p of plugins) {
+    if (p.redirect_to) continue;
+    hreflangPairs.push([`/products/${p.slug}.html`, `/products/en/${p.slug}.html`]);
+    if (fileExists(path.join(MANUALS_SRC, `${p.slug}.ja.md`)) && fileExists(path.join(MANUALS_SRC, `${p.slug}.en.md`))) {
+      hreflangPairs.push([`/products/${p.slug}-manual.html`, `/products/en/${p.slug}-manual.html`]);
+    }
+  }
+  let hreflangPages = 0;
+  for (const [jaPath, enPath, jaUrlPath, enUrlPath] of hreflangPairs) {
+    const jaFile = path.join(DIST, jaPath), enFile = path.join(DIST, enPath);
+    if (!fileExists(jaFile) || !fileExists(enFile)) continue;
+    const jaUrl = SITE_ORIGIN + (jaUrlPath || jaPath), enUrl = SITE_ORIGIN + (enUrlPath || enPath);
+    const tags = `<link rel="alternate" hreflang="ja" href="${jaUrl}">` +
+      `<link rel="alternate" hreflang="en" href="${enUrl}">` +
+      `<link rel="alternate" hreflang="x-default" href="${jaUrl}">`;
+    for (const f of [jaFile, enFile]) {
+      const html = readText(f);
+      if (/hreflang=/i.test(html)) continue;
+      const heads = html.match(/<\/head>/gi);
+      if (!heads || heads.length !== 1) continue;
+      fs.writeFileSync(f, html.replace(/<\/head>/i, tags + '</head>'));
+      hreflangPages++;
+    }
+  }
+  console.log(`hreflang tags: ${hreflangPages} page(s)`);
 
   // ファビコン: テンプレート・docs/・404 など出どころが散っているので、
   // 書き出し後の dist/ の全 HTML の </head> の前に一括で入れる(自前で icon を持つページは触らない)

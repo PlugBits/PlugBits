@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PlugBits Launcher — Getting Started</title>
+    <link rel="canonical" href="https://plugbits.app/launcher/en/manual.html" />
+    <meta property="og:url" content="https://plugbits.app/launcher/en/manual.html" />
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+      :root {
+        --bg: #f5f6fa;
+        --surface: #ffffff;
+        --border: #e4e6ef;
+        --text: #1a1d2e;
+        --muted: #6b7280;
+        --accent: #3b5bdb;
+        --accent-light: #eef2ff;
+        --success: #2f9e44;
+        --success-light: #ebfbee;
+        --step-bg: #f8f9ff;
+        --radius: 12px;
+        --shadow: 0 1px 4px rgba(0,0,0,0.06), 0 4px 16px rgba(0,0,0,0.04);
+      }
+
+
+      * { box-sizing: border-box; margin: 0; padding: 0; }
+
+      body {
+        font-family: 'Noto Sans JP', sans-serif;
+        background: var(--bg);
+        color: var(--text);
+        line-height: 1.7;
+        font-size: 15px;
+      }
+
+      /* Header */
+      header {
+        background: var(--surface);
+        border-bottom: 1px solid var(--border);
+        padding: 20px 24px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        position: sticky;
+        top: 0;
+        z-index: 100;
+      }
+
+      .logo {
+        width: 36px;
+        height: 36px;
+        background: var(--accent);
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-weight: 700;
+        font-size: 16px;
+        font-family: 'DM Mono', monospace;
+      }
+
+      header h1 {
+        font-size: 16px;
+        font-weight: 700;
+        color: var(--text);
+      }
+
+      header span {
+        font-size: 13px;
+        color: var(--muted);
+        margin-left: 4px;
+      }
+
+      /* Layout */
+      .container {
+        max-width: 780px;
+        margin: 0 auto;
+        padding: 40px 24px 80px;
+      }
+
+      /* Hero */
+      .hero {
+        text-align: center;
+        margin-bottom: 48px;
+      }
+
+      .hero h2 {
+        font-size: 28px;
+        font-weight: 700;
+        margin-bottom: 10px;
+        letter-spacing: -0.5px;
+      }
+
+      .hero p {
+        color: var(--muted);
+        font-size: 15px;
+      }
+
+      /* Notice */
+      .notice {
+        background: var(--accent-light);
+        border: 1px solid #c5d0fa;
+        border-radius: var(--radius);
+        padding: 16px 20px;
+        margin-bottom: 40px;
+        font-size: 14px;
+        color: var(--accent);
+        display: flex;
+        gap: 10px;
+        align-items: flex-start;
+      }
+
+      .notice-icon { font-size: 18px; flex-shrink: 0; margin-top: 1px; }
+
+      /* Section */
+      .section {
+        margin-bottom: 48px;
+      }
+
+      .section-label {
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 1.5px;
+        text-transform: uppercase;
+        color: var(--accent);
+        margin-bottom: 8px;
+      }
+
+      .section h3 {
+        font-size: 20px;
+        font-weight: 700;
+        margin-bottom: 20px;
+        padding-bottom: 12px;
+        border-bottom: 2px solid var(--border);
+      }
+
+      /* Steps */
+      .steps {
+        display: flex;
+        flex-direction: column;
+        gap: 0;
+      }
+
+      .step {
+        display: flex;
+        gap: 20px;
+        position: relative;
+      }
+
+      .step:not(:last-child)::before {
+        content: '';
+        position: absolute;
+        left: 19px;
+        top: 44px;
+        bottom: 0;
+        width: 2px;
+        background: var(--border);
+      }
+
+      .step-num {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: var(--accent);
+        color: white;
+        font-weight: 700;
+        font-size: 14px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        font-family: 'DM Mono', monospace;
+        position: relative;
+        z-index: 1;
+      }
+
+      .step-body {
+        flex: 1;
+        padding-bottom: 32px;
+      }
+
+      .step-body h4 {
+        font-size: 16px;
+        font-weight: 700;
+        margin-bottom: 8px;
+        margin-top: 8px;
+      }
+
+      .step-body p {
+        color: var(--muted);
+        font-size: 14px;
+        margin-bottom: 16px;
+      }
+
+      /* Screenshot */
+      .screenshot {
+        border-radius: var(--radius);
+        border: 1px solid var(--border);
+        box-shadow: var(--shadow);
+        width: 100%;
+        display: block;
+        margin-top: 12px;
+      }
+
+      .screenshot-sm {
+        max-width: 480px;
+      }
+
+      .screenshot-caption {
+        font-size: 12px;
+        color: var(--muted);
+        margin-top: 8px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+
+      /* Alert */
+      .alert {
+        border-radius: 8px;
+        padding: 12px 16px;
+        font-size: 13px;
+        margin-top: 12px;
+        display: flex;
+        gap: 8px;
+        align-items: flex-start;
+      }
+
+      .alert-warning {
+        background: #fff9db;
+        border: 1px solid #ffd43b;
+        color: #74550a;
+      }
+
+      .alert-success {
+        background: var(--success-light);
+        border: 1px solid #8ce99a;
+        color: var(--success);
+      }
+
+      .alert-icon { flex-shrink: 0; margin-top: 1px; }
+
+      /* Code */
+      code {
+        font-family: 'DM Mono', monospace;
+        background: #f1f3f9;
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-size: 13px;
+        color: var(--accent);
+      }
+
+      /* FAQ */
+      .faq-list {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+
+      .faq-item {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 20px;
+        box-shadow: var(--shadow);
+      }
+
+      .faq-item h4 {
+        font-size: 14px;
+        font-weight: 700;
+        margin-bottom: 8px;
+        display: flex;
+        gap: 8px;
+        align-items: flex-start;
+      }
+
+      .faq-item h4::before {
+        content: 'Q.';
+        color: var(--accent);
+        font-family: 'DM Mono', monospace;
+        flex-shrink: 0;
+      }
+
+      .faq-item p {
+        font-size: 14px;
+        color: var(--muted);
+        padding-left: 26px;
+      }
+
+      /* Card */
+      .card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 24px;
+        box-shadow: var(--shadow);
+        margin-bottom: 16px;
+      }
+
+      /* Footer */
+      footer {
+        text-align: center;
+        padding: 40px 24px;
+        color: var(--muted);
+        font-size: 13px;
+        border-top: 1px solid var(--border);
+        margin-top: 40px;
+      }
+
+      footer a {
+        color: var(--accent);
+        text-decoration: none;
+      }
+
+      @media (max-width: 600px) {
+        .hero h2 { font-size: 22px; }
+        .container { padding: 24px 16px 60px; }
+      }
+
+    </style>
+    <link rel="alternate" hreflang="ja" href="https://plugbits.app/launcher/manual.html" />
+  <link rel="alternate" hreflang="en" href="https://plugbits.app/launcher/en/manual.html" />
+  <link rel="alternate" hreflang="x-default" href="https://plugbits.app/launcher/manual.html" />
+  </head>
+  <body>
+
+    <header>
+      <div class="logo">P</div>
+      <div>
+        <h1>PlugBits Launcher <span>for kintone</span></h1>
+      </div>
+    </header>
+
+    <div class="container">
+
+      <div class="hero">
+        <h2>Getting Started</h2>
+        <p>From install to initial setup in about 5 minutes.</p>
+      </div>
+
+      <div class="notice">
+        <span class="notice-icon">ℹ️</span>
+        <div>Right after installing, you need to set up <strong>host access permission</strong>. Without this step, Watchlist and Shortcuts will not work. Follow the steps below to set it up.</div>
+      </div>
+
+      <!-- STEP 1: Host permission -->
+
+      <div class="section">
+        <div class="section-label">STEP 01</div>
+        <h3>Set up host access permission</h3>
+
+      <div class="steps">
+
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-body">
+          <h4>Open the settings screen</h4>
+          <p>Click the ⚙️ icon in the top right of the Side Panel to open settings.</p>
+          <img src="../assets/setting-icon.png" alt="Initial state of the Side Panel" class="screenshot screenshot-sm">
+          <div class="screenshot-caption">⬆ Open settings from the gear icon in the top right of the Side Panel</div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-body">
+          <h4>Enter your kintone URL and click "Allow this host"</h4>
+          <p>In the "Host access permission" field on the settings screen, enter your company's kintone URL (e.g., <code>https://xxx.cybozu.com/k/</code>), then click "Allow this host."</p>
+          <img src="../assets/host-access.png" alt="Host access permission input screen" class="screenshot">
+          <div class="screenshot-caption">⬆ Paste your kintone URL into the field and click "Allow this host"</div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-body">
+          <h4>Click "Allow" in the permission request</h4>
+          <p>A confirmation dialog from Chrome will appear. Click "Allow."</p>
+          <img src="../assets/access-request.png" alt="Chrome permission request" class="screenshot screenshot-sm">
+          <div class="screenshot-caption">⬆ The extension will not work unless you click "Allow"</div>
+          <div class="alert alert-warning">
+            <span class="alert-icon">⚠️</span>
+            <div>If you accidentally click "Deny," you can reset the permission from the icon on the left side of the Chrome address bar.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-num">4</div>
+        <div class="step-body">
+          <h4>"Permission granted" means setup is complete</h4>
+          <p>Once the completion dialog appears, host setup is done. Reload your kintone page to activate the feature.</p>
+          <img src="../assets/approved.png" alt="Permission granted dialog" class="screenshot screenshot-sm">
+          <div class="alert alert-success">
+            <span class="alert-icon">✅</span>
+            <div>After setup is complete, <strong>reload (F5)</strong> your kintone page.</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- STEP 2: Shortcuts -->
+
+    <div class="section">
+      <div class="section-label">STEP 02</div>
+      <h3>Register shortcuts</h3>
+
+      <div class="card">
+        <p style="font-size:14px; color:var(--muted); margin-bottom:16px;">You can register frequently used apps, views, and new-record pages via the right-click menu.</p>
+        <img src="../assets/shortcut-click.png" alt="Adding a shortcut from the right-click menu" class="screenshot">
+        <div class="screenshot-caption">⬆ Right-click on kintone → PlugBits Launcher → Add to Shortcuts</div>
+      </div>
+
+      <div class="alert alert-warning" style="margin-top:0;">
+        <span class="alert-icon">💡</span>
+        <div>You can choose from three types: "App top page," "Open view," and "New record." We recommend registering frequently used list views by individual view.</div>
+      </div>
+
+    </div>
+
+      <!-- STEP 3: Watchlist -->
+
+      <div class="section">
+        <div class="section-label">STEP 03</div>
+        <h3>Set up your Watchlist</h3>
+
+        <div class="card">
+          <p style="font-size:14px; color:var(--muted); margin-bottom:16px;">Register views you want to monitor continuously for record counts, such as records awaiting process management action. Set this up via right-click → Add to Watchlist.</p>
+          <img src="../assets/watchlist-click.png" alt="Adding to Watchlist from the right-click menu" class="screenshot">
+          <div class="screenshot-caption">⬆ Right-click → PlugBits Launcher → Add to Watchlist</div>
+        </div>
+
+      </div>
+
+      <!-- FAQ -->
+
+      <div class="section">
+        <div class="section-label">FAQ</div>
+        <h3>Frequently Asked Questions</h3>
+        <div class="faq-list">
+
+        <div class="faq-item">
+          <h4>I set it up, but it doesn't work</h4>
+          <p>Reload (F5) your kintone page after completing host setup. Changes may not take effect until you reload.</p>
+        </div>
+
+        <div class="faq-item">
+          <h4>Can I use it in InPrivate (private) windows?</h4>
+          <p>Turn on "Allow in InPrivate" in Chrome's extension settings before setting up host access.</p>
+        </div>
+
+        <div class="faq-item">
+          <h4>Do I need kintone administrator permission?</h4>
+          <p>No. PlugBits Launcher does not change any kintone settings. You can use it simply by installing it in your own browser.</p>
+        </div>
+
+        <div class="faq-item">
+          <h4>Can I use it with multiple kintone environments?</h4>
+          <p>Yes. You can use it across multiple environments by adding each URL under host access permission.</p>
+        </div>
+
+      </div>
+
+    </div>
+
+    <footer>
+      <p>PlugBits Launcher for kintone &nbsp;·&nbsp; <a href="#">Chrome Web Store</a> &nbsp;·&nbsp; <a href="#">X (@PlugBits)</a></p>
+      <p style="margin-top:8px;">© 2026 PlugBits</p>
+      <p style="margin-top:8px;"><a href="../manual.html" hreflang="ja">日本語</a></p>
+    </footer>
+
+  <!-- Cloudflare Web Analytics --><script defer src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon='{"token": "86511d1154774394986239de33d21882"}'></script><!-- End Cloudflare Web Analytics -->
+</body>
+</html>
