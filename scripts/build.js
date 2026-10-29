@@ -901,6 +901,33 @@ try {
   }
   console.log(`blog go stubs created: ${goStubsCreated}`);
 
+  // /claude/ (templates/claude.html + data/shorts.json + Claude Code の記事)
+  (function renderClaude() {
+    const shortsPath = path.join(ROOT, 'data', 'shorts.json');
+    const shorts = fileExists(shortsPath) ? readJSON(shortsPath) : [];
+    const shortsHtml = shorts.length === 0
+      ? '<p>1 本目は 10/30 に出ます。</p>'
+      : '<ul class="cl-list">' + shorts.map(s => {
+          const links = [s.x ? `<a href="${esc(s.x)}">X</a>` : '', s.youtube ? `<a href="${esc(s.youtube)}">YouTube</a>` : ''].filter(Boolean).join(' ');
+          return `<li>${esc(s.title)}<span class="cl-meta">${esc(formatDateJa(s.date))}</span> ${links}</li>`;
+        }).join('') + '</ul>';
+    const reads = allBlogPosts
+      .filter(p => `${p.title || ''}\n${p.keywords || ''}`.includes('Claude Code'))
+      .sort((a, b) => String(b.published_at).localeCompare(String(a.published_at)));
+    const readsSection = reads.length === 0 ? '' :
+      '      <section class="kb-section">\n        <h2 class="kb-section-title">読み物</h2>\n        <ul class="cl-list">' +
+      reads.map(p => `<li><a href="/blog/${esc(p.slug)}/">${esc(p.title)}</a><span class="cl-meta">${esc(formatDateJa(p.published_at))}</span></li>`).join('') +
+      '</ul>\n      </section>\n';
+    const out = readText(path.join(ROOT, 'templates', 'claude.html'))
+      .replaceAll('%%OG_IMAGE%%', `${SITE_ORIGIN}/${DEFAULT_BLOG_OG_IMAGE}`)
+      .replaceAll('%%SHORTS_HTML%%', shortsHtml)
+      .replaceAll('%%READS_SECTION%%', readsSection)
+      .replaceAll('%%SUPPORT_MAIL%%', SUPPORT_MAIL)
+      .replaceAll('%%SITE_COPYRIGHT%%', SITE_COPYRIGHT);
+    fs.mkdirSync(path.join(DIST, 'claude'), { recursive: true });
+    fs.writeFileSync(path.join(DIST, 'claude', 'index.html'), out);
+  })();
+
   // sitemap 生成
   const basePath = path.join(DIST, 'sitemap-base.xml');
   const base = fileExists(basePath)
@@ -924,6 +951,7 @@ try {
     if (fileExists(f)) urls.push(u);
   }
   urls.push('/blog/');
+  urls.push('/claude/');
   for (const key of Object.keys(BLOG_THEMES)) urls.push(`/blog/${BLOG_THEMES[key].slug}/`);
   for (const post of allBlogPosts) urls.push(`/blog/${post.slug}/`); // 一覧のページ送りは入れない
   if (enPosts.length > 0) {
