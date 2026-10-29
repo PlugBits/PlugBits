@@ -5,15 +5,15 @@
 
 ## 1. What This Plug-in Does
 
-This plug-in makes it easy to post progress-tracking files from the record detail screen and manage them in an easy-to-view layout.
+This plug-in makes it easy to post progress-tracking files from the record details screen and manage them in an easy-to-view layout.
 
-- You can add files from the detail screen
+- You can add files from the record details screen
 - Images can be posted via drag-and-drop, file selection, or copy-and-paste
 - Posted files are arranged in a gallery format
 - Images and PDFs can be opened and viewed directly on the screen
 - You can edit notes and delete unneeded posts
 
-![Record detail screen showing the upload area and gallery](../assets/manuals/gallery-plugin/detail-overview.png)
+![Record details screen showing the upload area and gallery](../assets/manuals/gallery-plugin/detail-overview.png)
 
 ---
 
@@ -205,9 +205,9 @@ Afterward, don't forget to update the app as well.
 
 ## 6. Everyday Usage
 
-### 6-1. Opening the Detail Screen
+### 6-1. Opening the Record Details Screen
 
-When you open a record's detail screen, the following two elements are displayed:
+When you open the record details screen, the following two elements are displayed:
 
 - Upload area
 - Gallery
@@ -215,7 +215,7 @@ When you open a record's detail screen, the following two elements are displayed
 The upload area is displayed as the very first card in the gallery.
 The upload area and gallery are both displayed within the same Space field you configured.
 
-![Detail screen showing the upload area and gallery](../assets/manuals/gallery-plugin/detail-overview.png)
+![Record details screen showing the upload area and gallery](../assets/manuals/gallery-plugin/detail-overview.png)
 
 ### 6-2. Adding a File
 
@@ -358,7 +358,7 @@ If you need to preserve exact image quality or file size, review the compression
 
 ### The Standard Table (Subtable) Is Used Behind the Scenes
 
-This plug-in stores its data using a table (subtable), but on the detail screen it hides the standard table display and instead shows the content as an easy-to-view gallery.
+This plug-in stores its data using a table (subtable), but on the record details screen it hides the standard table display and instead shows the content as an easy-to-view gallery.
 
 ---
 
@@ -403,7 +403,7 @@ If you're unsure where to start, we recommend the following settings:
 
 ## 15. Summary
 
-This plug-in is designed to let you quickly add progress-tracking files from the detail screen and have them automatically organized into an easy-to-view layout.
+This plug-in is designed to let you quickly add progress-tracking files from the record details screen and have them automatically organized into an easy-to-view layout.
 
 It is especially well suited for the following use cases:
 
