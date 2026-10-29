@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>%%LIST_TITLE%% | PlugBits Blog</title>
+  <meta name="description" content="%%LIST_LEAD%%">
+  <link rel="canonical" href="%%CANONICAL%%">
+  <link rel="alternate" type="application/rss+xml" title="PlugBits Blog (English)" href="/blog/en/feed.xml">
+  %%PREV_NEXT_LINKS%%
+  <link rel="stylesheet" href="/style.css">
+  <link rel="stylesheet" href="/assets/blog/blog.css">
+  <style>
+    .kb-hero .kb-container{padding:36px 0 24px}
+    .kb-index-main .kb-section{padding:16px 0 48px}
+  </style>
+</head>
+<body class="kb-root">
+
+  <!-- Header -->
+  <header class="kb-site-header">
+  <div class="kb-container kb-topbar">
+    <a class="kb-brand-link" href="/en/">
+      <img src="/assets/plugbits-logo.webp" alt="PlugBits" class="kb-logo-img">
+      <div class="kb-brand-text">
+        <span class="kb-brand-name">PlugBits</span>
+        <span class="kb-brand-tagline">Browser Extension &amp; Plugins for kintone</span>
+      </div>
+    </a>
+    <nav class="kb-topbar-nav">
+      <a href="/en/#plugins">Plugins</a>
+      <a href="/blog/en/">Blog</a>
+      <a href="/privacy.html">Privacy</a>%%LANG_SWITCH%%
+    </nav>
+  </div>
+  </header>
+
+  <header class="kb-hero">
+    <div class="kb-container">
+      <p class="kb-eyebrow">PlugBits Blog</p>
+      <h1 class="kb-hero-title">%%LIST_TITLE%%</h1>
+      <p class="kb-hero-sub">%%LIST_LEAD%%</p>
+    </div>
+  </header>
+
+  <main class="kb-index-main">
+    <div class="kb-container">
+      <section class="kb-section">
+        <section class="pb-card-grid" id="kb-blog-grid">
+          %%POST_CARDS%%
+        </section>
+        <div class="kb-coming-notice" id="kb-blog-empty" style="display:none">
+          <p>Articles are coming soon.</p>
+        </div>
+        %%PAGER_HTML%%
+      </section>
+    </div>
+  </main>
+
+  <!-- Footer -->
+  <footer class="kb-footer kb-container">
+    <nav class="kb-footer-links">
+      <a href="mailto:%%SUPPORT_MAIL%%">Contact</a>
+      <a href="/install2.html">Install Guide</a>
+      <a href="/privacy.html">Privacy Policy</a>
+      <a href="/terms.html">Terms</a>
+      <a href="/security.html">Security</a>
+    </nav>
+    <small>%%SITE_COPYRIGHT%%</small>
+  </footer>
+
+<!-- Cloudflare Web Analytics --><script defer src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon='{"token": "86511d1154774394986239de33d21882"}'></script><!-- End Cloudflare Web Analytics -->
+</body>
+</html>

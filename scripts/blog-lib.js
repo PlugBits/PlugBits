@@ -16,6 +16,32 @@ function formatDateJa(iso) {
   return `${Number(m[1])}年${Number(m[2])}月${Number(m[3])}日`;
 }
 
+const MONTHS_EN = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+/* 英語の日付: "2026-10-21" → "Oct 21, 2026" */
+function formatDateEn(iso) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(iso || ''));
+  if (!m) return iso || '';
+  const mo = Number(m[2]);
+  if (mo < 1 || mo > 12) return iso || '';
+  return `${MONTHS_EN[mo - 1]} ${Number(m[3])}, ${Number(m[1])}`;
+}
+
+function formatDate(iso, lang) {
+  return lang === 'en' ? formatDateEn(iso) : formatDateJa(iso);
+}
+
+/* ブログの URL 接頭辞。ja は /blog/、en は /blog/en/ */
+function blogBase(lang) {
+  return lang === 'en' ? '/blog/en/' : '/blog/';
+}
+
+/* 英語版のテーマ名(日本語の data/blog-themes.json の label に対応)。キーはテーマのキー(A/B) */
+const THEME_LABELS_EN = {
+  A: 'kintone views, input & settings',
+  B: 'kintone for manufacturing',
+};
+
 /* js-yaml は "date: 2026-10-01" のような引用なしの日付を Date オブジェクトに変換してしまう。
    frontmatter の date/updated はそのまま文字列比較で使うので、YYYY-MM-DD の文字列に戻す。 */
 function normalizeFrontmatterDates(data) {
@@ -54,7 +80,13 @@ function stripHtmlComments(html) {
 
 /* 本文の文字数(空白除去前の生テキスト)から読了時間を出す。
    N = ceil(文字数 / 500)、最低1分。ラベルは「N分で読めます」。 */
-function computeReadTime(bodyText) {
+function computeReadTime(bodyText, lang) {
+  if (lang === 'en') {
+    // 英語は 220 語/分。最低1分
+    const words = (String(bodyText ?? '').trim().match(/\S+/g) || []).length;
+    const minutes = Math.max(1, Math.ceil(words / 220));
+    return { minutes, label: `${minutes} min read` };
+  }
   const chars = String(bodyText ?? '').replace(/\s+/g, '').length;
   const minutes = Math.max(1, Math.ceil(chars / 500));
   return { minutes, label: `${minutes}分で読めます` };
@@ -94,7 +126,9 @@ function addHeadingIds(html) {
   const out = String(html ?? '').replace(/<h2\b([^>]*)>([\s\S]*?)<\/h2>/gi, (m, attrs, inner) => {
     i += 1;
     const id = `h-${i}`;
-    const text = inner.replace(/<[^>]+>/g, '').trim();
+    // marked が出した実体参照(&#39; &amp; など)は戻してから持つ(目次で esc し直すと二重になるため)
+    const text = inner.replace(/<[^>]+>/g, '').trim()
+      .replace(/&#39;/g, "'").replace(/&quot;/g, '"').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&');
     headings.push({ id, text });
     const cleanedAttrs = String(attrs || '').replace(/\s*id\s*=\s*"(?:[^"]*)"/i, '').replace(/\s*id\s*=\s*'(?:[^']*)'/i, '');
     return `<h2${cleanedAttrs} id="${id}">${inner}</h2>`;
@@ -103,17 +137,22 @@ function addHeadingIds(html) {
 }
 
 /* H2 が2つ以上の時だけ目次を返す。無ければ ''。 */
-function buildToc(headings) {
+function buildToc(headings, lang) {
+  const en = lang === 'en';
   const arr = Array.isArray(headings) ? headings : [];
   // 本文に手書きの「目次」の見出しがある記事(既存の HTML 記事)には自動の目次を出さない(二重になるため)
-  if (arr.some(h => String(h.text).trim() === '目次')) return '';
+  if (arr.some(h => ['目次', 'Contents', 'Table of contents'].includes(String(h.text).trim()))) return '';
   if (arr.length < 2) return '';
   const items = arr.map(h => `<li><a href="#${esc(h.id)}">${esc(h.text)}</a></li>`).join('');
-  return `<nav class="pb-toc" aria-label="目次"><p class="pb-toc-title">目次</p><ol>${items}</ol></nav>`;
+  const label = en ? 'Contents' : '目次';
+  return `<nav class="pb-toc" aria-label="${label}"><p class="pb-toc-title">${label}</p><ol>${items}</ol></nav>`;
 }
 
 /* パンくず。theme があればテーマの行を足す。themesData は data/blog-themes.json の内容。 */
-function buildBreadcrumbHtml(theme, themesData) {
+function buildBreadcrumbHtml(theme, themesData, lang) {
+  if (lang === 'en') {
+    return '<nav class="pb-crumbs" aria-label="Breadcrumb"><a href="/en/">Home</a><span>›</span><a href="/blog/en/">Blog</a></nav>';
+  }
   const base = '<a href="/">ホーム</a><span>›</span><a href="/blog/">ブログ</a>';
   const t = theme && themesData ? themesData[theme] : null;
   const themePart = t ? `<span>›</span><a href="/blog/${esc(t.slug)}/">${esc(t.label)}</a>` : '';
@@ -121,7 +160,13 @@ function buildBreadcrumbHtml(theme, themesData) {
 }
 
 /* 記事メタ(公開日[・更新日]・読了時間)。 */
-function buildMetaHtml(publishedAt, updatedAt, readTimeLabel) {
+function buildMetaHtml(publishedAt, updatedAt, readTimeLabel, lang) {
+  if (lang === 'en') {
+    const pubE = `<time datetime="${esc(publishedAt)}">${esc(formatDateEn(publishedAt))}</time>`;
+    const hasUpd = updatedAt && updatedAt !== publishedAt;
+    const updE = hasUpd ? ` · Updated <time datetime="${esc(updatedAt)}">${esc(formatDateEn(updatedAt))}</time>` : '';
+    return `<p class="pb-post-meta">${pubE}${updE} · ${esc(readTimeLabel)}</p>`;
+  }
   const pub = `<time datetime="${esc(publishedAt)}">${esc(formatDateJa(publishedAt))}</time>`;
   const hasUpdate = updatedAt && updatedAt !== publishedAt;
   const upd = hasUpdate ? `・<time datetime="${esc(updatedAt)}">${esc(formatDateJa(updatedAt))}</time>更新` : '';
@@ -129,7 +174,11 @@ function buildMetaHtml(publishedAt, updatedAt, readTimeLabel) {
 }
 
 /* テーマバッジ。テーマが無ければ ''。 */
-function buildThemeBadgeHtml(theme, themesData) {
+function buildThemeBadgeHtml(theme, themesData, lang) {
+  if (lang === 'en') {
+    const label = THEME_LABELS_EN[theme];
+    return label ? `<span class="pb-theme-badge">${esc(label)}</span>` : '';
+  }
   const t = theme && themesData ? themesData[theme] : null;
   if (!t) return '';
   return `<a class="pb-theme-badge" href="/blog/${esc(t.slug)}/">${esc(t.label)}</a>`;
@@ -138,7 +187,13 @@ function buildThemeBadgeHtml(theme, themesData) {
 /* 製品案内の1枠。product(md の product キー、data/blog-products.json 参照)が優先。
    無ければ既存記事の tool_url/tool_name/cta_intro にフォールバック。どちらも無ければ ''。
    productsData の href は "{slug}" を post の slug に置き換える。 */
-function buildProductBoxHtml(product, productsData, slug, legacy) {
+function buildProductBoxHtml(product, productsData, slug, legacy, lang) {
+  if (lang === 'en') {
+    const e = product && product !== 'none' && productsData ? productsData[product] : null;
+    if (!e) return '';
+    const href = String(e.href || '').replace('{slug}', encodeURIComponent(slug || ''));
+    return `<aside class="pb-product-box"><p class="pb-product-label">Tool mentioned in this article</p><p class="pb-product-name">${esc(e.name)}</p><p class="pb-product-line">${esc(e.line)}</p><a class="pb-product-link" href="${esc(href)}">Learn more</a></aside>`;
+  }
   const entry = product && product !== 'none' && productsData ? productsData[product] : null;
   if (entry) {
     const href = String(entry.href || '').replace('{slug}', encodeURIComponent(slug || ''));
@@ -163,20 +218,22 @@ function selectRelatedPosts(post, allPosts, count) {
 }
 
 /* 関連記事セクション。0本なら ''。一覧の札(pb-card)と同じ作り(上にOGP画像)で出す。 */
-function buildRelatedHtml(related, themesData) {
+function buildRelatedHtml(related, themesData, lang) {
+  const en = lang === 'en';
   const arr = Array.isArray(related) ? related : [];
   if (arr.length === 0) return '';
   const items = arr.map(p => {
     const t = p.theme && themesData ? themesData[p.theme] : null;
-    const themeLabel = t ? t.label : '';
+    const themeLabel = en ? (THEME_LABELS_EN[p.theme] || '') : (t ? t.label : '');
     const imgSrc = `/${String(p.og_image || '').replace(/^\.?\/+/, '')}`;
-    return `<li><a class="pb-related-card" href="/blog/${esc(p.slug)}/"><img class="pb-card-img" src="${esc(imgSrc)}" alt="" loading="lazy" width="1200" height="630"><span class="pb-related-theme">${esc(themeLabel)}</span><span class="pb-related-name">${esc(p.title)}</span><span class="pb-related-date">${esc(formatDateJa(p.published_at))}</span></a></li>`;
+    return `<li><a class="pb-related-card" href="${blogBase(lang)}${esc(p.slug)}/"><img class="pb-card-img" src="${esc(imgSrc)}" alt="" loading="lazy" width="1200" height="630"><span class="pb-related-theme">${esc(themeLabel)}</span><span class="pb-related-name">${esc(p.title)}</span><span class="pb-related-date">${esc(formatDate(p.published_at, lang))}</span></a></li>`;
   }).join('');
-  return `<section class="pb-related"><h2 class="pb-related-title">関連する記事</h2><ul class="pb-related-list">${items}</ul></section>`;
+  return `<section class="pb-related"><h2 class="pb-related-title">${en ? 'Related articles' : '関連する記事'}</h2><ul class="pb-related-list">${items}</ul></section>`;
 }
 
 /* 著者の1行。固定文言(個人名は出さない)。 */
-function buildAuthorHtml() {
+function buildAuthorHtml(lang) {
+  if (lang === 'en') return '<p class="pb-author">PlugBits — we build plug-ins and extensions for kintone.</p>';
   return '<p class="pb-author">PlugBits — kintone のプラグインと拡張を作っています。</p>';
 }
 
@@ -207,11 +264,11 @@ function paginate(items, pageSize) {
 }
 
 /* ページ送りナビ。1ページのみなら ''。baseUrl は末尾 / 付き(例 "/blog/" "/blog/a/")。 */
-function buildPagerHtml(currentPage, totalPages, baseUrl) {
+function buildPagerHtml(currentPage, totalPages, baseUrl, lang) {
   if (!totalPages || totalPages <= 1) return '';
   const pageUrl = n => (n <= 1 ? baseUrl : `${baseUrl}page/${n}/`);
-  const prev = currentPage > 1 ? `<a rel="prev" href="${esc(pageUrl(currentPage - 1))}">前へ</a>` : '';
-  const next = currentPage < totalPages ? `<a rel="next" href="${esc(pageUrl(currentPage + 1))}">次へ</a>` : '';
+  const prev = currentPage > 1 ? `<a rel="prev" href="${esc(pageUrl(currentPage - 1))}">${lang === 'en' ? 'Previous' : '前へ'}</a>` : '';
+  const next = currentPage < totalPages ? `<a rel="next" href="${esc(pageUrl(currentPage + 1))}">${lang === 'en' ? 'Next' : '次へ'}</a>` : '';
   return `<nav class="pb-pager">${prev}<span>${currentPage} / ${totalPages}</span>${next}</nav>`;
 }
 
@@ -240,15 +297,16 @@ function buildTabsHtml(activeSlug, themesData) {
 }
 
 /* RSS 2.0。新しい順20件。 */
-function buildFeedXml(posts, siteOrigin, limit) {
+function buildFeedXml(posts, siteOrigin, limit, lang) {
+  const en = lang === 'en';
   const origin = siteOrigin || SITE_ORIGIN;
   const sorted = (posts || []).slice().sort((a, b) => (a.published_at < b.published_at ? 1 : -1)).slice(0, limit || 20);
   const items = sorted.map(p => {
-    const link = `${origin}/blog/${p.slug}/`;
+    const link = `${origin}${blogBase(lang)}${p.slug}/`;
     const pubDate = new Date(`${p.published_at}T00:00:00+09:00`).toUTCString();
     return `<item><title>${escXml(p.title)}</title><link>${escXml(link)}</link><description>${escXml(p.description || p.card_summary || '')}</description><pubDate>${pubDate}</pubDate><guid>${escXml(link)}</guid></item>`;
   }).join('');
-  return `<?xml version="1.0" encoding="UTF-8"?><rss version="2.0"><channel><title>PlugBits Blog</title><link>${origin}/blog/</link><description>PlugBits のブログ</description>${items}</channel></rss>`;
+  return `<?xml version="1.0" encoding="UTF-8"?><rss version="2.0"><channel><title>${en ? 'PlugBits Blog (English)' : 'PlugBits Blog'}</title><link>${origin}${blogBase(lang)}</link><description>${en ? 'Practical kintone guides from PlugBits.' : 'PlugBits のブログ'}</description>${en ? '<language>en</language>' : ''}${items}</channel></rss>`;
 }
 
 function escXml(s) {
@@ -309,7 +367,7 @@ function frontmatterToPost(data, bodyRawText, contentHtmlRaw, opts) {
   const o = opts || {};
   const published = data.date;
   const updated = data.updated || data.date;
-  const rt = computeReadTime(bodyRawText);
+  const rt = computeReadTime(bodyRawText, o.lang);
   return {
     slug: data.slug,
     status: 'public',
@@ -390,7 +448,45 @@ function figureizeImages(html) {
   );
 }
 
+/* 英語版の製品の枠(blog-products の各キー → 英語の名前・1行・リンク先)。
+   リンクは英語のページ(products.json の page_url_en / pro_url_en)に utm 付きで直接送る(go スタブは作らない)。
+   キーの付け方は withKintonePlugins と同じ。英語のページが無い製品は日本語のページに落とす */
+function buildEnProductsMap(blogProducts, products) {
+  const out = {};
+  const utm = '?utm_source=blog-en&utm_medium=article&utm_campaign={slug}';
+  const list = products || [];
+  const launcher = list.find(p => p && p.slug === 'launcher');
+  Object.keys(blogProducts || {}).forEach(k => {
+    if (k === 'launcher' && launcher) {
+      out[k] = { name: launcher.title_en || 'PlugBits Launcher', line: launcher.short_summary_en || '', href: (launcher.page_url_en || launcher.page_url) + utm };
+    } else if (k === 'gep' && launcher) {
+      out[k] = { name: 'Launcher Pro (Excel Overlay)', line: 'Edit lists like a spreadsheet and get watchlist threshold alerts, right from Launcher.', href: (launcher.pro_url_en || launcher.pro_url) + utm };
+    }
+  });
+  list.forEach(p => {
+    if (!p || p.type !== 'plugin' || (p.status || 'public') !== 'public') return;
+    const m = /^\/kintone\/([^/]+)\/$/.exec(p.page_url || '');
+    if (!m) return;
+    const def = { name: p.title_en || p.slug, line: p.short_summary_en || '', href: (p.page_url_en || p.page_url) + utm };
+    [p.slug, m[1], m[1].replace(/^kintone-/, '')].forEach(k => { if (k && !out[k]) out[k] = def; });
+  });
+  return out;
+}
+
+/* hreflang の <link> 3本(ja / en / x-default=ja)。引数は絶対 URL */
+function buildHreflangTags(jaUrl, enUrl) {
+  return `<link rel="alternate" hreflang="ja" href="${jaUrl}">` +
+    `<link rel="alternate" hreflang="en" href="${enUrl}">` +
+    `<link rel="alternate" hreflang="x-default" href="${jaUrl}">`;
+}
+
 module.exports = {
+  formatDateEn,
+  formatDate,
+  blogBase,
+  THEME_LABELS_EN,
+  buildEnProductsMap,
+  buildHreflangTags,
   figureizeImages,
   withKintonePlugins,
   resolveProduct,

@@ -13,6 +13,8 @@ const PRODUCTS_EN_DIR = path.join(PRODUCTS_DIR, 'en');
 const MANUALS_SRC = path.join(ROOT, 'manuals');
 const BLOG_CONTENT_SRC = path.join(ROOT, 'content', 'blog');
 const BLOG_DIST = path.join(DIST, 'blog');
+const BLOG_EN_CONTENT_SRC = path.join(ROOT, 'content', 'blog-en');
+const BLOG_EN_DIST = path.join(BLOG_DIST, 'en');
 
 // サイト共通定数（products.json に持たせない）
 const SUPPORT_MAIL = 'support@plugbits.app';
@@ -130,6 +132,8 @@ try {
     indexEn:  readText(path.join(ROOT, 'templates', 'index-en.html')),
     blogPost:  readText(path.join(ROOT, 'templates', 'blog-post.html')),
     blogIndex: readText(path.join(ROOT, 'templates', 'blog-index.html')),
+    blogPostEn:  readText(path.join(ROOT, 'templates', 'blog-post-en.html')),
+    blogIndexEn: readText(path.join(ROOT, 'templates', 'blog-index-en.html')),
   };
 
   const plugins = products.filter(p => p.type === 'plugin');
@@ -411,6 +415,46 @@ try {
 
   const allBlogPosts = [...jsonPosts, ...mdPosts];
 
+  // 英語版: content/blog-en/<slug>.md(frontmatter のルールは日本語と同じ: approved && date<=今日)。
+  // 日本語の一覧・RSS・関連・go スタブ・テーマには一切混ぜない(allBlogPosts に入れない)。
+  const enDirEntries = fs.existsSync(BLOG_EN_CONTENT_SRC) ? fs.readdirSync(BLOG_EN_CONTENT_SRC) : [];
+  const enParsed = enDirEntries
+    .filter(name => name.endsWith('.md') && !blogLib.isSampleFile(name))
+    .map(name => {
+      const { data, body } = blogLib.parseFrontmatter(readText(path.join(BLOG_EN_CONTENT_SRC, name)));
+      return { file: name, data, body };
+    });
+  const enSlugConflicts = (
+    enParsed.map(m => m.data && m.data.slug).filter((v, i, a) => v && a.indexOf(v) !== i));
+  if (enSlugConflicts.length > 0) throw new Error(`blog-en slug conflict: ${enSlugConflicts.join(', ')}`);
+  if (Object.values(BLOG_THEMES).some(t => t.slug === 'en')) throw new Error('blog theme slug "en" collides with /blog/en/');
+  const BLOG_PRODUCTS_EN = blogLib.buildEnProductsMap(BLOG_PRODUCTS, products);
+  const enPosts = enParsed
+    .filter(m => blogLib.isPublishable(m.data, BLOG_TODAY))
+    .filter(m => {
+      const ok = /^[a-z0-9][a-z0-9-]*$/.test(String(m.data.slug || ''));
+      if (!ok) console.warn(`BLOG_WARN ${m.file}: invalid slug in blog-en → skipped`);
+      return ok;
+    })
+    .map(({ data, body }) => {
+      const rawHtml = marked.parse(blogLib.protectBareUrls(body || ''));
+      const contentHtml = blogLib.figureizeImages(blogLib.stripHtmlComments(rawHtml))
+        .replace(/<table>/g, '<div class="pb-table-wrap"><table>')
+        .replace(/<\/table>/g, '</table></div>');
+      const post = blogLib.frontmatterToPost(data, body, contentHtml, {
+        lang: 'en',
+        ogAssetExists: fileExists(path.join(ROOT, 'assets', 'blog', 'og', `${data.slug}.jpg`)),
+        defaultOgImage: DEFAULT_BLOG_OG_IMAGE,
+      });
+      const resolved = blogLib.resolveProduct(post.product, BLOG_PRODUCTS_EN);
+      if (resolved.warning) console.warn(`BLOG_WARN ${post.slug} (en): ${resolved.warning} → none`);
+      post.product = resolved.product;
+      return post;
+    });
+  const jaSlugSet = new Set(allBlogPosts.map(p => p.slug));
+  const enSlugSet = new Set(enPosts.map(p => p.slug));
+  const LANG_SWITCH_EN_LINK = (slug) => `<a class="pb-lang-switch" lang="en" style="margin-left:16px" href="/blog/en/${slug}/">English</a>`;
+
   for (const post of allBlogPosts) {
     const { html: taggedHtml, headings } = blogLib.addHeadingIds(post.content_html);
     const contentHtmlWrapped = `<div class="pb-prose">${taggedHtml}</div>`;
@@ -469,7 +513,7 @@ try {
       '%%JSONLD%%':                jsonLd,
       // 2026-10-17 blog-seo で新規に足した差し込み
       '%%CANONICAL%%':             canonical,
-      '%%BREADCRUMB_HTML%%':       blogLib.buildBreadcrumbHtml(post.theme, BLOG_THEMES),
+      '%%BREADCRUMB_HTML%%':       (bc => enSlugSet.has(post.slug) ? bc.replace(/<\/nav>$/, LANG_SWITCH_EN_LINK(post.slug) + '</nav>') : bc)(blogLib.buildBreadcrumbHtml(post.theme, BLOG_THEMES)),
       '%%TOC_HTML%%':              blogLib.buildToc(headings),
       '%%META_HTML%%':             blogLib.buildMetaHtml(post.published_at, post.updated_at, post.read_time),
       '%%THEME_BADGE%%':           blogLib.buildThemeBadgeHtml(post.theme, BLOG_THEMES),
@@ -554,6 +598,96 @@ try {
 
   // RSS(/blog/feed.xml・新しい順20件)
   fs.writeFileSync(path.join(BLOG_DIST, 'feed.xml'), blogLib.buildFeedXml(allBlogPosts, SITE_ORIGIN, 20));
+
+  // ===== 英語版ブログ: /blog/en/<slug>/ ・ /blog/en/ ・ /blog/en/feed.xml =====
+  const enSwitchFor = (jaPath) => `\n      <a class="kb-lang" lang="ja" href="${jaPath}">日本語</a>`;
+  for (const post of enPosts) {
+    const { html: taggedHtml, headings } = blogLib.addHeadingIds(post.content_html);
+    const canonical = `${SITE_ORIGIN}/blog/en/${post.slug}/`;
+    const ogImagePath = String(post.og_image || DEFAULT_BLOG_OG_IMAGE).replace(/^\.?\/+/, '');
+    const articleObj = {
+      '@context': 'https://schema.org',
+      '@type': 'Article',
+      headline: post.title,
+      description: post.description,
+      inLanguage: 'en',
+      datePublished: post.published_at,
+      dateModified: post.updated_at || post.published_at,
+      author: { '@type': 'Organization', name: 'PlugBits' },
+      publisher: { '@type': 'Organization', name: 'PlugBits' },
+      mainEntityOfPage: canonical,
+    };
+    const jsonLd = blogLib.buildJsonLd(articleObj, [
+      { name: 'Home', url: `${SITE_ORIGIN}/en/` },
+      { name: 'Blog', url: `${SITE_ORIGIN}/blog/en/` },
+      { name: post.title, url: canonical },
+    ]);
+    const related = blogLib.selectRelatedPosts(post, enPosts, 3);
+    const map = {
+      '%%TITLE%%':            esc(post.title),
+      '%%H1%%':               esc(post.title),
+      '%%DESCRIPTION%%':      esc(post.description),
+      '%%KEYWORDS%%':         esc(post.keywords),
+      '%%OG_URL%%':           canonical,
+      '%%CANONICAL%%':        canonical,
+      '%%OG_IMAGE_TAG%%':     `<meta property="og:image" content="${SITE_ORIGIN}/${ogImagePath}">`,
+      '%%HERO_LABEL%%':       'PlugBits Blog',
+      '%%CONTENT_HTML%%':     `<div class="pb-prose">${taggedHtml}</div>`,
+      '%%SUPPORT_MAIL%%':     SUPPORT_MAIL,
+      '%%SITE_COPYRIGHT%%':   SITE_COPYRIGHT,
+      '%%JSONLD%%':           jsonLd,
+      '%%BREADCRUMB_HTML%%':  blogLib.buildBreadcrumbHtml(post.theme, BLOG_THEMES, 'en'),
+      '%%TOC_HTML%%':         blogLib.buildToc(headings, 'en'),
+      '%%META_HTML%%':        blogLib.buildMetaHtml(post.published_at, post.updated_at, post.read_time, 'en'),
+      '%%THEME_BADGE%%':      blogLib.buildThemeBadgeHtml(post.theme, BLOG_THEMES, 'en'),
+      '%%PRODUCT_BOX_HTML%%': blogLib.buildProductBoxHtml(post.product, BLOG_PRODUCTS_EN, post.slug, null, 'en'),
+      '%%RELATED_HTML%%':     blogLib.buildRelatedHtml(related, BLOG_THEMES, 'en'),
+      '%%AUTHOR_HTML%%':      blogLib.buildAuthorHtml('en'),
+      '%%LANG_SWITCH%%':      jaSlugSet.has(post.slug) ? enSwitchFor(`/blog/${post.slug}/`) : '',
+    };
+    let out = tpl.blogPostEn;
+    for (const [k, v] of Object.entries(map)) out = out.replaceAll(k, String(v ?? ''));
+    const postDir = path.join(BLOG_EN_DIST, post.slug);
+    fs.mkdirSync(postDir, { recursive: true });
+    fs.writeFileSync(path.join(postDir, 'index.html'), out);
+  }
+
+  if (enPosts.length > 0) {
+    const EN_LIST_LEAD = 'Practical guides for kintone administrators — views, fields, settings and manufacturing workflows — from PlugBits.';
+    const enSorted = enPosts.slice().sort((a, b) => (a.published_at < b.published_at ? 1 : -1));
+    const enPages = blogLib.paginate(enSorted, BLOG_PAGE_SIZE);
+    const enTotal = enPages.length;
+    enPages.forEach((pagePosts, idx) => {
+      const pageNum = idx + 1;
+      const cards = pagePosts.map(post => {
+        const cardOgSrc = `/${String(post.og_image || DEFAULT_BLOG_OG_IMAGE).replace(/^\.?\/+/, '')}`;
+        return [
+          `<a class="pb-card" href="/blog/en/${post.slug}/">`,
+          `  <img class="pb-card-img" src="${esc(cardOgSrc)}" alt="" loading="lazy" width="1200" height="630">`,
+          `  <span class="pb-card-theme">${esc(blogLib.THEME_LABELS_EN[post.theme] || '')}</span>`,
+          `  <h3 class="pb-card-title">${esc(post.title)}</h3>`,
+          `  <p class="pb-card-desc">${esc(post.card_summary || post.description)}</p>`,
+          `  <time class="pb-card-date">${esc(blogLib.formatDateEn(post.published_at))}</time>`,
+          '</a>',
+        ].join('\n');
+      }).join('\n');
+      const html = tpl.blogIndexEn
+        .replaceAll('%%POST_CARDS%%',      cards)
+        .replaceAll('%%LIST_TITLE%%',      'Blog')
+        .replaceAll('%%LIST_LEAD%%',       esc(EN_LIST_LEAD))
+        .replaceAll('%%CANONICAL%%',       `${SITE_ORIGIN}${pageNum <= 1 ? '/blog/en/' : `/blog/en/page/${pageNum}/`}`)
+        .replaceAll('%%PAGER_HTML%%',      blogLib.buildPagerHtml(pageNum, enTotal, '/blog/en/', 'en'))
+        .replaceAll('%%PREV_NEXT_LINKS%%', blogLib.buildPrevNextLinkTags(pageNum, enTotal, '/blog/en/'))
+        .replaceAll('%%LANG_SWITCH%%',     enSwitchFor('/blog/'))
+        .replaceAll('%%SUPPORT_MAIL%%',    SUPPORT_MAIL)
+        .replaceAll('%%SITE_COPYRIGHT%%',  SITE_COPYRIGHT);
+      const outDir = pageNum <= 1 ? BLOG_EN_DIST : path.join(BLOG_EN_DIST, 'page', String(pageNum));
+      fs.mkdirSync(outDir, { recursive: true });
+      fs.writeFileSync(path.join(outDir, 'index.html'), html);
+    });
+    fs.writeFileSync(path.join(BLOG_EN_DIST, 'feed.xml'), blogLib.buildFeedXml(enPosts, SITE_ORIGIN, 20, 'en'));
+  }
+  console.log(`blog en posts: ${enPosts.length}`);
 
   // インデックスページ用カード生成
   function buildCards(lang) {
@@ -792,6 +926,10 @@ try {
   urls.push('/blog/');
   for (const key of Object.keys(BLOG_THEMES)) urls.push(`/blog/${BLOG_THEMES[key].slug}/`);
   for (const post of allBlogPosts) urls.push(`/blog/${post.slug}/`); // 一覧のページ送りは入れない
+  if (enPosts.length > 0) {
+    urls.push('/blog/en/');
+    for (const post of enPosts) urls.push(`/blog/en/${post.slug}/`);
+  }
   const xml = base.replace('</urlset>',
     urls.map(u => `<url><loc>${SITE_ORIGIN}${u}</loc></url>`).join('') + '</urlset>'
   );
@@ -806,14 +944,16 @@ try {
       hreflangPairs.push([`/products/${p.slug}-manual.html`, `/products/en/${p.slug}-manual.html`]);
     }
   }
+  if (enPosts.length > 0) hreflangPairs.push(['/blog/index.html', '/blog/en/index.html', '/blog/', '/blog/en/']);
+  for (const post of enPosts) {
+    if (jaSlugSet.has(post.slug)) hreflangPairs.push([`/blog/${post.slug}/index.html`, `/blog/en/${post.slug}/index.html`, `/blog/${post.slug}/`, `/blog/en/${post.slug}/`]);
+  }
   let hreflangPages = 0;
   for (const [jaPath, enPath, jaUrlPath, enUrlPath] of hreflangPairs) {
     const jaFile = path.join(DIST, jaPath), enFile = path.join(DIST, enPath);
     if (!fileExists(jaFile) || !fileExists(enFile)) continue;
     const jaUrl = SITE_ORIGIN + (jaUrlPath || jaPath), enUrl = SITE_ORIGIN + (enUrlPath || enPath);
-    const tags = `<link rel="alternate" hreflang="ja" href="${jaUrl}">` +
-      `<link rel="alternate" hreflang="en" href="${enUrl}">` +
-      `<link rel="alternate" hreflang="x-default" href="${jaUrl}">`;
+    const tags = blogLib.buildHreflangTags(jaUrl, enUrl);
     for (const f of [jaFile, enFile]) {
       const html = readText(f);
       if (/hreflang=/i.test(html)) continue;
@@ -824,6 +964,16 @@ try {
     }
   }
   console.log(`hreflang tags: ${hreflangPages} page(s)`);
+
+  // 日本語の一覧(/blog/)に英語版への小さな切替リンク(英語記事が1本でもある時だけ)
+  if (enPosts.length > 0) {
+    const jaIdx = path.join(DIST, 'blog', 'index.html');
+    const html = readText(jaIdx);
+    const re = /(<p class="kb-hero-sub">[^<]*<\/p>)/g;
+    if ((html.match(re) || []).length === 1) {
+      fs.writeFileSync(jaIdx, html.replace(re, '$1\n      <p class="kb-hero-sub"><a class="pb-lang-switch" lang="en" href="/blog/en/">English</a></p>'));
+    }
+  }
 
   // ファビコン: テンプレート・docs/・404 など出どころが散っているので、
   // 書き出し後の dist/ の全 HTML の </head> の前に一括で入れる(自前で icon を持つページは触らない)

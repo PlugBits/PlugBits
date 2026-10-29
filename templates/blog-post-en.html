@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>%%TITLE%%</title>
+  <meta name="description" content="%%DESCRIPTION%%">
+  <meta name="keywords" content="%%KEYWORDS%%">
+  <link rel="canonical" href="%%CANONICAL%%">
+  <link rel="alternate" type="application/rss+xml" title="PlugBits Blog (English)" href="/blog/en/feed.xml">
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="%%TITLE%%">
+  <meta property="og:description" content="%%DESCRIPTION%%">
+  <meta property="og:url" content="%%OG_URL%%">
+  <meta property="og:site_name" content="PlugBits">
+  <meta property="og:locale" content="en_US">
+  %%OG_IMAGE_TAG%%
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="stylesheet" href="/style.css">
+  <link rel="stylesheet" href="/assets/blog/blog.css">
+  <style>
+    /* ===== Article layout (English template; mirrors blog-post.html) ===== */
+    .kb-article-body{max-width:828px;margin:0 auto}
+    .kb-article-paragraph{font-size:17px;line-height:1.9;margin:0 0 1.6em}
+    .kb-article-section{margin-top:52px}
+    .kb-article-section h2{font-size:27px;line-height:1.5;margin:0 0 .8em}
+    .kb-article-subheading{font-size:20px;margin:2em 0 .6em}
+    .kb-section-card{background:none;border:none;box-shadow:none;border-radius:0;padding:0;margin-top:0}
+    .kb-section-card--stack{display:block}
+    .kb-article-list li{background:none;border:none;box-shadow:none;border-radius:0;border-left:4px solid var(--kb-primary);padding:2px 0 2px 16px}
+    .kb-article-list li::before{content:none}
+    .kb-article-check li{background:none;border:none;box-shadow:none;border-radius:0;padding:2px 0 2px 28px}
+    .kb-article-check li::before{left:0;top:2px}
+    .kb-article-figure{margin:24px 0;max-width:100%}
+    .kb-article-figure img{display:block;width:100%;height:auto;max-width:100%;border-radius:6px;border:1px solid var(--kb-line)}
+    .kb-article-figure figcaption{margin-top:8px;font-size:13px;line-height:1.6;color:var(--kb-sub)}
+  </style>
+  <script type="application/ld+json">%%JSONLD%%</script>
+</head>
+<body class="kb-root">
+
+  <!-- Header -->
+  <header class="kb-site-header">
+  <div class="kb-container kb-topbar">
+    <a class="kb-brand-link" href="/en/">
+      <img src="/assets/plugbits-logo.webp" alt="PlugBits" class="kb-logo-img">
+      <div class="kb-brand-text">
+        <span class="kb-brand-name">PlugBits</span>
+        <span class="kb-brand-tagline">Browser Extension &amp; Plugins for kintone</span>
+      </div>
+    </a>
+    <nav class="kb-topbar-nav">
+      <a href="/en/#plugins">Plugins</a>
+      <a href="/blog/en/">Blog</a>
+      <a href="/privacy.html">Privacy</a>%%LANG_SWITCH%%
+    </nav>
+  </div>
+  </header>
+
+  <!-- Breadcrumb -->
+  <div class="kb-container kb-breadcrumb">
+    %%BREADCRUMB_HTML%%
+  </div>
+
+  <main class="kb-container">
+    <article class="kb-article">
+      <header class="kb-article-header">
+        <p class="kb-article-label">%%HERO_LABEL%%</p>
+        %%THEME_BADGE%%
+        <h1>%%H1%%</h1>
+        %%META_HTML%%
+      </header>
+
+      %%TOC_HTML%%
+
+      <div class="kb-article-body">
+        %%CONTENT_HTML%%
+
+        %%PRODUCT_BOX_HTML%%
+
+        %%AUTHOR_HTML%%
+
+        <p class="kb-article-footer">%%SITE_COPYRIGHT%%</p>
+      </div>
+    </article>
+
+    %%RELATED_HTML%%
+  </main>
+
+  <!-- Footer -->
+  <footer class="kb-footer kb-container">
+    <nav class="kb-footer-links">
+      <a href="mailto:%%SUPPORT_MAIL%%">Contact</a>
+      <a href="/blog/en/">Blog</a>
+      <a href="/install2.html">Install Guide</a>
+      <a href="/privacy.html">Privacy Policy</a>
+      <a href="/terms.html">Terms</a>
+      <a href="/security.html">Security</a>
+    </nav>
+    <small>%%SITE_COPYRIGHT%%</small>
+  </footer>
+
+<!-- Cloudflare Web Analytics --><script defer src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon='{"token": "86511d1154774394986239de33d21882"}'></script><!-- End Cloudflare Web Analytics -->
+</body>
+</html>

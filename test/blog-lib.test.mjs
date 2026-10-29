@@ -469,5 +469,70 @@ test('frontmatterToPost defaults product to "none" when absent', () => {
   assert.equal(post.theme, null);
 });
 
+// ===== English blog helpers =====
+test('formatDateEn formats ISO dates in English', () => {
+  assert.equal(lib.formatDateEn('2026-10-21'), 'Oct 21, 2026');
+  assert.equal(lib.formatDateEn('2026-01-05'), 'Jan 5, 2026');
+  assert.equal(lib.formatDateEn('bad'), 'bad');
+  assert.equal(lib.formatDate('2026-10-21', 'en'), 'Oct 21, 2026');
+  assert.equal(lib.formatDate('2026-10-21', 'ja'), '2026年10月21日');
+});
+
+test('computeReadTime en counts words, ja unchanged', () => {
+  assert.equal(computeReadTime('word '.repeat(450), 'en').label, '3 min read');
+  assert.equal(computeReadTime('', 'en').label, '1 min read');
+  assert.equal(computeReadTime('あ'.repeat(1000)).label, '2分で読めます');
+});
+
+test('English builders use English UI strings and /blog/en/ links', () => {
+  assert.ok(lib.buildToc([{id:'h-1',text:'A'},{id:'h-2',text:'B'}], 'en').includes('Contents'));
+  assert.ok(lib.buildBreadcrumbHtml('A', {}, 'en').includes('Home'));
+  assert.ok(lib.buildBreadcrumbHtml('A', {}, 'en').includes('href="/blog/en/"'));
+  assert.equal(lib.buildMetaHtml('2026-10-21', '2026-10-21', '3 min read', 'en'),
+    '<p class="pb-post-meta"><time datetime="2026-10-21">Oct 21, 2026</time> · 3 min read</p>');
+  assert.ok(lib.buildMetaHtml('2026-10-21', '2026-10-25', '3 min read', 'en').includes('Updated'));
+  const rel = lib.buildRelatedHtml([{slug:'x',title:'T',published_at:'2026-10-21',theme:'A',og_image:'a.jpg'}], {}, 'en');
+  assert.ok(rel.includes('Related articles') && rel.includes('href="/blog/en/x/"') && rel.includes('Oct 21, 2026'));
+  assert.equal(lib.buildRelatedHtml([], {}, 'en'), '');
+  assert.ok(lib.buildAuthorHtml('en').includes('plug-ins'));
+  assert.ok(lib.buildPagerHtml(1, 2, '/blog/en/', 'en').includes('Next'));
+  assert.ok(lib.buildPagerHtml(2, 2, '/blog/en/', 'en').includes('Previous'));
+  assert.equal(lib.blogBase('en'), '/blog/en/');
+  assert.equal(lib.blogBase('ja'), '/blog/');
+});
+
+test('buildFeedXml en links to /blog/en/', () => {
+  const xml = lib.buildFeedXml([{slug:'s',title:'T',published_at:'2026-10-21',description:'d'}], 'https://x.test', 20, 'en');
+  assert.ok(xml.includes('https://x.test/blog/en/s/') && xml.includes('<language>en</language>'));
+  const ja = lib.buildFeedXml([{slug:'s',title:'T',published_at:'2026-10-21',description:'d'}], 'https://x.test', 20);
+  assert.ok(ja.includes('https://x.test/blog/s/') && !ja.includes('<language>'));
+});
+
+test('buildEnProductsMap points to English pages', () => {
+  const products = [
+    { slug: 'launcher', type: 'extension', title_en: 'L', short_summary_en: 'l', page_url: '/launcher/', page_url_en: '/launcher/en/', pro_url: '/pro.html', pro_url_en: '/pro/en/' },
+    { slug: 'gallery-plugin', type: 'plugin', status: 'public', page_url: '/kintone/kintone-gallery/', page_url_en: '/kintone/kintone-gallery/en/', title_en: 'G', short_summary_en: 'g' },
+  ];
+  const m = lib.buildEnProductsMap({ launcher: {}, gep: {} }, products);
+  assert.ok(m.launcher.href.startsWith('/launcher/en/?utm_source=blog-en'));
+  assert.ok(m.gep.href.startsWith('/pro/en/'));
+  assert.ok(m.gallery && m['kintone-gallery'] && m['gallery-plugin']);
+  const box = lib.buildProductBoxHtml('gallery', m, 'my-slug', null, 'en');
+  assert.ok(box.includes('Learn more') && box.includes('utm_campaign=my-slug') && box.includes('>G<'));
+  assert.equal(lib.buildProductBoxHtml('none', m, 's', null, 'en'), '');
+});
+
+test('buildHreflangTags emits ja/en/x-default(ja)', () => {
+  const t = lib.buildHreflangTags('https://a/ja/', 'https://a/en/');
+  assert.ok(t.includes('hreflang="ja" href="https://a/ja/"'));
+  assert.ok(t.includes('hreflang="en" href="https://a/en/"'));
+  assert.ok(t.includes('hreflang="x-default" href="https://a/ja/"'));
+});
+
+test('frontmatterToPost with lang en gives English read time', () => {
+  const p = frontmatterToPost({ slug: 's', title: 't', description: 'd', date: '2026-10-01' }, 'hello world', '<p/>', { lang: 'en' });
+  assert.equal(p.read_time, '1 min read');
+});
+
 console.log(`\n${pass} passed, ${fail} failed`);
 if (fail > 0) process.exit(1);
