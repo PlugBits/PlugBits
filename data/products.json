@@ -38,7 +38,9 @@
     "type": "plugin",
     "status": "public",
     "page_url": "/kintone/kintone-gallery/",
+    "page_url_en": "/kintone/kintone-gallery/en/",
     "redirect_to": "/kintone/kintone-gallery/",
+    "redirect_to_en": "/kintone/kintone-gallery/en/",
     "install_url": "/kintone/dl/kintone-gallery-2.2.1.zip",
     "hero_image": "assets/gallery/hero.webp",
     "file_size": "197KB",
@@ -87,37 +89,37 @@
       {
         "src": "assets/gallery/gallery-detail1.webp",
         "caption_ja": "テーブルをギャラリー表示に変換します",
-        "caption_en": ""
+        "caption_en": "Converts a table into a gallery display"
       },
       {
         "src": "assets/gallery/gallery-detail2.webp",
         "caption_ja": "コメントもその場で入力ができます",
-        "caption_en": ""
+        "caption_en": "Comments can be entered right on the spot"
       },
       {
         "src": "assets/gallery/gallery-preview1.webp",
         "caption_ja": "添付ファイルのプレビューに対応しています",
-        "caption_en": ""
+        "caption_en": "Supports previewing attached files"
       },
       {
         "src": "assets/gallery/gallery-preview2.webp",
         "caption_ja": "プレビューは画像、PDFに対応",
-        "caption_en": ""
+        "caption_en": "Previews support images and PDFs"
       },
       {
         "src": "assets/gallery/gallery-setting1.webp",
         "caption_ja": "テーブルフィールドとスペースフィールドをご用意ください",
-        "caption_en": ""
+        "caption_en": "Please prepare a table field and a space field"
       },
       {
         "src": "assets/gallery/gallery-config1.webp",
         "caption_ja": "設定画面です",
-        "caption_en": ""
+        "caption_en": "Settings screen"
       },
       {
         "src": "assets/gallery/gallery-config2.webp",
         "caption_ja": "設定画面です",
-        "caption_en": ""
+        "caption_en": "Settings screen"
       }
     ],
     "og_image": "assets/gallery/hero.png",
@@ -132,6 +134,7 @@
     "type": "extension",
     "status": "public",
     "page_url": "/launcher/",
+    "page_url_en": "/launcher/en/",
     "hero_image": "/launcher/assets/icon128.png",
     "title_ja": "PlugBits Launcher",
     "title_en": "PlugBits Launcher",
@@ -142,18 +145,21 @@
     "store_url": "https://chromewebstore.google.com/detail/plugbits-launcher-for-kin/bmnijafgcjnpbgbdijjfidiaodphjjpd",
     "highlights_ja": "よく使うアプリ・ビュー・レコードをサイドパネルに集約、ワンクリックで移動;Ctrl+/ のコマンドパレットで移動・作成・コピーを一発実行;Excel Overlayで一覧をExcelのように編集（Pro / 無料版は閲覧モード）;ウォッチリストのしきい値通知で件数の急増を見逃さない;最近開いたレコードの履歴とピン留めで画面遷移を最小限に",
     "highlights_en": "Apps, views, and records in one side panel — one click to jump;Ctrl+/ command palette to navigate, create, and copy in one stroke;Excel Overlay: edit lists like a spreadsheet (Pro / view-only on Free);Watchlist threshold alerts catch sudden spikes in record counts;Recent-record history and pinning keep page hopping to a minimum",
-    "price_label_ja": "無料 + Pro ¥980/月",
-    "price_label_en": "Free + Pro ¥980/mo",
-    "trial_note_ja": "Pro（¥980/月）は14日間無料で試せます。クレジットカード不要。",
-    "trial_note_en": "Try Pro (¥980/mo) free for 14 days — no credit card required.",
-    "pro_url": "/pro.html"
+    "price_label_ja": "無料 + Grid Edit Pro 買い切り ¥1,980",
+    "price_label_en": "Free + Grid Edit Pro ¥1,980 one-time",
+    "trial_note_ja": "Grid Edit Pro（買い切り ¥1,980・月額なし）は14日間無料で試せます。クレジットカード不要。",
+    "trial_note_en": "Try Grid Edit Pro (¥1,980 one-time, no monthly fee) free for 14 days — no credit card required.",
+    "pro_url": "/pro.html",
+    "pro_url_en": "/pro/en/"
   },
   {
     "slug": "listkit",
     "type": "plugin",
     "status": "public",
     "page_url": "/kintone/kintone-listkit/",
+    "page_url_en": "/kintone/kintone-listkit/en/",
     "redirect_to": "/kintone/kintone-listkit/",
+    "redirect_to_en": "/kintone/kintone-listkit/en/",
     "install_url": "/kintone/dl/kintone-listkit-2.2.1.zip",
     "hero_image": "assets/listkit/hero.webp",
     "file_size": "83KB",
@@ -204,27 +210,27 @@
       {
         "src": "assets/listkit/tabs.png",
         "caption_ja": "一覧上部にビュー切替タブ、集計、日付フィルターボタンを表示します",
-        "caption_en": ""
+        "caption_en": "Displays view-switching tabs, aggregation, and a date filter button at the top of the list"
       },
       {
         "src": "assets/listkit/range_filter.png",
         "caption_ja": "日付フィルターはフィルター設定のショートカットです",
-        "caption_en": ""
+        "caption_en": "The date filter is a shortcut for filter settings"
       },
       {
         "src": "assets/listkit/setting-tabs.png",
         "caption_ja": "ビュータブの設定画面です。表示するビューを選択できます。",
-        "caption_en": ""
+        "caption_en": "Settings screen for view tabs. You can select which views to display"
       },
       {
         "src": "assets/listkit/setting-range.png",
         "caption_ja": "日付フィルターの設定画面です。ショートカットプリセットを任意で選択できます。",
-        "caption_en": ""
+        "caption_en": "Settings screen for the date filter. You can optionally select shortcut presets"
       },
       {
         "src": "assets/listkit/setting-aggregation.png",
         "caption_ja": "集計表示の設定画面です。対象フィールド、集計方法を設定できます。",
-        "caption_en": ""
+        "caption_en": "Settings screen for the aggregation display. You can set the target field and aggregation method"
       }
     ],
     "og_image": "assets/listkit/hero.png",
@@ -239,7 +245,9 @@
     "type": "plugin",
     "status": "public",
     "page_url": "/kintone/kintone-rule-builder/",
+    "page_url_en": "/kintone/kintone-rule-builder/en/",
     "redirect_to": "/kintone/kintone-rule-builder/",
+    "redirect_to_en": "/kintone/kintone-rule-builder/en/",
     "install_url": "/kintone/dl/kintone-rule-builder-2.2.1.zip",
     "hero_image": "assets/text-rule-builder/hero.webp",
     "file_size": "238KB",
@@ -322,7 +330,9 @@
     "type": "plugin",
     "status": "public",
     "page_url": "/kintone/kintone-excel-report/",
+    "page_url_en": "/kintone/kintone-excel-report/en/",
     "redirect_to": "/kintone/kintone-excel-report/",
+    "redirect_to_en": "/kintone/kintone-excel-report/en/",
     "install_url": "/kintone/dl/kintone-excel-report-2.4.2.zip",
     "hero_image": "assets/excel-report/hero.webp",
     "file_size": "391KB",
@@ -380,7 +390,9 @@
     "type": "plugin",
     "status": "public",
     "page_url": "/kintone/kintone-signage/",
+    "page_url_en": "/kintone/kintone-signage/en/",
     "redirect_to": "/kintone/kintone-signage/",
+    "redirect_to_en": "/kintone/kintone-signage/en/",
     "install_url": "/kintone/dl/kintone-signage-2.2.1.zip",
     "hero_image": "assets/signage/hero.webp",
     "file_size": "46KB",

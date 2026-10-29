@@ -1,5 +1,5 @@
 // 英語ページの点検(レポートのみ・常に exit 0)。build 後に実行: node tools/check-en.mjs
-// (a) dist/en, dist/products/en, dist/launcher/en の可視テキストに日本語が残っていないか
+// (a) 英語のページ(enDirs: /en/・products/en・launcher/en・pro/en・kintone 5 本の /en/)の可視テキストに日本語が残っていないか
 // (b) data/products.json の *_ja に対して *_en が欠け・空・日本語混じりでないか
 // (c) /en/ に Launcher カードが出ているか
 import fs from 'node:fs';
@@ -27,8 +27,10 @@ function walk(dir, acc = []) {
 }
 
 // (a) built pages
-const files = [path.join(DIST, 'en'), path.join(DIST, 'products', 'en'), path.join(DIST, 'launcher', 'en')].flatMap(d => walk(d));
-const enDirs = ['en', 'products/en', 'launcher/en'];
+// 英語のページがある場所(Launcher・Pro・kintone プラグイン 5 本の /en/)
+const enDirs = ['en', 'products/en', 'launcher/en', 'pro/en',
+  ...['gallery', 'listkit', 'rule-builder', 'excel-report', 'signage'].map(s => `kintone/kintone-${s}/en`)];
+const files = enDirs.map(d => path.join(DIST, d)).flatMap(d => walk(d));
 const textHits = [], attrHits = [];
 let redirects = 0;
 for (const f of files) {
@@ -71,8 +73,8 @@ const enIdx = path.join(DIST, 'en', 'index.html');
 if (fs.existsSync(enIdx)) {
   const h = fs.readFileSync(enIdx, 'utf8');
   const feat = /<div class="kb-ext-featured">[\s\S]*?PlugBits Launcher/.test(h);
-  const link = /<a[^>]*href="\/launcher\/"/.test(h);
-  card = feat ? `YES: featured Launcher block (.kb-ext-featured, "PlugBits Launcher")${link ? ' with "Learn more" link to /launcher/ (JP LP; /launcher/en/ not linked yet)' : ''}` : 'NO Launcher block found in dist/en/index.html';
+  const link = /<a[^>]*href="\/launcher\/(en\/)?"/.exec(h);
+  card = feat ? `YES: featured Launcher block (.kb-ext-featured, "PlugBits Launcher")${link ? ` with "Learn more" link to ${link[1] ? '/launcher/en/' : '/launcher/ (JP LP)'}` : ''}` : 'NO Launcher block found in dist/en/index.html';
 }
 
 out('# English site check');

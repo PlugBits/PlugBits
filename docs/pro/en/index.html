@@ -1,0 +1,941 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PlugBits Launcher Pro — Grid Edit for kintone, ¥1,980 one-time</title>
+  <meta name="description" content="Unlock Grid Edit and Excel copy &amp; paste in PlugBits Launcher Pro: edit kintone list views like a spreadsheet and save in bulk. ¥1,980 one-time, with a 14-day free trial (email only, no credit card)." />
+  <meta property="og:title" content="PlugBits Launcher Pro — Grid Edit for kintone, ¥1,980 one-time" />
+  <meta property="og:description" content="Edit kintone list views like a spreadsheet and save in bulk. ¥1,980 one-time, 14-day free trial, no credit card." />
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://plugbits.app/pro/en/" />
+  <link rel="canonical" href="https://plugbits.app/pro/en/" />
+  <meta property="og:image" content="https://plugbits.app/images/ogp.png" />
+  <meta name="theme-color" content="#0f1115" />
+  <link rel="stylesheet" href="../../launcher/styles.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    /* ── Pro page extras ─────────────────────────────────────── */
+    .pro-hero {
+      display: grid;
+      grid-template-columns: 1.05fr 1fr;
+      gap: 48px;
+      align-items: center;
+      padding: 72px 0 72px;
+      text-align: left;
+    }
+    .pro-hero .eyebrow {
+      display: inline-block;
+    }
+    .pro-hero h1 {
+      font-size: clamp(27px, 3.4vw, 42px);
+      max-width: none;
+      letter-spacing: -0.04em;
+      margin: 0 0 20px;
+    }
+    .pro-hero .hero-lead {
+      margin: 0;
+      max-width: 540px;
+      font-size: 16.5px;
+    }
+    .pro-hero .hero-actions {
+      margin-top: 32px;
+      justify-content: flex-start;
+    }
+    .hero-trust {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px 18px;
+      margin-top: 20px;
+      color: var(--muted);
+      font-size: 12.5px;
+    }
+    .hero-trust span::before { content: '✓ '; color: var(--accent); font-weight: 700; }
+    @media (max-width: 880px) {
+      .pro-hero { grid-template-columns: 1fr; gap: 36px; text-align: center; padding: 56px 0; }
+      .pro-hero .hero-lead { margin: 0 auto; }
+      .pro-hero .hero-actions { justify-content: center; }
+      .hero-trust { justify-content: center; }
+      .pro-demo { max-width: 480px; margin: 0 auto; }
+    }
+
+    /* ── Hero demo（実機動画が来たら .pro-demo-window の中身を <video> に差し替え） ── */
+    .pro-demo { width: 100%; }
+    .pro-demo-window {
+      position: relative;
+      background: #171a21;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: 0 30px 60px rgba(0, 0, 0, .45);
+    }
+    .hero-video { display: block; width: 100%; height: auto; }
+    .pro-demo-bar {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 10px 14px;
+      border-bottom: 1px solid #232837;
+    }
+    .pro-demo-title { font-size: 12px; font-weight: 700; color: #e8ecf4; display: flex; gap: 8px; align-items: center; }
+    .pro-demo-title img { width: 16px; height: 16px; border-radius: 4px; }
+    .pro-demo-save {
+      font-size: 11px; font-weight: 700; color: #fff;
+      background: var(--accent);
+      border-radius: 8px; padding: 5px 12px;
+      animation: proSave 9s ease-in-out infinite;
+    }
+    .pro-demo-grid { padding: 4px 12px 16px; }
+    .pro-xrow { display: grid; grid-template-columns: 1.3fr 1fr .8fr; }
+    .pro-xrow span {
+      position: relative;
+      padding: 9px 10px; font-size: 11.5px; color: #c7cedd;
+      border-bottom: 1px solid #232837; border-left: 1px solid #232837;
+      white-space: nowrap; overflow: hidden;
+    }
+    .pro-xrow span:first-child { border-left: 0; }
+    .pro-xrow--head span { color: #8b94a7; font-weight: 700; font-size: 10px; letter-spacing: .05em; }
+    .pro-cell-edit { animation: proCell 9s ease-in-out infinite; }
+    .pro-old { position: absolute; left: 10px; top: 9px; text-decoration: none; animation: proOld 9s ease-in-out infinite; }
+    .pro-type {
+      display: inline-block; overflow: hidden; white-space: nowrap;
+      width: 0; color: #fff; font-weight: 700;
+      animation: proType 9s infinite;
+    }
+    .pro-cell-edited2 { animation: proEdited2 9s ease-in-out infinite; }
+    .pro-toast {
+      position: absolute; left: 50%; bottom: 12px;
+      transform: translate(-50%, 8px);
+      background: #12351f; color: #7ee2a8;
+      border: 1px solid #1f5c36;
+      font-size: 11px; font-weight: 700;
+      padding: 7px 14px; border-radius: 999px;
+      opacity: 0;
+      animation: proToast 9s ease-in-out infinite;
+      pointer-events: none;
+    }
+    .pro-demo-caption { margin: 12px 4px 0; font-size: 12.5px; color: var(--muted); text-align: center; }
+    @keyframes proCell {
+      0%, 10%  { box-shadow: none; background: transparent; }
+      13%, 56% { box-shadow: inset 0 0 0 2px var(--accent); background: rgba(95, 140, 255, .08); }
+      64%, 100%{ box-shadow: none; background: transparent; }
+    }
+    @keyframes proOld {
+      0%, 13%  { opacity: 1; }
+      15%, 86% { opacity: 0; }
+      94%, 100%{ opacity: 1; }
+    }
+    @keyframes proType {
+      0%, 15%  { width: 0; animation-timing-function: steps(7, end); }
+      31%, 86% { width: 7.4ch; }
+      93%, 100%{ width: 0; }
+    }
+    @keyframes proEdited2 {
+      0%, 36%  { background: transparent; }
+      40%, 56% { background: rgba(255, 190, 90, .12); }
+      64%, 100%{ background: transparent; }
+    }
+    @keyframes proSave {
+      0%, 48%  { transform: scale(1); box-shadow: none; }
+      53%      { transform: scale(1.12); box-shadow: 0 0 0 6px rgba(95, 140, 255, .25); }
+      58%, 100%{ transform: scale(1); }
+    }
+    @keyframes proToast {
+      0%, 56%  { opacity: 0; transform: translate(-50%, 8px); }
+      62%, 84% { opacity: 1; transform: translate(-50%, 0); }
+      92%, 100%{ opacity: 0; transform: translate(-50%, 8px); }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .pro-demo *, .pro-demo *::before { animation: none !important; }
+      .pro-old { display: none; }
+      .pro-type { width: auto; }
+      .pro-toast { display: none; }
+    }
+
+    /* ── 共通セクション見出し ── */
+    .pro-h2 {
+      text-align: center;
+      margin: 0 0 14px;
+      font-size: 28px;
+      font-weight: 700;
+      letter-spacing: -0.03em;
+    }
+    .pro-h2-sub {
+      text-align: center;
+      margin: 0 0 40px;
+      color: var(--muted);
+      font-size: 14.5px;
+      line-height: 1.8;
+    }
+
+    /* ── Before / After ── */
+    .ba-section { padding: 0 0 80px; }
+    .ba-grid {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 20px;
+      max-width: 860px; margin: 0 auto;
+    }
+    .ba-card {
+      border-radius: 18px; padding: 26px 24px;
+      border: 1px solid var(--line); background: var(--panel);
+    }
+    .ba-card--after {
+      border-color: rgba(95, 140, 255, .35);
+      background: linear-gradient(160deg, rgba(95, 140, 255, .10), var(--panel));
+    }
+    .ba-label {
+      display: inline-block; font-size: 11px; font-weight: 800; letter-spacing: .08em;
+      padding: 3px 10px; border-radius: 999px; margin-bottom: 14px;
+      background: rgba(255, 255, 255, .06); color: var(--muted);
+    }
+    .ba-card--after .ba-label {
+      background: rgba(95, 140, 255, .15);
+      border: 1px solid rgba(95, 140, 255, .3);
+      color: #9ab4ff;
+    }
+    .ba-card ul { margin: 0; padding-left: 1.2em; color: #c7cedd; font-size: 14px; line-height: 1.95; }
+    .ba-note { margin: 14px 0 0; font-size: 12.5px; color: var(--muted); }
+    .ba-card--after .ba-note { color: #9ab4ff; font-weight: 600; }
+    @media (max-width: 720px) { .ba-grid { grid-template-columns: 1fr; } }
+
+    /* ── Free vs Pro 比較表 ── */
+    .compare-section { padding: 0 0 80px; max-width: 720px; margin: 0 auto; }
+    .compare-wrap { overflow-x: auto; }
+    .compare-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+    .compare-table th, .compare-table td {
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--line);
+      text-align: left;
+    }
+    .compare-table th:nth-child(n+2), .compare-table td:nth-child(n+2) {
+      text-align: center; width: 88px; white-space: nowrap;
+    }
+    .compare-table thead th { color: var(--muted); font-size: 12px; letter-spacing: .06em; border-bottom: 1px solid #2c3345; }
+    .compare-table thead th.pro-col { color: #9ab4ff; }
+    .compare-table td.pro-col { background: rgba(95, 140, 255, .06); }
+    .compare-table .yes { color: #7ee2a8; font-weight: 700; }
+    .compare-table .no { color: #4a5164; }
+
+    /* ── 3ステップ ── */
+    .steps-section { padding: 0 0 80px; }
+    .steps-grid {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px;
+      max-width: 860px; margin: 0 auto;
+    }
+    .step-card {
+      text-align: center; padding: 28px 20px;
+      background: var(--panel); border: 1px solid var(--line); border-radius: 18px;
+    }
+    .step-num {
+      width: 40px; height: 40px; border-radius: 50%;
+      background: rgba(95, 140, 255, .15); border: 1px solid rgba(95, 140, 255, .3);
+      color: #9ab4ff; font-weight: 800; font-size: 16px;
+      display: flex; align-items: center; justify-content: center;
+      margin: 0 auto 14px;
+    }
+    .step-card h3 { margin: 0 0 8px; font-size: 15px; font-weight: 700; }
+    .step-card p { margin: 0; color: var(--muted); font-size: 13.5px; line-height: 1.7; }
+    .steps-note { text-align: center; margin: 20px 0 0; color: var(--muted); font-size: 13px; }
+    @media (max-width: 720px) { .steps-grid { grid-template-columns: 1fr; } }
+
+    /* ── Feature grid ────────────────────────────────────────── */
+    .pro-features {
+      padding: 0 0 72px;
+    }
+    .pro-features-heading {
+      text-align: center;
+      margin: 0 0 40px;
+      font-size: 28px;
+      font-weight: 700;
+      letter-spacing: -0.03em;
+    }
+    .feature-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 20px;
+    }
+    .feature-card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 28px 24px;
+    }
+    .feature-card .icon {
+      font-size: 28px;
+      margin-bottom: 12px;
+    }
+    .feature-card h3 {
+      margin: 0 0 8px;
+      font-size: 16px;
+      font-weight: 700;
+    }
+    .feature-card p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.7;
+    }
+    .feature-card .badge {
+      display: inline-block;
+      margin-top: 12px;
+      padding: 3px 10px;
+      border-radius: 999px;
+      background: rgba(95, 140, 255, 0.15);
+      border: 1px solid rgba(95, 140, 255, 0.3);
+      color: #9ab4ff;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+    }
+
+    /* ── Pricing card ────────────────────────────────────────── */
+    .pricing-section {
+      padding: 0 0 96px;
+    }
+    .pricing-section-heading {
+      text-align: center;
+      margin: 0 0 40px;
+      font-size: 28px;
+      font-weight: 700;
+      letter-spacing: -0.03em;
+    }
+    .pricing-wrap {
+      display: flex;
+      justify-content: center;
+    }
+    .pricing-card {
+      width: 100%;
+      max-width: 440px;
+      background: var(--panel-strong);
+      border: 1px solid rgba(95, 140, 255, 0.3);
+      border-radius: 24px;
+      padding: 40px 36px;
+      position: relative;
+      overflow: hidden;
+    }
+    .pricing-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, var(--accent), transparent);
+    }
+    .pricing-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 12px;
+      border-radius: 999px;
+      background: rgba(95, 140, 255, 0.15);
+      border: 1px solid rgba(95, 140, 255, 0.3);
+      color: #9ab4ff;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      margin-bottom: 20px;
+    }
+    .pricing-price {
+      margin: 0 0 4px;
+    }
+    .pricing-price .amount {
+      font-size: 52px;
+      font-weight: 800;
+      letter-spacing: -0.04em;
+      line-height: 1;
+    }
+    .pricing-price .currency {
+      font-size: 20px;
+      font-weight: 600;
+      vertical-align: super;
+      margin-right: 2px;
+    }
+    .pricing-price .period {
+      font-size: 16px;
+      color: var(--muted);
+      font-weight: 500;
+    }
+    .pricing-note {
+      margin: 4px 0 28px;
+      font-size: 13px;
+      color: var(--muted);
+    }
+    .pricing-divider {
+      border: none;
+      border-top: 1px solid var(--line);
+      margin: 0 0 24px;
+    }
+    .pricing-items {
+      list-style: none;
+      margin: 0 0 32px;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .pricing-items li {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      font-size: 14px;
+    }
+    .pricing-items li .check {
+      flex-shrink: 0;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: rgba(95, 140, 255, 0.2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-top: 2px;
+    }
+    .pricing-items li .check::after {
+      content: '✓';
+      font-size: 11px;
+      color: var(--accent);
+      font-weight: 700;
+    }
+    .pricing-cta {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      align-items: stretch;
+    }
+    .pricing-cta .button {
+      font-size: 16px;
+      min-height: 52px;
+      border-radius: 16px;
+    }
+    .pricing-cta .sub-note {
+      text-align: center;
+      font-size: 12px;
+      color: var(--muted);
+    }
+    /* 拡張機能の設定画面から来た人向け: trial-btn の代わりに表示するテキスト行 */
+    .ext-trial-note {
+      /* ボタンに見せない(押せるものと思わせない)。ふつうの説明文として出す */
+      margin: 4px 0 12px;
+      padding: 0;
+      background: none;
+      border: none;
+      color: var(--muted);
+      font-size: 15px;
+      font-weight: 400;
+      line-height: 1.6;
+      text-align: center;
+    }
+
+    /* ── FAQ ─────────────────────────────────────────────────── */
+    .faq-section {
+      padding: 0 0 96px;
+      max-width: 680px;
+      margin: 0 auto;
+    }
+    .faq-section-heading {
+      text-align: center;
+      margin: 0 0 36px;
+      font-size: 28px;
+      font-weight: 700;
+      letter-spacing: -0.03em;
+    }
+    .faq-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+    }
+    .faq-item {
+      border-top: 1px solid var(--line);
+      padding: 20px 0;
+    }
+    .faq-item:last-child {
+      border-bottom: 1px solid var(--line);
+    }
+    .faq-item dt {
+      font-weight: 600;
+      font-size: 15px;
+      margin-bottom: 8px;
+    }
+    .faq-item dd {
+      margin: 0;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.75;
+    }
+    .faq-item dd a {
+      color: var(--accent);
+      text-decoration: underline;
+      text-underline-offset: 3px;
+    }
+    /* ── キー紛失時の再送フォーム ───────────────────────────── */
+    .license-recover {
+      margin-top: 14px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: flex-start;
+      gap: 10px;
+    }
+    .license-recover .license-recover-field {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      flex: 1 1 220px;
+      min-width: 0;
+    }
+    .license-recover label {
+      font-size: 12px;
+      color: var(--muted);
+    }
+    .license-recover input[type="email"] {
+      width: 100%;
+      min-height: 44px;
+      padding: 0 14px;
+      border-radius: 12px;
+      border: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.03);
+      color: var(--text);
+      font-size: 14px;
+    }
+    .license-recover input[type="email"]:focus {
+      outline: 2px solid var(--accent);
+      outline-offset: 1px;
+    }
+    .license-recover button {
+      flex: 0 0 auto;
+      min-height: 44px;
+      padding: 0 18px;
+      border-radius: 12px;
+      border: 1px solid var(--line);
+      background: var(--accent-soft);
+      color: var(--text);
+      font-weight: 600;
+      font-size: 14px;
+      cursor: pointer;
+    }
+    .license-recover button:disabled {
+      opacity: 0.6;
+      cursor: default;
+    }
+    .license-recover .license-recover-message {
+      flex: 1 1 100%;
+      margin: 4px 0 0;
+      font-size: 13px;
+      color: var(--muted);
+      min-height: 1.4em;
+    }
+
+    /* ── Footer CTA ──────────────────────────────────────────── */
+    .footer-cta {
+      text-align: center;
+      padding: 0 0 96px;
+    }
+    .footer-cta h2 {
+      font-size: clamp(28px, 4vw, 48px);
+      font-weight: 800;
+      letter-spacing: -0.04em;
+      margin: 0 0 16px;
+    }
+    .footer-cta p {
+      color: var(--muted);
+      font-size: 16px;
+      margin: 0 0 32px;
+    }
+
+    @media (max-width: 600px) {
+      .pricing-card { padding: 28px 20px; }
+      .pricing-price .amount { font-size: 40px; }
+    }
+  </style>
+  <link rel="alternate" hreflang="ja" href="https://plugbits.app/pro.html" />
+  <link rel="alternate" hreflang="en" href="https://plugbits.app/pro/en/" />
+  <link rel="alternate" hreflang="x-default" href="https://plugbits.app/pro.html" />
+</head>
+<body>
+  <div class="page-shell">
+    <header class="site-header">
+      <div class="brand">
+        <img class="brand-mark" src="../../launcher/assets/icon128.png" alt="PlugBits" />
+        <span>PlugBits Launcher</span>
+      </div>
+      <nav class="site-nav">
+        <a href="../../launcher/en/">Home</a>
+        <a href="../../launcher/en/manual.html">Manual</a>
+        <a href="#pricing" class="nav-cta">Upgrade to Pro</a>
+      </nav>
+    </header>
+
+    <main>
+      <!-- Hero -->
+      <section class="pro-hero">
+        <div class="pro-hero-copy">
+          <p class="eyebrow">PlugBits Launcher Pro</p>
+          <h1>Opening and fixing records one at a time,<br />ends today.</h1>
+          <p class="hero-lead">
+            Edit your kintone list view like Excel and save everything at once.
+            No more CSV export and import round trips, and no more opening and closing record after record.
+          </p>
+          <div class="hero-actions">
+            <a class="button button-primary" href="#pricing">Try free for 14 days</a>
+            <a class="button button-secondary" href="#compare">See how it differs from the free version</a>
+          </div>
+          <div class="hero-trust">
+            <span>No credit card required</span>
+            <span>One-time purchase, no extra charges</span>
+            <span>Your data never passes through any external server</span>
+          </div>
+        </div>
+
+        <!-- Excel Overlay 実機デモ動画 -->
+        <div class="pro-demo">
+          <div class="pro-demo-window">
+            <video class="hero-video" poster="../../images/videos/excel-overlay-poster.jpg"
+                   autoplay muted loop playsinline
+                   aria-label="Excel Overlay demo: edit a kintone list view directly in spreadsheet format, save in bulk, and see the changes reflected in the view">
+              <source src="../../images/videos/excel-overlay.webm" type="video/webm">
+              <source src="../../images/videos/excel-overlay.mp4" type="video/mp4">
+            </video>
+          </div>
+          <p class="pro-demo-caption">Actual screen: edit cells directly in the list view, then save everything at once.</p>
+        </div>
+      </section>
+
+      <!-- Before / After -->
+      <section class="ba-section">
+        <h2 class="pro-h2">Fixing 50 values? Here's how that changes.</h2>
+        <p class="pro-h2-sub">For example, updating quantities after inventory counts, or applying a unit price revision across the board.</p>
+        <div class="ba-grid">
+          <div class="ba-card">
+            <span class="ba-label">Before</span>
+            <ul>
+              <li>Open a record → edit → save → go back to the list view, repeated 50 times</li>
+              <li>Or export a CSV, edit it in Excel, import it, and fix the errors</li>
+            </ul>
+            <p class="ba-note">Constant screen changes break your focus.</p>
+          </div>
+          <div class="ba-card ba-card--after">
+            <span class="ba-label">With GRID EDIT</span>
+            <ul>
+              <li>Edit cells directly in the list view (pasting from Excel works too)</li>
+              <li>One click on "Save all" at the end</li>
+            </ul>
+            <p class="ba-note">Done without ever leaving kintone.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Features -->
+      <section class="pro-features">
+        <h2 class="pro-features-heading">Pro-Only Features</h2>
+        <div class="feature-grid">
+          <div class="feature-card">
+            <div class="icon">⚡</div>
+            <h3>Grid Edit (Spreadsheet Editing)</h3>
+            <p>
+              Click cells directly in the list view to edit them. Change multiple records at once
+              and save them in bulk. Supports major field types including text, number, date, date and time, and drop-down.
+            </p>
+            <span class="badge">PRO</span>
+          </div>
+          <div class="feature-card">
+            <div class="icon">📋</div>
+            <h3>Spreadsheet Copy &amp; Paste</h3>
+            <p>
+              Copy cells from the list view into Excel, or paste from Excel into kintone to import them.
+              Moving back and forth with Excel every day becomes seamless.
+            </p>
+            <span class="badge">PRO</span>
+          </div>
+          <div class="feature-card">
+            <div class="icon">🔗</div>
+            <h3>Lookup Support</h3>
+            <p>
+              Both Grid Edit and the new record modal support the Lookup field picker.
+              Search for and select related records.
+            </p>
+            <span class="badge">PRO</span>
+          </div>
+          <div class="feature-card">
+            <div class="icon">🛠</div>
+            <h3>Upcoming Pro Features</h3>
+            <p>
+              We plan to keep adding Pro features, such as File field support and CSV import integration.
+              Anyone who has purchased will get them automatically.
+            </p>
+            <span class="badge">COMING SOON</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Free vs Pro 比較表 -->
+      <section class="compare-section" id="compare">
+        <h2 class="pro-h2">Free vs. Pro</h2>
+        <p class="pro-h2-sub">The free version is useful on its own every day. When you need editing, go Pro.</p>
+        <div class="compare-wrap">
+          <table class="compare-table">
+            <thead>
+              <tr><th>Feature</th><th>Free</th><th class="pro-col">Pro</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>Side panel (shortcuts, history, watchlist, record pins)</td><td><span class="yes">✓</span></td><td class="pro-col"><span class="yes">✓</span></td></tr>
+              <tr><td>Ctrl+/ command palette</td><td><span class="yes">✓</span></td><td class="pro-col"><span class="yes">✓</span></td></tr>
+              <tr><td>Quick New (add new records)</td><td><span class="yes">✓</span></td><td class="pro-col"><span class="yes">✓</span></td></tr>
+              <tr><td>Spreadsheet View (view list views in spreadsheet format, read-only)</td><td><span class="yes">✓</span></td><td class="pro-col"><span class="yes">✓</span></td></tr>
+              <tr><td>Grid Edit (cell editing, bulk save, add rows)</td><td><span class="no">—</span></td><td class="pro-col"><span class="yes">✓</span></td></tr>
+              <tr><td>Excel copy &amp; paste (two-way)</td><td><span class="no">—</span></td><td class="pro-col"><span class="yes">✓</span></td></tr>
+              <tr><td>Lookup field support</td><td><span class="no">—</span></td><td class="pro-col"><span class="yes">✓</span></td></tr>
+              <tr><td>Future Pro features</td><td><span class="no">—</span></td><td class="pro-col"><span class="yes">✓</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- ユースケース -->
+      <section class="pro-features">
+        <h2 class="pro-h2">Where It Helps</h2>
+        <p class="pro-h2-sub">Every department has work that means "fix a whole list view at once."</p>
+        <div class="feature-grid">
+          <div class="feature-card">
+            <div class="icon">📈</div>
+            <h3>Sales</h3>
+            <p>Before your regular meeting, update deal probability, amount, and next action all at once in the list view. No need to open records one by one.</p>
+          </div>
+          <div class="feature-card">
+            <div class="icon">🏭</div>
+            <h3>Manufacturing &amp; Inventory</h3>
+            <p>Paste actual counts collected during inventory straight from Excel. Bulk updates to progress or quantities can also be finished right in the list view.</p>
+          </div>
+          <div class="feature-card">
+            <div class="icon">🗂</div>
+            <h3>Back Office</h3>
+            <p>Get recurring "fix it all at once" tasks, like bulk master data maintenance or unit price revisions, done in a short time.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- 始め方 3ステップ -->
+      <section class="steps-section">
+        <h2 class="pro-h2">Try It in 3 Minutes</h2>
+        <div class="steps-grid">
+          <div class="step-card">
+            <div class="step-num">1</div>
+            <h3>Add to Chrome (free)</h3>
+            <p>Install PlugBits Launcher from the Chrome Web Store.</p>
+          </div>
+          <div class="step-card">
+            <div class="step-num">2</div>
+            <h3>Enter your email address</h3>
+            <p>Just enter your email address in the "Pro License" tab of the extension's settings screen.</p>
+          </div>
+          <div class="step-card">
+            <div class="step-num">3</div>
+            <h3>Get the full Pro experience for 14 days</h3>
+            <p>Use all of Grid Edit and Excel copy &amp; paste. If it's not for you, you don't need to do anything.</p>
+          </div>
+        </div>
+        <p class="steps-note">No credit card registration is required. You will not be charged automatically after the trial ends.</p>
+      </section>
+
+      <!-- Pricing -->
+      <section class="pricing-section" id="pricing">
+        <h2 class="pricing-section-heading">Simple Pricing</h2>
+        <div class="pricing-wrap">
+          <div class="pricing-card">
+            <div class="pricing-label">⭐ Pro Plan</div>
+            <div class="pricing-price">
+              <span class="currency">¥</span><span class="amount">1,980</span>
+              <span class="period">&nbsp;one-time, tax incl.</span>
+            </div>
+            <p class="pricing-note">Tax included · One-time purchase · No extra charges · <strong>Includes a 14-day free trial</strong></p>
+            <hr class="pricing-divider" />
+            <ul class="pricing-items">
+              <li>
+                <span class="check"></span>
+                <span>Grid Edit — spreadsheet-style bulk editing and adding rows</span>
+              </li>
+              <li>
+                <span class="check"></span>
+                <span>Spreadsheet Copy &amp; Paste — two-way integration with Excel</span>
+              </li>
+              <li>
+                <span class="check"></span>
+                <span>Lookup field support</span>
+              </li>
+              <li>
+                <span class="check"></span>
+                <span>All future Pro features</span>
+              </li>
+              <li>
+                <span class="check"></span>
+                <span>Email support</span>
+              </li>
+              <li>
+                <span class="check"></span>
+                <span>Includes all features of the free version</span>
+              </li>
+            </ul>
+            <div class="pricing-cta">
+              <a class="button button-primary" id="trial-btn" href="https://chromewebstore.google.com/detail/plugbits-launcher-for-kin/bmnijafgcjnpbgbdijjfidiaodphjjpd" target="_blank" rel="noopener">
+                Try Pro free for 14 days
+              </a>
+              <a class="button button-secondary" id="checkout-btn" href="https://buy.stripe.com/eVq9AV8U72ky64M6R78so03" target="_blank" rel="noopener">
+                Buy now — ¥1,980 one-time, tax incl.
+              </a>
+              <p class="sub-note">
+                To start the trial, just enter your email address in the extension's settings screen (no credit card required).<br />
+                Secure payment via Stripe · Pay once and use it forever
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- FAQ -->
+      <section class="faq-section">
+        <h2 class="faq-section-heading">Frequently Asked Questions</h2>
+        <dl class="faq-list">
+          <div class="faq-item">
+            <dt>Is there a free trial?</dt>
+            <dd>
+              Yes. Enter your email address in the "Pro License" tab of the extension's settings screen,
+              and your 14-day Pro trial starts right away. No credit card registration is required.
+            </dd>
+          </div>
+          <div class="faq-item">
+            <dt>Does the data I edit pass through an external server?</dt>
+            <dd>
+              No. All processing happens inside your browser, and data is saved directly to kintone.
+              The contents of your records are never sent to any external server, including PlugBits servers.
+            </dd>
+          </div>
+          <div class="faq-item">
+            <dt>How do I receive my license key?</dt>
+            <dd>
+              After your purchase is complete, a license key (in UUID format) is sent to the email address you registered.
+              Enter it in the Chrome extension icon → Settings → Pro License tab.
+            </dd>
+          </div>
+          <div class="faq-item" id="recover">
+            <dt>What if I lose my key?</dt>
+            <dd>
+              Enter the email address you used when purchasing and submit it, and we'll send the key to that address again.
+              <form data-license-recover data-product="grid-edit-pro" class="license-recover">
+                <div class="license-recover-field">
+                  <label for="recover-email">Email address used for purchase</label>
+                  <input type="email" id="recover-email" name="email" autocomplete="email" required>
+                </div>
+                <button type="submit">Resend my key</button>
+                <p class="license-recover-message" role="status" aria-live="polite"></p>
+              </form>
+            </dd>
+          </div>
+          <div class="faq-item">
+            <dt>Can I cancel?</dt>
+            <dd>
+              Because it's a one-time purchase, there's nothing to cancel. Once you've paid, no further charges occur.
+              You can view your receipt using the "Receipt" button in the "Pro License" tab of the extension's settings screen.
+            </dd>
+          </div>
+          <div class="faq-item">
+            <dt>What's the difference from the free version?</dt>
+            <dd>
+              The free version includes the side panel (shortcuts, history, watchlist, and Spreadsheet View for viewing) and
+              Quick New (add new records).
+              Pro adds editing, saving, and adding rows with Grid Edit, plus copy &amp; paste with Excel.
+            </dd>
+          </div>
+          <div class="faq-item">
+            <dt>Do you support corporate purchases or invoice payment?</dt>
+            <dd>
+              Currently we only support personal credit card payments.
+              For corporate use, please contact us at <a href="mailto:support@plugbits.app">support@plugbits.app</a>.
+            </dd>
+          </div>
+          <div class="faq-item">
+            <dt>Can I use it with multiple accounts or on multiple devices?</dt>
+            <dd>
+              Each license key is intended for use in one browser profile.
+              If you need additional licenses, please contact us.
+            </dd>
+          </div>
+        </dl>
+      </section>
+
+      <!-- Footer CTA -->
+      <section class="footer-cta">
+        <h2>Try Pro Today</h2>
+        <p>Free for 14 days, no credit card required. If you keep using it, it's ¥1,980 one-time, tax incl. (pay once and use it forever).</p>
+        <div class="hero-actions" style="justify-content:center;">
+          <a class="button button-primary" id="footer-trial-btn" href="https://chromewebstore.google.com/detail/plugbits-launcher-for-kin/bmnijafgcjnpbgbdijjfidiaodphjjpd" target="_blank" rel="noopener"
+             style="font-size:16px;min-height:52px;padding:0 28px;">
+            Start your free trial
+          </a>
+          <a class="button button-secondary" href="https://buy.stripe.com/eVq9AV8U72ky64M6R78so03" target="_blank" rel="noopener"
+             style="font-size:16px;min-height:52px;padding:0 28px;">
+            Buy now — ¥1,980 one-time, tax incl.
+          </a>
+        </div>
+      </section>
+    </main>
+
+    <footer style="border-top:1px solid var(--line);padding:28px 0;color:var(--muted);font-size:13px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:16px;">
+      <span>© 2026 PlugBits</span>
+      <nav style="display:flex;gap:20px;">
+        <a href="https://plugbits.app/en/" style="color:var(--muted);">PlugBits Home</a>
+        <a href="../../privacy.html" style="color:var(--muted);">Privacy Policy</a>
+        <a href="../../terms.html" style="color:var(--muted);">Terms of Service</a>
+        <a href="mailto:support@plugbits.app" style="color:var(--muted);">Contact</a>
+        <a href="https://plugbits.app/pro.html" hreflang="ja" style="color:var(--muted);">日本語</a>
+      </nav>
+    </footer>
+  </div>
+  <script>
+  // アニメーション抑制設定のユーザーには動画を自動再生しない
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    document.querySelectorAll('video[autoplay]').forEach(v => {
+      v.removeAttribute('autoplay'); v.pause(); v.controls = true;
+    });
+  }
+  </script>
+  <script>
+  // 拡張機能の設定画面(オプションページ)から来た人向けの表示切り替え。
+  // ?from=ext / #from=ext / #pricing&from=ext / ?from=ext#pricing のいずれでも判定する。
+  (function () {
+    try {
+      var hashTokens = location.hash.replace(/^#/, '').split('&').filter(Boolean);
+      var fromExt =
+        new URLSearchParams(location.search).get('from') === 'ext' ||
+        hashTokens.indexOf('from=ext') !== -1;
+      var wantsPricingScroll = hashTokens.indexOf('pricing') !== -1;
+
+      // ハッシュに他のトークンが混ざっている場合(例: #pricing&from=ext)は
+      // ブラウザ標準のアンカー遷移が効かないため、手動でスクロールする。
+      if (wantsPricingScroll) {
+        var pricingSection = document.getElementById('pricing');
+        if (pricingSection) {
+          window.requestAnimationFrame(function () {
+            pricingSection.scrollIntoView();
+          });
+        }
+      }
+
+      if (fromExt) {
+        var trialBtn = document.getElementById('trial-btn');
+        if (trialBtn) {
+          var note = document.createElement('p');
+          note.className = 'ext-trial-note';
+          note.textContent = 'Enter your email in the extension settings to get started';
+          trialBtn.replaceWith(note);
+        }
+
+        var footerTrialBtn = document.getElementById('footer-trial-btn');
+        if (footerTrialBtn) {
+          footerTrialBtn.remove();
+        }
+      }
+    } catch (e) {
+      // 何か失敗しても既定の表示(ボタンあり)のままにする
+    }
+  })();
+  </script>
+<script src="/assets/license-recover.js" defer></script>
+<!-- Cloudflare Web Analytics --><script defer src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon='{"token": "86511d1154774394986239de33d21882"}'></script><!-- End Cloudflare Web Analytics -->
+</body>
+</html>

@@ -32,7 +32,9 @@ const DEFAULT_BLOG_OG_IMAGE = 'assets/blog/og_blog_default.png';
 // sitemap からは外している(/drawing/, /drawing/demo/)。
 const DOCS_INDEXABLE_PAGES = ['/factory-tools/', '/launcher/'];
 // 英語版 Launcher LP は docs/launcher/en/ が手書きで置かれたときだけ sitemap に載せる(存在しないページを載せない)
-const DOCS_INDEXABLE_EN_PAGES = ['/launcher/en/'];
+const DOCS_INDEXABLE_EN_PAGES = ['/launcher/en/', '/pro/en/',
+  '/kintone/kintone-gallery/en/', '/kintone/kintone-listkit/en/', '/kintone/kintone-rule-builder/en/',
+  '/kintone/kintone-excel-report/en/', '/kintone/kintone-signage/en/'];
 
 function esc(s) {
   return String(s ?? '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
@@ -271,7 +273,7 @@ try {
       // redirect_to がある製品は専用LPが正のページなので詳細ページの代わりに
       // スタブを置くが、マニュアル(ja/en)の生成はスキップせず続ける。
       fs.writeFileSync(path.join(PRODUCTS_DIR, `${p.slug}.html`),    redirectStub(p.redirect_to));
-      fs.writeFileSync(path.join(PRODUCTS_EN_DIR, `${p.slug}.html`), redirectStub(p.redirect_to));
+      fs.writeFileSync(path.join(PRODUCTS_EN_DIR, `${p.slug}.html`), redirectStub(p.redirect_to_en || p.redirect_to));
     } else {
       fs.writeFileSync(path.join(PRODUCTS_DIR, `${p.slug}.html`),    fillProduct(p, 'ja'));
       fs.writeFileSync(path.join(PRODUCTS_EN_DIR, `${p.slug}.html`), fillProduct(p, 'en'));
@@ -305,7 +307,7 @@ try {
       const md = rewriteManualImagePaths(readText(manualEnPath), p.slug, imgPrefix);
       const content = marked.parse(md);
       let out = tpl.manualEn
-        .replaceAll('%%SLUG%%.html',      backTarget || `${p.slug}.html`)
+        .replaceAll('%%SLUG%%.html',      p.page_url_en || backTarget || `${p.slug}.html`)
         .replaceAll('%%TITLE%%',          esc(p.title_en))
         .replaceAll('%%SLUG%%',           p.slug)
         .replaceAll('%%MANUAL_CONTENT%%', content)
@@ -559,7 +561,9 @@ try {
     // EN index は /en/ 配下にあるため、相対パスには ../ を付ける（絶対パス・URLはそのまま）
     const pre = isJa ? '' : '../';
     const rel = s => /^([a-z]+:)?\//i.test(s || '') ? s : pre + s;
-    const visible = products.filter(p => (p.status || 'public') !== 'unlisted');
+    // 英語のカードは page_url_en(英語の専用LP)があればそちらへ
+    const visible = products.map(p => isJa ? p : { ...p, page_url: p.page_url_en || p.page_url, pro_url: p.pro_url_en || p.pro_url })
+                            .filter(p => (p.status || 'public') !== 'unlisted');
     const extensions = visible.filter(p => p.type === 'extension');
     const pluginList  = visible.filter(p => p.type === 'plugin');
     const websites    = visible.filter(p => p.type === 'website');
@@ -770,9 +774,11 @@ try {
     : '<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"></urlset>';
   const urls = ['/index.html', '/en/index.html', '/terms.html', '/install2.html'];
   for (const p of plugins) {
-    if (p.redirect_to) continue; // リダイレクトスタブは sitemap に載せない
-    urls.push(`/products/${p.slug}.html`);
-    urls.push(`/products/en/${p.slug}.html`);
+    // リダイレクトスタブは sitemap に載せない(マニュアルは本物のページなので載せる)
+    if (!p.redirect_to) {
+      urls.push(`/products/${p.slug}.html`);
+      urls.push(`/products/en/${p.slug}.html`);
+    }
     if (fileExists(path.join(MANUALS_SRC, `${p.slug}.ja.md`))) urls.push(`/products/${p.slug}-manual.html`);
     if (fileExists(path.join(MANUALS_SRC, `${p.slug}.en.md`))) urls.push(`/products/en/${p.slug}-manual.html`);
   }
@@ -795,8 +801,7 @@ try {
   // x-default は ja。Launcher LP(docs/launcher/)は手書きなので対象外。
   const hreflangPairs = [['/index.html', '/en/index.html', '/', '/en/']];
   for (const p of plugins) {
-    if (p.redirect_to) continue;
-    hreflangPairs.push([`/products/${p.slug}.html`, `/products/en/${p.slug}.html`]);
+    if (!p.redirect_to) hreflangPairs.push([`/products/${p.slug}.html`, `/products/en/${p.slug}.html`]);
     if (fileExists(path.join(MANUALS_SRC, `${p.slug}.ja.md`)) && fileExists(path.join(MANUALS_SRC, `${p.slug}.en.md`))) {
       hreflangPairs.push([`/products/${p.slug}-manual.html`, `/products/en/${p.slug}-manual.html`]);
     }
