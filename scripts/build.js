@@ -993,6 +993,20 @@ try {
   }
   console.log(`hreflang tags: ${hreflangPages} page(s)`);
 
+  // 英語のトップ・製品・マニュアルのナビの Blog(/blog/en/)。英語記事が 1 本も無い時は行ごと消す(404 へ飛ばさない)
+  const BLOG_NAV_EN = enPosts.length > 0 ? '<a href="/blog/en/">Blog</a>' : '';
+  let blogNavPages = 0;
+  for (const f of [path.join(DIST, 'en', 'index.html'), ...fs.readdirSync(PRODUCTS_EN_DIR).filter(n => n.endsWith('.html')).map(n => path.join(PRODUCTS_EN_DIR, n))]) {
+    if (!fileExists(f)) continue;
+    const html = readText(f);
+    if (!html.includes('%%BLOG_NAV_EN%%')) continue;
+    fs.writeFileSync(f, BLOG_NAV_EN
+      ? html.replace(/%%BLOG_NAV_EN%%/g, BLOG_NAV_EN)
+      : html.replace(/\n[ \t]*%%BLOG_NAV_EN%%/g, ''));
+    blogNavPages++;
+  }
+  console.log(`blog nav (en): ${BLOG_NAV_EN ? 'on' : 'off'}, ${blogNavPages} page(s)`);
+
   // 日本語の一覧(/blog/)に英語版への小さな切替リンク(英語記事が1本でもある時だけ)
   if (enPosts.length > 0) {
     const jaIdx = path.join(DIST, 'blog', 'index.html');
