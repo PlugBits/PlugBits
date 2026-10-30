@@ -1173,6 +1173,22 @@
   border: 1px solid var(--kb-primary-200);
 }
 
+/* ---- 貼る 1 行(/claude/) ---- */
+.kb-cmd {
+  margin: 8px 0 16px;
+  padding: 12px 14px;
+  background: var(--kb-primary-050);
+  border: 1px solid var(--kb-primary-200);
+  border-radius: 8px;
+  overflow-x: auto;
+}
+.kb-cmd code {
+  font-family: ui-monospace, "SFMono-Regular", Consolas, monospace;
+  font-size: 13px;
+  color: var(--kb-primary);
+  white-space: pre;
+}
+
 /* ---- Blockquote (callout) ---- */
 .kb-manual-body blockquote {
   margin: 0 0 16px;

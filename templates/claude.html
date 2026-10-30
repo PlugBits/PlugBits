@@ -56,6 +56,15 @@
         <h2 class="kb-section-title">ショート</h2>
         %%SHORTS_HTML%%
       </section>
+      <section class="kb-section">
+        <h2 class="kb-section-title">Windows に入れる</h2>
+        <p><strong>おすすめはアプリ。</strong><a href="https://claude.com/download">claude.com/download</a> からインストーラを入れる → サインイン → 左の「Code」タブ。Node も CLI も要りません。有料プラン(Pro 以上)が必要です。(出どころ: <a href="https://code.claude.com/docs/en/desktop-quickstart">公式 Desktop quickstart</a>)</p>
+        <p><strong>黒い画面で使いたい人は 1 行。</strong>PowerShell に貼る:</p>
+        <pre class="kb-cmd"><code>irm https://claude.ai/install.ps1 | iex</code></pre>
+        <p>CMD の人:</p>
+        <pre class="kb-cmd"><code>curl -fsSL https://claude.ai/install.cmd -o install.cmd &amp;&amp; install.cmd &amp;&amp; del install.cmd</code></pre>
+        <p>管理者権限は不要。入れた直後に「claude が見つからない」と出たら、新しい窓を開いてください。(出どころ: <a href="https://code.claude.com/docs/en/setup">公式 Set up Claude Code</a>)</p>
+      </section>
 %%READS_SECTION%%      <section class="kb-section">
         <h2 class="kb-section-title">プラグイン作成 mod</h2>
         <p>kintone のプラグインを Claude Code で作る mod です。</p>
