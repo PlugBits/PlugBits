@@ -933,7 +933,7 @@ try {
   const base = fileExists(basePath)
     ? readText(basePath)
     : '<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"></urlset>';
-  const urls = ['/index.html', '/en/index.html', '/terms.html', '/install2.html'];
+  const urls = ['/', '/en/', '/terms.html', '/install2.html'];   // トップは配られる URL(/ と /en/)で載せる。index.html だと Search Console で URL が割れる(11/1)
   for (const p of plugins) {
     // リダイレクトスタブは sitemap に載せない(マニュアルは本物のページなので載せる)
     if (!p.redirect_to) {
