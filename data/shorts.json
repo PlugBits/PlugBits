@@ -1,5 +1,23 @@
 [
   {
+    "slug": "05-claude-md",
+    "title": "CLAUDE.mdって何",
+    "date": "2026-11-01",
+    "youtube": "https://youtube.com/shorts/cGuUlHaYwZU"
+  },
+  {
+    "slug": "04-first-three",
+    "title": "Claude Code、最初に覚える3つだけ",
+    "date": "2026-10-31",
+    "youtube": "https://youtube.com/shorts/lEnyddhJz4Q"
+  },
+  {
+    "slug": "03-windows-install",
+    "title": "Claude Code、Windowsに入れる3手順",
+    "date": "2026-10-30",
+    "youtube": "https://youtube.com/shorts/JK1ZvcVM42Y"
+  },
+  {
     "slug": "02-first-line",
     "title": "Claude Code、最初の1行",
     "date": "2026-10-29",
