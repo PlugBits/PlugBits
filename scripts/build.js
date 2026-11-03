@@ -29,6 +29,8 @@ const SITE_ORIGIN = 'https://plugbits.app';
 // 記事ごとの上書きは data/posts.json の og_image が効く(後から1本ずつ足せる)。
 // 画像の元は tools/og/og_blog_default.html(HTML→スクショ。assets/ に置くと公開されるので tools/ 側)。
 const DEFAULT_BLOG_OG_IMAGE = 'assets/blog/og_blog_default.png';
+// /claude/ のトップに出すショートの本数。残りは /claude/shorts/ の一覧に出る(11/3 オケオ「4 で行きましょう」)
+const CLAUDE_TOP_SHORTS = 4;
 // /deals/ 以下は 2026-09-20 に dorutoku.com へ移した。旧 URL は案内ページだけ残して
 // noindex にしてあるので、sitemap には載せない。
 // Drawing(図面の類似検索)は2026年9月30日に提供を終了したため、案内ページのみ残し
@@ -905,12 +907,11 @@ try {
   // /claude/ (templates/claude.html + data/shorts.json + Claude Code の記事)
   (function renderClaude() {
     const shortsPath = path.join(ROOT, 'data', 'shorts.json');
-    const shorts = fileExists(shortsPath) ? readJSON(shortsPath) : [];
+    const shorts = (fileExists(shortsPath) ? readJSON(shortsPath) : [])
+      .slice().sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')));
     // サムネは YouTube の hqdefault(4:3 の中央に縦動画)を 9:16 の枠に cover で収めて左右の黒帯を落とす
     const ytId = u => (/(?:youtu\.be\/|\/shorts\/|[?&]v=)([\w-]{11})/.exec(u || '') || [])[1];
-    const shortsHtml = shorts.length === 0
-      ? '<p>1 本目は 10/30 に出ます。</p>'
-      : '<ul class="cl-shorts">' + shorts.map(s => {
+    const shortCards = list => '<ul class="cl-shorts">' + list.map(s => {
           const title = String(s.title || '').replace(/\s*#Shorts\b/gi, '').trim();
           const id = ytId(s.youtube);
           const href = s.youtube || s.x;
@@ -920,6 +921,10 @@ try {
           return `<li><a class="cl-short" href="${esc(href)}"><span class="cl-short-thumb">${thumb}</span>` +
             `<span class="cl-short-title">${esc(title)}</span><span class="cl-short-date">${esc(formatDateJa(s.date))}</span></a></li>`;
         }).join('') + '</ul>';
+    const shortsHtml = shorts.length === 0
+      ? '<p>1 本目は 10/30 に出ます。</p>'
+      : shortCards(shorts.slice(0, CLAUDE_TOP_SHORTS)) +
+        (shorts.length > CLAUDE_TOP_SHORTS ? '\n        <p class="cl-more"><a class="kb-btn cl-btn" href="/claude/shorts/">ほかのショートを見る</a></p>' : '');
     const reads = allBlogPosts
       .filter(p => `${p.title || ''}\n${p.keywords || ''}`.includes('Claude Code'))
       .sort((a, b) => String(b.published_at).localeCompare(String(a.published_at)));
@@ -935,6 +940,14 @@ try {
       .replaceAll('%%SITE_COPYRIGHT%%', SITE_COPYRIGHT);
     fs.mkdirSync(path.join(DIST, 'claude'), { recursive: true });
     fs.writeFileSync(path.join(DIST, 'claude', 'index.html'), out);
+    // /claude/shorts/: 全部のショート(新しい順)
+    const listOut = readText(path.join(ROOT, 'templates', 'claude-shorts.html'))
+      .replaceAll('%%OG_IMAGE%%', `${SITE_ORIGIN}/${DEFAULT_BLOG_OG_IMAGE}`)
+      .replaceAll('%%SHORTS_HTML%%', shorts.length === 0 ? '<p>1 本目は 10/30 に出ます。</p>' : shortCards(shorts))
+      .replaceAll('%%SUPPORT_MAIL%%', SUPPORT_MAIL)
+      .replaceAll('%%SITE_COPYRIGHT%%', SITE_COPYRIGHT);
+    fs.mkdirSync(path.join(DIST, 'claude', 'shorts'), { recursive: true });
+    fs.writeFileSync(path.join(DIST, 'claude', 'shorts', 'index.html'), listOut);
   })();
 
   // sitemap 生成
@@ -982,6 +995,7 @@ try {
   }
   urls.push('/blog/');
   urls.push('/claude/');
+  urls.push('/claude/shorts/');
   for (const key of Object.keys(BLOG_THEMES)) urls.push(`/blog/${BLOG_THEMES[key].slug}/`);
   for (const post of allBlogPosts) urls.push(`/blog/${post.slug}/`); // 一覧のページ送りは入れない
   if (enPosts.length > 0) {
@@ -998,6 +1012,11 @@ try {
   }
   for (const u of [...DOCS_INDEXABLE_PAGES, ...DOCS_INDEXABLE_EN_PAGES]) gitMax(u, [docsIndex(u)]);
   gitMax('/claude/', ['templates/claude.html', 'data/shorts.json']);
+  {
+    const shortsPath = path.join(ROOT, 'data', 'shorts.json');
+    const d = blogLib.maxLastmod((fileExists(shortsPath) ? readJSON(shortsPath) : []).map(s => s.date), today);
+    if (d) lastmod['/claude/shorts/'] = d;   // 一覧はショートの最新の日
+  }
   postsMax('/blog/', allBlogPosts);
   for (const key of Object.keys(BLOG_THEMES)) postsMax(`/blog/${BLOG_THEMES[key].slug}/`, allBlogPosts.filter(p => p.theme === key));
   for (const post of allBlogPosts) postsMax(`/blog/${post.slug}/`, [post]);

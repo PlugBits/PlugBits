@@ -1684,6 +1684,8 @@
 .cl-note{font-size:13px;color:var(--kb-muted)}
 .cl-src{font-size:13px;color:var(--kb-muted)}
 .cl-back{padding:24px 0 8px;margin:0}
+.cl-more{margin:16px 0 0;text-align:center}
+.cl-page-title{font-size:28px;font-weight:800;margin:0 0 10px;color:var(--kb-text)}
 .cl-list{list-style:none;margin:0;padding:0}
 .cl-list li{padding:10px 0;border-bottom:1px solid var(--kb-line)}
 .cl-list .cl-meta{color:var(--kb-muted);font-size:13px;margin-left:8px}
