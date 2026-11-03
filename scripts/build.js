@@ -5,6 +5,7 @@ const fs = require('fs');
 const path = require('path');
 const { marked } = require('marked');
 const blogLib = require('./blog-lib');
+const { execFileSync } = require('child_process');
 
 const ROOT = path.join(__dirname, '..');
 const DIST = path.join(ROOT, 'dist');
@@ -933,6 +934,27 @@ try {
   const base = fileExists(basePath)
     ? readText(basePath)
     : '<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"></urlset>';
+  // lastmod(11/3): 本当に中身が変わった日だけ。build 日は入れない。分からない URL は付けない。
+  //   記事=frontmatter の updated→date / 一覧=載る記事の最大 / 静的=そのページ固有の出どころファイルの git 最終コミット日
+  //   products/*.html は products.json 由来で変わった日が取れないので付けない
+  const today = new Date().toISOString().slice(0, 10);
+  const gitDate = rel => {
+    try {
+      return blogLib.toLastmod(execFileSync('git', ['log', '-1', '--format=%cs', '--', rel], { cwd: ROOT, encoding: 'utf-8' }), today);
+    } catch (e) {
+      return null;
+    }
+  };
+  const lastmod = {};
+  const gitMax = (u, rels) => {
+    const d = blogLib.maxLastmod(rels.filter(r => fileExists(path.join(ROOT, r))).map(gitDate), today);
+    if (d) lastmod[u] = d;
+  };
+  const postsMax = (u, posts) => {
+    const d = blogLib.maxLastmod(posts.map(p => p.updated_at || p.published_at), today);
+    if (d) lastmod[u] = d;
+  };
+  const docsIndex = u => `docs/${u.replace(/^\/+|\/+$/g, '')}/index.html`;
   const urls = ['/', '/en/', '/terms.html', '/install2.html'];   // トップは配られる URL(/ と /en/)で載せる。index.html だと Search Console で URL が割れる(11/1)
   for (const p of plugins) {
     // リダイレクトスタブは sitemap に載せない(マニュアルは本物のページなので載せる)
@@ -958,9 +980,31 @@ try {
     urls.push('/blog/en/');
     for (const post of enPosts) urls.push(`/blog/en/${post.slug}/`);
   }
-  const xml = base.replace('</urlset>',
-    urls.map(u => `<url><loc>${SITE_ORIGIN}${u}</loc></url>`).join('') + '</urlset>'
+  gitMax('/', ['templates/index-ja.html']);
+  gitMax('/en/', ['templates/index-en.html']);
+  gitMax('/terms.html', ['terms.html']);
+  gitMax('/install2.html', ['install2.html']);
+  for (const p of plugins) {
+    gitMax(`/products/${p.slug}-manual.html`, [`manuals/${p.slug}.ja.md`]);
+    gitMax(`/products/en/${p.slug}-manual.html`, [`manuals/${p.slug}.en.md`]);
+  }
+  for (const u of [...DOCS_INDEXABLE_PAGES, ...DOCS_INDEXABLE_EN_PAGES]) gitMax(u, [docsIndex(u)]);
+  gitMax('/claude/', ['templates/claude.html', 'data/shorts.json']);
+  postsMax('/blog/', allBlogPosts);
+  for (const key of Object.keys(BLOG_THEMES)) postsMax(`/blog/${BLOG_THEMES[key].slug}/`, allBlogPosts.filter(p => p.theme === key));
+  for (const post of allBlogPosts) postsMax(`/blog/${post.slug}/`, [post]);
+  postsMax('/blog/en/', enPosts);
+  for (const post of enPosts) postsMax(`/blog/en/${post.slug}/`, [post]);
+  // sitemap-base.xml の分(/kintone/ 系)は docs/ に出どころがあるものだけ
+  const baseWithLastmod = base.replace(/<url><loc>(https?:\/\/[^<]+)<\/loc><\/url>/g, (m, loc) => {
+    const u = loc.replace(SITE_ORIGIN, '');
+    gitMax(u, [docsIndex(u)]);
+    return lastmod[u] ? `<url><loc>${loc}</loc><lastmod>${lastmod[u]}</lastmod></url>` : m;
+  });
+  const xml = baseWithLastmod.replace('</urlset>',
+    urls.map(u => `<url><loc>${SITE_ORIGIN}${u}</loc>${lastmod[u] ? `<lastmod>${lastmod[u]}</lastmod>` : ''}</url>`).join('') + '</urlset>'
   );
+  console.log(`sitemap lastmod: ${(xml.match(/<lastmod>/g) || []).length}/${(xml.match(/<loc>/g) || []).length}`);
   fs.writeFileSync(path.join(DIST, 'sitemap.xml'), xml);
 
   // hreflang: ja/en が両方そろって dist/ にあるページだけに <link rel="alternate"> を入れる。

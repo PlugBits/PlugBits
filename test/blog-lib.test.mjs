@@ -534,5 +534,26 @@ test('frontmatterToPost with lang en gives English read time', () => {
   assert.equal(p.read_time, '1 min read');
 });
 
+test('toLastmod: YYYY-MM-DD だけ・未来日と日付なしは null', () => {
+  assert.equal(lib.toLastmod('2026-10-30', '2026-11-03'), '2026-10-30');
+  assert.equal(lib.toLastmod('2026-10-30T12:00:00+09:00', '2026-11-03'), '2026-10-30');
+  assert.equal(lib.toLastmod('2026-11-04', '2026-11-03'), null);
+  assert.equal(lib.toLastmod(undefined, '2026-11-03'), null);
+  assert.equal(lib.toLastmod('', '2026-11-03'), null);
+});
+
+test('maxLastmod: 一覧は載る記事の最大・取れなければ null', () => {
+  assert.equal(lib.maxLastmod(['2026-10-01', '2026-10-20', '2026-10-05'], '2026-11-03'), '2026-10-20');
+  assert.equal(lib.maxLastmod(['2026-10-01', '2026-12-01'], '2026-11-03'), '2026-10-01');
+  assert.equal(lib.maxLastmod([null, undefined], '2026-11-03'), null);
+});
+
+test('date のない記事は lastmod なし(frontmatterToPost → toLastmod)', () => {
+  const p = frontmatterToPost({ slug: 's', title: 't', description: 'd' }, 'x', '<p/>');
+  assert.equal(lib.toLastmod(p.updated_at, '2026-11-03'), null);
+  const q = frontmatterToPost({ slug: 's', title: 't', description: 'd', date: '2026-10-01', updated: '2026-10-15' }, 'x', '<p/>');
+  assert.equal(lib.toLastmod(q.updated_at, '2026-11-03'), '2026-10-15');
+});
+
 console.log(`\n${pass} passed, ${fail} failed`);
 if (fail > 0) process.exit(1);

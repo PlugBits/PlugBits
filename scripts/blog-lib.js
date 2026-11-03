@@ -480,7 +480,23 @@ function buildHreflangTags(jaUrl, enUrl) {
     `<link rel="alternate" hreflang="x-default" href="${jaUrl}">`;
 }
 
+/* sitemap の lastmod 用(11/3)。'2026-11-03' / '2026-11-03T…' / Date → 'YYYY-MM-DD'。
+   日付でない・today より先(未来日)は null(=付けない)。today は 'YYYY-MM-DD' */
+function toLastmod(v, today) {
+  const s = v instanceof Date ? (isNaN(v) ? '' : v.toISOString()) : String(v ?? '').trim();
+  const m = /^(\d{4}-\d{2}-\d{2})/.exec(s);
+  if (!m) return null;
+  return today && m[1] > today ? null : m[1];
+}
+
+/* 一覧ページの lastmod = 載る記事の lastmod の最大。1 本も取れなければ null */
+function maxLastmod(values, today) {
+  return values.map(v => toLastmod(v, today)).filter(Boolean).sort().pop() || null;
+}
+
 module.exports = {
+  toLastmod,
+  maxLastmod,
   formatDateEn,
   formatDate,
   blogBase,
