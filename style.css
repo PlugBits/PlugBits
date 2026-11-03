@@ -1666,3 +1666,64 @@
   color: var(--kb-primary);
   white-space: nowrap;
 }
+
+/* ===== /claude/ ページ(cl- 接頭辞・このページ専用) ===== */
+.cl-hero{background:#F5EFE6;border-bottom:1px solid #E8DCCB}
+.cl-hero-inner{display:grid;grid-template-columns:1fr 300px;gap:32px;align-items:center;padding-top:48px;padding-bottom:48px}
+.cl-hero-title{font-size:40px;line-height:1.25;margin:0 0 14px;font-weight:800;color:#3D2B1F}
+.cl-hero-sub{font-size:16px;line-height:1.8;color:#5C4636;margin:0 0 22px;max-width:34em}
+.cl-hero-btns{display:flex;flex-wrap:wrap;gap:10px}
+.cl-btn{font-size:15px;padding:12px 20px}
+.cl-btn.kb-btn-primary,.cl-btn.kb-btn-primary:hover{color:#fff}
+.cl-hero-art{width:300px;height:auto;border-radius:24px;justify-self:end}
+.cl-main .kb-container{padding-top:8px}
+.cl-section{padding:28px 0}
+.cl-section + .cl-section{border-top:1px solid var(--kb-line)}
+.cl-title{font-size:22px;font-weight:800;margin:0 0 16px;color:var(--kb-text);padding-left:12px;border-left:4px solid #D97757}
+.cl-lead{margin:0 0 16px}
+.cl-note{font-size:13px;color:var(--kb-muted)}
+.cl-src{font-size:13px;color:var(--kb-muted)}
+.cl-back{padding:24px 0 8px;margin:0}
+.cl-list{list-style:none;margin:0;padding:0}
+.cl-list li{padding:10px 0;border-bottom:1px solid var(--kb-line)}
+.cl-list .cl-meta{color:var(--kb-muted);font-size:13px;margin-left:8px}
+/* ショート */
+.cl-shorts{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+.cl-short{display:flex;flex-direction:column;gap:6px;color:var(--kb-text);text-decoration:none}
+.cl-short-thumb{display:block;aspect-ratio:9/16;border-radius:14px;overflow:hidden;background:#F5EFE6;box-shadow:0 2px 10px rgba(61,43,31,.10)}
+.cl-short-thumb img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .2s}
+.cl-short:hover .cl-short-thumb img{transform:scale(1.03)}
+.cl-short-title{font-weight:700;font-size:14px;line-height:1.5;color:var(--kb-text)}
+.cl-short-date{font-size:12px;color:var(--kb-muted)}
+/* 入れる 3 手順 */
+.cl-steps{list-style:none;margin:0 0 16px;padding:0;display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.cl-step{background:#F5EFE6;border-radius:16px;padding:16px 16px 14px;text-align:center}
+.cl-step img{width:100%;max-width:220px;height:auto;display:block;margin:0 auto 8px}
+.cl-step p{margin:0;font-weight:700;color:#3D2B1F;display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap}
+.cl-step-no{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:50%;background:#D97757;color:#fff;font-size:14px;flex:none}
+.cl-details{border:1px solid var(--kb-line);border-radius:12px;padding:12px 16px;background:var(--kb-surface)}
+.cl-details summary{cursor:pointer;font-weight:700}
+.cl-details .kb-cmd{overflow-x:auto}
+/* 作った物 */
+.cl-made{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(2,1fr);gap:16px}
+.cl-made-card{display:flex;align-items:center;gap:16px;padding:16px;border:1px solid var(--kb-line);border-radius:16px;background:var(--kb-surface);color:var(--kb-text);text-decoration:none;height:100%;box-sizing:border-box}
+a.cl-made-card:hover{border-color:#D97757}
+.cl-made-card img{width:72px;height:72px;flex:none}
+.cl-made-card strong{display:block;font-size:16px;margin-bottom:2px}
+.cl-made-card span{font-size:14px;line-height:1.6;color:var(--kb-sub)}
+.cl-made-card span strong{color:var(--kb-text)}
+.cl-guide{background:#F5EFE6;border-radius:20px;padding:24px;margin:16px 0;border-top:none}
+@media (max-width:720px){
+  .cl-hero-inner{grid-template-columns:1fr;gap:12px;padding-top:24px;padding-bottom:28px}
+  .cl-hero-art{order:-1;width:120px;justify-self:start;border-radius:18px}
+  .cl-hero-title{font-size:28px}
+  .cl-hero-sub{font-size:15px}
+  .cl-btn{flex:1 1 auto}
+  .cl-shorts{grid-template-columns:repeat(2,1fr);gap:12px}
+  .cl-steps{grid-template-columns:1fr;gap:10px}
+  .cl-step{display:flex;align-items:center;gap:12px;text-align:left;padding:10px 14px}
+  .cl-step img{width:96px;margin:0}
+  .cl-step p{justify-content:flex-start}
+  .cl-made{grid-template-columns:1fr}
+  .cl-guide{padding:18px 14px}
+}

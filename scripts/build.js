@@ -906,17 +906,25 @@ try {
   (function renderClaude() {
     const shortsPath = path.join(ROOT, 'data', 'shorts.json');
     const shorts = fileExists(shortsPath) ? readJSON(shortsPath) : [];
+    // サムネは YouTube の hqdefault(4:3 の中央に縦動画)を 9:16 の枠に cover で収めて左右の黒帯を落とす
+    const ytId = u => (/(?:youtu\.be\/|\/shorts\/|[?&]v=)([\w-]{11})/.exec(u || '') || [])[1];
     const shortsHtml = shorts.length === 0
       ? '<p>1 本目は 10/30 に出ます。</p>'
-      : '<ul class="cl-list">' + shorts.map(s => {
-          const links = [s.x ? `<a href="${esc(s.x)}">X</a>` : '', s.youtube ? `<a href="${esc(s.youtube)}">YouTube</a>` : ''].filter(Boolean).join(' ');
-          return `<li>${esc(s.title)}<span class="cl-meta">${esc(formatDateJa(s.date))}</span> ${links}</li>`;
+      : '<ul class="cl-shorts">' + shorts.map(s => {
+          const title = String(s.title || '').replace(/\s*#Shorts\b/gi, '').trim();
+          const id = ytId(s.youtube);
+          const href = s.youtube || s.x;
+          const thumb = id
+            ? `<img src="https://i.ytimg.com/vi/${esc(id)}/hqdefault.jpg" alt="" loading="lazy" width="480" height="360">`
+            : '';
+          return `<li><a class="cl-short" href="${esc(href)}"><span class="cl-short-thumb">${thumb}</span>` +
+            `<span class="cl-short-title">${esc(title)}</span><span class="cl-short-date">${esc(formatDateJa(s.date))}</span></a></li>`;
         }).join('') + '</ul>';
     const reads = allBlogPosts
       .filter(p => `${p.title || ''}\n${p.keywords || ''}`.includes('Claude Code'))
       .sort((a, b) => String(b.published_at).localeCompare(String(a.published_at)));
     const readsSection = reads.length === 0 ? '' :
-      '      <section class="kb-section">\n        <h2 class="kb-section-title">読み物</h2>\n        <ul class="cl-list">' +
+      '      <section class="cl-section">\n        <h2 class="cl-title">読み物</h2>\n        <ul class="cl-list">' +
       reads.map(p => `<li><a href="/blog/${esc(p.slug)}/">${esc(p.title)}</a><span class="cl-meta">${esc(formatDateJa(p.published_at))}</span></li>`).join('') +
       '</ul>\n      </section>\n';
     const out = readText(path.join(ROOT, 'templates', 'claude.html'))

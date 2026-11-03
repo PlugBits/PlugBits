@@ -4,24 +4,17 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Claude Code、最初の 1 行から | PlugBits</title>
-  <meta name="description" content="黒い画面に日本語で頼むだけの道具を、中古の Windows 1 台で毎日使っている人の記録">
+  <meta name="description" content="Claude Code に日本語で頼むだけで、コードを書かずに道具を作っている会社の記録です。中古の Windows 1 台で毎日使っています。">
   <link rel="canonical" href="https://plugbits.app/claude/">
   <meta property="og:type" content="website">
   <meta property="og:title" content="Claude Code、最初の 1 行から | PlugBits">
-  <meta property="og:description" content="黒い画面に日本語で頼むだけの道具を、中古の Windows 1 台で毎日使っている人の記録">
+  <meta property="og:description" content="Claude Code に日本語で頼むだけで、コードを書かずに道具を作っている会社の記録です。中古の Windows 1 台で毎日使っています。">
   <meta property="og:url" content="https://plugbits.app/claude/">
   <meta property="og:site_name" content="PlugBits">
   <meta property="og:image" content="%%OG_IMAGE%%">
   <meta name="twitter:card" content="summary_large_image">
   <link rel="stylesheet" href="/style.css">
   <link rel="stylesheet" href="/assets/blog/blog.css">
-  <style>
-    .kb-hero .kb-container{padding:36px 0 24px}
-    .kb-index-main .kb-section{padding:16px 0 24px}
-    .cl-list{list-style:none;margin:0;padding:0}
-    .cl-list li{padding:10px 0;border-bottom:1px solid var(--kb-line)}
-    .cl-list .cl-meta{color:var(--kb-muted);font-size:13px;margin-left:8px}
-  </style>
 </head>
 <body class="kb-root">
 
@@ -43,48 +36,81 @@
   </div>
   </header>
 
-  <header class="kb-hero">
-    <div class="kb-container">
-      <h1 class="kb-hero-title">Claude Code、最初の 1 行から</h1>
-      <p class="kb-hero-sub">黒い画面に日本語で頼むだけの道具を、中古の Windows 1 台で毎日使っている人の記録</p>
+  <header class="cl-hero">
+    <div class="kb-container cl-hero-inner">
+      <div class="cl-hero-text">
+        <h1 class="cl-hero-title">Claude Code、<br>最初の 1 行から</h1>
+        <p class="cl-hero-sub">Claude Code に日本語で頼むだけで、コードを書かずに道具を作っている会社の記録です。中古の Windows 1 台で毎日使っています。</p>
+        <div class="cl-hero-btns">
+          <a class="kb-btn kb-btn-primary cl-btn" href="#shorts">ショートを見る</a>
+          <a class="kb-btn cl-btn" href="#guide">無料ガイドを受け取る</a>
+        </div>
+      </div>
+      <img class="cl-hero-art" src="/assets/claude/main-wave.webp" alt="手を振るメイン" width="640" height="640">
     </div>
   </header>
 
-  <main class="kb-index-main">
+  <main class="kb-index-main cl-main">
     <div class="kb-container">
-      <section class="kb-section">
-        <h2 class="kb-section-title">ショート</h2>
+      <section class="cl-section" id="shorts">
+        <h2 class="cl-title">ショート</h2>
         %%SHORTS_HTML%%
       </section>
-      <section class="kb-section">
-        <h2 class="kb-section-title">Windows に入れる</h2>
-        <p><strong>おすすめはアプリ。</strong><a href="https://claude.com/download">claude.com/download</a> からインストーラを入れる → サインイン → 左の「Code」タブ。Node も CLI も要りません。有料プラン(Pro 以上)が必要です。(出どころ: <a href="https://code.claude.com/docs/en/desktop-quickstart">公式 Desktop quickstart</a>)</p>
-        <p><strong>黒い画面で使いたい人は 1 行。</strong>PowerShell に貼る:</p>
-        <pre class="kb-cmd"><code>irm https://claude.ai/install.ps1 | iex</code></pre>
-        <p>CMD の人:</p>
-        <pre class="kb-cmd"><code>curl -fsSL https://claude.ai/install.cmd -o install.cmd &amp;&amp; install.cmd &amp;&amp; del install.cmd</code></pre>
-        <p>管理者権限は不要。入れた直後に「claude が見つからない」と出たら、新しい窓を開いてください。(出どころ: <a href="https://code.claude.com/docs/en/setup">公式 Set up Claude Code</a>)</p>
+
+      <section class="cl-section">
+        <h2 class="cl-title">Windows に入れる</h2>
+        <p class="cl-lead"><strong>おすすめはアプリ。</strong>Node も CLI も要りません。有料プラン(Pro 以上)が必要です。</p>
+        <ol class="cl-steps">
+          <li class="cl-step">
+            <img src="/assets/claude/art-install.webp" alt="" width="600" height="467" loading="lazy">
+            <p><span class="cl-step-no">1</span><a href="https://claude.com/download">claude.com/download</a> から入れる</p>
+          </li>
+          <li class="cl-step">
+            <img src="/assets/claude/art-login.webp" alt="" width="600" height="467" loading="lazy">
+            <p><span class="cl-step-no">2</span>サインインする</p>
+          </li>
+          <li class="cl-step">
+            <img src="/assets/claude/art-codetab.webp" alt="" width="600" height="467" loading="lazy">
+            <p><span class="cl-step-no">3</span>左の「Code」タブを開く</p>
+          </li>
+        </ol>
+        <details class="cl-details">
+          <summary>黒い画面で使いたい人</summary>
+          <p>PowerShell に貼る:</p>
+          <pre class="kb-cmd"><code>irm https://claude.ai/install.ps1 | iex</code></pre>
+          <p>CMD の人:</p>
+          <pre class="kb-cmd"><code>curl -fsSL https://claude.ai/install.cmd -o install.cmd &amp;&amp; install.cmd &amp;&amp; del install.cmd</code></pre>
+          <p>管理者権限は不要。入れた直後に「claude が見つからない」と出たら、新しい窓を開いてください。</p>
+          <p class="cl-src">出どころ: <a href="https://code.claude.com/docs/en/desktop-quickstart">公式 Desktop quickstart</a> / <a href="https://code.claude.com/docs/en/setup">公式 Set up Claude Code</a></p>
+        </details>
       </section>
-%%READS_SECTION%%      <section class="kb-section">
-        <h2 class="kb-section-title">プラグイン作成 mod</h2>
-        <p>kintone のプラグインを Claude Code で作る mod です。</p>
-        <p><a href="https://github.com/PlugBits/relay">GitHub で見る(PlugBits/relay)</a></p>
+
+%%READS_SECTION%%      <section class="cl-section">
+        <h2 class="cl-title">作った物</h2>
+        <ul class="cl-made">
+          <li>
+            <a class="cl-made-card" href="https://github.com/PlugBits/relay">
+              <img src="/assets/claude/icon-rc.webp" alt="" width="160" height="160" loading="lazy">
+              <span><strong>プラグイン作成 mod</strong>kintone のプラグインを Claude Code で作る mod。GitHub で公開(PlugBits/relay)</span>
+            </a>
+          </li>
+          <li>
+            <div class="cl-made-card">
+              <img src="/assets/claude/icon-clock.webp" alt="" width="160" height="160" loading="lazy">
+              <span><strong>司令室</strong>毎日の定時の仕事を回している自作の司令室</span>
+            </div>
+          </li>
+        </ul>
       </section>
-      <section class="kb-section">
-        <h2 class="kb-section-title">司令室</h2>
-        <p>毎日の定時の仕事 18 本が動いています。SEO ブログは平日 1 日 5 本。(2026-10-29 時点)</p>
-      </section>
-      <section class="kb-section">
-        <h2 class="kb-section-title">無料ガイド「Claude Code はじめの 1 週間」</h2>
+
+      <section class="cl-section cl-guide" id="guide">
+        <h2 class="cl-title">無料ガイド「Claude Code はじめの 1 週間」</h2>
         <p>登録した日から 2 日に 1 通、全部で 7 通。デスクトップアプリだけで、黒い画面は使いません。</p>
-        <p style="margin-top: 8px;">7 通で、手元の Excel・PDF・フォルダの仕事を 1 つ、日本語で任せられるまで。アプリを作るのは、そのあとの週 1 の授業の後半です。</p>
         <iframe width="100%" height="480" src="https://dca617a2.sibforms.com/v2/serve/MUIFADy6zP3lavbTeQlASDOY0bjUdUW8FaZiqtkOWo4xCw0D3LbZedyqgEk2HJBDe0Do1v7MAsI8ZmHWaKCv3QC2LJ6mfsSoYrK86gvjP0ENJ3mCCaAwh8nUGwjuuhFgAC3qPWSKvcv6LkD1f8HHF-olxqzRZ3-amwoJqRQh6bFzkjNw_Ju4AkH_kbgIjCKd79H2x99iuNfpLPlRFg==" frameborder="0" scrolling="auto" allowfullscreen style="display: block;margin-left: auto;margin-right: auto;max-width: 100%;"></iframe>
-        <p style="font-size: 13px;">いつでも解除できます。</p>
+        <p class="cl-note">いつでも解除できます。</p>
       </section>
-      <section class="kb-section">
-        <p>PlugBits は、kintone の小さな不便を減らす道具を作っています。アプリ間の移動を速くする Chrome 拡張 Launcher は無料。プラグインは買い切りで、14 日間無料で試せます。kintone のプラグインを Claude Code で作る mod も GitHub で公開しています(PlugBits/relay)。</p>
-        <p><a href="/">PlugBits のトップへ</a></p>
-      </section>
+
+      <p class="cl-back"><a href="/">PlugBits のトップへ</a></p>
     </div>
   </main>
 
