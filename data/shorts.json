@@ -1,5 +1,11 @@
 [
   {
+    "slug": "19-no-human-line",
+    "title": "この動画、人は 1 行も書いてない",
+    "date": "2026-11-07",
+    "youtube": "https://youtu.be/LLWIFtkFkXw"
+  },
+  {
     "slug": "18-relay-one-line",
     "title": "Claude Code に、専用の mod を 1 つ足した話",
     "date": "2026-11-06",
