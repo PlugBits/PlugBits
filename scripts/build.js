@@ -417,6 +417,8 @@ try {
   });
 
   const allBlogPosts = [...jsonPosts, ...mdPosts];
+  // 記事が 1 本も無いテーマは、タブ・一覧ページ・sitemap に出さない(空のタブを作らない。11/14 C=工場レイアウトを先に足したため)
+  const LISTED_THEMES = Object.fromEntries(Object.entries(BLOG_THEMES).filter(([k]) => allBlogPosts.some(p => p.theme === k)));
 
   // 英語版: content/blog-en/<slug>.md(frontmatter のルールは日本語と同じ: approved && date<=今日)。
   // 日本語の一覧・RSS・関連・go スタブ・テーマには一切混ぜない(allBlogPosts に入れない)。
@@ -581,7 +583,7 @@ try {
         .replaceAll('%%LIST_TITLE%%',       esc(listTitle))
         .replaceAll('%%LIST_LEAD%%',        esc(listLead))
         .replaceAll('%%CANONICAL%%',        pageCanonical)
-        .replaceAll('%%TABS_HTML%%',        blogLib.buildTabsHtml(activeSlug, BLOG_THEMES))
+        .replaceAll('%%TABS_HTML%%',        blogLib.buildTabsHtml(activeSlug, LISTED_THEMES))
         .replaceAll('%%PAGER_HTML%%',       pagerHtml)
         .replaceAll('%%PREV_NEXT_LINKS%%',  prevNextLinks)
         .replaceAll('%%SUPPORT_MAIL%%',     SUPPORT_MAIL)
@@ -597,7 +599,7 @@ try {
 
   fs.mkdirSync(BLOG_DIST, { recursive: true });
   writeBlogListScope(null); // /blog/ すべて
-  for (const key of Object.keys(BLOG_THEMES)) writeBlogListScope(key); // /blog/a/ /blog/b/
+  for (const key of Object.keys(LISTED_THEMES)) writeBlogListScope(key); // /blog/a/ /blog/b/
 
   // RSS(/blog/feed.xml・新しい順20件)
   fs.writeFileSync(path.join(BLOG_DIST, 'feed.xml'), blogLib.buildFeedXml(allBlogPosts, SITE_ORIGIN, 20));
@@ -996,7 +998,7 @@ try {
   urls.push('/blog/');
   urls.push('/claude/');
   urls.push('/claude/shorts/');
-  for (const key of Object.keys(BLOG_THEMES)) urls.push(`/blog/${BLOG_THEMES[key].slug}/`);
+  for (const key of Object.keys(LISTED_THEMES)) urls.push(`/blog/${BLOG_THEMES[key].slug}/`);
   for (const post of allBlogPosts) urls.push(`/blog/${post.slug}/`); // 一覧のページ送りは入れない
   if (enPosts.length > 0) {
     urls.push('/blog/en/');
@@ -1018,7 +1020,7 @@ try {
     if (d) lastmod['/claude/shorts/'] = d;   // 一覧はショートの最新の日
   }
   postsMax('/blog/', allBlogPosts);
-  for (const key of Object.keys(BLOG_THEMES)) postsMax(`/blog/${BLOG_THEMES[key].slug}/`, allBlogPosts.filter(p => p.theme === key));
+  for (const key of Object.keys(LISTED_THEMES)) postsMax(`/blog/${BLOG_THEMES[key].slug}/`, allBlogPosts.filter(p => p.theme === key));
   for (const post of allBlogPosts) postsMax(`/blog/${post.slug}/`, [post]);
   postsMax('/blog/en/', enPosts);
   for (const post of enPosts) postsMax(`/blog/en/${post.slug}/`, [post]);

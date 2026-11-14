@@ -40,6 +40,7 @@ function blogBase(lang) {
 const THEME_LABELS_EN = {
   A: 'kintone views, input & settings',
   B: 'kintone for manufacturing',
+  C: 'Factory layout',
 };
 
 /* js-yaml は "date: 2026-10-01" のような引用なしの日付を Date オブジェクトに変換してしまう。
