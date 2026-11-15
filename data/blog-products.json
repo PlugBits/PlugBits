@@ -22,7 +22,7 @@
     "line": "工場のレイアウトを実寸で。2D で描いて 3D で確かめる。ブラウザだけで無料で使えます。",
     "href": "/layout/go/{slug}/",
     "stub_canonical": "/factory-tools/",
-    "stub_target": "https://factory-layout.plugbits.app/?utm_source=blog&utm_campaign={slug}",
+    "stub_target": "https://factory-layout.plugbits.app/?utm_source=blog&utm_medium=article&utm_campaign={slug}",
     "stub_title": "Factory Layout Planner|移動します",
     "stub_description": "工場のレイアウトを実寸で検討する、ブラウザだけで使える無料の道具です。"
   }
